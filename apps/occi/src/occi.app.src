@@ -1,0 +1,15 @@
+%%-*- mode: erlang -*-
+{application, occi,
+ [
+  {description, "occi"},
+  {vsn, "1"},
+  {modules, []},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib,
+                  cowboy
+                 ]},
+  {mod, { occi_app, []}},
+  {env, []}
+ ]}.

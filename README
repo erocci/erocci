@@ -1,0 +1,42 @@
+OCCI
+----
+
+Resource and Links (base Entity)
+
+Kind (basic) and Mixin (composed) and Action (base Category)
+
+Kind is a type identifier, unique
+
+Mixin are associated to Resource instances _only_
+
+Categorizatiom scheme start with http://schemas.ogf.org/occi/
+
+
+OCCI Architecture
+-----------------
+
+Resource
+	summary:
+  Compute
+	  occi.compute.architecture:
+		occi.compute.cores:
+		occi.compute.hostname:
+		occi.compute.speed:
+		occi.compute.memory:
+		occi.compute.state:
+	Network
+	  occi.network.vlan:
+	  occi.network.label:
+	  occi.network.state:
+	Storage
+	  occi.storage.size:
+	  occi.storage.state:
+Link
+  StorageLink
+	  occi.storagelink.deviceid:
+		occi.storagelink.mountpoint:
+		occi.storagelink.state:
+	NetworkInterface
+	  occi.networkinterface.interface:
+	  occi.networkinterface.mac:
+	  occi.networkinterface.state:
