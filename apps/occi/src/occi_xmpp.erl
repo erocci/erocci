@@ -4,24 +4,25 @@
 %%% @doc
 %%%
 %%% @end
-%%% Created : 18 Mar 2013 by Jean Parpaillon <jean.parpaillon@free.fr>
+%%% Created : 22 Mar 2013 by Jean Parpaillon <jean.parpaillon@free.fr>
 %%%-------------------------------------------------------------------
--module(occi_core).
+-module(occi_xmpp).
 
 -behaviour(gen_server).
 
--include_lib("occi.hrl").
+-include_lib("exmpp/include/exmpp.hrl").
+-include_lib("exmpp/include/exmpp_client.hrl").
 
 %% API
--export([start_link/0, create_kind/6]).
+-export([start_link/0]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
 				 terminate/2, code_change/3]).
 
--define(SERVER, ?MODULE). 
+-define(SERVER, ?MODULE).
 
--record(state, {}).
+-record(state, {session, jid}).
 
 %%%===================================================================
 %%% API
@@ -36,12 +37,6 @@
 %%--------------------------------------------------------------------
 start_link() ->
 		gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
-
-create_kind(Scheme, Term, Title, Related, Location, Attrs) ->
-		gen_server:call(?MODULE, {create_kind, 
-															Scheme, Term, Title, 
-															Related, Location, Attrs}, 
-										infinity).
 
 %%%===================================================================
 %%% gen_server callbacks
@@ -59,8 +54,18 @@ create_kind(Scheme, Term, Title, Related, Location, Attrs) ->
 %% @end
 %%--------------------------------------------------------------------
 init([]) ->
-		{ok, #state{}}.
+		Session = exmpp_session:start(),
+		BaseJid = occi_config:get_env("OCCI_XMPP_JID"),
+		Passwd = occi_config:get_env("OCCI_XMPP_PASSWD"),
+		[User, Server] = string:tokens(BaseJid, "@"),
+		% Create XMPP ID (Session Key)
+		Jid = exmpp_jid:make(User, Server, random),
+		exmpp_session:auth_basic_digest(Session, Jid, Passwd),
+		{ok, _StreamID} = exmpp_session:connect_TCP(Session, Server, 5222),
+		login(Session, Jid, Passwd),
+		{ok, #state{session=Session, jid=Jid}}.
 
+ 
 %%--------------------------------------------------------------------
 %% @private
 %% @doc
@@ -75,16 +80,9 @@ init([]) ->
 %%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_call({create_kind, Scheme, Term, Title, Related, Location, Attrs}, _From, State) ->
-		Cat = #occi_category{scheme=Scheme, 
-												 term=Term, 
-												 title=Title, 
-												 location=Location, 
-												 attrs=Attrs},
-		Kind = #occi_kind{super=Cat, rel=Related},
-		{reply, Kind, State};
-handle_call(_Request, _From, State) ->
+handle_call(_Msg, _From, State) ->
 		{reply, ok, State}.
+
 
 %%--------------------------------------------------------------------
 %% @private
@@ -96,6 +94,8 @@ handle_call(_Request, _From, State) ->
 %%                                  {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
+handle_cast(stop, State) ->
+		{stop, normal, State};
 handle_cast(_Msg, State) ->
 		{noreply, State}.
 
@@ -109,7 +109,12 @@ handle_cast(_Msg, State) ->
 %%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_info(_Info, State) ->
+handle_info(#received_packet{packet_type=message,
+														 raw_packet=Packet}, 
+						#state{session=Session} = State) ->
+		echo_packet(Session, Packet),
+		{noreply, State};
+handle_info(_Record, State) ->
 		{noreply, State}.
 
 %%--------------------------------------------------------------------
@@ -123,7 +128,8 @@ handle_info(_Info, State) ->
 %% @spec terminate(Reason, State) -> void()
 %% @end
 %%--------------------------------------------------------------------
-terminate(_Reason, _State) ->
+terminate(_Reason, #state{session=Session}) ->
+		exmpp_session:stop(Session),
 		ok.
 
 %%--------------------------------------------------------------------
@@ -136,3 +142,33 @@ terminate(_Reason, _State) ->
 %%--------------------------------------------------------------------
 code_change(_OldVsn, State, _Extra) ->
 		{ok, State}.
+
+%%%===================================================================
+%%% Internal functions
+%%%===================================================================
+%% Send the same packet back for each message received
+echo_packet(Session, Packet) ->
+    From = exmpp_xml:get_attribute(Packet, <<"from">>, <<"unknown">>),
+    To = exmpp_xml:get_attribute(Packet, <<"to">>, <<"unknown">>),
+    TmpPacket = exmpp_xml:set_attribute(Packet, <<"from">>, To),
+    TmpPacket2 = exmpp_xml:set_attribute(TmpPacket, <<"to">>, From),
+    NewPacket = exmpp_xml:remove_attribute(TmpPacket2, <<"id">>),
+    exmpp_session:send_packet(Session, NewPacket).
+
+login(Session, _Jid, Passwd) ->
+		try exmpp_session:login(Session)
+		catch
+				throw:{auth_error, 'not-authorized'} ->
+						%% Try creating a new user:
+						io:format("Register~n",[]),
+						%% In a real life client, we should trap error case here
+						%% and print the correct message.
+						exmpp_session:register_account(Session, Passwd),
+						%% After registration, retry to login:
+						exmpp_session:login(Session)
+    end,
+    % Send presence
+		Status = exmpp_presence:set_status(exmpp_presence:available(), 
+																			 "OCCI Ready"),
+		exmpp_session:send_packet(Session, Status),
+		Session.

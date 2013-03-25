@@ -1,19 +1,17 @@
 %%%-------------------------------------------------------------------
-%%% @author Jean Parpaillon <jean.parpaillon@free.fr>
+%%% @author Jean Parpaillon <jean@bison.home>
 %%% @copyright (C) 2013, Jean Parpaillon
 %%% @doc
 %%%
 %%% @end
-%%% Created : 18 Mar 2013 by Jean Parpaillon <jean.parpaillon@free.fr>
+%%% Created : 21 Mar 2013 by Jean Parpaillon <jean@bison.home>
 %%%-------------------------------------------------------------------
--module(occi_core).
+-module(occi_srv).
 
 -behaviour(gen_server).
 
--include_lib("occi.hrl").
-
 %% API
--export([start_link/0, create_kind/6]).
+-export([start_link/0]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -36,12 +34,6 @@
 %%--------------------------------------------------------------------
 start_link() ->
 		gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
-
-create_kind(Scheme, Term, Title, Related, Location, Attrs) ->
-		gen_server:call(?MODULE, {create_kind, 
-															Scheme, Term, Title, 
-															Related, Location, Attrs}, 
-										infinity).
 
 %%%===================================================================
 %%% gen_server callbacks
@@ -75,16 +67,9 @@ init([]) ->
 %%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_call({create_kind, Scheme, Term, Title, Related, Location, Attrs}, _From, State) ->
-		Cat = #occi_category{scheme=Scheme, 
-												 term=Term, 
-												 title=Title, 
-												 location=Location, 
-												 attrs=Attrs},
-		Kind = #occi_kind{super=Cat, rel=Related},
-		{reply, Kind, State};
 handle_call(_Request, _From, State) ->
-		{reply, ok, State}.
+		Reply = ok,
+		{reply, Reply, State}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -136,3 +121,7 @@ terminate(_Reason, _State) ->
 %%--------------------------------------------------------------------
 code_change(_OldVsn, State, _Extra) ->
 		{ok, State}.
+
+%%%===================================================================
+%%% Internal functions
+%%%===================================================================

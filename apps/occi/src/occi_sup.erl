@@ -1,7 +1,7 @@
 %% @author Jean Parpaillon <jean.parpaillon@free.fr>
 %% @copyright 2013 Jean Parpaillon.
 
-%% @doc Supervisor for the occi application.
+%% @doc Supervisor for the occi core application.
 
 -module(occi_sup).
 -author('Jean Parpaillon <jean.parpaillon@free.fr>').
@@ -9,37 +9,24 @@
 -behaviour(supervisor).
 
 %% External exports
--export([start_link/0, upgrade/0]).
+-export([start_link/0]).
 
 %% supervisor callbacks
 -export([init/1]).
+
+%% Helper macro for declaring children of supervisor
+%% ChildSpec = {Id, StartFunc, Restart, Shutdown, Type, Modules}
+-define(CHILD(I, Type), {I, {I, start_link, []}, permanent, 5000, Type, [I]}).
 
 %% @spec start_link() -> ServerRet
 %% @doc API for starting the supervisor.
 start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
-%% @spec upgrade() -> ok
-%% @doc Add processes if necessary.
-upgrade() ->
-    {ok, {_, Specs}} = init([]),
-
-    Old = sets:from_list(
-            [Name || {Name, _, _, _} <- supervisor:which_children(?MODULE)]),
-    New = sets:from_list([Name || {Name, _, _, _, _, _} <- Specs]),
-    Kill = sets:subtract(Old, New),
-
-    sets:fold(fun (Id, ok) ->
-                      supervisor:terminate_child(?MODULE, Id),
-                      supervisor:delete_child(?MODULE, Id),
-                      ok
-              end, ok, Kill),
-
-    [supervisor:start_child(?MODULE, Spec) || Spec <- Specs],
-    ok.
-
 %% @spec init([]) -> SupervisorTree
 %% @doc supervisor callback.
 init([]) ->
-		Procs = [],
+		Xmpp = ?CHILD(occi_xmpp, worker),
+		%Core = ?CHILD(occi_core, worker),
+		Procs = [ Xmpp ],
 		{ok, {{one_for_one, 10, 10}, Procs}}.

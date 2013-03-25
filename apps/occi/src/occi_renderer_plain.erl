@@ -12,11 +12,15 @@
 
 -define(ENCODING, latin1).
 
+%% API
 -export([render/1]).
 -export([render_uri/1, 
 				 render_attrs/1, render_attr/1,
 				 render_actions/1, render_action/1]).
 
+%%%===================================================================
+%%% API
+%%%===================================================================
 render(#occi_kind{super=Cat, actions=A, rel=R}) ->
 		[ 
 			render({term, Cat#occi_category.term}),

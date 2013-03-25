@@ -10,7 +10,7 @@ start.sh : simple startup script for running occi
 /ebin
   /occi.app : the Erlang app specification
 /src
-  /occi_app.erl : base module for the Erlang application
+  /occi.erl : base module for the Erlang application
   /occi_sup.erl : OTP supervisor for the application
   /occi_resource.erl : a simple example Webmachine resource
 /priv

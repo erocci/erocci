@@ -7,9 +7,8 @@
   {registered, []},
   {applications, [
                   kernel,
-                  stdlib,
-                  cowboy
+                  stdlib
                  ]},
-  {mod, { occi_app, []}},
+  {mod, { occi, []}},
   {env, []}
  ]}.
