@@ -27,6 +27,7 @@ start_link() ->
 %% @doc supervisor callback.
 init([]) ->
 		Xmpp = ?CHILD(occi_xmpp, worker),
-		%Core = ?CHILD(occi_core, worker),
-		Procs = [ Xmpp ],
+		Http = ?CHILD(occi_http, worker),
+		Core = ?CHILD(occi_core, worker),
+		Procs = [ Xmpp, Http, Core ],
 		{ok, {{one_for_one, 10, 10}, Procs}}.

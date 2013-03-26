@@ -26,25 +26,18 @@ stop() ->
     application:stop(crypto),
 		application:stop(exmpp),
 		application:stop(inets),
+		occi_config:stop(),
 		Res.
 
 %% @spec start(_Type, _StartArgs) -> ServerRet
 %% @doc application start callback for occi.
 start(_Type, _StartArgs) ->
+		occi_config:start(),
 		ok = ensure_started(inets),
 		ok = ensure_started(exmpp),
 		ok = ensure_started(crypto),
 		ok = ensure_started(ranch),
 		ok = ensure_started(cowboy),
-		Dispatch = cowboy_router:compile([
-								   {'_', [
-												 {"/-/", occi_query, []},
-												 {"/.well-known/org/ogf/occi/-/", occi_query, []}
-												 ]}
-								 ]),
-		{ok, _} = cowboy:start_http(http, 100, [{port, 9086}],
-																[{env, [{dispatch, Dispatch}]}]
-															 ),
     occi_sup:start_link().
 
 %% @spec stop(_State) -> ServerRet
