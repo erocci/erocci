@@ -34,7 +34,7 @@
 
 -record(state, {session                              :: pid(), 
 								port                                 :: pos_integer(),
-								auth_info = { undefined, undefined } :: { binary(), binary() }}).
+								auth_info = { undefined, undefined } :: { string(), string() }}).
 
 %%%===================================================================
 %%% API
@@ -83,9 +83,12 @@ get_status() ->
 %% @end
 %%--------------------------------------------------------------------
 init([]) ->
-		Port = occi_config:get('xmpp.port', ?DEFAULT_PORT),
-		BaseJid = occi_config:get('xmpp.jid', undefined),
-		Passwd = occi_config:get('xmpp.passwd', undefined),
+		Port = occi_config:get('xmpp.port', fun(V) when is_integer(V) -> V end,
+													 ?DEFAULT_PORT),
+		BaseJid = occi_config:get('xmpp.jid', fun(V) when is_binary(V) -> V end,
+															undefined),
+		Passwd = occi_config:get('xmpp.password', fun(V) when is_binary(V) -> V end,
+														 undefined),
 		State = #state{ port=Port, 
 										auth_info={ BaseJid, Passwd },
 										session=exmpp_session:start()},
@@ -93,8 +96,14 @@ init([]) ->
 
 setup(#state{ auth_info={ undefined, undefined } } = State) ->
 		{ok, wait_for_auth, State};
-setup(#state{ auth_info={ _BaseJid, _Passwd } } = State) ->
-		{ok, disconnected, State}.
+setup(#state{ session=Session,
+							auth_info={ BaseJid, Passwd },
+						port=Port } = State) ->
+		case do_connect(Session, BaseJid, Passwd, Port)
+		of
+				ok -> {ok, connected, State};
+				nok -> {ok, disconnected, State}
+		end.
 
 code_change(_OldVsn, StateName, State, _Extra) ->
 		{ok, StateName, State}.
@@ -168,11 +177,14 @@ disconnected(_Event, State) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
-do_connect(Session, BaseJid, Passwd, Port) 
-	when is_binary(BaseJid),
-			 is_binary(Passwd) ->
-		do_connect(Session, binary_to_list(BaseJid), binary_to_list(Passwd), Port);
+do_connect(Session, BaseJid, Passwd, Port) when is_binary(BaseJid) ->
+		io:format("### transform baseJid"),
+		do_connect(Session, binary_to_list(BaseJid), Passwd, Port);
+do_connect(Session, BaseJid, Passwd, Port) when is_binary(Passwd) ->
+		io:format("### transform passwd"),
+		do_connect(Session, BaseJid, binary_to_list(Passwd), Port);
 do_connect(Session, BaseJid, Passwd, Port) ->
+		io:format("### BaseJID=~p, Passwd=~p~n", [BaseJid, Passwd]),
 		[User, Server] = string:tokens(BaseJid, "@"),
 		% Create XMPP ID (Session Key)
 		Jid = exmpp_jid:make(User, Server, random),

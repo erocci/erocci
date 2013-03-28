@@ -7,7 +7,7 @@
 
 -behaviour(application).
 
--export([start/0, stop/0]).
+-export([start/0, stop/0, db_init/0]).
 
 % application callbacks
 -export([start/2,stop/1]).
@@ -32,6 +32,7 @@ stop() ->
 %% @spec start(_Type, _StartArgs) -> ServerRet
 %% @doc application start callback for occi.
 start(_Type, _StartArgs) ->
+		db_init(),
 		occi_config:start(),
 		ok = ensure_started(inets),
 		ok = ensure_started(exmpp),
@@ -55,3 +56,13 @@ ensure_started(App) ->
         {error, {already_started, App}} ->
             ok
     end.
+
+db_init() ->
+    case mnesia:system_info(extra_db_nodes) of
+	[] ->
+	    mnesia:create_schema([node()]);
+	_ ->
+	    ok
+    end,
+    application:start(mnesia, permanent),
+    mnesia:wait_for_tables(mnesia:system_info(local_tables), infinity).
