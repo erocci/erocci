@@ -1,3 +1,6 @@
+*~
+erl_crash.dump
 apps/*/ebin
 deps/
 priv/
+Mnesia.nonode@nohost/
