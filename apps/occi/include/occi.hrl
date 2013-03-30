@@ -11,16 +11,16 @@
 
 %% OCCI Attributes
 -record(occi_attr, {key   = undefined :: atom(),
-										value = undefined :: any(),
-										prop  = undefined :: undefined | immutable | required}).
+		    value = undefined :: any(),
+		    prop  = undefined :: undefined | immutable | required}).
 -type occi_attr() :: #occi_attr{}.
 
 %%% OCCI Category
 -record(occi_category, {scheme    = <<>>      :: uri(),
-												term      = undefined :: atom(),
-												title     = <<>>      :: binary(),
-												location  = <<>>      :: uri(),
-												attrs     = []        :: [ occi_attr() ]}).
+			term      = undefined :: atom(),
+			title     = <<>>      :: binary(),
+			location  = <<>>      :: uri(),
+			attrs     = []        :: [ occi_attr() ]}).
 -type occi_category() :: #occi_category{}.
 
 %%% OCCI Action
@@ -29,31 +29,31 @@
 
 %%% OCCI Kind
 -record(occi_kind, {super   = #occi_category{} :: occi_category(),
-										actions = []               :: [ occi_action() ],
-										rel     = <<>>             :: uri()}).
+		    actions = []               :: [ occi_action() ],
+		    rel     = <<>>             :: uri()}).
 -type occi_kind() :: #occi_kind{}.
 
 %%% OCCI Mixin
 -record(occi_mixin, {super   = #occi_category{} :: occi_category(),
-										 actions = []               :: [ occi_action() ],
-										 rel     = <<>>             :: uri()}).
+		     actions = []               :: [ occi_action() ],
+		     rel     = <<>>             :: uri()}).
 -type occi_mixin() :: #occi_mixin{}.
 
 %%% OCCI Entity
 -record(occi_entity, {id     = <<>>         :: uri(),
-											title  = <<>>         :: binary(),
-											kind   = #occi_kind{} :: occi_kind(),
-											mixins = []           :: [ occi_mixin() ]}).
+		      title  = <<>>         :: binary(),
+		      kind   = #occi_kind{} :: occi_kind(),
+		      mixins = []           :: [ occi_mixin() ]}).
 -type occi_entity() :: #occi_entity{}.
 
 %%% OCCI Link
 -record(occi_link, {super  = #occi_entity{} :: occi_entity(),
-										target = <<>>           :: uri(),
-										source = <<>>           :: uri()}).
+		    target = <<>>           :: uri(),
+		    source = <<>>           :: uri()}).
 -type occi_link() :: #occi_link{}.
 
 %%% OCCI Resource
 -record(occi_resource, {super   = #occi_entity{} :: occi_entity(),
-												summary = <<>>           :: binary(),
-												links   = []             :: [ uri() ]}).
+			summary = <<>>           :: binary(),
+			links   = []             :: [ uri() ]}).
 -type occi_resource() :: #occi_resource{}.
