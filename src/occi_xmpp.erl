@@ -114,7 +114,7 @@ handle_info(#received_packet{packet_type=message,
 			     raw_packet=Packet} = Record,
 	    StateName,
 	    #state{session=Session} = State) ->
-    echo_packet(Session, Packet),
+    %echo_packet(Session, Packet),
     {next_state, StateName, State};
 handle_info(_Record, StateName, State) ->
     {next_state, StateName, State}.

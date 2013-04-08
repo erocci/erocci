@@ -3,8 +3,8 @@ cd `dirname $0`
 
 export MNESIA_DIR="$HOME/.occi/"
 
-exec erl -pa $PWD/apps/occi/ebin \
-		$PWD/deps/*/ebin \
-		-boot start_sasl \
-		-s reloader \
-		-s occi
+exec erl -pa $PWD/ebin \
+    $PWD/deps/*/ebin \
+    -boot start_sasl \
+    -s reloader \
+    -s occi
