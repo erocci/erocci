@@ -15,7 +15,7 @@
 %% @spec start() -> ok
 %% @doc Start the occi server.
 start() ->
-		ok = ensure_started(occi).
+    ok = ensure_started(occi).
 
 %% @spec stop() -> ok
 %% @doc Stop the occi server.

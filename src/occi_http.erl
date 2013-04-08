@@ -65,7 +65,7 @@ init([]) ->
     {ok, _} = cowboy:start_http(http, 100, [{port, ?PORT}],
 				[{env, [{dispatch, Dispatch}]}]
 			       ),
-		{ok, #state{routes=Routes}}.
+    {ok, #state{routes=Routes}}.
 
 %%--------------------------------------------------------------------
 %% @private

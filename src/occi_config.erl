@@ -41,15 +41,15 @@ get(Opt, F) ->
 -spec get(any(), check_fun(), any()) -> any().
 get(Opt, F, Default) ->
     case ets:lookup(config, Opt) of
-				[#config{value = Val}] ->
-						prepare_opt_val(Opt, Val, F, Default);
-				_ ->
+	[#config{value = Val}] ->
+	    prepare_opt_val(Opt, Val, F, Default);
+	_ ->
             Default
     end.
 
 set(Opt, Val, State) ->
-		State#state{opts = [#config{key = Opt, value = Val} |
-												State#state.opts]}.
+    State#state{opts = [#config{key = Opt, value = Val} |
+			State#state.opts]}.
 
 %% @doc Get the filename of the erocci configuration file.
 %% The filename can be specified with: erl -config "/path/to/erocci.cfg".
@@ -58,12 +58,12 @@ set(Opt, Val, State) ->
 %% @spec () -> string()
 get_config_path() ->
     case application:get_env(config) of
-				{ok, Path} -> Path;
-				undefined ->
-						case os:getenv("EROCCI_CONFIG_PATH") of
-								false ->
-										?CONFIG_PATH;
-								Path ->
+	{ok, Path} -> Path;
+	undefined ->
+	    case os:getenv("EROCCI_CONFIG_PATH") of
+		false ->
+		    ?CONFIG_PATH;
+		Path ->
 		    Path
 	    end
     end.
@@ -79,21 +79,21 @@ load_file(File) ->
 set_opts(State) ->
     Opts = lists:reverse(State#state.opts),
     F = fun() ->
-								lists:foreach(fun(R) ->
-																			mnesia:write(R)
-															end, Opts)
-				end,
+		lists:foreach(fun(R) ->
+				      mnesia:write(R)
+			      end, Opts)
+	end,
     case mnesia:transaction(F) of
-				{atomic, _} -> ok;
-				{aborted,{no_exists,Table}} ->
-						MnesiaDirectory = mnesia:system_info(directory),
-						?ERROR_MSG("Error reading Mnesia database spool files:~n"
-											 "The Mnesia database couldn't read the spool file for the table '~p'.~n"
-											 "erocci needs read and write access in the directory:~n   ~s~n"
-											 "Maybe the problem is a change in the computer hostname,~n"
-											 "or a change in the Erlang node name, which is currently:~n   ~p~n",
-											 [Table, MnesiaDirectory, node()]),
-						exit("Error reading Mnesia database")
+	{atomic, _} -> ok;
+	{aborted,{no_exists,Table}} ->
+	    MnesiaDirectory = mnesia:system_info(directory),
+	    ?ERROR_MSG("Error reading Mnesia database spool files:~n"
+		       "The Mnesia database couldn't read the spool file for the table '~p'.~n"
+		       "erocci needs read and write access in the directory:~n   ~s~n"
+		       "Maybe the problem is a change in the computer hostname,~n"
+		       "or a change in the Erlang node name, which is currently:~n   ~p~n",
+		       [Table, MnesiaDirectory, node()]),
+	    exit("Error reading Mnesia database")
     end.
 
 %% @doc Read an occi configuration file and return the terms.
@@ -107,17 +107,17 @@ get_plain_terms_file(File) when is_binary(File) ->
     get_plain_terms_file(binary_to_list(File));
 get_plain_terms_file(File1) ->
     File = get_absolute_path(File1),
-		case file:consult(File) of
-				{ok, Terms} ->
-						strings_to_binary(Terms);
-				{error, {LineNumber, erl_parse, _ParseMessage} = Reason} ->
-						ExitText = describe_config_problem(File, Reason, LineNumber),
-						exit_or_halt(ExitText);
-				{error, Reason} ->
-						ExitText = describe_config_problem(File, Reason),
-						?ERROR_MSG(ExitText, []),
-						exit_or_halt(ExitText)
-		end.
+    case file:consult(File) of
+	{ok, Terms} ->
+	    strings_to_binary(Terms);
+	{error, {LineNumber, erl_parse, _ParseMessage} = Reason} ->
+	    ExitText = describe_config_problem(File, Reason, LineNumber),
+	    exit_or_halt(ExitText);
+	{error, Reason} ->
+	    ExitText = describe_config_problem(File, Reason),
+	    ?ERROR_MSG(ExitText, []),
+	    exit_or_halt(ExitText)
+    end.
 
 %% @doc Convert configuration filename to absolute path.
 %% Input is an absolute or relative path to an ejabberd configuration file.
@@ -149,7 +149,7 @@ describe_config_problem(Filename, Reason, LineNumber) ->
     ExitText = Text1 ++ Text2,
     Lines = get_config_lines(Filename, LineNumber, 10, 3),
     ?ERROR_MSG("The following lines from your configuration file might be"
-							 " relevant to the error: ~n~s", [Lines]),
+	       " relevant to the error: ~n~s", [Lines]),
     ExitText.
 
 get_config_lines(Filename, TargetNumber, PreContext, PostContext) ->
@@ -177,11 +177,11 @@ get_config_lines2(Fd, Data, CurrLine, [NextWanted | LNumbers], R) when is_list(D
 %% If occi isn't yet running in this node, then halt the node
 exit_or_halt(ExitText) ->
     case [Vsn || {occi, _Desc, Vsn} <- application:which_applications()] of
-				[] ->
-						timer:sleep(1000),
-						halt(string:substr(ExitText, 1, 199));
-				[_] ->
-						exit(ExitText)
+	[] ->
+	    timer:sleep(1000),
+	    halt(string:substr(ExitText, 1, 199));
+	[_] ->
+	    exit(ExitText)
     end.
 
 strings_to_binary([]) ->
@@ -258,18 +258,18 @@ prepare_opt_val(Opt, Val, F, Default) ->
 %% @spec (Path::string()) -> true | false
 is_file_readable(Path) ->
     case file:read_file_info(Path) of
-				{ok, FileInfo} ->
-						case {FileInfo#file_info.type, FileInfo#file_info.access} of
-								{regular, read} -> true;
-								{regular, read_write} -> true;
-								_ -> false
-						end;
-				{error, _Reason} ->
-						false
+	{ok, FileInfo} ->
+	    case {FileInfo#file_info.type, FileInfo#file_info.access} of
+		{regular, read} -> true;
+		{regular, read_write} -> true;
+		_ -> false
+	    end;
+	{error, _Reason} ->
+	    false
     end.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% Process terms
 
 process_term({Opt, Val}, State) ->
-		set(Opt, Val, State).
+    set(Opt, Val, State).
