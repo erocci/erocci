@@ -20,31 +20,31 @@ start() ->
 %% @spec stop() -> ok
 %% @doc Stop the occi server.
 stop() ->
-		Res = application:stop(occi),
+    Res = application:stop(occi),
     application:stop(cowboy),
     application:stop(ranch),
     application:stop(crypto),
-		application:stop(exmpp),
-		application:stop(inets),
-		occi_config:stop(),
-		Res.
+    application:stop(exmpp),
+    application:stop(inets),
+    occi_config:stop(),
+    Res.
 
 %% @spec start(_Type, _StartArgs) -> ServerRet
 %% @doc application start callback for occi.
 start(_Type, _StartArgs) ->
-		db_init(),
-		occi_config:start(),
-		ok = ensure_started(inets),
-		ok = ensure_started(exmpp),
-		ok = ensure_started(crypto),
-		ok = ensure_started(ranch),
-		ok = ensure_started(cowboy),
+    db_init(),
+    occi_config:start(),
+    ok = ensure_started(inets),
+    ok = ensure_started(exmpp),
+    ok = ensure_started(crypto),
+    ok = ensure_started(ranch),
+    ok = ensure_started(cowboy),
     occi_sup:start_link().
 
 %% @spec stop(_State) -> ServerRet
 %% @doc application stop callback for occi.
 stop(_State) ->
-		ok.
+    ok.
 
 %% ===================================================================
 %% Internal

@@ -17,7 +17,7 @@
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
-				 terminate/2, code_change/3]).
+	 terminate/2, code_change/3]).
 
 -define(SERVER, ?MODULE). 
 
@@ -35,13 +35,13 @@
 %% @end
 %%--------------------------------------------------------------------
 start_link() ->
-		gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
+    gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
 
 create_kind(Scheme, Term, Title, Related, Location, Attrs) ->
-		gen_server:call(?MODULE, {create_kind, 
-															Scheme, Term, Title, 
-															Related, Location, Attrs}, 
-										infinity).
+    gen_server:call(?MODULE, {create_kind, 
+			      Scheme, Term, Title, 
+			      Related, Location, Attrs}, 
+		    infinity).
 
 %%%===================================================================
 %%% gen_server callbacks
@@ -59,7 +59,7 @@ create_kind(Scheme, Term, Title, Related, Location, Attrs) ->
 %% @end
 %%--------------------------------------------------------------------
 init([]) ->
-		{ok, #state{}}.
+    {ok, #state{}}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -76,15 +76,15 @@ init([]) ->
 %% @end
 %%--------------------------------------------------------------------
 handle_call({create_kind, Scheme, Term, Title, Related, Location, Attrs}, _From, State) ->
-		Cat = #occi_category{scheme=Scheme, 
-												 term=Term, 
-												 title=Title, 
-												 location=Location, 
-												 attrs=Attrs},
-		Kind = #occi_kind{super=Cat, rel=Related},
-		{reply, Kind, State};
+    Cat = #occi_category{scheme=Scheme, 
+			 term=Term, 
+			 title=Title, 
+			 location=Location, 
+			 attrs=Attrs},
+    Kind = #occi_kind{super=Cat, rel=Related},
+    {reply, Kind, State};
 handle_call(_Request, _From, State) ->
-		{reply, ok, State}.
+    {reply, ok, State}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -97,7 +97,7 @@ handle_call(_Request, _From, State) ->
 %% @end
 %%--------------------------------------------------------------------
 handle_cast(_Msg, State) ->
-		{noreply, State}.
+    {noreply, State}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -110,7 +110,7 @@ handle_cast(_Msg, State) ->
 %% @end
 %%--------------------------------------------------------------------
 handle_info(_Info, State) ->
-		{noreply, State}.
+    {noreply, State}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -124,7 +124,7 @@ handle_info(_Info, State) ->
 %% @end
 %%--------------------------------------------------------------------
 terminate(_Reason, _State) ->
-		ok.
+    ok.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -135,4 +135,4 @@ terminate(_Reason, _State) ->
 %% @end
 %%--------------------------------------------------------------------
 code_change(_OldVsn, State, _Extra) ->
-		{ok, State}.
+    {ok, State}.

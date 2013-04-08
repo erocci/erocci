@@ -15,7 +15,7 @@
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
-				 terminate/2, code_change/3]).
+	 terminate/2, code_change/3]).
 
 -define(PORT, 9086).
 -define(SERVER, ?MODULE). 
@@ -34,10 +34,10 @@
 %% @end
 %%--------------------------------------------------------------------
 start_link() ->
-		gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
+    gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
 
 get_port() ->
-		?PORT.
+    ?PORT.
 
 %%%===================================================================
 %%% gen_server callbacks
@@ -55,16 +55,16 @@ get_port() ->
 %% @end
 %%--------------------------------------------------------------------
 init([]) ->
-		Routes = [
-							{<<"/-/">>, occi_query, []},
-							{<<"/.well-known/org/ogf/occi/-/">>, occi_query, []},
-							{<<"/_priv/">>, occi_priv, []}
-						 ],
+    Routes = [
+	      {<<"/-/">>, occi_query, []},
+	      {<<"/.well-known/org/ogf/occi/-/">>, occi_query, []},
+	      {<<"/_priv/">>, occi_priv, []}
+	     ],
 		%PrivRoutes = [ {<<"_priv">>, occi_priv, []} ],
-		Dispatch = cowboy_router:compile([{'_', Routes}]),
-		{ok, _} = cowboy:start_http(http, 100, [{port, ?PORT}],
-																[{env, [{dispatch, Dispatch}]}]
-															 ),
+    Dispatch = cowboy_router:compile([{'_', Routes}]),
+    {ok, _} = cowboy:start_http(http, 100, [{port, ?PORT}],
+				[{env, [{dispatch, Dispatch}]}]
+			       ),
 		{ok, #state{routes=Routes}}.
 
 %%--------------------------------------------------------------------
@@ -82,8 +82,8 @@ init([]) ->
 %% @end
 %%--------------------------------------------------------------------
 handle_call(_Request, _From, State) ->
-		Reply = ok,
-		{reply, Reply, State}.
+    Reply = ok,
+    {reply, Reply, State}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -96,7 +96,7 @@ handle_call(_Request, _From, State) ->
 %% @end
 %%--------------------------------------------------------------------
 handle_cast(_Msg, State) ->
-		{noreply, State}.
+    {noreply, State}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -109,7 +109,7 @@ handle_cast(_Msg, State) ->
 %% @end
 %%--------------------------------------------------------------------
 handle_info(_Info, State) ->
-		{noreply, State}.
+    {noreply, State}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -123,7 +123,7 @@ handle_info(_Info, State) ->
 %% @end
 %%--------------------------------------------------------------------
 terminate(_Reason, _State) ->
-		ok.
+    ok.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -134,7 +134,7 @@ terminate(_Reason, _State) ->
 %% @end
 %%--------------------------------------------------------------------
 code_change(_OldVsn, State, _Extra) ->
-		{ok, State}.
+    {ok, State}.
 
 %%%===================================================================
 %%% Internal functions

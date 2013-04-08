@@ -7,8 +7,8 @@
 
 
 -define(INFO_MSG(Format, Args),
-				io:format(Format, Args)).
+	io:format(Format, Args)).
 
 -define(ERROR_MSG(Format, Args),
-				io:format(Format, Args)).
+	io:format(Format, Args)).
 
