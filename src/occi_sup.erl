@@ -26,8 +26,9 @@ start_link() ->
 %% @spec init([]) -> SupervisorTree
 %% @doc supervisor callback.
 init([]) ->
-		Xmpp = ?CHILD(occi_xmpp, worker),
+		%Xmpp = ?CHILD(occi_xmpp, worker),
 		Http = ?CHILD(occi_http, worker),
 		Core = ?CHILD(occi_core, worker),
-		Procs = [ Xmpp, Http, Core ],
+		%Procs = [ Xmpp, Http, Core ],
+		Procs = [ Http, Core ],
 		{ok, {{one_for_one, 10, 10}, Procs}}.
