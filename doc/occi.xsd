@@ -1,0 +1,80 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" >
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en" >
+      OCCI model Description Schema 
+      Version 1
+      Aligned with the OCCI Core Document
+    </xsd:documentation>
+  </xsd:annotation>
+
+  <xsd:element name="extension" type="occiExtensionType" />
+
+  <xsd:complexType name="occiExtensionType" >
+    <xsd:sequence>
+      <xsd:element ref="xsd:annotation" minOccurs="0" maxOccurs="1" />
+      <xsd:element name="kind" type="occiKindType" minOccurs="0" maxOccurs="unbounded" />
+      <xsd:element name="mixin" type="occiMixinType" minOccurs="0" maxOccurs="unbounded" />
+      <xsd:element ref="xsd:simpleType" minOccurs="0" maxOccurs="unbounded" />
+    </xsd:sequence>
+    <xsd:attribute name="name" type="xsd:string" />
+    <xsd:attribute name="scheme" type="xsd:anyURI" use="required" >
+      <xsd:annotation>
+	<xsd:documentation xml:lang="en" >
+	  'scheme' attribute is only required for 'extension'
+	  elements. If not specified in child elements, 'scheme'
+	  attribute is parent element's one.
+	</xsd:documentation>
+	<xsd:documentation xml:lang="en" >
+	  'scheme' attribute can be a fully qualified url or can start
+	  with '.'.  In the latter case, '.' must be replaced with
+	  parent element's 'scheme' attribute value to get the full
+	  scheme url.
+	</xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+  </xsd:complexType>
+
+  <xsd:complexType name="occiCategoryType" >
+    <xsd:sequence>
+      <xsd:element ref="xsd:annotation" minOccurs="0" maxOccurs="1" />
+      <xsd:element name="related" type="occiRelatedType" minOccurs="1" maxOccurs="unbounded" />
+      <xsd:element name="attribute" type="occiAttributeType" />
+      <xsd:element name="action" type="occiActionType" />
+    </xsd:sequence>
+    <xsd:attribute name="scheme" type="xsd:anyURI" />
+    <xsd:attribute name="term" type="xsd:string" use="required" />
+    <xsd:attribute name="title" type="xsd:string" />
+    <xsd:attribute name="use" default="required" >
+      <xsd:annotation>
+	<xsd:documentation xml:lang="en" >
+	  If category is 'required', any implementation MUST support this category. 
+	  If category is 'optional', implementations SHOULD support this category.
+	</xsd:documentation>
+      </xsd:annotation>
+      <xsd:simpleType>
+	<xsd:restriction base="xsd:string" >
+ 	  <xsd:enumeration name="required" />
+	  <xsd:enumeration name="optional" />
+	</xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
+  </xsd:complexType>
+
+  <xsd:complexType name="occiAttributeType" >
+    <xsd:complexContent>
+      <xsd:extension base="xsd:attribute" >
+	<xsd:attribute name="mutable" type="xsd:boolean" default="true" />
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <xsd:complexType name="occiActionType" >
+    <xsd:sequence>
+      <xsd:element ref="xsd:annotation" minOccurs="0" maxOccurs="1" />
+      <xsd:element name="attribute" type="occiAttributeType" />
+    </xsd:sequence>
+    <xsd:attribute name="scheme" type="xsd:anyURI" />
+    <xsd:attribute name="term" type="xsd:string" use="required" />    
+    <xsd:attribute name="title" type="xsd:string" />
+  </xsd:complexType>
+</xsd:schema>
