@@ -6,7 +6,9 @@
       Compute Resource
   -->
   <occi:kind term="compute" title="Compute Resource" >
-    <xsd:documentation xml:lang="en" >Information processing resources.</xsd:documentation>
+    <xsd:annotation>
+      <xsd:documentation xml:lang="en" >Information processing resources.</xsd:documentation>
+    </xsd:annotation>
     <occi:related scheme="http://schemas.ogf.org/occi/core" term="resource" />
     <occi:attribute name="occi.compute.architecture" mutable="true" >
       <xsd:annotation>

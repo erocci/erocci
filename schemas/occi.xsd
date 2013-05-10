@@ -12,8 +12,8 @@
   <xsd:complexType name="occiExtensionType" >
     <xsd:sequence>
       <xsd:element ref="xsd:annotation" minOccurs="0" maxOccurs="1" />
-      <xsd:element name="kind" type="occiKindType" minOccurs="0" maxOccurs="unbounded" />
-      <xsd:element name="mixin" type="occiMixinType" minOccurs="0" maxOccurs="unbounded" />
+      <xsd:element name="kind" type="occiCategoryType" minOccurs="0" maxOccurs="unbounded" />
+      <xsd:element name="mixin" type="occiCategoryType" minOccurs="0" maxOccurs="unbounded" />
       <xsd:element ref="xsd:simpleType" minOccurs="0" maxOccurs="unbounded" />
     </xsd:sequence>
     <xsd:attribute name="name" type="xsd:string" />
