@@ -10,8 +10,8 @@
 
 -behaviour(gen_fsm).
 
--include_lib("exmpp/include/exmpp.hrl").
--include_lib("exmpp/include/exmpp_client.hrl").
+-include("exmpp.hrl").
+-include("exmpp_client.hrl").
 
 %% API
 -export([start_link/0, stop/0, get_status/0, set_auth/2, connect/0]).
@@ -111,9 +111,9 @@ code_change(_OldVsn, StateName, State, _Extra) ->
     {ok, StateName, State}.
 
 handle_info(#received_packet{packet_type=message,
-			     raw_packet=Packet} = Record,
+			     raw_packet=_Packet} = _Record,
 	    StateName,
-	    #state{session=Session} = State) ->
+	    #state{session=_Session} = State) ->
     %echo_packet(Session, Packet),
     {next_state, StateName, State};
 handle_info(_Record, StateName, State) ->

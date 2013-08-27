@@ -9,6 +9,6 @@
                   kernel,
                   stdlib
                  ]},
-  {mod, { occi, []}},
+  {mod, { occi_app, []}},
   {env, []}
  ]}.

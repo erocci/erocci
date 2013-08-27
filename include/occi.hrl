@@ -4,56 +4,55 @@
 %%%
 %%% @end
 %%% Created : 14 Mar 2013 by Jean Parpaillon <jean.parpaillon@free.fr>
+-import_class(occi_category).
 
--define(OCCI_BASE_SCHEME, <<"http://schemas.ogf.org/occi/">>).
-
--type uri() :: binary().
+-type(uri() :: binary()).
+% {Module, Function}
+-type(occi_cb() :: {atom(), atom()}).
 
 %% OCCI Attributes
--record(occi_attr, {key   = undefined :: atom(),
-		    value = undefined :: any(),
-		    prop  = undefined :: undefined | immutable | required}).
--type occi_attr() :: #occi_attr{}.
+-type(occi_attr_key() :: atom()).
+-type(occi_attr_property() :: immutable | required).
+-record(occi_attr, {key                    :: occi_attr_key(),
+		    properties = []        :: [ occi_attr_property() ],
+		    cb         = undefined :: occi_cb() | undefined  % used for type checking
+		   }).
+-type(occi_attr() :: #occi_attr{}).
 
-%%% OCCI Category
--record(occi_category, {scheme    = <<>>      :: uri(),
-			term      = undefined :: atom(),
-			title     = <<>>      :: binary(),
-			location  = <<>>      :: uri(),
-			attrs     = []        :: [ occi_attr() ]}).
--type occi_category() :: #occi_category{}.
+%%% OCCI Category ID
+-record(occi_category_id, {scheme    = undefined :: atom(),
+			   term      = undefined :: atom()}).
+-type(occi_category_id() :: #occi_category_id{}).
 
-%%% OCCI Action
--record(occi_action, {super = #occi_category{} :: occi_category()}).
--type occi_action() :: #occi_action{}.
+%%% OCCI Type (Category or derivative)
+-record(occi_type, {id         = #occi_category_id{} :: occi_category_id(),
+		    module     = undefined           :: atom(),
+		    backend    = undefined           :: atom()}).
+-type(occi_type() :: #occi_type{}).
 
-%%% OCCI Kind
--record(occi_kind, {super   = #occi_category{} :: occi_category(),
-		    actions = []               :: [ occi_action() ],
-		    rel     = <<>>             :: uri()}).
--type occi_kind() :: #occi_kind{}.
-
-%%% OCCI Mixin
--record(occi_mixin, {super   = #occi_category{} :: occi_category(),
-		     actions = []               :: [ occi_action() ],
-		     rel     = <<>>             :: uri()}).
--type occi_mixin() :: #occi_mixin{}.
-
-%%% OCCI Entity
--record(occi_entity, {id     = <<>>         :: uri(),
-		      title  = <<>>         :: binary(),
-		      kind   = #occi_kind{} :: occi_kind(),
-		      mixins = []           :: [ occi_mixin() ]}).
--type occi_entity() :: #occi_entity{}.
+%%% OCCI Entity ID
+-type(occi_entity_id() :: uri()).
 
 %%% OCCI Link
--record(occi_link, {super  = #occi_entity{} :: occi_entity(),
-		    target = <<>>           :: uri(),
-		    source = <<>>           :: uri()}).
--type occi_link() :: #occi_link{}.
+-record(occi_link, {id     = <<>>                :: occi_entity_id(),
+		    title  = <<>>                :: binary(),
+		    kind   = #occi_category_id{} :: occi_category_id(),
+		    mixins = []                  :: [ occi_category_id() ],
+		    target = <<>>                :: uri(),
+		    source = <<>>                :: uri()}).
+-type(occi_link() :: #occi_link{}).
 
 %%% OCCI Resource
--record(occi_resource, {super   = #occi_entity{} :: occi_entity(),
-			summary = <<>>           :: binary(),
-			links   = []             :: [ uri() ]}).
--type occi_resource() :: #occi_resource{}.
+-record(occi_resource, {id     = <<>>                :: occi_entity_id(),
+			title  = <<>>                :: binary(),
+			kind   = #occi_category_id{} :: occi_category_id(),
+			mixins = []                  :: [ occi_category_id() ],
+			summary = <<>>               :: binary(),
+			links   = []                 :: [ uri() ]}).
+-type(occi_resource() :: #occi_resource{}).
+
+%%% OCCI Entity
+-type(occi_entity() :: occi_resource() | occi_link()).
+
+%%% OCCI Filter
+-type(occi_filter() :: term()).

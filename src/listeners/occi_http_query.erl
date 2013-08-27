@@ -2,7 +2,7 @@
 %% @copyright 2013 Jean Parpaillon.
 %% @doc Example webmachine_resource.
 
--module(occi_query).
+-module(occi_http_query).
 -export([init/3, 
 	 allowed_methods/2,
 	 content_types_provided/2,
@@ -35,8 +35,8 @@ content_types_accepted(Req, Ctx) ->
      Req, Ctx}.
 
 to_plain(Req, Ctx) ->
-    Kinds = get_registered_kinds(),
-    Res = lists:map(fun(R) -> occi_renderer_plain:render(R) end, Kinds),
+    Categories = occi_store:get_categories(),
+    Res = lists:map(fun(R) -> occi_renderer_plain:render(R) end, Categories),
     {Res, Req, Ctx}.
 
 to_occi(Req, Ctx) ->
@@ -53,10 +53,3 @@ from_occi(Req, Ctx) ->
 
 from_uri_list(Req, Ctx) ->
     {ok, Req, Ctx}.
-
-get_registered_kinds() ->
-    [ 
-      occi_infra:create_compute_kind(),
-      occi_infra:create_network_kind(),
-      occi_infra:create_storage_kind()
-    ].

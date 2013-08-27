@@ -9,16 +9,17 @@
 -module(occi_config).
 -author('jean.parpaillon@free.fr').
 
-%% API
--export([start/0, load_file/1, get/2, get/3, set/3]).
--export([is_file_readable/1]).
--export([prepare_opt_val/4]).
+-compile([{parse_transform, lager_transform}]).
 
--include("occi_common.hrl").
+%% API
+-export([start/0, load_file/1, get/1, get/2, get/3, set/3]).
+-export([is_file_readable/1]).
+-export([prepare_opt_val/4, process_term/2]).
+
 -include("occi_config.hrl").
 -include_lib("kernel/include/file.hrl").
 
--define(CONFIG_PATH, <<"erocci.cfg">>).
+-define(CONFIG_PATH, 'erocci.cfg').
 
 %%%===================================================================
 %%% API
@@ -33,6 +34,10 @@ start() ->
     ok.
 
 -type check_fun() :: fun((any()) -> any()) | {module(), atom()}.
+
+-spec get(any()) -> any().
+get(Opt) ->
+    get(Opt, fun(X) -> X end, undefined).
 
 -spec get(any(), check_fun()) -> any().
 get(Opt, F) ->
@@ -87,12 +92,12 @@ set_opts(State) ->
 	{atomic, _} -> ok;
 	{aborted,{no_exists,Table}} ->
 	    MnesiaDirectory = mnesia:system_info(directory),
-	    ?ERROR_MSG("Error reading Mnesia database spool files:~n"
-		       "The Mnesia database couldn't read the spool file for the table '~p'.~n"
-		       "erocci needs read and write access in the directory:~n   ~s~n"
-		       "Maybe the problem is a change in the computer hostname,~n"
-		       "or a change in the Erlang node name, which is currently:~n   ~p~n",
-		       [Table, MnesiaDirectory, node()]),
+	    lager:error("Error reading Mnesia database spool files:~n"
+			"The Mnesia database couldn't read the spool file for the table '~p'.~n"
+			"erocci needs read and write access in the directory:~n   ~s~n"
+			"Maybe the problem is a change in the computer hostname,~n"
+			"or a change in the Erlang node name, which is currently:~n   ~p~n",
+			[Table, MnesiaDirectory, node()]),
 	    exit("Error reading Mnesia database")
     end.
 
@@ -115,7 +120,7 @@ get_plain_terms_file(File1) ->
 	    exit_or_halt(ExitText);
 	{error, Reason} ->
 	    ExitText = describe_config_problem(File, Reason),
-	    ?ERROR_MSG(ExitText, []),
+	    lager:error(ExitText, []),
 	    exit_or_halt(ExitText)
     end.
 
@@ -148,8 +153,8 @@ describe_config_problem(Filename, Reason, LineNumber) ->
 			  ++ file:format_error(Reason)),
     ExitText = Text1 ++ Text2,
     Lines = get_config_lines(Filename, LineNumber, 10, 3),
-    ?ERROR_MSG("The following lines from your configuration file might be"
-	       " relevant to the error: ~n~s", [Lines]),
+    lager:error("The following lines from your configuration file might be"
+		" relevant to the error: ~n~s", [Lines]),
     ExitText.
 
 get_config_lines(Filename, TargetNumber, PreContext, PostContext) ->
@@ -243,13 +248,13 @@ prepare_opt_val(Opt, Val, F, Default) ->
           end,
     case Res of
         {'EXIT', _} ->
-            ?INFO_MSG("Configuration problem:~n"
-                      "** Option: ~s~n"
-                      "** Invalid value: ~s~n"
-                      "** Using as fallback: ~s",
-                      [format_term(Opt),
-                       format_term(Val),
-                       format_term(Default)]),
+            lager:info("Configuration problem:~n"
+		       "** Option: ~s~n"
+		       "** Invalid value: ~s~n"
+		       "** Using as fallback: ~s",
+		       [format_term(Opt),
+			format_term(Val),
+			format_term(Default)]),
             Default;
         _ ->
             Res
@@ -270,6 +275,14 @@ is_file_readable(Path) ->
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% Process terms
-
+process_term({backends, Backends}, State) ->
+    Backends2 = occi_store:parse_backends(Backends),
+    set(backends, Backends2, State);
+process_term({listeners, Listeners}, State) ->
+    Listeners2 = occi_listener:parse_listeners(Listeners),
+    set(listeners, Listeners2, State);
+process_term({categories, Categories}, State) ->
+    Categories2 = occi_store:parse_categories(Categories),
+    set(categories, Categories2, State);
 process_term({Opt, Val}, State) ->
     set(Opt, Val, State).

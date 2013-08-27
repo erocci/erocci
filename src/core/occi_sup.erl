@@ -25,9 +25,18 @@ start_link() ->
 
 %% @spec init([]) -> SupervisorTree
 %% @doc supervisor callback.
-init([]) ->
-		Xmpp = ?CHILD(occi_xmpp, worker),
-		Http = ?CHILD(occi_http, worker),
-		Core = ?CHILD(occi_core, worker),
-		Procs = [ Xmpp, Http, Core ],
-		{ok, {{one_for_one, 10, 10}, Procs}}.
+init(_) ->
+    Store = {occi_store,
+	     {occi_store, start_link, []},
+	     permanent,
+	     infinity,
+	     supervisor,
+	     [occi_store]},
+    Listener = {occi_listener,
+		{occi_listener, start_link, []},
+		permanent,
+		infinity,
+		supervisor,
+		[occi_listener]},
+    Children = [Store, Listener],
+    {ok, {{one_for_one, 10, 10}, Children}}.
