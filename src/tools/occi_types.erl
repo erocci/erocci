@@ -20,7 +20,7 @@ is_enum(_Obj, []) ->
 -spec is_integer(any()) -> {ok, integer()} | error.
 is_integer(Obj) ->
     try 
-	Val = binary_to_integer(Obj),
+	Val = string:to_integer(Obj),
 	{ok, Val}
     catch
 	_ -> error
@@ -29,7 +29,7 @@ is_integer(Obj) ->
 -spec is_float(any()) -> {ok, float()} | error.
 is_float(Obj) ->
     try 
-	Val = binary_to_float(Obj),
+	Val = string:to_float(Obj),
 	{ok, Val}
     catch
 	_ -> error
