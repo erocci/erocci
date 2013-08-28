@@ -13,7 +13,8 @@
 
 %% API
 -export([render_plain/1,
-	 render_occi/1]).
+	 render_occi/1,
+	 render_uri_list/1]).
 
 %%%===================================================================
 %%% API
@@ -23,6 +24,14 @@ render_plain(Types) ->
 
 render_occi(Types) ->
     render_occi(Types, []).
+
+render_uri_list(Types) ->
+    RenderLocation = fun({occi_type, _, Mod, _}) -> 
+			     {occi_location, Location} = occi_renderer:get_location(Mod),
+			     [ Location, <<"\n">> ];
+			({occi_action,_,_,_,_}) -> []
+		     end,
+    lists:map(RenderLocation, Types).
 
 render_occi([], Acc) ->
     lists:reverse(Acc);

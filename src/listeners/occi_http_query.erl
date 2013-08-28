@@ -47,7 +47,8 @@ to_occi(Req, Ctx) ->
     {Body, Req2, Ctx}.
 
 to_uri_list(Req, Ctx) ->
-    {ok, Req, Ctx}.
+    Categories = occi_store:get_categories(),
+    {occi_renderer_plain:render_uri_list(Categories), Req, Ctx}.
 
 from_plain(Req, Ctx) ->
     {ok, Req, Ctx}.
