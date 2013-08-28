@@ -11,9 +11,6 @@
 
 -behaviour(supervisor).
 
--include_lib("stdlib/include/qlc.hrl").
--include("occi.hrl").
-
 %% API
 -export([start_link/0,
 	 save/1,
@@ -191,8 +188,8 @@ register_categories3(Backend, Filter) ->
     Categories = occi_config:get(categories, fun validate_categories/1),
     Filtered = lists:filter(Filter, Categories),
     Trans = fun() -> lists:foreach(fun({Mod, Scheme, Term}) ->
-					   Id = #occi_category_id{scheme=Scheme, term=Term},
-					   Type = #occi_type{id=Id, module=Mod, backend=Backend},
+					   Id = {occi_category_id, Scheme, Term},
+					   Type = {occi_type, Id, Mod, Backend},
 					   lager:info("Registering category: ~p~n", [Type]),
 					   mnesia:write(Type)
 				   end,
