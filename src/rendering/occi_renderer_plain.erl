@@ -48,7 +48,7 @@ render({occi_action, Mod}) ->
       <<"\n">>
     ];
 
-render({occi_category_id, Scheme, Term}) ->
+render({occi_cid, Scheme, Term}) ->
     [ <<"Category: ">>, ?ATOM_TO_BINARY(Term), <<"">>,
       <<";\n\tscheme=\"">>, ?ATOM_TO_BINARY(Scheme), <<"\"">> ];
 
@@ -78,7 +78,7 @@ render({occi_attribute, K, [], _F}) ->
 render({occi_attribute, K, L, _F}) ->
     [ ?ATOM_TO_BINARY(K), <<"{">>, render_attr_properties(L), <<"}">> ];
 
-render({occi_action_spec, {occi_category_id, Scheme, Term}, Name, _Desc, _Attrs}) ->
+render({occi_action_spec, {occi_cid, Scheme, Term}, Name, _Desc, _Attrs}) ->
     [ ?ATOM_TO_BINARY(Scheme), <<"/">>,
       ?ATOM_TO_BINARY(Term), <<"/action#">>,
       ?ATOM_TO_BINARY(Name) ];

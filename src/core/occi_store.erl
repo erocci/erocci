@@ -9,6 +9,8 @@
 -module(occi_store).
 -compile([{parse_transform, lager_transform}]).
 
+-include("occi.hrl").
+
 -behaviour(supervisor).
 
 %% API
@@ -67,12 +69,12 @@ save(Entity) ->
     Backend = get_backend(CatId),
     gen_server:call(Backend, {save, Entity}).
 
--spec get(occi_category_id(), occi_entity_id()) -> {ok, occi_entity()}.
+-spec get(occi_cid(), occi_entity_id()) -> {ok, occi_entity()}.
 get(CatId, Id) ->
     Backend = get_backend(CatId),
     gen_server:call(Backend, {get, CatId, Id}).
 
--spec find(occi_category_id(), occi_filter()) -> {ok, [occi_entity()]}.
+-spec find(occi_cid(), occi_filter()) -> {ok, [occi_entity()]}.
 find(CatId, Filter) ->
     Backend = get_backend(CatId),
     gen_server:call(Backend, {find, CatId, Filter}).
@@ -83,7 +85,7 @@ update(Entity) ->
     Backend = get_backend(CatId),
     gen_server:call(Backend, {update, CatId, Entity}).
 
--spec delete(occi_category_id(), occi_entity_id()) -> ok.
+-spec delete(occi_cid(), occi_entity_id()) -> ok.
 delete(CatId, Id) ->
     Backend = get_backend(CatId),
     gen_server:call(Backend, {delete, CatId, Id}).
@@ -111,7 +113,7 @@ init([]) ->
 %%%===================================================================
 %%% internals
 %%%===================================================================
--spec get_backend(occi_category_id()) -> pid().
+-spec get_backend(occi_cid()) -> pid().
 get_backend(CatId) ->
     case mnesia:dirty_read(occi_type, CatId) of
 	[ Backend ] -> Backend;
@@ -170,16 +172,16 @@ register_categories(Backends) ->
 register_categories2(Backend, Scheme, any) ->
     F = fun({Mod, _Scheme, _Term}) -> 
 		case occi_renderer:get_id(Mod) of
-		    {occi_category_id, Scheme, _} -> true;
-		    {occi_category_id,_, _} -> false
+		    {occi_cid, Scheme, _} -> true;
+		    {occi_cid,_, _} -> false
 		end
 	end,
     register_categories3(Backend, F);
 register_categories2(Backend, Scheme, Term) ->
     F = fun({Mod, _Scheme, _Term}) -> 
 		case occi_renderer:get_id(Mod) of
-		    {occi_category_id, Scheme, Term} -> true;
-		    {occi_category_id, _, _} -> false
+		    {occi_cid, Scheme, Term} -> true;
+		    {occi_cid, _, _} -> false
 		end
 	end,
     register_categories3(Backend, F).
@@ -188,7 +190,7 @@ register_categories3(Backend, Filter) ->
     Categories = occi_config:get(categories, fun validate_categories/1),
     Filtered = lists:filter(Filter, Categories),
     Trans = fun() -> lists:foreach(fun({Mod, Scheme, Term}) ->
-					   Id = {occi_category_id, Scheme, Term},
+					   Id = {occi_cid, Scheme, Term},
 					   Type = {occi_type, Id, Mod, Backend},
 					   lager:info("Registering category: ~p~n", [Type]),
 					   mnesia:write(Type)
@@ -211,7 +213,7 @@ validate_categories(Opts) ->
     lists:map(fun(Mod) ->
 		      case is_module(Mod) of
 			  true ->
-			      {occi_category_id, Scheme, Term} = occi_renderer:get_id(Mod),
+			      {occi_cid, Scheme, Term} = occi_renderer:get_id(Mod),
 			      {Mod, Scheme, Term};
 			  false ->
 			      lager:error("~p is not a valid module", [Mod]),

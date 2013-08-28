@@ -31,23 +31,23 @@
     term().
 
 -callback save(Obj :: occi_entity(), State :: term()) ->
-    {ok, Id :: occi_category_id() | occi_entity_id(), State :: term()} |
+    {ok, Id :: occi_cid() | occi_entity_id(), State :: term()} |
     {error, Reason :: term()}.
 
--callback get(CatId :: occi_category_id(), Id :: occi_entity_id(), State :: term()) ->
+-callback get(CatId :: occi_cid(), Id :: occi_entity_id(), State :: term()) ->
     {ok, [Entities :: occi_entity()], State :: term()} |
     {nok} |
     {error, Reason :: term()}.
 
--callback find(CatId :: occi_category_id(), Filter :: occi_filter(), State :: term()) ->
+-callback find(CatId :: occi_cid(), Filter :: occi_filter(), State :: term()) ->
     {ok, [Entities :: occi_entity()], term()} |
     {error, Reason :: term()}.
 
--callback update(CatId :: occi_category_id(), Entity :: occi_entity(), State :: term()) ->
+-callback update(CatId :: occi_cid(), Entity :: occi_entity(), State :: term()) ->
     {ok, State :: term()} |
     {error, Reason :: term()}.
 
--callback delete(CatId :: occi_category_id(), Id :: occi_entity_id(), State :: term()) ->
+-callback delete(CatId :: occi_cid(), Id :: occi_entity_id(), State :: term()) ->
     {ok, State :: term()} |
     {error, Reason :: term()}.
 

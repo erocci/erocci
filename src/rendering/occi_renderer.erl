@@ -18,11 +18,11 @@
 	 get_actions_spec/1
 	]).
 
--spec get_id(atom()) -> {occi_category_id, atom(), atom()}.
+-spec get_id(atom()) -> {occi_cid, atom(), atom()}.
 get_id(Mod) ->
     [Scheme] = get_tag(Mod, occi_scheme),
     [Term] = get_tag(Mod, occi_term),
-    {occi_category_id, Scheme, Term}.
+    {occi_cid, Scheme, Term}.
 
 -spec get_title(atom()) -> {occi_title, list()}.
 get_title(Mod) ->

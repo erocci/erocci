@@ -20,12 +20,12 @@
 -type(occi_attr() :: #occi_attr{}).
 
 %%% OCCI Category ID
--record(occi_category_id, {scheme    = undefined :: atom(),
+-record(occi_cid, {scheme    = undefined :: atom(),
 			   term      = undefined :: atom()}).
--type(occi_category_id() :: #occi_category_id{}).
+-type(occi_cid() :: #occi_cid{}).
 
 %%% OCCI Type (Category or derivative)
--record(occi_type, {id         = #occi_category_id{} :: occi_category_id(),
+-record(occi_type, {id         = #occi_cid{} :: occi_cid(),
 		    module     = undefined           :: atom(),
 		    backend    = undefined           :: atom()}).
 -type(occi_type() :: #occi_type{}).
@@ -36,8 +36,8 @@
 %%% OCCI Link
 -record(occi_link, {id     = <<>>                :: occi_entity_id(),
 		    title  = <<>>                :: binary(),
-		    kind   = #occi_category_id{} :: occi_category_id(),
-		    mixins = []                  :: [ occi_category_id() ],
+		    kind   = #occi_cid{} :: occi_cid(),
+		    mixins = []                  :: [ occi_cid() ],
 		    target = <<>>                :: uri(),
 		    source = <<>>                :: uri()}).
 -type(occi_link() :: #occi_link{}).
@@ -45,8 +45,8 @@
 %%% OCCI Resource
 -record(occi_resource, {id     = <<>>                :: occi_entity_id(),
 			title  = <<>>                :: binary(),
-			kind   = #occi_category_id{} :: occi_category_id(),
-			mixins = []                  :: [ occi_category_id() ],
+			kind   = #occi_cid{} :: occi_cid(),
+			mixins = []                  :: [ occi_cid() ],
 			summary = <<>>               :: binary(),
 			links   = []                 :: [ uri() ]}).
 -type(occi_resource() :: #occi_resource{}).
