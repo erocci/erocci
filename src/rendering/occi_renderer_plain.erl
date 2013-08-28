@@ -49,7 +49,7 @@ render({occi_action, Mod}) ->
     ];
 
 render({occi_category_id, Scheme, Term}) ->
-    [ <<"Category: \"">>, ?ATOM_TO_BINARY(Term), <<"\"">>,
+    [ <<"Category: ">>, ?ATOM_TO_BINARY(Term), <<"">>,
       <<";\n\tscheme=\"">>, ?ATOM_TO_BINARY(Scheme), <<"\"">> ];
 
 render({occi_class, E}) ->

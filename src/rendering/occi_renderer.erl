@@ -49,7 +49,7 @@ get_relations(Mod) ->
 get_location(Mod) ->
     Base = occi_config:get(base_location),
     Term = ?ATOM_TO_BINARY(lists:nth(1, get_tag(Mod, occi_term))),
-    {occi_location, <<Base/binary, Term/binary>>}.
+    {occi_location, <<Base/binary, "/", Term/binary>>}.
 
 -spec get_attributes(atom()) -> {occi_attributes, [{occi_attribute, atom(), list(), mfa()}]}.
 get_attributes(Mod) ->
