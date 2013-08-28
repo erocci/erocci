@@ -7,8 +7,6 @@
 -module(occi_renderer).
 -compile([{parse_transform, lager_transform}]).
 
--include("occi_renderer.hrl").
-
 -export([get_id/1,
 	 get_title/1,
 	 get_class/1,
@@ -49,8 +47,8 @@ get_relations(Mod) ->
 -spec get_location(atom()) -> {occi_location, binary()}.
 get_location(Mod) ->
     Base = occi_config:get(base_location),
-    Term = ?ATOM_TO_BINARY(lists:nth(1, get_tag(Mod, occi_term))),
-    {occi_location, <<Base/binary, "/", Term/binary>>}.
+    Term = atom_to_list(lists:nth(1, get_tag(Mod, occi_term))),
+    {occi_location, [ Base, "/", Term]}.
 
 -spec get_attributes(atom()) -> {occi_attributes, [{occi_attribute, atom(), list(), mfa()}]}.
 get_attributes(Mod) ->
@@ -59,19 +57,20 @@ get_attributes(Mod) ->
 
 -spec get_actions_spec(atom()) -> {occi_actions_spec, [{occi_action_spec, tuple(), atom(), list(), list()}]}.
 get_actions_spec(Mod) ->
-    CatId = get_id(Mod),
+    {occi_cid, BaseScheme, BaseTerm} = get_id(Mod),
+    Scheme = get_action_scheme(BaseScheme, BaseTerm),
     Actions = get_tag(Mod, occi_action),
     GenAttr = fun({Term, F}) -> {occi_attribute, Term, F} end,
-    GenAction = fun({Name, Desc, Attrs}) -> 
-			{occi_action_spec, CatId, Name, Desc, lists:map(GenAttr, Attrs)} 
+    GenAction = fun({Term, Desc, Attrs}) -> 
+			{occi_action_spec, Scheme, Term, Desc, lists:map(GenAttr, Attrs)} 
 		end,
     {occi_actions_spec, lists:map(GenAction, Actions)}.
 
 -spec get_actions(atom()) -> [{occi_action, atom(), atom(), binary(), list()}].
 get_actions(Mod) ->
     {occi_cid, BaseScheme, BaseTerm} = get_id(Mod),
-    Scheme = [ ?ATOM_TO_BINARY(BaseScheme), "/", ?ATOM_TO_BINARY(BaseTerm), "/action#" ],
-    GenAttr = fun({K, F}) -> {occi_attribute, K, F} end,		      
+    Scheme = get_action_scheme(BaseScheme, BaseTerm),
+    GenAttr = fun({K, F}) -> {occi_attribute, K, F} end,
     GenAction = fun({Term, Title, Attrs}) ->
 			{occi_action, Scheme, Term, Title, lists:map(GenAttr, Attrs)}
 		end,
@@ -86,3 +85,6 @@ get_tag(Mod, Name) when is_atom(Mod), is_atom(Name) ->
 get_tag(Mod, Name) ->
     lager:error("Invalid value: ~p, ~p~n", [Mod, Name]),
     throw({error, einval}).
+
+get_action_scheme(BaseScheme, BaseTerm) ->
+    [ lists:nth(1, string:tokens(atom_to_list(BaseScheme), "#")), "/", atom_to_list(BaseTerm), "/action#" ].

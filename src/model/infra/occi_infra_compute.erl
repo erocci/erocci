@@ -6,12 +6,12 @@
 %%% Created : 12 Aug 2013 by Jean Parpaillon <jean.parpaillon@free.fr>
 -module(occi_infra_compute).
 
--occi_scheme('http://schemas.ogf.org/occi/infrastructure').
+-occi_scheme('http://schemas.ogf.org/occi/infrastructure#').
 -occi_term(compute).
 -occi_title(<<"Compute resource">>).
 -occi_class(kind).
 -occi_entity_type("Compute").
--occi_relation({'http://schemas.ogf.org/occi/core', kind}).
+-occi_relation({'http://schemas.ogf.org/occi/core#', resource}).
 
 %%%
 %%% Attributes

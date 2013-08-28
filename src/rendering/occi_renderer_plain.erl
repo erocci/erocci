@@ -9,8 +9,6 @@
 -module(occi_renderer_plain).
 -compile({parse_transform, lager_transform}).
 
--include("occi_renderer.hrl").
-
 %% API
 -export([render_plain/1,
 	 render_occi/1,
@@ -74,12 +72,12 @@ render({occi_action, Scheme, Term, Title, Attributes}, Sep) ->
     ];
 
 render({occi_cid, Scheme, Term}, Sep) when is_atom(Scheme) ->
-    render({occi_cid, ?ATOM_TO_BINARY(Scheme), Term}, Sep);
+    render({occi_cid, atom_to_list(Scheme), Term}, Sep);
 render({occi_cid, Scheme, Term}, Sep) ->
-    [ ?ATOM_TO_BINARY(Term), <<";">>, render_sep_indent(Sep), <<"scheme=\"">>, Scheme, <<"\"">> ];
+    [ atom_to_list(Term), <<";">>, render_sep_indent(Sep), <<"scheme=\"">>, Scheme, <<"\"">> ];
 
 render({occi_class, E}, Sep) ->
-    [ <<";">>, render_sep_indent(Sep), <<"class=\"">>, E, <<"\"">> ];
+    [ ";", render_sep_indent(Sep), <<"class=\"">>, E, <<"\"">> ];
 
 render({occi_title, E}, Sep) ->
     [ <<";">>, render_sep_indent(Sep), <<"title=\"">>, E, <<"\"">> ];
@@ -97,19 +95,17 @@ render({occi_actions_spec, L}, Sep) ->
     [ <<";">>, render_sep_indent(Sep), <<"actions=\"">>, render_ssi(L, fun render/2, Sep), <<"\"">> ];
 
 render({occi_relation, Scheme, Term}, _Sep) ->
-    [ ?ATOM_TO_BINARY(Scheme), "/", ?ATOM_TO_BINARY(Term) ];
+    [ atom_to_list(Scheme), atom_to_list(Term) ];
 
 render({occi_attribute, K, [], _F}, _Sep) ->
-    ?ATOM_TO_BINARY(K);
+    atom_to_list(K);
 render({occi_attribute, K, L, _F}, _Sep) ->
-    [ ?ATOM_TO_BINARY(K), <<"{">>, render_attr_properties(L), <<"}">> ];
+    [ atom_to_list(K), <<"{">>, render_attr_properties(L), <<"}">> ];
 render({occi_attribute, K, _F}, _Sep) ->
-    ?ATOM_TO_BINARY(K);
+    atom_to_list(K);
 
-render({occi_action_spec, {occi_cid, Scheme, Term}, Name, _Desc, _Attrs}, _Sep) ->
-    [ ?ATOM_TO_BINARY(Scheme), <<"/">>,
-      ?ATOM_TO_BINARY(Term), <<"/action#">>,
-      ?ATOM_TO_BINARY(Name) ];
+render({occi_action_spec, Scheme, Term, _Desc, _Attrs}, _Sep) ->
+    [ Scheme, atom_to_list(Term) ];
 
 render({_, undefined}, _Sep) ->
     <<>>;
@@ -132,9 +128,9 @@ render_ssi([H|T], F, Acc, Sep) ->
 render_attr_properties([]) ->
     <<>>;
 render_attr_properties([H | T]) when T == [] ->
-    ?ATOM_TO_BINARY(H);
+    atom_to_list(H);
 render_attr_properties([ H | T ]) ->
-    [ ?ATOM_TO_BINARY(H), <<",">>, render_attr_properties(T) ].
+    [ atom_to_list(H), <<",">>, render_attr_properties(T) ].
 
 render_sep('\n') ->
     <<"\n">>;

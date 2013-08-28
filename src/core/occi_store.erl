@@ -194,6 +194,7 @@ register_categories2(Backend, Scheme, Term) ->
 register_categories3(Backend, Filter) ->
     Categories = occi_config:get(categories, fun validate_categories/1),
     Filtered = lists:filter(Filter, Categories),
+    lager:info("Registering categories for backend ~p: ~p~n", [Backend, Filtered]),
     Trans = fun() -> lists:foreach(fun({Mod, Scheme, Term}) ->
 					   Id = {occi_cid, Scheme, Term},
 					   Type = {occi_type, Id, Mod, Backend},
