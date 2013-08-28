@@ -29,6 +29,7 @@ content_types_provided(Req, Ctx) ->
 
 content_types_accepted(Req, Ctx) ->
     {[
+      {<<"*/*">>, from_plain},      
       {<<"text/plain">>, from_plain},
       {<<"text/occi">>, from_occi},
       {<<"text/uri-list">>, from_uri_list}
@@ -37,11 +38,13 @@ content_types_accepted(Req, Ctx) ->
 
 to_plain(Req, Ctx) ->
     Categories = occi_store:get_categories(),
-    Res = lists:map(fun(R) -> occi_renderer_plain:render(R) end, Categories),
-    {Res, Req, Ctx}.
+    {occi_renderer_plain:render_plain(Categories), Req, Ctx}.
 
 to_occi(Req, Ctx) ->
-    {ok, Req, Ctx}.
+    Categories = occi_store:get_categories(),
+    Req2 = cowboy_req:set_resp_header(<<"Category">>, occi_renderer_plain:render_occi(Categories), Req),
+    Body = <<"OK\n">>,
+    {Body, Req2, Ctx}.
 
 to_uri_list(Req, Ctx) ->
     {ok, Req, Ctx}.

@@ -12,100 +12,113 @@
 -include("occi_renderer.hrl").
 
 %% API
--export([render/1]).
+-export([render_plain/1,
+	 render_occi/1]).
 
 %%%===================================================================
 %%% API
 %%%===================================================================
-render(Mod) when is_atom(Mod) ->
-    render({occi_type, occi_renderer:get_id(Mod), Mod, undefined});
+render_plain(Types) ->
+    lists:map(fun(Type) -> [ <<"Categories: ">>, render(Type, '\n')] end, Types).
 
-render({occi_type, Id, Mod, _}) ->
+render_occi(Types) ->
+    render_occi(Types, []).
+
+render_occi([], Acc) ->
+    lists:reverse(Acc);
+render_occi([Type | Tail], Acc) when Tail == [] ->
+    [ render(Type, ' ') | Acc ];
+render_occi([Type | Tail], Acc) ->
+    [ [ render(Type, ' '), <<", ">> ] | render_occi(Tail, Acc) ].
+
+render(Mod, Sep) when is_atom(Mod) ->
+    render({occi_type, occi_renderer:get_id(Mod), Mod, undefined}, Sep);
+
+render({occi_type, Id, Mod, _}, Sep) ->
     {occi_class, Class} = occi_renderer:get_class(Mod),
-    [ render(Id),
-      render(occi_renderer:get_title(Mod)),
-      render({Class, Mod}),
-      <<"\n">> ];
-render({occi_kind, Mod}) ->
-    [ render({occi_class, <<"kind">>}),
-      render(occi_renderer:get_relations(Mod)),
-      render(occi_renderer:get_location(Mod)),
-      render(occi_renderer:get_attributes(Mod)),
-      render(occi_renderer:get_actions_spec(Mod)),
-      <<"\n">>
+    [ render(Id, Sep),
+      render(occi_renderer:get_title(Mod), Sep),
+      render({Class, Mod}, Sep),
+      render_sep(Sep) ];
+render({occi_kind, Mod}, Sep) ->
+    [ render({occi_class, <<"kind">>}, Sep),
+      render(occi_renderer:get_relations(Mod), Sep),
+      render(occi_renderer:get_location(Mod), Sep),
+      render(occi_renderer:get_attributes(Mod), Sep),
+      render(occi_renderer:get_actions_spec(Mod), Sep),
+      render_sep(Sep)
     ];
-render({occi_mixin, Mod}) ->
-    [ render({occi_class, <<"mixin">>}),
-      render(occi_renderer:get_relations(Mod)),
-      render(occi_renderer:get_location(Mod)),
-      render(occi_renderer:get_attributes(Mod)),
-      render(occi_renderer:get_actions_spec(Mod)),
-      <<"\n">>
+render({occi_mixin, Mod}, Sep) ->
+    [ render({occi_class, <<"mixin">>}, Sep),
+      render(occi_renderer:get_relations(Mod), Sep),
+      render(occi_renderer:get_location(Mod), Sep),
+      render(occi_renderer:get_attributes(Mod), Sep),
+      render(occi_renderer:get_actions_spec(Mod), Sep),
+      render_sep(Sep)
     ];
-render({occi_action, Scheme, Term, Title, Attributes}) ->
-    [ render({occi_cid, Scheme, Term}),
-      render({occi_title, Title}),
-      render({occi_class, <<"action">>}),
-      render({occi_attributes, Attributes}),
-      <<"\n">>
+render({occi_action, Scheme, Term, Title, Attributes}, Sep) ->
+    [ render({occi_cid, Scheme, Term}, Sep),
+      render({occi_title, Title}, Sep),
+      render({occi_class, <<"action">>}, Sep),
+      render({occi_attributes, Attributes}, Sep),
+      render_sep(Sep)
     ];
 
-render({occi_cid, Scheme, Term}) when is_atom(Scheme) ->
-    render({occi_cid, ?ATOM_TO_BINARY(Scheme), Term});
-render({occi_cid, Scheme, Term}) ->
-    [ <<"Category: ">>, ?ATOM_TO_BINARY(Term), <<"">>,
-      <<";\n\tscheme=\"">>, Scheme, <<"\"">> ];
+render({occi_cid, Scheme, Term}, Sep) when is_atom(Scheme) ->
+    render({occi_cid, ?ATOM_TO_BINARY(Scheme), Term}, Sep);
+render({occi_cid, Scheme, Term}, Sep) ->
+    [ ?ATOM_TO_BINARY(Term), <<";">>, render_sep_indent(Sep), <<"scheme=\"">>, Scheme, <<"\"">> ];
 
-render({occi_class, E}) ->
-    [ <<";\n\tclass=\"">>, E, <<"\"">> ];
+render({occi_class, E}, Sep) ->
+    [ <<";">>, render_sep_indent(Sep), <<"class=\"">>, E, <<"\"">> ];
 
-render({occi_title, E}) ->
-    [ <<";\n\ttitle=\"">>, E, <<"\"">> ];
+render({occi_title, E}, Sep) ->
+    [ <<";">>, render_sep_indent(Sep), <<"title=\"">>, E, <<"\"">> ];
 
-render({occi_relations, E}) when is_list(E) ->
-    [ <<";\n\trel=\"">>, render_ssi(E, fun render/1), <<"\"">> ];
+render({occi_relations, E}, Sep) when is_list(E) ->
+    [ <<";">>, render_sep_indent(Sep), <<"rel=\"">>, render_ssi(E, fun render/2, Sep), <<"\"">> ];
 
-render({occi_location, E}) ->
-    [ <<";\n\tlocation=\"">>, E, <<"\"">> ];
+render({occi_location, E}, Sep) ->
+    [ <<";">>, render_sep_indent(Sep), <<"location=\"">>, E, <<"\"">> ];
 
-render({occi_attributes, L}) ->
-    [ <<";\n\tattributes=\"">>, render_ssi(L, fun render/1), <<"\"">> ];
+render({occi_attributes, L}, Sep) ->
+    [ <<";">>, render_sep_indent(Sep), <<"attributes=\"">>, render_ssi(L, fun render/2, Sep), <<"\"">> ];
 
-render({occi_actions_spec, L}) ->
-    [ <<";\n\tactions=\"">>, render_ssi(L, fun render/1), <<"\"">> ];
+render({occi_actions_spec, L}, Sep) ->
+    [ <<";">>, render_sep_indent(Sep), <<"actions=\"">>, render_ssi(L, fun render/2, Sep), <<"\"">> ];
 
-render({occi_relation, Scheme, Term}) ->
+render({occi_relation, Scheme, Term}, _Sep) ->
     [ ?ATOM_TO_BINARY(Scheme), "/", ?ATOM_TO_BINARY(Term) ];
 
-render({occi_attribute, K, [], _F}) ->
+render({occi_attribute, K, [], _F}, _Sep) ->
     ?ATOM_TO_BINARY(K);
-render({occi_attribute, K, L, _F}) ->
+render({occi_attribute, K, L, _F}, _Sep) ->
     [ ?ATOM_TO_BINARY(K), <<"{">>, render_attr_properties(L), <<"}">> ];
-render({occi_attribute, K, _F}) ->
+render({occi_attribute, K, _F}, _Sep) ->
     ?ATOM_TO_BINARY(K);
 
-render({occi_action_spec, {occi_cid, Scheme, Term}, Name, _Desc, _Attrs}) ->
+render({occi_action_spec, {occi_cid, Scheme, Term}, Name, _Desc, _Attrs}, _Sep) ->
     [ ?ATOM_TO_BINARY(Scheme), <<"/">>,
       ?ATOM_TO_BINARY(Term), <<"/action#">>,
       ?ATOM_TO_BINARY(Name) ];
 
-render({_, undefined}) ->
+render({_, undefined}, _Sep) ->
     <<>>;
 
-render(O) ->
+render(O, _Sep) ->
     lager:error("Invalid value: ~p~n", [O]),
     throw({error, {occi_syntax, "invalid value"}}).
 
 % Render space-separated items
-render_ssi(L, F) ->
-    render_ssi(L, F, []).
+render_ssi(L, F, Sep) ->
+    render_ssi(L, F, [], Sep).
 
-render_ssi([], _, Acc) ->
+render_ssi([], _, Acc, _Sep) ->
     lists:reverse(Acc);
-render_ssi([E], F, Acc) ->
-    lists:reverse([F(E) | Acc]);
-render_ssi([H|T], F, Acc) ->
-    render_ssi(T, F, [<<" ">>, F(H) | Acc]).
+render_ssi([E], F, Acc, Sep) ->
+    lists:reverse([F(E, Sep) | Acc]);
+render_ssi([H|T], F, Acc, Sep) ->
+    render_ssi(T, F, [<<" ">>, F(H, Sep) | Acc], Sep).
 
 render_attr_properties([]) ->
     <<>>;
@@ -113,3 +126,17 @@ render_attr_properties([H | T]) when T == [] ->
     ?ATOM_TO_BINARY(H);
 render_attr_properties([ H | T ]) ->
     [ ?ATOM_TO_BINARY(H), <<",">>, render_attr_properties(T) ].
+
+render_sep('\n') ->
+    <<"\n">>;
+render_sep(' ') ->
+    <<" ">>;
+render_sep(_) ->
+    <<" ">>.
+
+render_sep_indent('\n') ->
+    <<"\n\t">>;
+render_sep_indent(' ') ->
+    <<" ">>;
+render_sep_indent(_) ->
+    <<" ">>.
