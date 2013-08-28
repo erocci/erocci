@@ -15,7 +15,8 @@
 	 get_relations/1,
 	 get_location/1,
 	 get_attributes/1,
-	 get_actions_spec/1
+	 get_actions_spec/1,
+	 get_actions/1
 	]).
 
 -spec get_id(atom()) -> {occi_cid, atom(), atom()}.
@@ -65,6 +66,17 @@ get_actions_spec(Mod) ->
 			{occi_action_spec, CatId, Name, Desc, lists:map(GenAttr, Attrs)} 
 		end,
     {occi_actions_spec, lists:map(GenAction, Actions)}.
+
+-spec get_actions(atom()) -> [{occi_action, atom(), atom(), binary(), list()}].
+get_actions(Mod) ->
+    {occi_cid, BaseScheme, BaseTerm} = get_id(Mod),
+    Scheme = [ ?ATOM_TO_BINARY(BaseScheme), "/", ?ATOM_TO_BINARY(BaseTerm), "/action#" ],
+    GenAttr = fun({K, F}) -> {occi_attribute, K, F} end,		      
+    GenAction = fun({Term, Title, Attrs}) ->
+			{occi_action, Scheme, Term, Title, lists:map(GenAttr, Attrs)}
+		end,
+    Actions = get_tag(Mod, occi_action),
+    lists:map(GenAction, Actions).
 
 get_tag(Mod, Name) when is_atom(Mod), is_atom(Name) ->
     Attrs = Mod:module_info(attributes),

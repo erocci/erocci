@@ -92,7 +92,12 @@ delete(CatId, Id) ->
 
 -spec get_categories() -> [occi_type()].
 get_categories() ->
-    mnesia:dirty_match_object({occi_type, '_', '_', '_'}).
+    Types = mnesia:dirty_match_object({occi_type, '_', '_', '_'}),
+    % TODO: could be store in mnesia at registration...
+    GetActions = fun({occi_type, _Id, Mod, _}) ->
+			 occi_renderer:get_actions(Mod)
+		 end,
+    lists:flatten([Types, lists:map(GetActions, Types)]).
 
 parse_backends(Backends) ->
     lists:map(fun(Backend) -> parse_backend(Backend) end, Backends).

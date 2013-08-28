@@ -42,15 +42,19 @@ render({occi_mixin, Mod}) ->
       render(occi_renderer:get_actions_spec(Mod)),
       <<"\n">>
     ];
-render({occi_action, Mod}) ->
-    [ render({occi_class, <<"action">>}),
-      render(occi_renderer:get_attributes(Mod)),
+render({occi_action, Scheme, Term, Title, Attributes}) ->
+    [ render({occi_cid, Scheme, Term}),
+      render({occi_title, Title}),
+      render({occi_class, <<"action">>}),
+      render({occi_attributes, Attributes}),
       <<"\n">>
     ];
 
+render({occi_cid, Scheme, Term}) when is_atom(Scheme) ->
+    render({occi_cid, ?ATOM_TO_BINARY(Scheme), Term});
 render({occi_cid, Scheme, Term}) ->
     [ <<"Category: ">>, ?ATOM_TO_BINARY(Term), <<"">>,
-      <<";\n\tscheme=\"">>, ?ATOM_TO_BINARY(Scheme), <<"\"">> ];
+      <<";\n\tscheme=\"">>, Scheme, <<"\"">> ];
 
 render({occi_class, E}) ->
     [ <<";\n\tclass=\"">>, E, <<"\"">> ];
@@ -77,6 +81,8 @@ render({occi_attribute, K, [], _F}) ->
     ?ATOM_TO_BINARY(K);
 render({occi_attribute, K, L, _F}) ->
     [ ?ATOM_TO_BINARY(K), <<"{">>, render_attr_properties(L), <<"}">> ];
+render({occi_attribute, K, _F}) ->
+    ?ATOM_TO_BINARY(K);
 
 render({occi_action_spec, {occi_cid, Scheme, Term}, Name, _Desc, _Attrs}) ->
     [ ?ATOM_TO_BINARY(Scheme), <<"/">>,
