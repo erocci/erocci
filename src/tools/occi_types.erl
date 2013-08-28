@@ -7,7 +7,7 @@
 
 -module(occi_types).
 
--export([is_enum/2, is_integer/1, is_float/1, is_alnum/1]).
+-export([is_enum/2, is_integer/1, is_float/1, is_alnum/1, is_cidr/1, is_ipaddress/1]).
 
 -spec is_enum(any(), [any()]) -> {ok, any()} | error.
 is_enum(Obj, [ Val | _Values]) when Obj == Val ->
@@ -43,3 +43,9 @@ is_alnum(Obj) ->
 	nomatch -> 
 	    error
     end.
+
+is_cidr(Obj) ->
+    {ok, Obj}.
+
+is_ipaddress(Obj) ->
+    {ok, Obj}.

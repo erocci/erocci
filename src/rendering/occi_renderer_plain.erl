@@ -57,7 +57,6 @@ render({occi_kind, Mod}, Sep) ->
     ];
 render({occi_mixin, Mod}, Sep) ->
     [ render({occi_class, <<"mixin">>}, Sep),
-      render(occi_renderer:get_relations(Mod), Sep),
       render(occi_renderer:get_location(Mod), Sep),
       render(occi_renderer:get_attributes(Mod), Sep),
       render(occi_renderer:get_actions_spec(Mod), Sep),
