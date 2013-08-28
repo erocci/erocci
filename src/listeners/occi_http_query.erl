@@ -20,6 +20,7 @@ allowed_methods(Req, Ctx) ->
 
 content_types_provided(Req, Ctx) ->
     {[
+      {<<"*/*">>, to_plain},
       {<<"text/plain">>, to_plain},
       {<<"text/occi">>, to_occi},
       {<<"text/uri-list">>, to_uri_list}
