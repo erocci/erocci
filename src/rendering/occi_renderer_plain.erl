@@ -39,27 +39,27 @@ render_occi([Type | Tail], Acc) ->
     [ [ render(Type, ' '), <<", ">> ] | render_occi(Tail, Acc) ].
 
 render(Mod, Sep) when is_atom(Mod) ->
-    render({occi_type, occi_renderer:get_id(Mod), Mod, undefined}, Sep);
+    render({occi_type, occi_type:get_id(Mod), Mod, undefined}, Sep);
 
 render({occi_type, Id, Mod, _}, Sep) ->
-    {occi_class, Class} = occi_renderer:get_class(Mod),
+    {occi_class, Class} = occi_type:get_class(Mod),
     [ render(Id, Sep),
-      render(occi_renderer:get_title(Mod), Sep),
+      render(occi_type:get_title(Mod), Sep),
       render({Class, Mod}, Sep),
       render_sep(Sep) ];
 render({occi_kind, Mod}, Sep) ->
     [ render({occi_class, <<"kind">>}, Sep),
-      render(occi_renderer:get_relations(Mod), Sep),
-      render(occi_renderer:get_location(Mod), Sep),
-      render(occi_renderer:get_attributes(Mod), Sep),
-      render(occi_renderer:get_actions_spec(Mod), Sep),
+      render(occi_type:get_relations(Mod), Sep),
+      render(occi_type:get_location(Mod), Sep),
+      render(occi_type:get_attributes(Mod), Sep),
+      render(occi_type:get_actions_spec(Mod), Sep),
       render_sep(Sep)
     ];
 render({occi_mixin, Mod}, Sep) ->
     [ render({occi_class, <<"mixin">>}, Sep),
-      render(occi_renderer:get_location(Mod), Sep),
-      render(occi_renderer:get_attributes(Mod), Sep),
-      render(occi_renderer:get_actions_spec(Mod), Sep),
+      render(occi_type:get_location(Mod), Sep),
+      render(occi_type:get_attributes(Mod), Sep),
+      render(occi_type:get_actions_spec(Mod), Sep),
       render_sep(Sep)
     ];
 render({occi_action, Scheme, Term, Title, Attributes}, Sep) ->

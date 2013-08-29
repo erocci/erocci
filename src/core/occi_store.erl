@@ -95,7 +95,7 @@ get_categories() ->
     Types = mnesia:dirty_match_object({occi_type, '_', '_', '_'}),
     % TODO: could be store in mnesia at registration...
     GetActions = fun({occi_type, _Id, Mod, _}) ->
-			 occi_renderer:get_actions(Mod)
+			 occi_type:get_actions(Mod)
 		 end,
     lists:flatten([Types, lists:map(GetActions, Types)]).
 
@@ -176,7 +176,7 @@ register_categories(Backends) ->
 
 register_categories2(Backend, Scheme, any) ->
     F = fun({Mod, _Scheme, _Term}) -> 
-		case occi_renderer:get_id(Mod) of
+		case occi_type:get_id(Mod) of
 		    {occi_cid, Scheme, _} -> true;
 		    {occi_cid,_, _} -> false
 		end
@@ -184,7 +184,7 @@ register_categories2(Backend, Scheme, any) ->
     register_categories3(Backend, F);
 register_categories2(Backend, Scheme, Term) ->
     F = fun({Mod, _Scheme, _Term}) -> 
-		case occi_renderer:get_id(Mod) of
+		case occi_type:get_id(Mod) of
 		    {occi_cid, Scheme, Term} -> true;
 		    {occi_cid, _, _} -> false
 		end
@@ -219,7 +219,7 @@ validate_categories(Opts) ->
     lists:map(fun(Mod) ->
 		      case is_module(Mod) of
 			  true ->
-			      {occi_cid, Scheme, Term} = occi_renderer:get_id(Mod),
+			      {occi_cid, Scheme, Term} = occi_type:get_id(Mod),
 			      {Mod, Scheme, Term};
 			  false ->
 			      lager:error("~p is not a valid module", [Mod]),

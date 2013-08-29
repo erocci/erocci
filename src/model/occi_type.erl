@@ -4,7 +4,7 @@
 %%%
 %%% @end
 %%% Created : 19 Aug 2013 by Jean Parpaillon <jean.parpaillon@free.fr>
--module(occi_renderer).
+-module(occi_type).
 -compile([{parse_transform, lager_transform}]).
 
 -export([get_id/1,
