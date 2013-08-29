@@ -16,6 +16,7 @@
 	 get_actions_spec/1,
 	 get_actions/1
 	]).
+-export([has_property/2]).
 
 -spec get_id(atom()) -> {occi_cid, atom(), atom()}.
 get_id(Mod) ->
@@ -88,3 +89,10 @@ get_tag(Mod, Name) ->
 
 get_action_scheme(BaseScheme, BaseTerm) ->
     [ lists:nth(1, string:tokens(atom_to_list(BaseScheme), "#")), "/", atom_to_list(BaseTerm), "/action#" ].
+
+has_property({occi_attribute, _K, [], _F}, _Property) ->
+    false;
+has_property({occi_attribute, _K, [Property | _Tail], _F}, Property) ->
+    true;
+has_property({occi_attribute, _K, [_H | T], _F}, Property) ->
+    has_property({occi_attribute, _K, T, _F}, Property).

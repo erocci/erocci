@@ -17,12 +17,12 @@
 %%% Attributes
 %%% {Name :: atom(), Properties :: [occi_attr_property()], Checker :: mfa()}
 %%%
--occi_attribute({'occi.compute.architecture', [], {occi_types, is_enum, [[x86, x64]]}}).
+-occi_attribute({'occi.compute.architecture', [], {occi_types, is_enum, [x86, x64]}}).
 -occi_attribute({'occi.compute.cores', [], {occi_types, is_integer, []}}).
 -occi_attribute({'occi.compute.hostname', [], {occi_types, is_alnum, []}}).
 -occi_attribute({'occi.compute.speed', [], {occi_types, is_float, []}}).
 -occi_attribute({'occi.compute.memory', [], {occi_types, is_integer, []}}).
--occi_attribute({'occi.compute.state', [required, immutable], {occi_types, is_enum, [[active, inactive, suspend]]}}).
+-occi_attribute({'occi.compute.state', [required, immutable], {occi_types, is_enum, [active, inactive, suspend]}}).
 
 %%%
 %%% Actions

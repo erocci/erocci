@@ -8,6 +8,7 @@
 -module(occi_types).
 
 -export([is_enum/2, is_integer/1, is_float/1, is_alnum/1, is_cidr/1, is_ipaddress/1]).
+-export([is_range/2]).
 
 -spec is_enum(any(), [any()]) -> {ok, any()} | error.
 is_enum(Obj, [ Val | _Values]) when Obj == Val ->
@@ -25,6 +26,14 @@ is_integer(Obj) ->
     catch
 	_ -> error
     end.
+
+-spec is_range(any(), [integer()]) -> {ok, integer()} | error.
+is_range(Obj, [Min, Max]) ->
+    case ?MODULE:is_integer(Obj) of
+	{ok, Val} when Val >= Min, Val =< Max ->
+	    {ok, Val};
+	_ -> error
+    end.	    
 
 -spec is_float(any()) -> {ok, float()} | error.
 is_float(Obj) ->
