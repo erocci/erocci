@@ -7,10 +7,12 @@
 -module(occi_entity).
 -compile([{parse_transform, lager_transform}]).
 
+-include("occi.hrl").
+
 -export([new/2, new/3]).
 
 new(Module, Attributes) ->
-    new(Module, <<"">>, Attributes).
+    new(Module, <<>>, Attributes).
 
 new(Module, Title, AttrValues) ->
     {occi_attributes, AttrSpecs} = occi_type:get_attributes(Module),
@@ -20,7 +22,7 @@ new(Module, Title, AttrValues) ->
     {Attrs, Errors} = set_attributes(SpecsDict, AttrValues),
     case Errors of
 	[] ->
-	    {ok, Module, Title, Attrs};
+	    {ok, #occi_entity{module=Module, title=Title, attributes=Attrs}};
 	L ->
 	    {error, L}
     end.

@@ -31,7 +31,7 @@
     term().
 
 -callback save(Obj :: occi_entity(), State :: term()) ->
-    {ok, Id :: occi_cid() | occi_entity_id(), State :: term()} |
+    {ok, Obj :: occi_entity(), State :: term()} |
     {error, Reason :: term()}.
 
 -callback get(CatId :: occi_cid(), Id :: occi_entity_id(), State :: term()) ->
