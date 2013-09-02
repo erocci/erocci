@@ -10,8 +10,8 @@
 -occi_term(network).
 -occi_title(<<"Network resource">>).
 -occi_class(kind).
--occi_entity_type("Network").
--occi_relation({'http://schemas.ogf.org/occi/core', kind}).
+-occi_entity_type(link).
+-occi_relation({'http://schemas.ogf.org/occi/core', link}).
 
 %%%
 %%% Attributes

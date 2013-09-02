@@ -14,7 +14,8 @@
 	 get_location/1,
 	 get_attributes/1,
 	 get_actions_spec/1,
-	 get_actions/1
+	 get_actions/1,
+	 get_entity_type/1
 	]).
 -export([has_property/2]).
 
@@ -77,6 +78,14 @@ get_actions(Mod) ->
 		end,
     Actions = get_tag(Mod, occi_action),
     lists:map(GenAction, Actions).
+
+-spec get_entity_type(atom()) -> resource | link | undefined.
+get_entity_type(Mod) ->
+    case get_tag(Mod, occi_type) of
+	[] -> undefined;
+	[resource|_T] -> resource;
+	[link|_T] -> link
+    end.
 
 get_tag(Mod, Name) when is_atom(Mod), is_atom(Name) ->
     Attrs = Mod:module_info(attributes),

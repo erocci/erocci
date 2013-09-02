@@ -10,7 +10,6 @@
 -occi_term(ipnetwork).
 -occi_title(<<"IP Networking Mixin">>).
 -occi_class(mixin).
--occi_entity_type("IP Networking").
 
 %%%
 %%% Attributes

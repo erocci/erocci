@@ -10,7 +10,7 @@
 -occi_term(compute).
 -occi_title(<<"Compute resource">>).
 -occi_class(kind).
--occi_entity_type("Compute").
+-occi_entity_type(resource).
 -occi_relation({'http://schemas.ogf.org/occi/core#', resource}).
 
 %%%
