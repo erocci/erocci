@@ -20,11 +20,9 @@ is_enum(_Obj, []) ->
 
 -spec is_integer(any()) -> {ok, integer()} | error.
 is_integer(Obj) ->
-    try 
-	Val = string:to_integer(Obj),
-	{ok, Val}
-    catch
-	_ -> error
+    case string:to_integer(Obj) of
+	{error, _} -> error;
+	{Val, _Rest} -> {ok, Val}
     end.
 
 -spec is_range(any(), [integer()]) -> {ok, integer()} | error.
@@ -37,11 +35,9 @@ is_range(Obj, [Min, Max]) ->
 
 -spec is_float(any()) -> {ok, float()} | error.
 is_float(Obj) ->
-    try 
-	Val = string:to_float(Obj),
-	{ok, Val}
-    catch
-	_ -> error
+    case string:to_float(Obj) of
+	{error, _} -> error;
+	{Val, _Rest} -> {ok, Val}
     end.
 
 -spec is_alnum(any()) -> {ok, list()} | error.
