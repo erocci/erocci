@@ -19,6 +19,8 @@ is_enum(_Obj, []) ->
     error.
 
 -spec is_integer(any()) -> {ok, integer()} | error.
+is_integer(Obj) when erlang:is_integer(Obj) ->
+    Obj;
 is_integer(Obj) ->
     case string:to_integer(Obj) of
 	{error, _} -> error;
@@ -34,6 +36,8 @@ is_range(Obj, [Min, Max]) ->
     end.	    
 
 -spec is_float(any()) -> {ok, float()} | error.
+is_float(Obj) when erlang:is_float(Obj) ->
+    Obj;
 is_float(Obj) ->
     case string:to_float(Obj) of
 	{error, _} -> error;
