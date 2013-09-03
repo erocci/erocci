@@ -27,6 +27,7 @@
 -export([save/1]).
 -export([get_cid/1,
 	 get_id/1,
+	 set_id/2,
 	 set_attributes/2, 
 	 set_attribute/3]).
 
@@ -43,9 +44,16 @@ get_cid(Entity) when is_record(Entity, occi_resource);
 		    is_record(Entity, occi_link) ->
     element(3, Entity).
 
+-spec get_id(occi_entity()) -> occi_entity_id().
 get_id(Entity) when is_record(Entity, occi_resource); 
 		    is_record(Entity, occi_link) ->
     element(2, Entity).
+
+-spec set_id(occi_entity(), occi_entity_id()) -> occi_entity().
+set_id(#occi_resource{}=Entity, Id) ->
+    Entity#occi_resource{id=Id};
+set_id(#occi_link{}=Entity, Id) ->
+    Entity#occi_link{id=Id}.
 
 set_attributes(Specs, Values) ->
     {Attrs, Errors, Specs2} = set_attributes2(Specs, Values),

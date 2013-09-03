@@ -55,13 +55,17 @@ init(Opts) ->
 terminate(#state{pb=Pid}) ->
     riakc_pb_socket:stop(Pid).
 
-save(Obj, #state{pb=Pid}=State) ->
+save(Obj, #state{pb=Pid}=State) when is_record(Obj, occi_resource);
+				     is_record(Obj, occi_link) ->
     RObj = riakc_obj:new(occi_renderer_json:render(occi_entity:get_cid(Obj)),
 			 occi_entity:get_id(Obj),
 			 occi_renderer_json:render(Obj)),
-    riakc_pb_socket:put(Pid, RObj),
-    Id = riakc_obj:key(RObj),
-    {{ok, Id}, State}.
+    Ret = case riakc_pb_socket:put(Pid, RObj) of
+	      ok -> {ok, Obj};
+	      {ok, Key} -> {ok, occi_entity:set_id(Obj, Key)};
+	      {error, Err} -> {error, Err}
+	  end,
+    {Ret, State}.
 
 get(CatId, Id, #state{pb=Pid}=State) ->
     {ok, Obj} = riakc_pb_socket:get(Pid,

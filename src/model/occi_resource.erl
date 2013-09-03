@@ -37,10 +37,10 @@ new(Module, Id, Attributes) ->
     new(Module, Id, <<>>, <<>>, Attributes).
 
 new(Module, Id, Title, Summary, AttrValues) ->
-    {occi_attributes, AttrSpecs} = occi_type:get_attributes(Module),
-    SpecsDict = lists:foldl(fun({occi_attribute, K, P, F}, Acc) ->
+    SpecsDict = lists:foldl(fun({K, P, F}, Acc) ->
 				    dict:store(K, {P, F}, Acc)
-			    end, dict:new(), AttrSpecs),
+			    end, dict:new(), 
+			    occi_type:get_attributes(Module)),
     {Attrs, Errors} = occi_entity:set_attributes(SpecsDict, AttrValues),
     case Errors of
 	[] ->

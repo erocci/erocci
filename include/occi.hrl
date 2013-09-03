@@ -42,15 +42,6 @@
 %%% OCCI Category
 -type(occi_category() :: occi_kind() | occi_mixin() | occi_action()).
 
-%%% OCCI Entity
--type(occi_entity_id() :: any()).
-
--record(occi_entity, {id         = undefined :: occi_entity_id(),
-		      module                 :: atom(),
-		      title      = undefined :: binary(),
-		      attributes             :: [{atom(), any()}]}).
--type(occi_entity() :: #occi_entity{}).
-
 %%% OCCI Resource
 -record(occi_resource, {id         = undefined :: occi_entity_id(),
 			cid                    :: occi_cid(),
@@ -73,7 +64,9 @@
 		    mixins     = []        :: [occi_cid()]}).
 -type(occi_link() :: #occi_link{}).
 
-%%% OCCI
+%%% OCCI Entity
+-type(occi_entity_id() :: any()).
+-type(occi_entity() :: #occi_resource{} | #occi_link{}).
 
 %%% OCCI Filter
 -type(occi_filter() :: any()).
