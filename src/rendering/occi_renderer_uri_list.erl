@@ -6,7 +6,7 @@
 %%% @end
 %%% Created : 18 Mar 2013 by Jean Parpaillon <jean.parpaillon@free.fr>
 %%%-------------------------------------------------------------------
--module(occi_renderer_plain).
+-module(occi_renderer_uri_list).
 -compile({parse_transform, lager_transform}).
 
 -behaviour(occi_renderer).
@@ -19,12 +19,24 @@
 %%%===================================================================
 %%% API
 %%%===================================================================
-render(Category) when is_record(Category, occi_kind); 
-		      is_record(Category, occi_mixin);
-		      is_record(Category, occi_action) ->
-    occi_renderer_text:render(Category, "\n\t");
-render(Categories) ->
-    lists:map(fun(Cat) -> [<<"Category: ">>, render(Cat), "\n"] end, Categories).
+render(#occi_kind{location=Location}) ->
+    render_uri(Location);
+render(#occi_mixin{location=Location}) ->
+    render_uri(Location);
+render(#occi_action{}) ->
+    [].
 
 parse(_Bin) ->
     {}.
+
+%%%
+%%% Private
+%%%
+render_uri(undefined) ->
+    [];
+render_uri(<<>>) ->
+    [];
+render_uri([]) ->
+    [];
+render_uri(Uri) ->
+    [ Uri, <<"\n">> ].

@@ -6,7 +6,7 @@
 %%% @end
 %%% Created : 18 Mar 2013 by Jean Parpaillon <jean.parpaillon@free.fr>
 %%%-------------------------------------------------------------------
--module(occi_renderer_plain).
+-module(occi_renderer_occi).
 -compile({parse_transform, lager_transform}).
 
 -behaviour(occi_renderer).
@@ -22,9 +22,9 @@
 render(Category) when is_record(Category, occi_kind); 
 		      is_record(Category, occi_mixin);
 		      is_record(Category, occi_action) ->
-    occi_renderer_text:render(Category, "\n\t");
+    occi_renderer_text:render(Category, " ");
 render(Categories) ->
-    lists:map(fun(Cat) -> [<<"Category: ">>, render(Cat), "\n"] end, Categories).
+    occi_renderer_text:join(lists:map(fun(Cat) -> render(Cat) end, Categories), ", ").
 
 parse(_Bin) ->
     {}.

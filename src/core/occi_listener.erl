@@ -44,13 +44,9 @@ start_listeners() ->
 	undefined -> 
 	    ignore;
 	Ls ->
-	    Ls2 = lists:map(
-		    fun({Module, Opts}) ->
-			    case start_listener(Module, Opts) of
-				{ok, _Pid} = Res -> Res;
-				{error, Error} -> throw(Error)
-			    end
-		    end, Ls),
+	    Ls2 = lists:map(fun({Module, Opts}) -> 
+				    start_listener(Module, Opts) 
+			    end, Ls),
 	    {ok, Ls2}
     end.
 
@@ -94,15 +90,16 @@ parse_listener({Module, Opts}) ->
 
 start_listener(Module, Opts) ->
     case start_listener2(Module, Opts) of
-	{ok, _Pid} = R -> R;
-	{error, {{'EXIT', {undef, [{M, _F, _A}|_]}}}, _} = Error ->
-		lager:error("Error starting listener: ~p.~n"
-			    "Error: ~p.~n", [Module, Error]),
-	    {error, {module_not_available, M}};
-	{error, {already_started, Pid}} ->
-	    {ok, Pid};
+	{ok, _Pid}=R -> 
+	    lager:info("Started listener ~p~n", [Module]),
+	    R;
+	{ok, _Pid, Info}=R -> 
+	    lager:info("Started listener ~p: ~p~n", [Module, Info]),
+	    R;
 	{error, Error} ->
-	    {error, Error}
+	    lager:error("Error starting listener: ~p.~n"
+			"Error: ~p.~n", [Module, Error]),
+	    throw(Error)
     end.
 
 start_listener2(Module, Opts) ->

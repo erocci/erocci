@@ -9,23 +9,28 @@
 
 -include("occi.hrl").
 
--export([new/2, new/3]).
+-export([save/1]).
+-export([get_cid/1,
+	 get_id/1,
+	 set_attributes/2, 
+	 set_attribute/3]).
 
-new(Module, Attributes) ->
-    new(Module, <<>>, Attributes).
+%%%
+%%% API
+%%%
+save(Entity) when is_record(Entity, occi_resource); 
+		  is_record(Entity, occi_link) ->
+    Cid = get_cid(Entity),
+    Backend = occi_store:get_backend(Cid),
+    occi_backend:save(Backend, Entity).
 
-new(Module, Title, AttrValues) ->
-    {occi_attributes, AttrSpecs} = occi_type:get_attributes(Module),
-    SpecsDict = lists:foldl(fun({occi_attribute, K, P, F}, Acc) ->
-				    dict:store(K, {P, F}, Acc)
-			    end, dict:new(), AttrSpecs),
-    {Attrs, Errors} = set_attributes(SpecsDict, AttrValues),
-    case Errors of
-	[] ->
-	    {ok, #occi_entity{module=Module, title=Title, attributes=Attrs}};
-	L ->
-	    {error, L}
-    end.
+get_cid(Entity) when is_record(Entity, occi_resource); 
+		    is_record(Entity, occi_link) ->
+    element(3, Entity).
+
+get_id(Entity) when is_record(Entity, occi_resource); 
+		    is_record(Entity, occi_link) ->
+    element(2, Entity).
 
 set_attributes(Specs, Values) ->
     {Attrs, Errors, Specs2} = set_attributes2(Specs, Values),
@@ -44,16 +49,6 @@ set_attributes(Specs, Values) ->
 			end, Errors, Specs3),
     {Attrs, Errors2}.
 
-set_attributes2(Specs, Values) ->
-    lists:foldl(fun({K, V}, {AccAttrs, AccErrors, AccSpecs}) ->
-			case set_attribute(K, dict:fetch(K, AccSpecs), V) of
-			    {ok, K, V} ->
-				{[{K, V}|AccAttrs], AccErrors, dict:erase(K, AccSpecs)};
-			    {error, Err} ->
-				{AccAttrs, [Err|AccErrors], dict:erase(K, AccSpecs)}
-			end
-		end, {[], [], Specs}, Values).
-
 set_attribute(K, {P, {M, F, Args}}, Obj) ->
     case lists:member(immutable, P) of
 	true ->
@@ -70,3 +65,16 @@ set_attribute(K, {P, {M, F, Args}}, Obj) ->
 		    {error, {einval, K}}
 	    end
     end.
+
+%%%
+%%% Private
+%%%
+set_attributes2(Specs, Values) ->
+    lists:foldl(fun({K, V}, {AccAttrs, AccErrors, AccSpecs}) ->
+			case set_attribute(K, dict:fetch(K, AccSpecs), V) of
+			    {ok, K, V} ->
+				{[{K, V}|AccAttrs], AccErrors, dict:erase(K, AccSpecs)};
+			    {error, Err} ->
+				{AccAttrs, [Err|AccErrors], dict:erase(K, AccSpecs)}
+			end
+		end, {[], [], Specs}, Values).
