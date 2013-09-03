@@ -22,7 +22,7 @@ render(#occi_kind{}=Kind, Sep) ->
     join(
       join([ render_cid(Kind#occi_kind.id, Sep),
 	     render_kv(<<"title">>, [Kind#occi_kind.title]),
-	     render_kv(<<"rel">>, lists:map(fun(X) -> render_rel(X) end, Kind#occi_kind.rel)),
+	     render_kv(<<"rel">>, render_rel(Kind#occi_kind.rel)),
 	     render_kv(<<"attributes">>, lists:map(fun(X) -> render_attr_spec(X) end, Kind#occi_kind.attributes)),
 	     render_kv(<<"actions">>, lists:map(fun(X) -> render_action_spec(X) end, Kind#occi_kind.actions)),
 	     render_kv(<<"location">>, [Kind#occi_kind.location])], 
@@ -72,7 +72,7 @@ render_action_spec({Scheme, Term, _Desc, _Attrs}) ->
 render_rel({Scheme, Term}) when is_atom(Scheme) ->
     render_rel({atom_to_list(Scheme), Term});
 render_rel({Scheme, Term}) ->
-    [ Scheme, atom_to_list(Term) ].
+    [[ Scheme, atom_to_list(Term) ]].
 
 render_kv(_Key, undefined) ->
     [];
