@@ -23,12 +23,11 @@ start_link(Opts) ->
 	      {<<"/-/">>, occi_http_query, []},
 	      {<<"/.well-known/org/ogf/occi/-/">>, occi_http_query, []}
 	     ],
-    %PrivRoutes = [ {<<"_priv">>, occi_priv, []} ],
     Dispatch = cowboy_router:compile([{'_', Routes}]),
     {ok, _} = cowboy:start_http(http, 100, Opts,
 				[{env, [{dispatch, Dispatch}]}]
 			       ),
-    ok.
+    loop().
 
 validate_cfg(Opts) ->
     Address = case lists:keyfind(ip, 1, Opts) of
@@ -49,7 +48,14 @@ validate_cfg(Opts) ->
 	       {port, I} -> I
 	   end,
     [{ip, Address}, {port, Port}].
+    
+loop() ->
+    receive
+	stop ->
+	    cowboy:stop_listener(http);
+	_ ->
+	    loop()
+    end.
 
 terminate() ->
-    cowboy:stop_listener(http),
-    ok.
+    ?MODULE ! stop.

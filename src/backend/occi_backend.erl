@@ -15,6 +15,7 @@
 
 %% API
 -export([start_link/3]).
+-export([save/2]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -53,9 +54,16 @@
 
 -callback validate_cfg(opts()) -> opts().
 
+%%%
+%%% API
+%%% 
 -spec start_link(atom(), atom(), term()) -> {ok, pid()} | ignore | {error, term()}.
 start_link(Ref, Backend, Opts) ->
+    lager:info("Starting storage backend ~p (~p)~n", [Ref, Backend]),
     gen_server:start_link({local, Ref}, ?MODULE, {Backend, Opts}, []).
+
+save(Ref, Entity) ->
+    gen_server:call(Ref, {save, Entity}).
 
 %%--------------------------------------------------------------------
 %% @private
@@ -72,7 +80,6 @@ start_link(Ref, Backend, Opts) ->
 init({Backend, Args}) ->
     case Backend:init(Args) of
 	{ok, BackendState} ->
-	    lager:info("Backend started: ~p~n", [Backend]),
 	    {ok, #state{backend=Backend, state=BackendState}};
 	{error, Error} ->
 	    {stop, Error}

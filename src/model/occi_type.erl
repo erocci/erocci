@@ -23,10 +23,11 @@
 
 -spec get_kind(atom()) -> occi_kind().
 get_kind(Mod) ->
+    [Rel] = get_relations(Mod),
     #occi_kind{id=get_id(Mod), 
 	       title=get_title(Mod),
 	       attributes=get_attributes(Mod),
-	       rel=get_relations(Mod),
+	       rel=Rel,
 	       actions=get_actions_spec(Mod),
 	       location=get_location(Mod)}.
 

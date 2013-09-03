@@ -12,8 +12,8 @@
 -include("occi.hrl").
 
 %% occi_backend callbacks
--export([init/1, 
-	 terminate/1, 
+-export([init/1,
+	 terminate/1,
 	 save/2,
 	 get/3,
 	 find/3,
@@ -41,9 +41,9 @@ terminate(#state{pb=Pid}) ->
     riakc_pb_socket:stop(Pid).
 
 save(Obj, #state{pb=Pid}=State) ->
-    RObj = riakc_obj:new(Obj:get_category_id(),
-			 Obj:get_entity_id(),
-			 Obj:get_json()),
+    RObj = riakc_obj:new(occi_renderer_json:render(occi_entity:get_cid(Obj)),
+			 occi_entity:get_id(Obj),
+			 occi_renderer_json:render(Obj)),
     riakc_pb_socket:put(Pid, RObj),
     Id = riakc_obj:key(RObj),
     {{ok, Id}, State}.
