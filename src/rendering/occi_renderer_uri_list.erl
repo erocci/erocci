@@ -24,7 +24,9 @@ render(#occi_kind{location=Location}) ->
 render(#occi_mixin{location=Location}) ->
     render_uri(Location);
 render(#occi_action{}) ->
-    [].
+    [];
+render(List) ->
+    lists:map(fun(Obj) -> render(Obj) end, List).
 
 parse(_Bin) ->
     {}.
