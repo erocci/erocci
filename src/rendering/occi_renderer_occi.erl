@@ -24,7 +24,7 @@ render(Category) when is_record(Category, occi_kind);
 		      is_record(Category, occi_action) ->
     occi_renderer_text:render(Category, " ");
 render(Categories) ->
-    occi_renderer_text:join(lists:map(fun(Cat) -> render(Cat) end, Categories), ", ").
+    occi_renderer:join(lists:map(fun(Cat) -> render(Cat) end, Categories), ", ").
 
 parse(_Bin) ->
     {}.

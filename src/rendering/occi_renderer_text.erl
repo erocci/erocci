@@ -13,36 +13,35 @@
 
 %% API
 -export([render/2]).
--export([join/2]).
 
 %%%===================================================================
 %%% API
 %%%===================================================================
 render(#occi_kind{}=Kind, Sep) ->
-    join(
-      join([ render_cid(Kind#occi_kind.id, Sep),
-	     render_kv(<<"title">>, [Kind#occi_kind.title]),
-	     render_kv(<<"rel">>, render_rel(Kind#occi_kind.rel)),
-	     render_kv(<<"attributes">>, lists:map(fun(X) -> render_attr_spec(X) end, Kind#occi_kind.attributes)),
-	     render_kv(<<"actions">>, lists:map(fun(X) -> render_action_spec(X) end, Kind#occi_kind.actions)),
-	     render_kv(<<"location">>, [Kind#occi_kind.location])], 
-	   <<"; ">>), 
+    occi_renderer:join(
+      occi_renderer:join([render_cid(Kind#occi_kind.id, Sep),
+			  render_kv(<<"title">>, [Kind#occi_kind.title]),
+			  render_kv(<<"rel">>, render_rel(Kind#occi_kind.rel)),
+			  render_kv(<<"attributes">>, lists:map(fun(X) -> render_attr_spec(X) end, Kind#occi_kind.attributes)),
+			  render_kv(<<"actions">>, lists:map(fun(X) -> render_action_spec(X) end, Kind#occi_kind.actions)),
+			  render_kv(<<"location">>, [Kind#occi_kind.location])], 
+			 <<"; ">>), 
       Sep);
 render(#occi_mixin{}=Mixin, Sep) ->
-    join(
-      join([ render_cid(Mixin#occi_mixin.id, Sep),
-	     render_kv(<<"title">>, [Mixin#occi_mixin.title]),
-	     render_kv(<<"attributes">>, lists:map(fun(X) -> render_attr_spec(X) end, Mixin#occi_mixin.attributes)),
-	     render_kv(<<"actions">>, lists:map(fun(X) -> render_action_spec(X) end, Mixin#occi_mixin.actions)),
-	     render_kv(<<"location">>, [Mixin#occi_mixin.location])], 
-	   <<"; ">>), 
+    occi_renderer:join(
+      occi_renderer:join([render_cid(Mixin#occi_mixin.id, Sep),
+			  render_kv(<<"title">>, [Mixin#occi_mixin.title]),
+			  render_kv(<<"attributes">>, lists:map(fun(X) -> render_attr_spec(X) end, Mixin#occi_mixin.attributes)),
+			  render_kv(<<"actions">>, lists:map(fun(X) -> render_action_spec(X) end, Mixin#occi_mixin.actions)),
+			  render_kv(<<"location">>, [Mixin#occi_mixin.location])], 
+			 <<"; ">>), 
       Sep);
 render(#occi_action{}=Action, Sep) ->
-    join(
-      join([ render_cid(Action#occi_action.id, Sep),
-	     render_kv(<<"title">>, [Action#occi_action.title]),
-	     render_kv(<<"attributes">>, lists:map(fun(X) -> render_attr_spec(X) end, Action#occi_action.attributes))],
-	   <<"; ">>),
+    occi_renderer:join(
+      occi_renderer:join([render_cid(Action#occi_action.id, Sep),
+			  render_kv(<<"title">>, [Action#occi_action.title]),
+			  render_kv(<<"attributes">>, lists:map(fun(X) -> render_attr_spec(X) end, Action#occi_action.attributes))],
+			 <<"; ">>),
       Sep);
 render(O, _Sep) ->
     lager:error("Invalid value: ~p~n", [O]),
@@ -51,18 +50,18 @@ render(O, _Sep) ->
 render_cid(#occi_cid{scheme=Scheme}=Cid, Sep) when is_atom(Scheme) ->
     render_cid(Cid#occi_cid{scheme=atom_to_list(Scheme)}, Sep);
 render_cid(#occi_cid{}=Cid, Sep) ->
-    join(
-      join([ [atom_to_list(Cid#occi_cid.term)],
-	     render_kv(<<"scheme">>, [Cid#occi_cid.scheme]),
-	     render_kv(<<"class">>, [atom_to_list(Cid#occi_cid.class)]) 
-	   ], 
-	   <<"; ">>), 
+    occi_renderer:join(
+      occi_renderer:join([[atom_to_list(Cid#occi_cid.term)],
+			  render_kv(<<"scheme">>, [Cid#occi_cid.scheme]),
+			  render_kv(<<"class">>, [atom_to_list(Cid#occi_cid.class)]) 
+			 ], 
+			 <<"; ">>), 
       Sep).
 
 render_attr_spec({K, [], _F}) ->
     atom_to_list(K);
 render_attr_spec({K, L, _F}) ->
-    [ atom_to_list(K), <<"{">>, join(to_list(L), ","), <<"}">> ];
+    [ atom_to_list(K), <<"{">>, occi_renderer:join(occi_renderer:to_list(L), ","), <<"}">> ];
 render_attr_spec({K, _F}) ->
     atom_to_list(K).
 
@@ -81,21 +80,4 @@ render_kv(_Key, <<>>) ->
 render_kv(_Key, []) ->
     [];
 render_kv(Key, Values) ->
-    [Key, "=\"", join(to_list(Values), " "), "\""].
-
-join(L, Sep) ->
-    join(L, [], Sep).
-
-join([], Acc, _Sep) ->
-    lists:reverse(Acc);
-join([H|[]], Acc, _Sep) ->
-    lists:reverse([H|Acc]);
-join([H, []|T], Acc, Sep) ->
-    join([H|T], Acc, Sep);
-join([H|T], Acc, Sep) ->
-    join(T, [[H, Sep]|Acc], Sep).
-
-to_list(L) ->
-    lists:map(fun(X) when is_atom(X) ->
-		      atom_to_list(X);
-		 (X) -> X end, L).
+    [Key, "=\"", occi_renderer:join(occi_renderer:to_list(Values), " "), "\""].
