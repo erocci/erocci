@@ -55,7 +55,7 @@ to_uri_list(Req, Ctx) ->
 
 to_json(Req, Ctx) ->
     Categories = occi_store:get_categories(),
-    Body = lists:map(fun(Cat) -> occi_renderer_json:render(Cat) end, Categories),
+    Body = occi_renderer_json:render(Categories),
     {Body, Req, Ctx}.
 
 from_plain(Req, Ctx) ->
