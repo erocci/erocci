@@ -34,10 +34,10 @@
 %%%===================================================================
 %%% API
 %%%===================================================================
-render(#occi_kind{location=Location}) ->
-    render_uri(Location);
-render(#occi_mixin{location=Location}) ->
-    render_uri(Location);
+render(#occi_kind{uri=Uri}) ->
+    occi_renderer:get_url(Uri);
+render(#occi_mixin{uri=Uri}) ->
+    occi_renderer:get_url(Uri);
 render(#occi_action{}) ->
     [];
 render(List) ->
@@ -45,15 +45,3 @@ render(List) ->
 
 parse(_Bin) ->
     {}.
-
-%%%
-%%% Private
-%%%
-render_uri(undefined) ->
-    [];
-render_uri(<<>>) ->
-    [];
-render_uri([]) ->
-    [];
-render_uri(Uri) ->
-    [ Uri, <<"\n">> ].

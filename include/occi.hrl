@@ -4,7 +4,7 @@
 %%%
 %%% @end
 %%% Created : 14 Mar 2013 by Jean Parpaillon <jean.parpaillon@free.fr>
--type(uri() :: binary() | list()).
+-type(uri() :: [binary()]).
 -type(occi_class() :: kind | mixin | action).
 -type(occi_property() :: required | immutable).
 -type(occi_attr_spec() :: {occi_attribute, atom(), [occi_property()], term()}).
@@ -22,7 +22,7 @@
 		    attributes = []           :: [occi_attr_spec()],
 		    rel        = []           :: uri(),
 		    actions    = []           :: [occi_action_spec()],
-		    location                  :: uri()}).
+		    uri                       :: uri()}).
 -type(occi_kind() :: #occi_kind{}).
 
 %%% OCCI Mixin
@@ -30,7 +30,7 @@
 		     title      = undefined    :: binary(),
 		     attributes = []           :: [occi_attr_spec()],
 		     actions    = []           :: [occi_action_spec()],
-		     location                  :: uri()}).
+		     uri                       :: uri()}).
 -type(occi_mixin() :: #occi_mixin{}).
 
 %%% OCCI Action
@@ -45,7 +45,7 @@
 %%% OCCI Resource
 -record(occi_resource, {id         = undefined :: occi_entity_id(),
 			cid                    :: occi_cid(),
-			location   = undefined :: uri(),
+			uri        = undefined :: uri(),
 			title      = undefined :: binary(),
 		        summary    = undefined :: binary(),
 			attributes = []        :: [{atom(), any()}],
@@ -56,7 +56,7 @@
 %%% OCCI Link
 -record(occi_link, {id         = undefined :: occi_entity_id(),
 		    cid                    :: occi_cid(),
-		    location   = undefined :: uri(),
+		    uri        = undefined :: uri(),
 		    title      = undefined :: binary(),
 		    attributes = []        :: [{atom(), any()}],
 		    source                 :: uri(),

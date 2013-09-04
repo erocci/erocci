@@ -31,7 +31,8 @@
 %% API
 -export([start_link/0,
 	 get_backend/1]).
--export([get_categories/0]).
+-export([get_categories/0,
+	 is_valid_path/1]).
 -export([start_backends/0, 
 	 parse_backends/1,
 	 parse_categories/1,
@@ -44,8 +45,13 @@
 
 -define(SUPERVISOR, ?MODULE).
 
--record(occi_type, {id :: occi_cid(), mod :: atom(), backend :: atom()}).
-%-type(occi_type() :: #occi_type{}).
+-type tokens() :: [tokens()].
+-record(occi_type, {id        :: occi_cid(), 
+		    mod       :: atom(), 
+		    backend   :: atom(),
+		    uri       :: tokens()}).
+-type(occi_type() :: #occi_type{}).
+-export_type([occi_type/0]).
 
 %%%===================================================================
 %%% API
@@ -103,6 +109,10 @@ get_categories() ->
 		      occi_type:get_actions(Mod)
 	      end,
     lists:flatten([lists:foldl(Categories, [], Types), lists:map(Actions, Types)]).
+
+-spec is_valid_path(Path :: cowboy_router:tokens()) -> true | false.
+is_valid_path(_Path) ->
+    true.
 
 parse_backends(Backends) ->
     lists:map(fun(Backend) -> parse_backend(Backend) end, Backends).
@@ -205,13 +215,16 @@ get_filter(Scheme, Term, Class) ->
 register_categories2(Backend, Filter) ->
     Categories = occi_config:get(categories, fun validate_categories/1),
     Filtered = lists:filter(Filter, Categories),
-    Trans = fun() -> lists:foreach(fun(Mod) ->
-					   Id = occi_type:get_id(Mod),
-					   Type = #occi_type{id=Id, mod=Mod, backend=Backend},
-					   lager:info("Registering category: ~p~n", [Type]),
-					   mnesia:write(Type)
-				   end,
-				   Filtered)
+    Trans = fun() -> lists:foreach(
+		       fun(Mod) ->
+			       Id = occi_type:get_id(Mod),
+			       Type = #occi_type{id=Id, mod=Mod, 
+						 backend=Backend, 
+						 uri=occi_type:get_uri(Mod)},
+			       lager:info("Registering category: ~p~n", [Type]),
+			       mnesia:write(Type)
+		       end,
+		       Filtered)
 	    end,
     mnesia:transaction(Trans).
 

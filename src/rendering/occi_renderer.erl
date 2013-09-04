@@ -22,7 +22,7 @@
 -module(occi_renderer).
 
 % Some common functions
--export([join/2, to_list/1]).
+-export([join/2, join_uri/1, to_list/1, get_url/1]).
 
 -callback render(Obj :: term()) ->
     binary() | list().
@@ -49,3 +49,12 @@ to_list(L) ->
     lists:map(fun(X) when is_atom(X) ->
 		      atom_to_list(X);
 		 (X) -> X end, L).
+
+get_url(undefined) ->
+    [];
+get_url(Uri) ->
+    BaseUrl = occi_config:get(base_location),
+    << <<S/binary,$/>> || S <- [BaseUrl|Uri] >>.
+
+join_uri(Uri) when is_list(Uri) ->
+    << <<S/binary,$/>> || S <- Uri >>.

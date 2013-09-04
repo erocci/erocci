@@ -29,6 +29,7 @@
 	 get_title/1,
 	 get_relations/1,
 	 get_location/1,
+	 get_uri/1,
 	 get_attributes/1,
 	 get_actions_spec/1,
 	 get_actions/1,
@@ -44,7 +45,7 @@ get_kind(Mod) ->
 	       attributes=get_attributes(Mod),
 	       rel=Rel,
 	       actions=get_actions_spec(Mod),
-	       location=get_location(Mod)}.
+	       uri=get_uri(Mod)}.
 
 -spec get_mixin(atom()) -> occi_mixin().
 get_mixin(Mod) ->
@@ -52,7 +53,7 @@ get_mixin(Mod) ->
 		title=get_title(Mod),
 		attributes=get_attributes(Mod),
 		actions=get_actions_spec(Mod),
-		location=get_location(Mod)}.
+		uri=get_uri(Mod)}.
 
 -spec get_actions(atom()) -> [occi_action()].
 get_actions(Mod) ->
@@ -88,8 +89,16 @@ get_relations(Mod) ->
 -spec get_location(atom()) -> binary().
 get_location(Mod) ->
     Base = occi_config:get(base_location),
-    Term = atom_to_list(lists:nth(1, get_tag(Mod, occi_term))),
-    [ Base, "/", Term].
+    lists:reverse([get_uri(Mod)|Base]).
+
+-spec get_uri(atom()) -> uri().
+get_uri(Mod) ->
+    case get_tag(Mod, uri) of
+	[] -> 
+	    [list_to_binary(atom_to_list(lists:nth(1, get_tag(Mod, occi_term))))];
+	[Uri] -> 
+	    Uri
+    end.	    
 
 -spec get_attributes(atom()) -> [{atom(), list(), mfa()}].
 get_attributes(Mod) ->

@@ -55,7 +55,7 @@ render_ejson(#occi_kind{}=Kind) ->
 		 ,{rel, render_rel(Kind#occi_kind.rel)}
 		 ,{attributes, lists:map(fun(X) -> render_attr_spec(X) end, Kind#occi_kind.attributes)}
 		 ,{actions, lists:map(fun({S, T, _, _}) -> render_uri([S,T]) end, Kind#occi_kind.actions)}
-		 ,{location, list_to_binary(Kind#occi_kind.location)}
+		 ,{location, occi_renderer:get_url(Kind#occi_kind.uri)}
 		]);
 
 render_ejson(#occi_mixin{}=Mixin) ->
@@ -63,7 +63,7 @@ render_ejson(#occi_mixin{}=Mixin) ->
 		 ,{title, Mixin#occi_mixin.title}
 		 ,{attributes, lists:map(fun(X) -> render_attr_spec(X) end, Mixin#occi_mixin.attributes)}
 		 ,{actions, lists:map(fun({S, T, _, _}) -> render_uri([S,T]) end, Mixin#occi_mixin.actions)}
-		 ,{location, list_to_binary(Mixin#occi_mixin.location)}]);
+		 ,{location, occi_renderer:get_url(Mixin#occi_mixin.uri)}]);
 
 render_ejson(#occi_action{}=Action) ->
     render_list([{category, render_ejson(Action#occi_action.id)}
@@ -79,6 +79,7 @@ render_ejson(#occi_resource{}=Res) ->
 		 ,{'occi.core.title', Res#occi_resource.title}
 		 ,{'occi.core.summary', Res#occi_resource.summary}
 		 ,{attributes, {lists:map(fun({Key, Val}) -> {Key, Val} end, Res#occi_resource.attributes)}}
+		 ,{location, occi_renderer:get_url(Res#occi_resource.uri)}
 		]);
 
 render_ejson(#occi_link{}=_Link) ->
@@ -112,8 +113,8 @@ render_attr_spec({K, L, _F}) ->
 render_rel({Scheme, Term}) ->
     render_uri([Scheme, Term]).
 
-render_uri(Components) ->    
-    render_uri(Components, []).
+render_uri(Uri) ->    
+    render_uri(Uri, []).
 
 render_uri([], Acc) ->
     list_to_binary(lists:reverse(Acc));

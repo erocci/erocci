@@ -39,7 +39,7 @@ render(#occi_kind{}=Kind, Sep) ->
 			  render_kv(<<"rel">>, render_rel(Kind#occi_kind.rel)),
 			  render_kv(<<"attributes">>, lists:map(fun(X) -> render_attr_spec(X) end, Kind#occi_kind.attributes)),
 			  render_kv(<<"actions">>, lists:map(fun(X) -> render_action_spec(X) end, Kind#occi_kind.actions)),
-			  render_kv(<<"location">>, [Kind#occi_kind.location])], 
+			  render_kv(<<"location">>, occi_renderer:get_url(Kind#occi_kind.uri))],
 			 <<"; ">>), 
       Sep);
 render(#occi_mixin{}=Mixin, Sep) ->
@@ -48,8 +48,8 @@ render(#occi_mixin{}=Mixin, Sep) ->
 			  render_kv(<<"title">>, [Mixin#occi_mixin.title]),
 			  render_kv(<<"attributes">>, lists:map(fun(X) -> render_attr_spec(X) end, Mixin#occi_mixin.attributes)),
 			  render_kv(<<"actions">>, lists:map(fun(X) -> render_action_spec(X) end, Mixin#occi_mixin.actions)),
-			  render_kv(<<"location">>, [Mixin#occi_mixin.location])], 
-			 <<"; ">>), 
+			  render_kv(<<"location">>, occi_renderer:get_url(Mixin#occi_mixin.uri))], 
+			 <<"; ">>),
       Sep);
 render(#occi_action{}=Action, Sep) ->
     occi_renderer:join(
@@ -58,6 +58,7 @@ render(#occi_action{}=Action, Sep) ->
 			  render_kv(<<"attributes">>, lists:map(fun(X) -> render_attr_spec(X) end, Action#occi_action.attributes))],
 			 <<"; ">>),
       Sep);
+
 render(O, _Sep) ->
     lager:error("Invalid value: ~p~n", [O]),
     throw({error, {occi_syntax, "invalid value"}}).
@@ -94,5 +95,9 @@ render_kv(_Key, <<>>) ->
     [];
 render_kv(_Key, []) ->
     [];
-render_kv(Key, Values) ->
-    [Key, "=\"", occi_renderer:join(occi_renderer:to_list(Values), " "), "\""].
+render_kv(Key, Values) when is_list(Values) ->
+    [Key, "=\"", occi_renderer:join(occi_renderer:to_list(Values), " "), "\""];
+render_kv(Key, Value) when is_atom(Value) ->
+    [Key, "=\"", atom_to_list(Value), "\""];
+render_kv(Key, Value) ->
+    [Key, "=\"", Value, "\""].
