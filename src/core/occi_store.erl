@@ -32,7 +32,8 @@
 -export([start_link/0,
 	 get_backend/1]).
 -export([get_categories/0,
-	 is_valid_path/1]).
+	 is_valid_path/1,
+	 load/1]).
 -export([start_backends/0, 
 	 parse_backends/1,
 	 parse_categories/1,
@@ -45,13 +46,15 @@
 
 -define(SUPERVISOR, ?MODULE).
 
--type tokens() :: [tokens()].
 -record(occi_type, {id        :: occi_cid(), 
 		    mod       :: atom(), 
 		    backend   :: atom(),
-		    uri       :: tokens()}).
+		    uri       :: uri()}).
 -type(occi_type() :: #occi_type{}).
 -export_type([occi_type/0]).
+
+-type(objid() :: {occi_category | occi_entity,
+		  occi_cid() | occi_entity_id()}).
 
 %%%===================================================================
 %%% API
@@ -95,24 +98,27 @@ start_backends() ->
 -spec get_categories() -> [occi_category()].
 get_categories() ->
     Types = mnesia:dirty_match_object(#occi_type{ _ ='_'}),
-    Categories = fun(#occi_type{id=Id, mod=Mod}, Acc) ->
-			 case Id#occi_cid.class of
-			     kind ->
-				 [occi_type:get_kind(Mod) | Acc];
-			     mixin ->
-				 [occi_type:get_mixin(Mod) | Acc];
-			     _ ->
-				 Acc
-			 end
-		 end,
-    Actions = fun(#occi_type{mod=Mod}) ->
-		      occi_type:get_actions(Mod)
-	      end,
-    lists:flatten([lists:foldl(Categories, [], Types), lists:map(Actions, Types)]).
+    Categories = [ occi_type:get_category(Mod) || #occi_type{mod=Mod} <- Types ],
+    Actions = [ occi_type:get_actions(Mod) || #occi_type{mod=Mod} <- Types ],
+    lists:flatten([Categories, Actions]).
 
--spec is_valid_path(Path :: cowboy_router:tokens()) -> true | false.
-is_valid_path(_Path) ->
-    true.
+-spec is_valid_path(Path :: uri()) -> false | objid().
+is_valid_path(Path) ->
+    case mnesia:dirty_match_object(#occi_type{uri=Path, _='_'}) of
+	[] ->
+	    false;
+	[Type] ->
+	    {occi_category, Type#occi_type.id}
+    end.
+
+-spec load(objid()) -> occi_category() | occi_entity().
+load({occi_category, Id}) ->
+    case mnesia:dirty_match_object(#occi_type{id=Id, _='_'}) of
+	[] ->
+	    throw({error, occi_invalid_id, Id});
+	[#occi_type{mod=Mod}] ->
+	    occi_type:get_category(Mod)
+    end.	    
 
 parse_backends(Backends) ->
     lists:map(fun(Backend) -> parse_backend(Backend) end, Backends).

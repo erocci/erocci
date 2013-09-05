@@ -36,7 +36,8 @@ start_link(Opts) ->
     lager:info("Starting HTTP listener ~p~n", [Opts]),
     Routes = [
 	      {<<"/-/">>, occi_http_query, []},
-	      {<<"/.well-known/org/ogf/occi/-/">>, occi_http_query, []}
+	      {<<"/.well-known/org/ogf/occi/-/">>, occi_http_query, []},
+	      {<<"/[...]">>, occi_http_all, []}
 	     ],
     Dispatch = cowboy_router:compile([{'_', Routes}]),
     {ok, _} = cowboy:start_http(http, 100, Opts,
@@ -63,7 +64,7 @@ validate_cfg(Opts) ->
 	       {port, I} -> I
 	   end,
     [{ip, Address}, {port, Port}].
-    
+
 loop() ->
     receive
 	stop ->

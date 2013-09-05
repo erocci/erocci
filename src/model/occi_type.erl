@@ -24,7 +24,7 @@
 
 -include("occi.hrl").
 
--export([get_kind/1, get_mixin/1]).
+-export([get_category/1]).
 -export([get_id/1,
 	 get_title/1,
 	 get_relations/1,
@@ -36,6 +36,15 @@
 	 get_entity_type/1
 	]).
 -export([has_property/2]).
+
+get_category(Mod) ->
+    Id = get_id(Mod),
+    case Id#occi_cid.class of
+	kind ->
+	    get_kind(Mod);
+	mixin ->
+	    get_mixin(Mod)
+    end.
 
 -spec get_kind(atom()) -> occi_kind().
 get_kind(Mod) ->
