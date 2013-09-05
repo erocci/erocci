@@ -39,8 +39,8 @@ render(#occi_kind{}=Kind, Sep) ->
 			  render_kv(<<"rel">>, render_rel(Kind#occi_kind.rel)),
 			  render_kv(<<"attributes">>, lists:map(fun(X) -> render_attr_spec(X) end, Kind#occi_kind.attributes)),
 			  render_kv(<<"actions">>, lists:map(fun(X) -> render_action_spec(X) end, Kind#occi_kind.actions)),
-			  render_kv(<<"location">>, occi_renderer:get_url(Kind#occi_kind.uri))],
-			 <<"; ">>), 
+			  render_kv(<<"location">>, render_uri(Kind#occi_kind.location))],
+			 <<"; ">>),
       Sep);
 render(#occi_mixin{}=Mixin, Sep) ->
     occi_renderer:join(
@@ -48,7 +48,7 @@ render(#occi_mixin{}=Mixin, Sep) ->
 			  render_kv(<<"title">>, [Mixin#occi_mixin.title]),
 			  render_kv(<<"attributes">>, lists:map(fun(X) -> render_attr_spec(X) end, Mixin#occi_mixin.attributes)),
 			  render_kv(<<"actions">>, lists:map(fun(X) -> render_action_spec(X) end, Mixin#occi_mixin.actions)),
-			  render_kv(<<"location">>, occi_renderer:get_url(Mixin#occi_mixin.uri))], 
+			  render_kv(<<"location">>, render_uri(Mixin#occi_mixin.location))], 
 			 <<"; ">>),
       Sep);
 render(#occi_action{}=Action, Sep) ->
@@ -63,13 +63,11 @@ render(O, _Sep) ->
     lager:error("Invalid value: ~p~n", [O]),
     throw({error, {occi_syntax, "invalid value"}}).
 
-render_cid(#occi_cid{scheme=Scheme}=Cid, Sep) when is_atom(Scheme) ->
-    render_cid(Cid#occi_cid{scheme=atom_to_list(Scheme)}, Sep);
 render_cid(#occi_cid{}=Cid, Sep) ->
     occi_renderer:join(
-      occi_renderer:join([[atom_to_list(Cid#occi_cid.term)],
-			  render_kv(<<"scheme">>, [Cid#occi_cid.scheme]),
-			  render_kv(<<"class">>, [atom_to_list(Cid#occi_cid.class)]) 
+      occi_renderer:join([atom_to_list(Cid#occi_cid.term),
+			  render_kv(<<"scheme">>, render_uri(Cid#occi_cid.scheme)),
+			  render_kv(<<"class">>, Cid#occi_cid.class) 
 			 ], 
 			 <<"; ">>), 
       Sep).
@@ -88,6 +86,9 @@ render_rel({Scheme, Term}) when is_atom(Scheme) ->
     render_rel({atom_to_list(Scheme), Term});
 render_rel({Scheme, Term}) ->
     [[ Scheme, atom_to_list(Term) ]].
+
+render_uri(Uri) ->
+    occi_renderer:to_uri(Uri).
 
 render_kv(_Key, undefined) ->
     [];

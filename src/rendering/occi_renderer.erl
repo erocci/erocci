@@ -21,8 +21,10 @@
 %%% Created :  3 Sep 2013 by Jean Parpaillon <jean.parpaillon@free.fr>
 -module(occi_renderer).
 
+-include("occi.hrl").
+
 % Some common functions
--export([join/2, join_uri/1, to_list/1, get_url/1]).
+-export([join/2, to_list/1, to_uri/1, to_url/1]).
 
 -callback render(Obj :: term()) ->
     binary() | list().
@@ -50,11 +52,30 @@ to_list(L) ->
 		      atom_to_list(X);
 		 (X) -> X end, L).
 
-get_url(undefined) ->
-    [];
-get_url(Uri) ->
+to_url(#occi_cid{}=Id) ->
     BaseUrl = occi_config:get(base_location),
-    << <<S/binary,$/>> || S <- [BaseUrl|Uri] >>.
+    << <<S/binary,$/>> || S <- [BaseUrl|to_uri(Id)] >>.
 
-join_uri(Uri) when is_list(Uri) ->
-    << <<S/binary,$/>> || S <- Uri >>.
+to_uri(#occi_cid{scheme=Scheme}=Id) when is_atom(Scheme) ->
+    to_uri(Id#occi_cid{scheme=list_to_binary(atom_to_list(Scheme))});
+to_uri(#occi_cid{}=Id) ->
+    [ Id#occi_cid.scheme, list_to_binary(atom_to_list(Id#occi_cid.term)) ];
+to_uri(Uri) when is_binary(Uri) ->
+    Uri;
+to_uri(Uri) when is_atom(Uri) ->
+    list_to_binary(atom_to_list(Uri));
+to_uri(Uri) when is_list(Uri) ->
+    << <<S/binary,$/>> || S <- to_binary(Uri) >>.
+
+to_binary(L) ->
+    to_binary(L, []).
+to_binary([], Acc) ->
+    lists:reverse(Acc);
+to_binary([H|T], Acc) when is_atom(H) ->
+    to_binary(T, [list_to_binary(atom_to_list(H))|Acc]);
+to_binary([H|T], Acc) when is_list(H) ->
+    to_binary(T, [list_to_binary(H)|Acc]);
+to_binary([H|T], Acc) ->
+    to_binary(T, [H|Acc]).
+
+

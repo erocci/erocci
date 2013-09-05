@@ -34,14 +34,14 @@
 %%%===================================================================
 %%% API
 %%%===================================================================
-render(#occi_kind{uri=Uri}) ->
-    occi_renderer:get_url(Uri);
-render(#occi_mixin{uri=Uri}) ->
-    occi_renderer:get_url(Uri);
+render(#occi_kind{id=Id}) ->
+    occi_renderer:to_uri(Id);
+render(#occi_mixin{id=Id}) ->
+    occi_renderer:to_uri(Id);
 render(#occi_action{}) ->
     [];
 render(List) ->
-    lists:map(fun(Obj) -> render(Obj) end, List).
+    occi_renderer:join(lists:map(fun(Obj) -> render(Obj) end, List), "\n").
 
 parse(_Bin) ->
     {}.

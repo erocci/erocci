@@ -290,14 +290,8 @@ is_file_readable(Path) ->
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%% Process terms
-process_term({backends, Backends}, State) ->
-    Backends2 = occi_store:parse_backends(Backends),
-    set(backends, Backends2, State);
 process_term({listeners, Listeners}, State) ->
     Listeners2 = occi_listener:parse_listeners(Listeners),
     set(listeners, Listeners2, State);
-process_term({categories, Categories}, State) ->
-    Categories2 = occi_store:parse_categories(Categories),
-    set(categories, Categories2, State);
 process_term({Opt, Val}, State) ->
     set(Opt, Val, State).

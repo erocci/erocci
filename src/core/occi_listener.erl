@@ -52,7 +52,9 @@
 %% @end
 %%--------------------------------------------------------------------
 start_link() ->
-    supervisor:start_link({local, ?SUPERVISOR}, ?MODULE, []).
+    Ret = supervisor:start_link({local, ?SUPERVISOR}, ?MODULE, []),
+    start_listeners(),
+    Ret.
 
 start_listeners() ->
     case occi_config:get(listeners, fun validate_cfg/1) of

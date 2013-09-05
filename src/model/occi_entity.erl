@@ -44,12 +44,12 @@ get_cid(Entity) when is_record(Entity, occi_resource);
 		    is_record(Entity, occi_link) ->
     element(3, Entity).
 
--spec get_id(occi_entity()) -> occi_entity_id().
+-spec get_id(occi_entity()) -> uri().
 get_id(Entity) when is_record(Entity, occi_resource); 
 		    is_record(Entity, occi_link) ->
     element(2, Entity).
 
--spec set_id(occi_entity(), occi_entity_id()) -> occi_entity().
+-spec set_id(occi_entity(), uri()) -> occi_entity().
 set_id(#occi_resource{}=Entity, Id) ->
     Entity#occi_resource{id=Id};
 set_id(#occi_link{}=Entity, Id) ->

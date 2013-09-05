@@ -29,32 +29,23 @@
 -behaviour(supervisor).
 
 %% API
--export([start_link/0,
-	 get_backend/1]).
+-export([start_link/0, register_category/2, get_backend/1]).
 -export([get_categories/0,
 	 is_valid_path/1,
 	 load/1]).
--export([start_backends/0, 
-	 parse_backends/1,
-	 parse_categories/1,
-	 validate_backends/1,
-	 validate_store/1,
-	 validate_categories/1]).
 
 %% supervisor callbacks
 -export([init/1]).
 
 -define(SUPERVISOR, ?MODULE).
 
--record(occi_type, {id        :: occi_cid(), 
-		    mod       :: atom(), 
-		    backend   :: atom(),
-		    uri       :: uri()}).
--type(occi_type() :: #occi_type{}).
--export_type([occi_type/0]).
-
--type(objid() :: {occi_category | occi_entity,
-		  occi_cid() | occi_entity_id()}).
+-record(store_obj, {uri                       :: uri(),
+		    type      = occi_category :: occi_category | occi_entity,
+		    backend                   :: atom(),
+		    id                        :: occi_cid(),
+		    mod                       :: atom()}).
+-type(store_obj() :: #store_obj{}).
+-export_type([store_obj/0]).
 
 %%%===================================================================
 %%% API
@@ -68,198 +59,70 @@
 %% @end
 %%--------------------------------------------------------------------
 start_link() ->
-    supervisor:start_link({local, ?SUPERVISOR}, ?MODULE, []).
+    Ret = supervisor:start_link({local, ?SUPERVISOR}, ?MODULE, []),
+    occi_backend:start_backends(),
+    Ret.
+
+-spec register_category(atom(), occi_backend:backend_category()) -> ok.
+register_category(Ref, {Mod, Uri}) ->
+    Trans = fun() -> 
+		    Id = occi_type:get_id(Mod),
+		    Type = #store_obj{uri=Uri, backend=Ref, id=Id, mod=Mod},
+		    lager:info("Registering ~p at ~s~n", [occi_renderer:to_uri(Id), Uri]),
+		    mnesia:write(Type)
+	    end,
+    mnesia:transaction(Trans).
 
 -spec get_backend(occi_cid()) -> pid().
-get_backend(CatId) ->
-    case mnesia:dirty_read(occi_type, CatId) of
-	[ #occi_type{backend=Backend} ] -> Backend;
+get_backend(Id) ->
+    case mnesia:dirty_match_object(#store_obj{id=Id, _='_'}) of
+	[ #store_obj{backend=Ref} ] -> Ref;
 	[] ->
-	    lager:error("No backend associated to this category: ~p ~n", [CatId]),
+	    lager:error("No backend associated to this category: ~p ~n", [Id]),
 	    error
     end.
 
-start_backends() ->
-    Backends = case occi_config:get(backends, fun validate_backends/1) of
-		   undefined ->
-		       lager:error("No backend defined"),
-		       throw({error, einval});
-		   Ls -> 
-		       lists:map(
-			 fun({Ref, Module, Opts}) ->
-				 case start_backend(Ref, Module, Opts) of
-				     {ok, _Pid} -> Ref;
-				     {error, Error} -> throw(Error)
-				 end
-			 end, Ls)
-	       end,
-    register_categories(sets:from_list(Backends)).
-
 -spec get_categories() -> [occi_category()].
 get_categories() ->
-    Types = mnesia:dirty_match_object(#occi_type{ _ ='_'}),
-    Categories = [ occi_type:get_category(Mod) || #occi_type{mod=Mod} <- Types ],
-    Actions = [ occi_type:get_actions(Mod) || #occi_type{mod=Mod} <- Types ],
+    Types = mnesia:dirty_match_object(#store_obj{_ ='_'}),
+    BaseUrl = occi_config:get(base_location),
+    Categories = [ occi_type:get_category(occi_renderer:to_uri([BaseUrl, Uri]), Mod) || 
+		     #store_obj{mod=Mod, uri=Uri} <- Types ],
+    Actions = [ occi_type:get_actions(Mod) || #store_obj{mod=Mod} <- Types ],
     lists:flatten([Categories, Actions]).
 
--spec is_valid_path(Path :: uri()) -> false | objid().
+-spec is_valid_path(Path :: uri()) -> false | store_obj().
 is_valid_path(Path) ->
-    case mnesia:dirty_match_object(#occi_type{uri=Path, _='_'}) of
+    case mnesia:dirty_match_object(#store_obj{uri=Path, _='_'}) of
 	[] ->
 	    false;
-	[Type] ->
-	    {occi_category, Type#occi_type.id}
+	[Obj] ->
+	    Obj
     end.
 
--spec load(objid()) -> occi_category() | occi_entity().
-load({occi_category, Id}) ->
-    case mnesia:dirty_match_object(#occi_type{id=Id, _='_'}) of
+-spec load(store_obj()) -> occi_category() | occi_entity().
+load(#store_obj{uri=Path, type=occi_category}) ->
+    case mnesia:dirty_read(store_obj, Path) of
 	[] ->
-	    throw({error, occi_invalid_id, Id});
-	[#occi_type{mod=Mod}] ->
+	    throw({error, einval, Path});
+	[#store_obj{mod=Mod}] ->
 	    occi_type:get_category(Mod)
-    end.	    
-
-parse_backends(Backends) ->
-    lists:map(fun(Backend) -> parse_backend(Backend) end, Backends).
-
-parse_categories(Categories) ->
-    lists:map(fun(Cat) -> parse_category(Cat) end, Categories).
+    end;
+load(_) ->
+    [].
 
 %%%===================================================================
 %%% supervisor callbacks
 %%%===================================================================
 init([]) ->
-    mnesia:create_table(occi_type,
+    lager:info("Starting occi store"),
+    mnesia:create_table(store_obj,
 			[{ram_copies, [node()]},
-			 {attributes, record_info(fields, occi_type)}]),
-    % start no child, will be added with create_backend
+			 {attributes, record_info(fields, store_obj)}]),
+    mnesia:wait_for_tables(store_obj, infinite),
+    % start no child, will be added with backends
     {ok, {{one_for_one, 10, 10}, []}}.
 
 %%%===================================================================
 %%% internals
 %%%===================================================================
-parse_backend({Ref, Module, Opts}) ->
-    {Ref, Module, Opts};
-parse_backend(O) ->
-    lager:error("Error parsing backend definition: ~p~n", [O]),
-    throw({error, einval}).
-
-parse_category(Mod) when is_atom(Mod) ->
-    Mod;
-parse_category(O) ->
-    lager:error("Error parsing category mapping: ~p~n", [O]),
-    throw({error, einval}).
-
-is_module(Mod) when is_atom(Mod) ->
-    try Mod:module_info() of
-	_InfoList ->
-	    true
-    catch
-	_:_ ->
-	    false
-    end;
-is_module(_) ->
-    false.
-
--spec start_backend(atom(), atom(), term()) -> {ok, pid()} | ignore | {error, term()}.
-start_backend(Ref, Module, Opts) ->
-    Backend = {Ref, {occi_backend, start_link, [Ref, Module, Opts]}, 
-	       permanent, 5000, worker, [occi_backend, Module]},
-    supervisor:start_child(?SUPERVISOR, Backend).
-
--spec register_categories(set()) -> ok.
-register_categories(Backends) ->
-    case occi_config:get(store, fun validate_store/1) of
-	undefined ->
-	    [];
-	Ls ->
-	    lists:map(
-	      fun({Ref, Scheme, Term, Class}) ->
-		      case sets:is_element(Ref, Backends) of
-			  false ->
-			      lager:error("Unknown backend: ~s~n", [Ref]),
-			      throw({error, einval});
-			  true ->
-			      Filter = get_filter(Scheme, Term, Class),
-			      register_categories2(Ref, Filter)
-		      end
-	      end, Ls)
-    end.
-
-get_filter('_', '_', '_') ->
-    fun(_Mod) -> true end;
-get_filter(Scheme, '_', '_') ->
-    fun(Mod) -> 
-	    case occi_type:get_id(Mod) of
-		#occi_cid{scheme=Scheme} -> true;
-		_ -> false
-	    end
-    end;
-get_filter(Scheme, '_', Class) ->
-    fun(Mod) -> 
-	    case occi_type:get_id(Mod) of
-		#occi_cid{scheme=Scheme, class=Class} -> true;
-		_ -> false
-	    end
-    end;
-get_filter('_', '_', Class) ->
-    fun(Mod) -> 
-	    case occi_type:get_id(Mod) of
-		#occi_cid{class=Class} -> true;
-		_ -> false
-	    end
-    end;
-get_filter(Scheme, Term, Class) ->
-    fun(Mod) -> 
-	    case occi_type:get_id(Mod) of
-		#occi_cid{scheme=Scheme, term=Term, class=Class} -> true;
-		_ -> false
-	    end
-    end.
-
-register_categories2(Backend, Filter) ->
-    Categories = occi_config:get(categories, fun validate_categories/1),
-    Filtered = lists:filter(Filter, Categories),
-    Trans = fun() -> lists:foreach(
-		       fun(Mod) ->
-			       Id = occi_type:get_id(Mod),
-			       Type = #occi_type{id=Id, mod=Mod, 
-						 backend=Backend, 
-						 uri=occi_type:get_uri(Mod)},
-			       lager:info("Registering category: ~p~n", [Type]),
-			       mnesia:write(Type)
-		       end,
-		       Filtered)
-	    end,
-    mnesia:transaction(Trans).
-
-%%%
-%%% Configuration validation functions
-%%% 
-validate_backends(Opts) ->
-    lists:map(fun({Ref, Module, ModOpts}) -> 
-		      {Ref, Module, Module:validate_cfg(ModOpts)}
-	      end,
-	      Opts).
-
-%-spec validate_categories([atom()]) -> [atom()].
-validate_categories(Opts) ->
-    lists:map(fun(Mod) ->
-		      case is_module(Mod) of
-			  true -> Mod;
-			  false ->
-			      lager:error("~p is not a valid module", [Mod]),
-			      throw({error, einval})
-		      end
-	      end,
-	      Opts).
-
--spec validate_store([{atom(), atom(), atom(), atom()}]) -> [{atom(), atom(), atom(), atom()}].
-validate_store(Opts) ->
-    lists:map(fun({Ref, Scheme, Term, Class}) -> 
-		      {Ref, Scheme, Term, Class};
-		 (Opt) ->
-		      lager:error("Invalid value for store option: ~s~n", [Opt]),
-		      throw({error, einval})
-	      end, Opts).

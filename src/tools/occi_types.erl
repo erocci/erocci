@@ -23,7 +23,7 @@
 -module(occi_types).
 
 -export([is_enum/2, is_integer/1, is_float/1, is_alnum/1, is_cidr/1, is_ipaddress/1]).
--export([is_range/2]).
+-export([is_range/2, is_module/1]).
 
 -spec is_enum(any(), [any()]) -> {ok, any()} | error.
 is_enum(Obj, [ Val | _Values]) when Obj == Val ->
@@ -73,3 +73,14 @@ is_cidr(Obj) ->
 
 is_ipaddress(Obj) ->
     {ok, Obj}.
+
+is_module(Mod) when is_atom(Mod) ->
+    try Mod:module_info() of
+	_InfoList ->
+	    true
+    catch
+	_:_ ->
+	    false
+    end;
+is_module(_) ->
+    false.

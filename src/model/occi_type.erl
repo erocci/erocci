@@ -24,12 +24,10 @@
 
 -include("occi.hrl").
 
--export([get_category/1]).
+-export([get_category/2]).
 -export([get_id/1,
 	 get_title/1,
 	 get_relations/1,
-	 get_location/1,
-	 get_uri/1,
 	 get_attributes/1,
 	 get_actions_spec/1,
 	 get_actions/1,
@@ -37,32 +35,32 @@
 	]).
 -export([has_property/2]).
 
-get_category(Mod) ->
+get_category(Url, Mod) ->
     Id = get_id(Mod),
     case Id#occi_cid.class of
 	kind ->
-	    get_kind(Mod);
+	    get_kind(Url, Mod);
 	mixin ->
-	    get_mixin(Mod)
+	    get_mixin(Url, Mod)
     end.
 
--spec get_kind(atom()) -> occi_kind().
-get_kind(Mod) ->
+-spec get_kind(uri(), atom()) -> occi_kind().
+get_kind(Url, Mod) ->
     [Rel] = get_relations(Mod),
     #occi_kind{id=get_id(Mod), 
 	       title=get_title(Mod),
 	       attributes=get_attributes(Mod),
 	       rel=Rel,
 	       actions=get_actions_spec(Mod),
-	       uri=get_uri(Mod)}.
+	       location=Url}.
 
--spec get_mixin(atom()) -> occi_mixin().
-get_mixin(Mod) ->
+-spec get_mixin(uri(), atom()) -> occi_mixin().
+get_mixin(Url, Mod) ->
     #occi_mixin{id=get_id(Mod),
 		title=get_title(Mod),
 		attributes=get_attributes(Mod),
 		actions=get_actions_spec(Mod),
-		uri=get_uri(Mod)}.
+		location=Url}.
 
 -spec get_actions(atom()) -> [occi_action()].
 get_actions(Mod) ->
@@ -94,20 +92,6 @@ get_title(Mod) ->
 -spec get_relations(atom()) -> [{atom(), atom()}].
 get_relations(Mod) ->
     get_tag(Mod, occi_relation).
-
--spec get_location(atom()) -> binary().
-get_location(Mod) ->
-    Base = occi_config:get(base_location),
-    lists:reverse([get_uri(Mod)|Base]).
-
--spec get_uri(atom()) -> uri().
-get_uri(Mod) ->
-    case get_tag(Mod, uri) of
-	[] -> 
-	    [list_to_binary(atom_to_list(lists:nth(1, get_tag(Mod, occi_term))))];
-	[Uri] -> 
-	    Uri
-    end.	    
 
 -spec get_attributes(atom()) -> [{atom(), list(), mfa()}].
 get_attributes(Mod) ->
@@ -141,10 +125,11 @@ get_tag(Mod, Name) ->
     lager:error("Invalid value: ~p, ~p~n", [Mod, Name]),
     throw({error, einval}).
 
+-spec get_action_scheme(occi_cid()) -> uri().
 get_action_scheme(BaseId) ->
-    [ lists:nth(1, string:tokens(atom_to_list(BaseId#occi_cid.scheme), "#")), 
-      "/", atom_to_list(BaseId#occi_cid.term), 
-      "/action#" ].
+    BaseScheme = list_to_binary(lists:nth(1, string:tokens(atom_to_list(BaseId#occi_cid.scheme), "#"))),
+    BaseTerm = list_to_binary(atom_to_list(BaseId#occi_cid.term)),
+    << BaseScheme/binary, $/, BaseTerm/binary, $/, "action#" >>.
 
 has_property({occi_attribute, _K, [], _F}, _Property) ->
     false;

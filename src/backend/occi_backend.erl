@@ -25,19 +25,24 @@
 -compile([{parse_transform, lager_transform}]).
 
 -include("occi.hrl").
-
--record(state, {backend, state}).
-
 %% API
--export([start_link/3]).
+-export([start_link/3, start_backends/0, 
+	 valid_config/1, valid_categories/1]).
 -export([save/2]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
 	 terminate/2, code_change/3]).
 
-%% occi_backend callbacks declaration
--type opts() :: [{atom(), any()}].
+% Backends config type
+-type backend_config() :: {Ref :: atom(),
+			   Mod :: atom(), 
+			   Opts :: backend_opts()}.
+-type backend_opts() :: [{Key::atom(), Value::any()}].
+-type backend_category() :: {Mod :: atom(), Uri :: uri()}.
+-export_type([backend_config/0, backend_opts/0]).
+
+-record(state, {backend, state}).
 
 -callback init(Args :: term()) ->
     {ok, State :: term()} |
@@ -50,7 +55,7 @@
     {ok, Obj :: occi_entity(), State :: term()} |
     {error, Reason :: term()}.
 
--callback get(CatId :: occi_cid(), Id :: occi_entity_id(), State :: term()) ->
+-callback get(CatId :: occi_cid(), Id :: uri(), State :: term()) ->
     {ok, [Entities :: occi_entity()], State :: term()} |
     {nok} |
     {error, Reason :: term()}.
@@ -63,11 +68,11 @@
     {ok, State :: term()} |
     {error, Reason :: term()}.
 
--callback delete(CatId :: occi_cid(), Id :: occi_entity_id(), State :: term()) ->
+-callback delete(CatId :: occi_cid(), Id :: uri(), State :: term()) ->
     {ok, State :: term()} |
     {error, Reason :: term()}.
 
--callback validate_cfg(opts()) -> opts().
+-callback valid_config(backend_opts()) -> backend_opts().
 
 %%%
 %%% API
@@ -76,6 +81,37 @@
 start_link(Ref, Backend, Opts) ->
     lager:info("Starting storage backend ~p (~p)~n", [Ref, Backend]),
     gen_server:start_link({local, Ref}, ?MODULE, {Backend, Opts}, []).
+
+start_backends() ->
+    case occi_config:get(backends, fun valid_config/1) of
+	undefined ->
+	    lager:error("No backend defined"),
+	    throw({error, einval});
+	Ls ->
+	    lists:map(
+	      fun({Ref, Mod, Opts}) ->
+		      case start_backend(Ref, Mod, Opts) of
+			  {ok, _Pid} -> Ref;
+			  {error, Error} -> throw(Error)
+		      end
+	      end, Ls)
+    end.
+
+-spec valid_config([backend_config()]) -> [backend_config()].
+valid_config(Backends) ->
+    lists:map(fun({Ref, Mod, Opts}) ->
+		      case occi_types:is_module(Mod) of
+			  true -> true;
+			  false -> 
+			      lager:error("Not a module: ~p~n", [Mod]),
+			      throw({error, einval, Mod})
+		      end,
+		      {Ref, Mod, Mod:valid_config(Opts)}
+	      end, Backends).
+
+-spec valid_categories([backend_category()]) -> [backend_category()].
+valid_categories(Categories) ->
+    [ {Mod, Uri} || {Mod, Uri} <- Categories ].
 
 save(Ref, Entity) ->
     gen_server:call(Ref, {save, Entity}).
@@ -183,3 +219,9 @@ terminate(_Reason, #state{backend=Backend, state=State}) ->
 %%--------------------------------------------------------------------
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
+
+-spec start_backend(atom(), atom(), backend_opts()) -> {ok, pid()} | ignore | {error, term()}.
+start_backend(Ref, Mod, Opts) ->
+    Backend = {Ref, {?MODULE, start_link, [Ref, Mod, [{ref, Ref} | Opts]]}, 
+	       permanent, 5000, worker, [?MODULE, Mod]},
+    supervisor:start_child(occi_store, Backend).

@@ -11,7 +11,7 @@
 -type(occi_action_spec() :: term()).
 
 %%% OCCI Category ID
--record(occi_cid, {scheme    = undefined :: atom(),
+-record(occi_cid, {scheme    = undefined :: atom() | uri(),
 		   term      = undefined :: atom(),
 		   class                 :: occi_class()}).
 -type(occi_cid() :: #occi_cid{}).
@@ -22,7 +22,7 @@
 		    attributes = []           :: [occi_attr_spec()],
 		    rel        = []           :: uri(),
 		    actions    = []           :: [occi_action_spec()],
-		    uri                       :: uri()}).
+		    location                  :: uri()}).
 -type(occi_kind() :: #occi_kind{}).
 
 %%% OCCI Mixin
@@ -30,7 +30,7 @@
 		     title      = undefined    :: binary(),
 		     attributes = []           :: [occi_attr_spec()],
 		     actions    = []           :: [occi_action_spec()],
-		     uri                       :: uri()}).
+		     location                  :: uri()}).
 -type(occi_mixin() :: #occi_mixin{}).
 
 %%% OCCI Action
@@ -43,9 +43,8 @@
 -type(occi_category() :: occi_kind() | occi_mixin() | occi_action()).
 
 %%% OCCI Resource
--record(occi_resource, {id         = undefined :: occi_entity_id(),
+-record(occi_resource, {id         = undefined :: uri(),
 			cid                    :: occi_cid(),
-			uri        = undefined :: uri(),
 			title      = undefined :: binary(),
 		        summary    = undefined :: binary(),
 			attributes = []        :: [{atom(), any()}],
@@ -54,9 +53,8 @@
 -type(occi_resource() :: #occi_resource{}).
 
 %%% OCCI Link
--record(occi_link, {id         = undefined :: occi_entity_id(),
+-record(occi_link, {id         = undefined :: uri(),
 		    cid                    :: occi_cid(),
-		    uri        = undefined :: uri(),
 		    title      = undefined :: binary(),
 		    attributes = []        :: [{atom(), any()}],
 		    source                 :: uri(),
@@ -65,7 +63,6 @@
 -type(occi_link() :: #occi_link{}).
 
 %%% OCCI Entity
--type(occi_entity_id() :: any()).
 -type(occi_entity() :: #occi_resource{} | #occi_link{}).
 
 %%% OCCI Filter

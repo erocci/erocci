@@ -56,10 +56,7 @@ start(normal, _Args) ->
     ensure_started(inets),
     db_init(),
     occi_config:start(),
-    %occi_hooks:start(),
     Ret = occi_sup:start_link(),
-    occi_store:start_backends(),
-    occi_listener:start_listeners(),
     start(),
     Ret;
 start(_StartType, _StartArgs) ->

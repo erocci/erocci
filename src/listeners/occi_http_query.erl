@@ -55,7 +55,8 @@ content_types_accepted(Req, Ctx) ->
 
 to_plain(Req, Ctx) ->
     Categories = occi_store:get_categories(),
-    {occi_renderer_plain:render(Categories), Req, Ctx}.
+    Body = occi_renderer_plain:render(Categories),
+    {Body, Req, Ctx}.
 
 to_occi(Req, Ctx) ->
     Categories = occi_store:get_categories(),
@@ -65,12 +66,12 @@ to_occi(Req, Ctx) ->
 
 to_uri_list(Req, Ctx) ->
     Categories = occi_store:get_categories(),
-    Body = occi_renderer_uri_list:render(Categories),
+    Body = [occi_renderer_uri_list:render(Categories), "\n"],
     {Body, Req, Ctx}.
 
 to_json(Req, Ctx) ->
     Categories = occi_store:get_categories(),
-    Body = occi_renderer_json:render(Categories),
+    Body = [occi_renderer_json:render(Categories), "\n"],
     {Body, Req, Ctx}.
 
 from_plain(Req, Ctx) ->
