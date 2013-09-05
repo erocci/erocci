@@ -24,7 +24,7 @@
 
 -include("occi.hrl").
 
--export([get_category/2]).
+-export([get_category/3]).
 -export([get_id/1,
 	 get_title/1,
 	 get_relations/1,
@@ -35,32 +35,32 @@
 	]).
 -export([has_property/2]).
 
-get_category(Url, Mod) ->
+get_category(BaseUrl, Uri, Mod) ->
     Id = get_id(Mod),
     case Id#occi_cid.class of
 	kind ->
-	    get_kind(Url, Mod);
+	    get_kind(BaseUrl, Uri, Mod);
 	mixin ->
-	    get_mixin(Url, Mod)
+	    get_mixin(BaseUrl, Uri, Mod)
     end.
 
--spec get_kind(uri(), atom()) -> occi_kind().
-get_kind(Url, Mod) ->
+-spec get_kind(uri(), uri(), atom()) -> occi_kind().
+get_kind(BaseUrl, Uri, Mod) ->
     [Rel] = get_relations(Mod),
     #occi_kind{id=get_id(Mod), 
 	       title=get_title(Mod),
 	       attributes=get_attributes(Mod),
 	       rel=Rel,
 	       actions=get_actions_spec(Mod),
-	       location=Url}.
+	       location=occi_renderer:to_uri([BaseUrl, Uri])}.
 
--spec get_mixin(uri(), atom()) -> occi_mixin().
-get_mixin(Url, Mod) ->
+-spec get_mixin(uri(), uri(), atom()) -> occi_mixin().
+get_mixin(BaseUrl, Uri, Mod) ->
     #occi_mixin{id=get_id(Mod),
 		title=get_title(Mod),
 		attributes=get_attributes(Mod),
 		actions=get_actions_spec(Mod),
-		location=Url}.
+		location=occi_renderer:to_uri([BaseUrl, Uri])}.
 
 -spec get_actions(atom()) -> [occi_action()].
 get_actions(Mod) ->

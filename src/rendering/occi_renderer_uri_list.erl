@@ -34,10 +34,10 @@
 %%%===================================================================
 %%% API
 %%%===================================================================
-render(#occi_kind{id=Id}) ->
-    occi_renderer:to_uri(Id);
-render(#occi_mixin{id=Id}) ->
-    occi_renderer:to_uri(Id);
+render(#occi_kind{location=Url}) ->
+    Url;
+render(#occi_mixin{location=Url}) ->
+    Url;
 render(#occi_action{}) ->
     [];
 render(List) ->

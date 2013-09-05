@@ -108,8 +108,11 @@ render_attr_spec({K, L, _F}) ->
 		 ,{'properties', lists:map(fun(X) -> list_to_binary(atom_to_list(X)) end, L)}
 		]).
 
+render_rel({Scheme, Term}) when is_atom(Scheme) ->
+    render_rel({list_to_binary(atom_to_list(Scheme)), Term});
 render_rel({Scheme, Term}) ->
-    render_uri([Scheme, Term]).
+    BTerm = list_to_binary(atom_to_list(Term)),
+    << Scheme/binary, BTerm/binary >>.
 
 render_uri(Uri) ->
     occi_renderer:to_uri(Uri).
