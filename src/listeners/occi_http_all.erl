@@ -33,7 +33,7 @@
 
 -include("occi.hrl").
 
--record(state, {resource :: occi_store:typeid()}).
+-record(state, {resource :: occi_store:store_obj()}).
 
 init(_Transport, _Req, []) -> 
     {upgrade, protocol, cowboy_rest}.

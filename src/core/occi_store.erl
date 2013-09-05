@@ -86,7 +86,7 @@ get_backend(Id) ->
 get_categories() ->
     Types = mnesia:dirty_match_object(#store_obj{_ ='_'}),
     BaseUrl = occi_config:get(base_location),
-    Categories = [ occi_type:get_category(occi_renderer:to_uri([BaseUrl, Uri]), Mod) || 
+    Categories = [ occi_type:get_category(BaseUrl, Uri, Mod) || 
 		     #store_obj{mod=Mod, uri=Uri} <- Types ],
     Actions = [ occi_type:get_actions(Mod) || #store_obj{mod=Mod} <- Types ],
     lists:flatten([Categories, Actions]).
@@ -105,8 +105,9 @@ load(#store_obj{uri=Path, type=occi_category}) ->
     case mnesia:dirty_read(store_obj, Path) of
 	[] ->
 	    throw({error, einval, Path});
-	[#store_obj{mod=Mod}] ->
-	    occi_type:get_category(Mod)
+	[#store_obj{mod=Mod, uri=Uri}] ->
+	    BaseUrl = occi_config:get(base_location),
+	    occi_type:get_category(BaseUrl, Uri, Mod)
     end;
 load(_) ->
     [].
