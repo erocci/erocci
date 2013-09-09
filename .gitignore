@@ -1,7 +1,10 @@
 *~
 erl_crash.dump
 ebin
+.eunit
 deps/
 priv/
 Mnesia.nonode@nohost/
 log/
+src/rendering/occi_parser.erl
+src/rendering/occi_scanner.erl

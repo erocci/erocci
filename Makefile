@@ -3,7 +3,7 @@ topdir=.
 ERL ?= erl
 REBAR=$(topdir)/rebar
 
-.PHONY: deps exmpp-deps
+.PHONY: alll deps clean distclean docs exmpp-deps tests tests-all
 
 all: deps
 	@$(REBAR) compile
@@ -21,3 +21,9 @@ distclean: clean
 
 docs:
 	@erl -noshell -run edoc_run application '$(APP)' '"."' '[]'
+
+tests:
+	@$(REBAR) eunit recursive=false skip_deps=true
+
+tests-all:
+	@$(REBAR) eunit
