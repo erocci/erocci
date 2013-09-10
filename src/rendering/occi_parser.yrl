@@ -94,3 +94,19 @@ attribute_value_attr -> digits : '$1'.
 attribute_value_attr -> float : '$1'.
 
 attribute_attr -> attributes_attr : '$1'.
+
+Erlang code.
+
+-ifdef(TEST).
+-include_lib("eunit/include/eunit.hrl").
+-endif.
+
+%%%
+%%% Tests
+%%% 
+-ifdef(TEST).
+
+parse1_test() ->
+    ?assert(true).
+
+-endif.

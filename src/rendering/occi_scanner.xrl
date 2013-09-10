@@ -30,7 +30,9 @@ Rules.
 
 Erlang code.
 
+-ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
+-endif(TEST).
 
 make_token(Chars, Line) ->
   Lower = string:to_lower(Chars),
@@ -57,6 +59,8 @@ is_reserved(_)                  -> false.
 %%%
 %%% Tests
 %%%
+-ifdef(TEST).
+
 scan1_test() ->
     Input = "Category: compute; scheme=\"http://schemas.ogf.org/occi/infrastructure#\"; class=\"kind\"",
     Expect = {ok,[{category,1},
@@ -72,3 +76,5 @@ scan1_test() ->
 		  {string,"\"kind\"",1}],
 	      1},
     ?assert(occi_scanner:string(Input) =:= Expect).
+
+-endif.
