@@ -34,9 +34,11 @@ scanner_test_() ->
 	       end, Files)}.
 
 scan(File) ->
+    ?debugFmt("scan ~s", [File]),
     {ok, Input} = file:read_file(File),
     case occi_scanner:string(binary_to_list(Input)) of
 	{ok,_Tokens,_EndLine} ->
+	    %?debugFmt("~n~p", [Tokens]),
 	    ok;
 	ErrorInfo ->
 	    throw(ErrorInfo)

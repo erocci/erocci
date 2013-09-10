@@ -6,8 +6,8 @@ White         = (\s|\t|\n)
 
 Url           = (http://|https://)([a-zA-Z0-9@:%_\\+.~#\?&/=-]*)
 Path          = (/[a-zA-Z0-9-_]*)+
-Term          = [a-zA-Z0-9-_]+
-AttrName      = [a-zA-Z0-9]+(\.[a-zA-Z0-9]+)*
+Term          = [a-zA-Z][a-zA-Z0-9-_]*
+AttrName      = [a-zA-Z][a-zA-Z0-9]*(\.[a-zA-Z][a-zA-Z0-9]*)*
 String        = "[^"]*"
 
 Number        = [0-9]+
@@ -22,7 +22,7 @@ Rules.
 {Term}                     : make_token(TokenChars, TokenLine).
 \?action=                  : {token, {'?action=', TokenLine}}.
 {AttrName}                 : {token, {attribute_name_attr, TokenChars, TokenLine}}.
-{String}                   : {token, {string, TokenChars, TokenLine}}.
+{String}                   : {token, {string, unquote(TokenChars), TokenLine}}.
 {Number}                   : {token, {integer, list_to_integer(TokenChars), TokenLine}}.
 {Float}                    : {token, {float, list_to_float(TokenChars), TokenLine}}.
 {Url}                      : {token, {url, TokenChars, TokenLine}}.
@@ -51,3 +51,6 @@ is_reserved("self")             -> true;
 is_reserved("x-occi-attribute") -> true;
 is_reserved("x-occi-location")  -> true;
 is_reserved(_)                  -> false.
+
+unquote(Chars) ->
+    lists:sublist(Chars, 2, length(Chars)-2).
