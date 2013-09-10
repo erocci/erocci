@@ -26,6 +26,7 @@
 
 -behaviour(occi_renderer).
 
+-include_lib("eunit/include/eunit.hrl").
 -include("occi.hrl").
 
 %% API
@@ -43,3 +44,11 @@ render(Categories) ->
 
 parse(_Bin) ->
     {}.
+
+%%%
+%%% Tests
+%%%
+render1_test() ->
+    T = occi_type:get_category(<<"http://localhost">>, <<"compute">>, occi_infra_compute),
+    Expect = <<"compute; \n\tscheme=\"http://schemas.ogf.org/occi/infrastructure#\"; \n\tclass=\"kind\"; \n\ttitle=\"Compute resource\"; \n\trel=\"http://schemas.ogf.org/occi/core#resource\"; \n\tattributes=\"occi.compute.state{required,immutable} occi.compute.memory occi.compute.speed occi.compute.hostname occi.compute.cores occi.compute.architecture\"; \n\tactions=\"http://schemas.ogf.org/occi/infrastructure/compute/action#suspend http://schemas.ogf.org/occi/infrastructure/compute/action#restart http://schemas.ogf.org/occi/infrastructure/compute/action#stop http://schemas.ogf.org/occi/infrastructure/compute/action#start\"; \n\tlocation=\"http://localhost/compute/\"">>,
+    ?assert(erlang:iolist_to_binary(occi_renderer_plain:render(T)) =:= Expect).
