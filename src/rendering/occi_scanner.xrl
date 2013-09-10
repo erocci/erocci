@@ -1,3 +1,4 @@
+% -*- mode: erlang -*-
 Definitions.
 
 Quote         = "|\'
@@ -5,7 +6,8 @@ Whites        = (\s|\t)+
 
 Url           = (http://|https://)([a-zA-Z0-9@:%_\\+.~#?&/=-]*)
 Path          = (/[a-zA-Z0-9-_]*)+
-Term          = [a-zA-Z0-9-_\.]+
+Term          = [a-zA-Z0-9-_]+
+AttrName      = [a-zA-Z0-9](\.[a-zA-Z0-9]+)*
 String        = "[^"]*"
 
 Number        = [0-9]+
@@ -13,12 +15,13 @@ Float         = [0-9](\.[0-9])+
 
 Rules.
 
-[:;,/<>{}=]                : {token, {list_to_atom(TokenChars), TokenLine}}.
+[:;,/<>{}=]              : {token, {list_to_atom(TokenChars), TokenLine}}.
 {Quote}                    : {token, {quote, TokenLine}}.
 {Whites}+                  : skip_token.
 
 {Term}                     : make_token(TokenChars, TokenLine).
 \?action=                  : {token, {'?action=', TokenLine}}.
+{AttrName}                 : {token, {attribute_name_attr, TokenLine}}.
 {String}                   : {token, {string, TokenChars, TokenLine}}.
 {Number}                   : {token, {list_to_integer(TokenChars), TokenLine}}.
 {Float}                    : {float, {list_to_float(TokenChars), TokenLine}}.

@@ -1,3 +1,4 @@
+% -*- mode: erlang -*-
 Nonterminals
 header category_values category_value category_opt_attrs
 category_opt_attr link_values link_value link_opt_attrs
@@ -9,7 +10,7 @@ attribute_kv_attr attribute_value_attr attribute_attr.
 Terminals
 'category' 'link' 'x-occi-attribute' 'x-occi-location' '?action='
 'scheme' 'class' 'title' 'rel' 'location' 'attributes' 'actions' 'self'
-url path quote term string digits float
+url path quote term string digits float attribute_name_attr
 ':' ',' '<' '>' ';' '=' '{' '}'.
 
 Rootsymbol header.
@@ -86,7 +87,7 @@ category_attr -> ';' 'category' ',' quote url quote : {category, '$5'}.
 attributes_attr -> attribute_kv_attr : ['$1'].
 attributes_attr -> attribute_kv_attr ',' attributes_attr : ['$1'|'$3'].
 
-attribute_kv_attr -> term ',' attribute_value_attr : {'$1', '$2'}.
+attribute_kv_attr -> attribute_name_attr '=' attribute_value_attr : {'$1', '$2'}.
 
 attribute_value_attr -> string : '$1'.
 attribute_value_attr -> digits : '$1'.
