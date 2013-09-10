@@ -1,6 +1,6 @@
 % -*- mode: erlang -*-
 Nonterminals
-header category_values category_value category_opt_attrs
+headers header category_values category_value category_opt_attrs
 category_opt_attr link_values link_value link_opt_attrs
 link_opt_attr location_values target_attr scheme_attr class_attr
 title_attr rel_attr location_attr c_attributes_attr c_attributes c_attribute
@@ -13,9 +13,12 @@ Terminals
 url path quote term string digits float attribute_name_attr
 ':' ',' '<' '>' ';' '=' '{' '}'.
 
-Rootsymbol header.
+Rootsymbol headers.
 
 Expect 2.
+
+headers -> header : ['$1'].
+headers -> header headers : ['$1'|'$2'].
 
 header -> 'category' ':' category_values : {categories, '$3'}.
 header -> 'link' ':' link_values : {links, '$3'}.
