@@ -40,14 +40,16 @@ save(Entity) when is_record(Entity, occi_resource);
     Backend = occi_store:get_backend(Cid),
     occi_backend:save(Backend, Entity).
 
-get_cid(Entity) when is_record(Entity, occi_resource); 
-		    is_record(Entity, occi_link) ->
-    element(3, Entity).
+get_cid(#occi_resource{cid=Cid}) ->
+    Cid;
+get_cid(#occi_link{cid=Cid}) ->
+    Cid.
 
 -spec get_id(occi_entity()) -> uri().
-get_id(Entity) when is_record(Entity, occi_resource); 
-		    is_record(Entity, occi_link) ->
-    element(2, Entity).
+get_id(#occi_resource{id=Id}) ->
+    Id;
+get_id(#occi_link{id=Id}) ->
+    Id.
 
 -spec set_id(occi_entity(), uri()) -> occi_entity().
 set_id(#occi_resource{}=Entity, Id) ->
