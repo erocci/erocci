@@ -39,7 +39,7 @@ content_types_provided(Req, Ctx) ->
       {<<"text/plain">>, to_plain},
       {<<"text/occi">>, to_occi},
       {<<"text/uri-list">>, to_uri_list},
-      {<<"application/json">>, to_json}
+      {<<"application/occi+json">>, to_json}
      ],
      Req, Ctx}.
 
@@ -49,7 +49,7 @@ content_types_accepted(Req, Ctx) ->
       {<<"text/plain">>, from_plain},
       {<<"text/occi">>, from_occi},
       {<<"text/uri-list">>, from_uri_list},
-      {<<"application/json">>, from_json}
+      {<<"application/occi+json">>, from_json}
      ],
      Req, Ctx}.
 
