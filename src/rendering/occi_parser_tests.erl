@@ -37,8 +37,8 @@ parse(File) ->
     ?debugFmt("parse ~s", [File]),
     {ok, In} = file:read_file(File),
     case  occi_parser:parse(occi_scanner:scan(In)) of
-	{ok, Result} ->
-	    ?debugFmt("~n~p", [Result]),
+	{ok, _Result} ->
+	    %?debugFmt("~n~p", [Result]),
 	    ok;
 	{error, {Line, Number, Msg}} ->
 	    ?debugMsg(?MODULE:format_error(Msg)),
