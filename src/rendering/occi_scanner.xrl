@@ -11,31 +11,50 @@ AttrName      = [a-zA-Z][a-zA-Z0-9]*(\.[a-zA-Z][a-zA-Z0-9]*)*
 String        = "[^"]*"
 
 Number        = [0-9]+
-Float         = [0-9](\.[0-9])+
+Float         = [0-9]+\.[0-9]+
 
 Rules.
 
-[:;,/<>{}=]                : {token, {list_to_atom(TokenChars), TokenLine}}.
-{Quote}                    : {token, {quote, TokenLine}}.
+[:;,/<>{}=]                : make_atom(list_to_atom(TokenChars), TokenLine).
+{Quote}                    : make_atom(quote, TokenLine).
 {White}+                   : skip_token.
 
-{Term}                     : make_token(TokenChars, TokenLine).
-\?action=                  : {token, {'?action=', TokenLine}}.
-{AttrName}                 : {token, {attribute_name_attr, TokenChars, TokenLine}}.
-{String}                   : {token, {string, unquote(TokenChars), TokenLine}}.
-{Number}                   : {token, {integer, list_to_integer(TokenChars), TokenLine}}.
-{Float}                    : {token, {float, list_to_float(TokenChars), TokenLine}}.
-{Url}                      : {token, {url, TokenChars, TokenLine}}.
-{Path}                     : {token, {path, TokenChars, TokenLine}}.
+{Term}                     : make_term_or_atom(TokenChars, TokenLine).
+\?action=                  : make_atom('?action=', TokenLine).
+{AttrName}                 : make_token(attribute_name_attr, TokenLine, TokenChars).
+{String}                   : make_token(quoted_value, TokenLine, unquote(TokenChars)).
+{Number}                   : make_token(integer, TokenLine, list_to_integer(TokenChars)).
+{Float}                    : make_token(float, TokenLine, list_to_float(TokenChars)).
+{Url}                      : make_token(url, TokenLine, TokenChars).
+{Path}                     : make_token(path, TokenLine, TokenChars).
 
 Erlang code.
 
-make_token(Chars, Line) ->
-  Lower = string:to_lower(Chars),
-  case is_reserved(Lower) of
-    true  -> {token, {list_to_atom(Lower), Line}};
-    false -> {token, {term, Chars, Line}}
-  end.
+-export([scan/1]).
+
+-spec scan(In :: binary()) -> Tokens :: list().
+scan(In) ->
+    case ?MODULE:string(binary_to_list(In)) of
+	{ok, Tokens, _EndLine} ->
+	    Tokens;
+	ErrorInfo ->
+	    throw(ErrorInfo)
+    end.
+
+make_token(Name, Line, Chars) ->
+    {token, {Name, Line, Chars}}.
+
+make_atom(Chars, Line) when is_list(Chars) ->
+    {token, {list_to_atom(Chars), Line}};
+make_atom(Atom, Line) when is_atom(Atom) ->
+    {token, {Atom, Line}}.
+
+make_term_or_atom(Chars, Line) ->
+    Lower = string:to_lower(Chars),
+    case is_reserved(Lower) of
+	true  -> {token, {list_to_atom(Lower), Line}};
+	false -> {token, {term, Line, Chars}}
+    end.
 
 is_reserved("category")         -> true;
 is_reserved("link")             -> true;
