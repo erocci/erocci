@@ -25,7 +25,7 @@
 -include_lib("eunit/include/eunit.hrl").
 
 parser_test_() ->
-    Files = filelib:wildcard("../tests/plain/valid*"),
+    Files = filelib:wildcard("../tests/plain/valid*.txt"),
     {setup,
      fun setup/0,
      fun cleanup/1,
