@@ -43,8 +43,8 @@ render(Obj) when is_record(Obj, occi_kind);
 render(List) ->
     lists:map(fun(Obj) -> render(Obj) end, List).
 
-parse(_Bin) ->
-    {}.
+parse(Bin) ->
+    {ok, jiffy:decode(Bin)}.
 
 %%%
 %%% Private

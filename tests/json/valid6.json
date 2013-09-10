@@ -1,0 +1,17 @@
+{
+    "actions": [
+        {
+            "term": "stop",
+            "scheme": "http://schemas.ogf.org/occi/infrastructure/compute/action#",
+            "title": "Stop Compute instance",
+            "attributes": {
+                "method": {
+                    "mutable": true,
+                    "required": false,
+                    "type": "string",
+                    "default": "poweroff"
+                }
+            }
+        }
+    ]
+}
