@@ -2,12 +2,12 @@
 Definitions.
 
 Quote         = "|\'
-Whites        = (\s|\t)+
+White         = (\s|\t|\n)
 
-Url           = (http://|https://)([a-zA-Z0-9@:%_\\+.~#?&/=-]*)
+Url           = (http://|https://)([a-zA-Z0-9@:%_\\+.~#\?&/=-]*)
 Path          = (/[a-zA-Z0-9-_]*)+
 Term          = [a-zA-Z0-9-_]+
-AttrName      = [a-zA-Z0-9](\.[a-zA-Z0-9]+)*
+AttrName      = [a-zA-Z0-9]+(\.[a-zA-Z0-9]+)*
 String        = "[^"]*"
 
 Number        = [0-9]+
@@ -15,24 +15,20 @@ Float         = [0-9](\.[0-9])+
 
 Rules.
 
-[:;,/<>{}=]              : {token, {list_to_atom(TokenChars), TokenLine}}.
+[:;,/<>{}=]                : {token, {list_to_atom(TokenChars), TokenLine}}.
 {Quote}                    : {token, {quote, TokenLine}}.
-{Whites}+                  : skip_token.
+{White}+                   : skip_token.
 
 {Term}                     : make_token(TokenChars, TokenLine).
 \?action=                  : {token, {'?action=', TokenLine}}.
-{AttrName}                 : {token, {attribute_name_attr, TokenLine}}.
+{AttrName}                 : {token, {attribute_name_attr, TokenChars, TokenLine}}.
 {String}                   : {token, {string, TokenChars, TokenLine}}.
-{Number}                   : {token, {list_to_integer(TokenChars), TokenLine}}.
-{Float}                    : {float, {list_to_float(TokenChars), TokenLine}}.
+{Number}                   : {token, {integer, list_to_integer(TokenChars), TokenLine}}.
+{Float}                    : {token, {float, list_to_float(TokenChars), TokenLine}}.
 {Url}                      : {token, {url, TokenChars, TokenLine}}.
 {Path}                     : {token, {path, TokenChars, TokenLine}}.
 
 Erlang code.
-
--ifdef(TEST).
--include_lib("eunit/include/eunit.hrl").
--endif.
 
 make_token(Chars, Line) ->
   Lower = string:to_lower(Chars),
@@ -55,26 +51,3 @@ is_reserved("self")             -> true;
 is_reserved("x-occi-attribute") -> true;
 is_reserved("x-occi-location")  -> true;
 is_reserved(_)                  -> false.
-
-%%%
-%%% Tests
-%%%
--ifdef(TEST).
-
-scan1_test() ->
-    Input = "Category: compute; scheme=\"http://schemas.ogf.org/occi/infrastructure#\"; class=\"kind\"",
-    Expect = {ok,[{category,1},
-		  {':',1},
-		  {term,"compute",1},
-		  {';',1},
-		  {scheme,1},
-		  {'=',1},
-		  {string,"\"http://schemas.ogf.org/occi/infrastructure#\"",1},
-		  {';',1},
-		  {class,1},
-		  {'=',1},
-		  {string,"\"kind\"",1}],
-	      1},
-    ?assert(occi_scanner:string(Input) =:= Expect).
-
--endif.

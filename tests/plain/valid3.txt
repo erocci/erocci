@@ -1,0 +1,7 @@
+X-OCCI-Attribute: 
+    occi.compute.architechture="x86_64", 
+    occi.compute.cores=2, 
+    occi.compute.hostname="testserver", 
+    occi.compute.speed=2.66, 
+    occi.compute.memory=3.0, 
+    occi.compute.state="active"
