@@ -32,7 +32,7 @@ Erlang code.
 
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
--endif(TEST).
+-endif.
 
 make_token(Chars, Line) ->
   Lower = string:to_lower(Chars),
