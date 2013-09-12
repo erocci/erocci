@@ -33,10 +33,10 @@
 %%% {Name :: atom(), Properties :: [occi_attr_property()], Checker :: mfa()}
 %%%
 -occi_attribute({'occi.compute.architecture', {occi_types, is_enum, [x86, x64]}}).
--occi_attribute({'occi.compute.cores', {occi_types, is_integer, []}}).
--occi_attribute({'occi.compute.hostname', {occi_types, is_alnum, []}}).
--occi_attribute({'occi.compute.speed', {occi_types, is_float, []}}).
--occi_attribute({'occi.compute.memory', {occi_types, is_integer, []}}).
+-occi_attribute({'occi.compute.cores', integer}).
+-occi_attribute({'occi.compute.hostname', string}).
+-occi_attribute({'occi.compute.speed', float}).
+-occi_attribute({'occi.compute.memory', integer}).
 -occi_attribute({'occi.compute.state', {occi_types, is_enum, [active, inactive, suspend]}, 
 		 [required, 
 		  immutable, 
@@ -48,10 +48,27 @@
 %%% Actions
 %%% {Name  :: atom(), Title :: binary(), Attributes :: [{occi_attr_key(), mfa()}]}
 %%%
--occi_action({start, <<"Start Compute Resource">>, []}).
--occi_action({stop, <<"Stop Compute Resource">>, [{method, {occi_types, is_enum, [[graceful, acpioff, poweroff]]}}]}).
--occi_action({restart, <<"Restart Compute Resource">>, [{method, {occi_types, is_enum, [[graceful, warm, cold]]}}]}).
--occi_action({suspend, <<"Suspend Compute Resource">>, [{method, {occi_types, is_enum, [[hibernate, suspend]]}}]}).
+-occi_action({'http://schemas.ogf.org/occi/infrastructure/action#', start, 
+	      <<"Start Compute Resource">>, 
+	      []}).
+-occi_action({'http://schemas.ogf.org/occi/infrastructure/action#', 
+	      stop,
+	      <<"Stop Compute Resource">>, 
+	      [
+	       {method, {occi_types, is_enum, [graceful, acpioff, poweroff]}}
+	      ]}).
+-occi_action({'http://schemas.ogf.org/occi/infrastructure/action#', 
+	      restart, 
+	      <<"Restart Compute Resource">>, 
+	      [
+	       {method, {occi_types, is_enum, [graceful, warm, cold]}}
+	      ]}).
+-occi_action({'http://schemas.ogf.org/occi/infrastructure/action#', 
+	      suspend, 
+	      <<"Suspend Compute Resource">>, 
+	      [
+	       {method, {occi_types, is_enum, [hibernate, suspend]}}
+	      ]}).
 
 %%%
 %%% Implementation

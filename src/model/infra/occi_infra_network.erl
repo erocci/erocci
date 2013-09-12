@@ -33,7 +33,7 @@
 %%% {Name :: atom(), Properties :: [occi_attr_property()], Checker :: mfa()}
 %%%
 -occi_attribute({'occi.network.vlan', {occi_types, is_range, [0, 4095]}}).
--occi_attribute({'occi.network.label', {occi_types, is_alnum, []}}).
+-occi_attribute({'occi.network.label', string}).
 -occi_attribute({'occi.network.state', {occi_types, is_enum, [active, inactive, suspend]},
 		[required, 
 		 immutable,
@@ -44,8 +44,14 @@
 %%% Actions
 %%% {Name  :: atom(), Title :: binary(), Attributes :: [{occi_attr_key(), mfa()}]}
 %%%
--occi_action({up, <<"Put in active state">>, []}).
--occi_action({down, <<"Put in inactive state">>, []}).
+-occi_action({'http://schemas.ogf.org/occi/infrastructure/action#', 
+	      up, 
+	      <<"Put in active state">>, 
+	      []}).
+-occi_action({'http://schemas.ogf.org/occi/infrastructure/action#', 
+	      down,
+	      <<"Put in inactive state">>, 
+	      []}).
 
 %%%
 %%% Implementation

@@ -72,15 +72,30 @@ render_cid(#occi_cid{}=Cid, Sep) ->
 			 <<"; ">>), 
       Sep).
 
-render_attr_spec({K, [], _F}) ->
-    atom_to_list(K);
-render_attr_spec({K, L, _F}) ->
-    [ atom_to_list(K), <<"{">>, occi_renderer:join(occi_renderer:to_list(L), ","), <<"}">> ];
-render_attr_spec({K, _F}) ->
-    atom_to_list(K).
+render_attr_spec(#occi_attr_spec{}=Attr) ->
+    Ret = atom_to_list(Attr#occi_attr_spec.id),
+    case render_attr_properties(Attr#occi_attr_spec.properties) of
+	[] -> Ret;
+	L -> [ Ret, L ]
+    end.
 
-render_action_spec({Scheme, Term, _Desc, _Attrs}) ->
-    [ Scheme, atom_to_list(Term) ].
+render_attr_properties(undefined) ->
+    [];
+render_attr_properties(Properties) ->
+    case lists:foldl(fun(required, Acc) ->
+			      [atom_to_list(required) | Acc];
+			 (immutable, Acc) ->
+			      [atom_to_list(immutable) | Acc];
+			 (_, Acc) ->
+			      Acc
+		      end, [], Properties) of
+	[] -> [];
+	L ->
+	    [ <<"{">>, occi_renderer:join(L, <<",">>), <<"}">>]
+    end.
+
+render_action_spec(#occi_action{}=Action) ->
+    occi_renderer:to_uri(Action#occi_action.id).
 
 render_rel({Scheme, Term}) when is_atom(Scheme) ->
     render_rel({atom_to_list(Scheme), Term});

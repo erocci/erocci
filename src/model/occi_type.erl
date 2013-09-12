@@ -29,11 +29,9 @@
 	 get_title/1,
 	 get_relations/1,
 	 get_attributes/1,
-	 get_actions_spec/1,
 	 get_actions/1,
 	 get_entity_type/1
 	]).
--export([has_property/2]).
 
 get_category(BaseUrl, Uri, Mod) ->
     Id = get_id(Mod),
@@ -51,7 +49,7 @@ get_kind(BaseUrl, Uri, Mod) ->
 	       title=get_title(Mod),
 	       attributes=get_attributes(Mod),
 	       rel=Rel,
-	       actions=get_actions_spec(Mod),
+	       actions=get_actions(Mod),
 	       location=occi_renderer:to_uri([BaseUrl, Uri])}.
 
 -spec get_mixin(uri(), uri(), atom()) -> occi_mixin().
@@ -59,21 +57,13 @@ get_mixin(BaseUrl, Uri, Mod) ->
     #occi_mixin{id=get_id(Mod),
 		title=get_title(Mod),
 		attributes=get_attributes(Mod),
-		actions=get_actions_spec(Mod),
+		actions=get_actions(Mod),
 		location=occi_renderer:to_uri([BaseUrl, Uri])}.
 
 -spec get_actions(atom()) -> [occi_action()].
 get_actions(Mod) ->
-    Cid = get_id(Mod),
-    Scheme = get_action_scheme(Cid),
-    GenAttr = fun({K, F}) -> {K, [], F} end,
-    GenAction = fun({Term, Title, Attrs}) ->
-			#occi_action{id=#occi_cid{scheme=Scheme, term=Term, class=action}, 
-				     title=Title, 
-				     attributes=lists:map(GenAttr, Attrs)}
-		end,
     Actions = get_tag(Mod, occi_action),
-    lists:map(GenAction, Actions).
+    lists:map(fun gen_action/1, Actions).
 
 -spec get_id(atom()) -> occi_cid().
 get_id(Mod) ->
@@ -95,18 +85,7 @@ get_relations(Mod) ->
 
 -spec get_attributes(atom()) -> [{atom(), list(), mfa()}].
 get_attributes(Mod) ->
-    get_tag(Mod, occi_attribute).
-
--spec get_actions_spec(atom()) -> [{tuple(), atom(), list(), list()}].
-get_actions_spec(Mod) ->
-    Cid = get_id(Mod),
-    Scheme = get_action_scheme(Cid),
-    Actions = get_tag(Mod, occi_action),
-    GenAttr = fun({Term, F}) -> {Term, [], F} end,
-    GenAction = fun({Term, Desc, Attrs}) -> 
-			{Scheme, Term, Desc, lists:map(GenAttr, Attrs)} 
-		end,
-    lists:map(GenAction, Actions).
+    lists:map(fun gen_attr_spec/1, get_tag(Mod, occi_attribute)).
 
 -spec get_entity_type(atom()) -> resource | link | undefined.
 get_entity_type(Mod) ->
@@ -125,15 +104,15 @@ get_tag(Mod, Name) ->
     lager:error("Invalid value: ~p, ~p~n", [Mod, Name]),
     throw({error, einval}).
 
--spec get_action_scheme(occi_cid()) -> uri().
-get_action_scheme(BaseId) ->
-    BaseScheme = list_to_binary(lists:nth(1, string:tokens(atom_to_list(BaseId#occi_cid.scheme), "#"))),
-    BaseTerm = list_to_binary(atom_to_list(BaseId#occi_cid.term)),
-    << BaseScheme/binary, $/, BaseTerm/binary, $/, "action#" >>.
+%%%
+%%% Functions for transforming module tags into corresponding records
+%%%
+gen_attr_spec({Id, Type}) ->
+    #occi_attr_spec{id=Id, type=Type};
+gen_attr_spec({Id, Type, Properties}) ->
+    #occi_attr_spec{id=Id, type=Type, properties=Properties}.
 
-has_property({occi_attribute, _K, [], _F}, _Property) ->
-    false;
-has_property({occi_attribute, _K, [Property | _Tail], _F}, Property) ->
-    true;
-has_property({occi_attribute, _K, [_H | T], _F}, Property) ->
-    has_property({occi_attribute, _K, T, _F}, Property).
+gen_action({Scheme, Term, Title, Attributes}) ->
+    #occi_action{id=#occi_cid{scheme=Scheme, term=Term, class=action}, 
+		 title=Title, 
+		 attributes=lists:map(fun gen_attr_spec/1, Attributes)}.
