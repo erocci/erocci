@@ -6,7 +6,6 @@
 %%% Created : 14 Mar 2013 by Jean Parpaillon <jean.parpaillon@free.fr>
 -type(uri() :: [binary()]).
 -type(occi_class() :: kind | mixin | action).
--type(occi_property() :: required | immutable).
 -type(occi_action_spec() :: term()).
 
 %%% OCCI Attribute description
