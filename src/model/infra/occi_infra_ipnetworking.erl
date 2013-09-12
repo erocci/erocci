@@ -30,9 +30,9 @@
 %%% Attributes
 %%% {Name :: atom(), Properties :: [occi_attr_property()], Checker :: mfa()}
 %%%
--occi_attribute({'occi.network.address', [], {occi_types, is_cidr, []}}).
--occi_attribute({'occi.network.gateway', [], {occi_types, is_ipaddress, []}}).
--occi_attribute({'occi.network.allocation', [], {occi_types, is_enum, [[dynamic, static]]}}).
+-occi_attribute({'occi.network.address', {occi_types, is_cidr, []}}).
+-occi_attribute({'occi.network.gateway', {occi_types, is_ipaddress, []}}).
+-occi_attribute({'occi.network.allocation', {occi_types, is_enum, [[dynamic, static]]}}).
 
 %%%
 %%% Implementation

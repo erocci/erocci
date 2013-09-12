@@ -7,8 +7,13 @@
 -type(uri() :: [binary()]).
 -type(occi_class() :: kind | mixin | action).
 -type(occi_property() :: required | immutable).
--type(occi_attr_spec() :: {occi_attribute, atom(), [occi_property()], term()}).
 -type(occi_action_spec() :: term()).
+
+%%% OCCI Attribute description
+-record(occi_attr_spec, {id             :: atom(),
+			 type           :: mfa() | atom,
+			 properties     :: [term()]}).
+-type(occi_attr_spec() :: #occi_attr_spec{}).
 
 %%% OCCI Category ID
 -record(occi_cid, {scheme    = undefined :: atom() | uri(),
@@ -28,6 +33,8 @@
 %%% OCCI Mixin
 -record(occi_mixin, {id         = #occi_cid{}  :: occi_cid(),
 		     title      = undefined    :: binary(),
+		     depends    = []           :: [occi_cid()],
+		     applies    = []           :: [occi_cid()],
 		     attributes = []           :: [occi_attr_spec()],
 		     actions    = []           :: [occi_action_spec()],
 		     location                  :: uri()}).
