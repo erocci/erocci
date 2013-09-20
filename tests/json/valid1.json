@@ -6,24 +6,10 @@
                 "http://example.com/occi/templates#my_os_mixin"
             ],
             "attributes": {
-                "occi": {
-                    "compute": {
-                        "speed": 2,
-                        "memory": 4,
-                        "cores": 2
-                    }
-                },
-                "com": {
-                    "example": {
-                        "occi": {
-                            "templates": {
-                                "my_os_mixin": {
-                                    "my_attribute": "my_value"
-                                }
-                            }
-                        }
-                    }
-                }
+                "occi.compute.speed": 2,
+                "occi.compute.memory": 4,
+                "occi.compute.cores": 2
+                "com.example.occi.templates.my_os_mixin.my_attribute": "my_value"
             },
             "actions": [
                 "http://schemas.ogf.org/occi/infrastructure/compute/action#start"

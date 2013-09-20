@@ -10,13 +10,9 @@
                 "http://schemas.ogf.org/occi/infrastructure#compute"
             ],
             "attributes": {
-                "occi": {
-                    "compute": {
-                        "speed": {
-                            "type": "number",
-                            "default": 2.8
-                        }
-                    }
+                "occi.compute.speed": {
+                    "type": "number",
+                    "default": 2.8
                 }
             },
             "title": "Medium VM",

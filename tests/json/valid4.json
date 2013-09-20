@@ -6,23 +6,19 @@
             "title": "Compute Resource",
             "parent": "http://schemas.ogf.org/occi/core#resource",
             "attributes": {
-                "occi": {
-                    "compute": {
-                        "hostname": {
-                            "mutable": true,
-                            "required": false,
-                            "type": "string",
-                            "description": "Hostname of the compute resource"
-                        },
-                        "state": {
-                            "mutable": false,
-                            "required": false,
-                            "type": "string",
-                            "default": "inactive",
-                            "description": "State the compute resource is in"
-                        }
-                    }
-                }
+                "occi.compute.hostname": {
+                    "mutable": true,
+                    "required": false,
+                    "type": "string",
+                    "description": "Hostname of the compute resource"
+                },
+                "occi.compute.state": {
+                    "mutable": false,
+                    "required": false,
+                    "type": "string",
+                    "default": "inactive",
+                    "description": "State the compute resource is in"
+		}
             },
             "actions": [
                 "http://schemas.ogf.org/occi/infrastructure/compute/action#start",
