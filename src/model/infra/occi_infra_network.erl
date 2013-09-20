@@ -32,13 +32,14 @@
 %%% Attributes
 %%% {Name :: atom(), Properties :: [occi_attr_property()], Checker :: mfa()}
 %%%
--occi_attribute({'occi.network.vlan', {occi_types, is_range, [0, 4095]}}).
+-occi_attribute({'occi.network.vlan', {vlan, {occi_types, is_range, [0, 4095]}}}).
 -occi_attribute({'occi.network.label', string}).
--occi_attribute({'occi.network.state', {occi_types, is_enum, [active, inactive, suspend]},
-		[required, 
-		 immutable,
-		 {default, inactive},
-		 {title, <<"State the network resource is in">>}]}).
+-occi_attribute({'occi.network.state', 
+		 {token, {occi_types, is_enum, [active, inactive, suspend]}},
+		 [required, 
+		  immutable,
+		  {default, inactive},
+		  {title, <<"State the network resource is in">>}]}).
 
 %%%
 %%% Actions

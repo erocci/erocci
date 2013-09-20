@@ -10,7 +10,7 @@
 
 -include_lib("occi.hrl").
 
--export([start/0, stop/0, loop/1]).
+-export([start/0, stop/0, loop/0]).
 %% Hooks
 -export([on_save/1, on_update/2, on_delete/1, on_action/2]).
 
@@ -39,7 +39,7 @@ stop() ->
     application:stop(occi),
     ?MODULE ! stop.
 
-loop([]) ->
+loop() ->
     receive
 	stop ->
 	    exit(the_end);

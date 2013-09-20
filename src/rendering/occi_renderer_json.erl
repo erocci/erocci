@@ -120,13 +120,17 @@ render_cid_uri(#occi_cid{}=Cid) ->
     << BScheme/binary, BTerm/binary >>.
 
 render_attribute_specs(Attributes) ->
-    [ render_attribute_spec(Attr) || Attr <- Attributes ].
+    {[ render_attribute_spec(Attr) || Attr <- Attributes ]}.
 
 render_attribute_spec(#occi_attr_spec{}=Spec) ->
-    {Spec#occi_attr_spec.id, {render_list([
-					   {description, "Desc"}
-					  ])}}.
+    L = [
+	 {mutable, not occi_attribute:is_immutable(Spec)},
+	 {required, occi_attribute:is_required(Spec)},
+	 {type, occi_attribute:get_type(Spec)},
+	 {default, occi_attribute:get_default(Spec)},
+	 {description, occi_attribute:get_title(Spec)}
+	],
+    {Spec#occi_attr_spec.id, render_list(L)}.
 
 render_uri(Uri) ->
     occi_renderer:to_uri(Uri).
-

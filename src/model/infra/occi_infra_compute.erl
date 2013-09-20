@@ -32,12 +32,14 @@
 %%% Attributes
 %%% {Name :: atom(), Properties :: [occi_attr_property()], Checker :: mfa()}
 %%%
--occi_attribute({'occi.compute.architecture', {occi_types, is_enum, [x86, x64]}}).
+-occi_attribute({'occi.compute.architecture', 
+		 {string, {occi_types, is_enum, [x86, x64]}}}).
 -occi_attribute({'occi.compute.cores', integer}).
 -occi_attribute({'occi.compute.hostname', string}).
 -occi_attribute({'occi.compute.speed', float}).
 -occi_attribute({'occi.compute.memory', integer}).
--occi_attribute({'occi.compute.state', {occi_types, is_enum, [active, inactive, suspend]}, 
+-occi_attribute({'occi.compute.state',  
+		 {string, {occi_types, is_enum, [active, inactive, suspend]}}, 
 		 [required, 
 		  immutable, 
 		  {default, inactive},
@@ -55,19 +57,19 @@
 	      stop,
 	      <<"Stop Compute Resource">>, 
 	      [
-	       {method, {occi_types, is_enum, [graceful, acpioff, poweroff]}}
+	       {method, {token, {occi_types, is_enum, [graceful, acpioff, poweroff]}}}
 	      ]}).
 -occi_action({'http://schemas.ogf.org/occi/infrastructure/action#', 
 	      restart, 
 	      <<"Restart Compute Resource">>, 
 	      [
-	       {method, {occi_types, is_enum, [graceful, warm, cold]}}
+	       {method, {token, {occi_types, is_enum, [graceful, warm, cold]}}}
 	      ]}).
 -occi_action({'http://schemas.ogf.org/occi/infrastructure/action#', 
 	      suspend, 
 	      <<"Suspend Compute Resource">>, 
 	      [
-	       {method, {occi_types, is_enum, [hibernate, suspend]}}
+	       {method, {token, {occi_types, is_enum, [hibernate, suspend]}}}
 	      ]}).
 
 %%%

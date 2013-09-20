@@ -9,7 +9,7 @@
 
 %%% OCCI Attribute description
 -record(occi_attr_spec, {id             :: atom(),
-			 type           :: mfa() | atom,
+			 type           :: {atom(), mfa()} | atom(),
 			 properties     :: [term()]}).
 -type(occi_attr_spec() :: #occi_attr_spec{}).
 

@@ -24,10 +24,41 @@
 
 -include("occi.hrl").
 
--export([is_required/1, is_immutable/1]).
+-export([is_required/1, 
+	 is_immutable/1, 
+	 get_title/1,
+	 get_default/1,
+	 get_type/1]).
 
-is_required(#occi_attr_spec{properties=Properties}) ->
-    lists:member(required, Properties).
+is_required(Spec) ->
+    is_defined(Spec, required).
 
-is_immutable(#occi_attr_spec{properties=Properties}) ->
-    lists:member(immutable, Properties).
+is_immutable(Spec) ->
+    is_defined(Spec, immutable).
+
+get_title(Spec) ->
+    get_value(Spec, title).
+
+get_default(Spec) ->
+    get_value(Spec, default).
+
+get_type(#occi_attr_spec{type={Name, _Check}}) ->
+    Name;
+get_type(#occi_attr_spec{type=Name}) ->
+    Name.
+
+%%%
+%%% Private functions
+%%%
+is_defined(#occi_attr_spec{properties=Properties}, Key) when is_list(Properties) ->
+    lists:member(Key, Properties);
+is_defined(_,_) ->
+    false.
+
+get_value(#occi_attr_spec{properties=Properties}, Key) when is_list(Properties) ->
+    case lists:keyfind(Key, 1, Properties) of
+	false -> undefined;	    
+	{Key, Val} -> Val
+    end;
+get_value(_,_) ->
+    undefined.

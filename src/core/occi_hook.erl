@@ -53,6 +53,7 @@ start_link() ->
 
 -spec add_hook(occi_cid(), hook()) -> ok.
 add_hook(Id, {Name, Fun}) ->
+    lager:info("Registering hook: {~p,~p}~n", [Name, Id]),
     Ref = register_hook(Id, Name),
     HookMgr = {Ref, {occi_hook_mgr, start_link, [Name, Fun, Ref]}, 
 	       permanent, 5000, worker, [occi_hook_mgr]},
