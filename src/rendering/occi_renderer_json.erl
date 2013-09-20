@@ -34,7 +34,7 @@
 %%%
 render(Obj) when is_record(Obj, occi_kind); 
 		 is_record(Obj, occi_mixin); 
-		 is_record(Obj, occi_action); 
+		 is_record(Obj, occi_action_spec); 
 		 is_record(Obj, occi_resource); 
 		 is_record(Obj, occi_link);
 		 is_record(Obj, occi_cid) ->
@@ -50,36 +50,48 @@ parse(Bin) ->
 %%% Private
 %%%
 render_ejson(#occi_kind{}=Kind) ->
-    render_list([{category, render_ejson(Kind#occi_kind.id)}
+    render_list([{term, Kind#occi_kind.id#occi_cid.term}
+		 ,{scheme, Kind#occi_kind.id#occi_cid.scheme}
 		 ,{title, Kind#occi_kind.title}
-		 ,{rel, render_rel(Kind#occi_kind.rel)}
-		 ,{attributes, lists:map(fun(X) -> render_attr_spec(X) end, Kind#occi_kind.attributes)}
-		 ,{actions, lists:map(fun({S, T, _, _}) -> render_uri([S,T]) end, Kind#occi_kind.actions)}
+		 ,{parent, render_cid_uri(Kind#occi_kind.rel)}
+		 ,{attributes, render_attribute_specs(Kind#occi_kind.attributes)}
+		 ,{actions, lists:map(fun(Action) -> 
+					      render_cid_uri(Action#occi_action_spec.id) 
+				      end, Kind#occi_kind.actions)}
 		 ,{location, render_uri(Kind#occi_kind.location)}
 		]);
 
 render_ejson(#occi_mixin{}=Mixin) ->
-    render_list([{category, render_ejson(Mixin#occi_mixin.id)}
+    render_list([{term, Mixin#occi_mixin.id#occi_cid.term}
+		 ,{scheme, Mixin#occi_mixin.id#occi_cid.scheme}
+		 ,{depends, lists:map(fun(Cid) -> render_cid_uri(Cid) end, 
+				      Mixin#occi_mixin.depends)}
+		 ,{applies, lists:map(fun(Cid) -> render_cid_uri(Cid) end, 
+				      Mixin#occi_mixin.applies)}
 		 ,{title, Mixin#occi_mixin.title}
-		 ,{attributes, lists:map(fun(X) -> render_attr_spec(X) end, Mixin#occi_mixin.attributes)}
-		 ,{actions, lists:map(fun({S, T, _, _}) -> render_uri([S,T]) end, Mixin#occi_mixin.actions)}
+		 ,{attributes, render_attribute_specs(Mixin#occi_mixin.attributes)}
+		 ,{actions, lists:map(fun(Action) -> 
+					      render_cid_uri(Action#occi_action_spec.id)
+				      end, Mixin#occi_mixin.actions)}
 		 ,{location, render_uri(Mixin#occi_mixin.location)}]);
 
-render_ejson(#occi_action{}=Action) ->
-    render_list([{category, render_ejson(Action#occi_action.id)}
-		 ,{title, Action#occi_action.title}
-		 ,{attributes, lists:map(fun(X) -> render_attr_spec(X) end, Action#occi_action.attributes)}
+render_ejson(#occi_action_spec{}=Action) ->
+    render_list([{term, Action#occi_action_spec.id#occi_cid.term}
+		 ,{scheme, Action#occi_action_spec.id#occi_cid.scheme}
+		 ,{title, Action#occi_action_spec.title}
+		 ,{attributes, render_attribute_specs(Action#occi_action_spec.attributes)}
 		]);
 
 render_ejson(#occi_resource{}=Res) ->
-    render_list([{categories, lists:map(fun render_ejson/1, 
+    render_list([{kind, render_cid_uri(Res#occi_resource.cid)}
+		 ,{categories, lists:map(fun render_ejson/1, 
 					[Res#occi_resource.cid | Res#occi_resource.mixins])
 		 }
 		 ,{'occi.core.id', Res#occi_resource.id}
 		 ,{'occi.core.title', Res#occi_resource.title}
 		 ,{'occi.core.summary', Res#occi_resource.summary}
 		 ,{attributes, {lists:map(fun({Key, Val}) -> {Key, Val} end, Res#occi_resource.attributes)}}
-		 ,{location, render_uri(occi_renderer:to_url(Res#occi_resource.id))}
+		 ,{location, render_uri(Res#occi_resource.id)}
 		]);
 
 render_ejson(#occi_link{}=_Link) ->
@@ -102,17 +114,19 @@ render_list([{_Key, []}|Tail], Acc) ->
 render_list([{Key, Val}|Tail], Acc) ->
     render_list(Tail, [{Key, Val}|Acc]).
 
-render_attr_spec({K, L, _F}) ->
-    render_list([
-		 {'name', list_to_binary(atom_to_list(K))}
-		 ,{'properties', lists:map(fun(X) -> list_to_binary(atom_to_list(X)) end, L)}
-		]).
+render_cid_uri(#occi_cid{}=Cid) ->
+    BTerm = list_to_binary(atom_to_list(Cid#occi_cid.term)),
+    BScheme = list_to_binary(atom_to_list(Cid#occi_cid.scheme)),
+    << BScheme/binary, BTerm/binary >>.
 
-render_rel({Scheme, Term}) when is_atom(Scheme) ->
-    render_rel({list_to_binary(atom_to_list(Scheme)), Term});
-render_rel({Scheme, Term}) ->
-    BTerm = list_to_binary(atom_to_list(Term)),
-    << Scheme/binary, BTerm/binary >>.
+render_attribute_specs(Attributes) ->
+    [ render_attribute_spec(Attr) || Attr <- Attributes ].
+
+render_attribute_spec(#occi_attr_spec{}=Spec) ->
+    {Spec#occi_attr_spec.id, {render_list([
+					   {description, "Desc"}
+					  ])}}.
 
 render_uri(Uri) ->
     occi_renderer:to_uri(Uri).
+

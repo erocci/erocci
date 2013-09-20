@@ -29,7 +29,7 @@
 -behaviour(supervisor).
 
 %% API
--export([start_link/0, register_category/2, get_backend/1]).
+-export([start_link/0, add_category/2, add_backend/2]).
 -export([get_categories/0,
 	 is_valid_path/1,
 	 load/1]).
@@ -39,13 +39,15 @@
 
 -define(SUPERVISOR, ?MODULE).
 
--record(store_obj, {uri                       :: uri(),
-		    type      = occi_category :: occi_category | occi_entity,
-		    backend                   :: atom(),
-		    id                        :: occi_cid(),
-		    mod                       :: atom()}).
--type(store_obj() :: #store_obj{}).
--export_type([store_obj/0]).
+-record(store_mountpoint, {uri :: uri(), backend :: atom()}).
+-type(store_mountpoint() :: #store_mountpoint{}).
+
+-record(store_category, {id :: #occi_cid{}, mod :: atom(), url :: uri()}).
+-type(store_category() :: #store_category{}).
+
+-type(backend_desc() :: {atom(), atom(), term()}).
+
+-export_type([store_mountpoint/0]).
 
 %%%===================================================================
 %%% API
@@ -59,56 +61,51 @@
 %% @end
 %%--------------------------------------------------------------------
 start_link() ->
-    Ret = supervisor:start_link({local, ?SUPERVISOR}, ?MODULE, []),
-    occi_backend:start_backends(),
-    Ret.
+    supervisor:start_link({local, ?SUPERVISOR}, ?MODULE, []).
 
--spec register_category(atom(), occi_backend:backend_category()) -> ok.
-register_category(Ref, {Mod, Uri}) ->
+-spec add_category(term(), [occi_hook:hook()]) -> ok.
+add_category({mod, Mod, Location}, Hooks) ->
+    Id = occi_type:get_id(Mod),
+    lager:info("Registering category: ~p -> ~p~n", [Id, Location]),
     Trans = fun() -> 
-		    Id = occi_type:get_id(Mod),
-		    Type = #store_obj{uri=Uri, backend=Ref, id=Id, mod=Mod},
-		    lager:info("Registering ~p at ~s~n", [occi_renderer:to_uri(Id), Uri]),
-		    mnesia:write(Type)
+		    Cat = #store_category{id=Id,
+					  mod=Mod,
+					  url=Location},
+		    mnesia:write(Cat)
 	    end,
-    mnesia:transaction(Trans).
+    mnesia:transaction(Trans),    
+    lists:foreach(fun(Hook) ->
+			  occi_hook:add_hook(Id, Hook)
+		  end, Hooks).
 
--spec get_backend(occi_cid()) -> pid().
-get_backend(Id) ->
-    case mnesia:dirty_match_object(#store_obj{id=Id, _='_'}) of
-	[ #store_obj{backend=Ref} ] -> Ref;
-	[] ->
-	    lager:error("No backend associated to this category: ~p ~n", [Id]),
-	    error
-    end.
+-spec add_backend(backend_desc(), uri()) ->
+			 {ok, pid()} 
+			     | ignore 
+			     | {error, term()}.
+add_backend({Ref, Mod, Opts}, Path) ->
+    lager:info("Registering backend: ~p -> ~p~n", [Ref, Path]),
+    Trans = fun() -> 
+		    Mp = #store_mountpoint{uri=Path, backend=Ref},
+		    mnesia:write(Mp)
+	    end,
+    mnesia:transaction(Trans),
+    Backend = {Ref, {?MODULE, start_link, [Ref, Mod, [{ref, Ref} | Opts]]}, 
+	       permanent, 5000, worker, [?MODULE, Mod]},
+    supervisor:start_child(occi_store, Backend).
 
 -spec get_categories() -> [occi_category()].
 get_categories() ->
-    Types = mnesia:dirty_match_object(#store_obj{_ ='_'}),
-    BaseUrl = occi_config:get(base_location),
-    Categories = [ occi_type:get_category(BaseUrl, Uri, Mod) || 
-		     #store_obj{mod=Mod, uri=Uri} <- Types ],
-    Actions = [ occi_type:get_actions(Mod) || #store_obj{mod=Mod} <- Types ],
+    Types = mnesia:dirty_match_object(#store_category{_ ='_'}),
+    Categories = [ occi_type:get_category(Url, Mod) || 
+		     #store_category{mod=Mod, url=Url} <- Types ],
+    Actions = [ occi_type:get_actions(Mod) || #store_category{mod=Mod} <- Types ],
     lists:flatten([Categories, Actions]).
 
--spec is_valid_path(Path :: uri()) -> false | store_obj().
-is_valid_path(Path) ->
-    case mnesia:dirty_match_object(#store_obj{uri=Path, _='_'}) of
-	[] ->
-	    false;
-	[Obj] ->
-	    Obj
-    end.
+-spec is_valid_path(Path :: uri()) -> false | ok.
+is_valid_path(_Path) ->
+    ok.
 
--spec load(store_obj()) -> occi_category() | occi_entity().
-load(#store_obj{uri=Path, type=occi_category}) ->
-    case mnesia:dirty_read(store_obj, Path) of
-	[] ->
-	    throw({error, einval, Path});
-	[#store_obj{mod=Mod, uri=Uri}] ->
-	    BaseUrl = occi_config:get(base_location),
-	    occi_type:get_category(BaseUrl, Uri, Mod)
-    end;
+-spec load(store_category()) -> occi_category() | occi_entity().
 load(_) ->
     [].
 
@@ -116,11 +113,15 @@ load(_) ->
 %%% supervisor callbacks
 %%%===================================================================
 init([]) ->
-    lager:info("Starting occi store"),
-    mnesia:create_table(store_obj,
+    lager:info("Starting OCCI categories manager"),
+    mnesia:create_table(store_mountpoint,
 			[{ram_copies, [node()]},
-			 {attributes, record_info(fields, store_obj)}]),
-    mnesia:wait_for_tables(store_obj, infinite),
+			 {attributes, record_info(fields, store_mountpoint)}]),
+    mnesia:create_table(store_category,
+			[{ram_copies, [node()]},
+			 {attributes, record_info(fields, store_category)}]),
+    mnesia:wait_for_tables([store_mountpoint, store_category], 
+			   infinite),
     % start no child, will be added with backends
     {ok, {{one_for_one, 10, 10}, []}}.
 

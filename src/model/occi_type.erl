@@ -24,7 +24,7 @@
 
 -include("occi.hrl").
 
--export([get_category/3]).
+-export([get_category/2]).
 -export([get_id/1,
 	 get_title/1,
 	 get_relations/1,
@@ -33,36 +33,35 @@
 	 get_entity_type/1
 	]).
 
-get_category(BaseUrl, Uri, Mod) ->
+get_category(Location, Mod) ->
     Id = get_id(Mod),
     case Id#occi_cid.class of
 	kind ->
-	    get_kind(BaseUrl, Uri, Mod);
+	    get_kind(Location, Mod);
 	mixin ->
-	    get_mixin(BaseUrl, Uri, Mod)
+	    get_mixin(Location, Mod)
     end.
 
--spec get_kind(uri(), uri(), atom()) -> occi_kind().
-get_kind(BaseUrl, Uri, Mod) ->
-    [Rel] = get_relations(Mod),
+-spec get_kind(uri(), atom()) -> occi_kind().
+get_kind(Location, Mod) ->
     #occi_kind{id=get_id(Mod), 
 	       title=get_title(Mod),
 	       attributes=get_attributes(Mod),
-	       rel=Rel,
+	       rel=lists:nth(1, get_relations(Mod)),
 	       actions=get_actions(Mod),
-	       location=occi_renderer:to_uri([BaseUrl, Uri])}.
+	       location=Location}.
 
--spec get_mixin(uri(), uri(), atom()) -> occi_mixin().
-get_mixin(BaseUrl, Uri, Mod) ->
+-spec get_mixin(uri(), atom()) -> occi_mixin().
+get_mixin(Location, Mod) ->
     #occi_mixin{id=get_id(Mod),
 		title=get_title(Mod),
 		attributes=get_attributes(Mod),
 		actions=get_actions(Mod),
-		location=occi_renderer:to_uri([BaseUrl, Uri])}.
+		location=Location}.
 
--spec get_actions(atom()) -> [occi_action()].
+-spec get_actions(atom()) -> [occi_action_spec()].
 get_actions(Mod) ->
-    Actions = get_tag(Mod, occi_action),
+    Actions = get_tag(Mod, occi_action_spec),
     lists:map(fun gen_action/1, Actions).
 
 -spec get_id(atom()) -> occi_cid().
@@ -81,7 +80,7 @@ get_title(Mod) ->
 
 -spec get_relations(atom()) -> [{atom(), atom()}].
 get_relations(Mod) ->
-    get_tag(Mod, occi_relation).
+    lists:map(fun gen_relation/1, get_tag(Mod, occi_relation)).
 
 -spec get_attributes(atom()) -> [{atom(), list(), mfa()}].
 get_attributes(Mod) ->
@@ -113,6 +112,10 @@ gen_attr_spec({Id, Type, Properties}) ->
     #occi_attr_spec{id=Id, type=Type, properties=Properties}.
 
 gen_action({Scheme, Term, Title, Attributes}) ->
-    #occi_action{id=#occi_cid{scheme=Scheme, term=Term, class=action}, 
-		 title=Title, 
-		 attributes=lists:map(fun gen_attr_spec/1, Attributes)}.
+    #occi_action_spec{id=#occi_cid{scheme=Scheme, term=Term, class=action}, 
+		      title=Title, 
+		      attributes=lists:map(fun gen_attr_spec/1, Attributes)}.
+
+gen_relation({Scheme, Term}) ->
+    #occi_cid{scheme=Scheme, term=Term}.
+

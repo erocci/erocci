@@ -53,5 +53,11 @@ init(_) ->
 		infinity,
 		supervisor,
 		[occi_listener]},
-    Children = [Store, Listener],
+    Hook = {occi_hook,
+	    {occi_hook, start_link, []},
+	   permanent,
+	   infinity,
+	   supervisor,
+	   [occi_hook]},
+    Children = [Store, Listener, Hook],
     {ok, {{one_for_one, 10, 10}, Children}}.

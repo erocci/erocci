@@ -24,6 +24,21 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
+render1_test() ->
+    Files = filelib:wildcard("../tests/erlang/valid*.cfg"),
+    {setup,
+     fun setup/0,
+     fun cleanup/1,
+     lists:flatten(lists:map(fun(File) ->
+				     {ok, Terms} = file:consult(File),
+				     lists:map(fun(Term) ->
+						       ?_test(render(Term))
+					       end, Terms)
+			     end, Files))}.
+
+render(Obj) ->
+    occi_renderer_json:render(Obj).
+
 parser_test_() ->
     Files = filelib:wildcard("../tests/json/valid*.json"),
     {setup,

@@ -27,20 +27,21 @@
 -behaviour(occi_listener).
 
 %% occi_listener callbacks
--export([start_link/1, terminate/0, validate_cfg/1]).
+-export([start_link/1, terminate/0]).
 
 start_link(Opts) ->
     application:start(crypto),
     application:start(ranch),
     application:start(cowboy),
     lager:info("Starting HTTP listener ~p~n", [Opts]),
+    Opts2 = validate_cfg(Opts),
     Routes = [
 	      {<<"/-/">>, occi_http_query, []},
 	      {<<"/.well-known/org/ogf/occi/-/">>, occi_http_query, []},
 	      {<<"/[...]">>, occi_http_all, []}
 	     ],
     Dispatch = cowboy_router:compile([{'_', Routes}]),
-    {ok, _} = cowboy:start_http(http, 100, Opts,
+    {ok, _} = cowboy:start_http(http, 100, Opts2,
 				[{env, [{dispatch, Dispatch}]}]
 			       ),
     loop().

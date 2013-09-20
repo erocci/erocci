@@ -36,7 +36,7 @@ render(#occi_kind{}=Kind, Sep) ->
     occi_renderer:join(
       occi_renderer:join([render_cid(Kind#occi_kind.id, Sep),
 			  render_kv(<<"title">>, [Kind#occi_kind.title]),
-			  render_kv(<<"rel">>, render_rel(Kind#occi_kind.rel)),
+			  render_kv(<<"rel">>, render_cid_uri(Kind#occi_kind.rel)),
 			  render_kv(<<"attributes">>, lists:map(fun(X) -> render_attr_spec(X) end, Kind#occi_kind.attributes)),
 			  render_kv(<<"actions">>, lists:map(fun(X) -> render_action_spec(X) end, Kind#occi_kind.actions)),
 			  render_kv(<<"location">>, render_uri(Kind#occi_kind.location))],
@@ -51,11 +51,11 @@ render(#occi_mixin{}=Mixin, Sep) ->
 			  render_kv(<<"location">>, render_uri(Mixin#occi_mixin.location))], 
 			 <<"; ">>),
       Sep);
-render(#occi_action{}=Action, Sep) ->
+render(#occi_action_spec{}=Action, Sep) ->
     occi_renderer:join(
-      occi_renderer:join([render_cid(Action#occi_action.id, Sep),
-			  render_kv(<<"title">>, [Action#occi_action.title]),
-			  render_kv(<<"attributes">>, lists:map(fun(X) -> render_attr_spec(X) end, Action#occi_action.attributes))],
+      occi_renderer:join([render_cid(Action#occi_action_spec.id, Sep),
+			  render_kv(<<"title">>, [Action#occi_action_spec.title]),
+			  render_kv(<<"attributes">>, lists:map(fun(X) -> render_attr_spec(X) end, Action#occi_action_spec.attributes))],
 			 <<"; ">>),
       Sep);
 
@@ -71,6 +71,9 @@ render_cid(#occi_cid{}=Cid, Sep) ->
 			 ], 
 			 <<"; ">>), 
       Sep).
+
+render_cid_uri(#occi_cid{}=Cid) ->
+    [ atom_to_list(Cid#occi_cid.scheme), atom_to_list(Cid#occi_cid.term) ].
 
 render_attr_spec(#occi_attr_spec{}=Attr) ->
     Ret = atom_to_list(Attr#occi_attr_spec.id),
@@ -94,13 +97,8 @@ render_attr_properties(Properties) ->
 	    [ <<"{">>, occi_renderer:join(L, <<",">>), <<"}">>]
     end.
 
-render_action_spec(#occi_action{}=Action) ->
-    occi_renderer:to_uri(Action#occi_action.id).
-
-render_rel({Scheme, Term}) when is_atom(Scheme) ->
-    render_rel({atom_to_list(Scheme), Term});
-render_rel({Scheme, Term}) ->
-    [[ Scheme, atom_to_list(Term) ]].
+render_action_spec(#occi_action_spec{}=Action) ->
+    render_cid_uri(Action#occi_action_spec.id).
 
 render_uri(Uri) ->
     occi_renderer:to_uri(Uri).

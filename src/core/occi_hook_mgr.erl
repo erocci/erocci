@@ -18,68 +18,48 @@
 %%% @doc
 %%%
 %%% @end
-%%% Created :  1 Jul 2013 by Jean Parpaillon <jean.parpaillon@free.fr>
--module(occi_backend).
--behaviour(gen_server).
-
--compile([{parse_transform, lager_transform}]).
+%%% Created : 19 Sep 2013 by Jean Parpaillon <jean.parpaillon@free.fr>
+-module(occi_hook_mgr).
+-compile({parse_transform, lager_transform}).
 
 -include("occi.hrl").
+
+-behaviour(gen_server).
+
 %% API
 -export([start_link/3]).
--export([save/2]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
 	 terminate/2, code_change/3]).
 
-% Backends config type
--type backend_config() :: {Ref :: atom(),
-			   Mod :: atom(), 
-			   Opts :: backend_opts()}.
--type backend_opts() :: [{Key::atom(), Value::any()}].
--export_type([backend_config/0, backend_opts/0]).
+-define(SERVER, ?MODULE). 
 
--record(state, {backend, state}).
+-record(state, {name :: atom(),
+		m    :: atom(), 
+		f    :: atom()}).
 
--callback init(Args :: term()) ->
-    {ok, State :: term()} |
-    {error, Reason :: term()}.
-
--callback terminate(State :: term()) ->
-    term().
-
--callback save(Obj :: occi_entity(), State :: term()) ->
-    {ok, Obj :: occi_entity(), State :: term()} |
-    {error, Reason :: term()}.
-
--callback get(CatId :: occi_cid(), Id :: uri(), State :: term()) ->
-    {ok, [Entities :: occi_entity()], State :: term()} |
-    {nok} |
-    {error, Reason :: term()}.
-
--callback find(CatId :: occi_cid(), Filter :: occi_filter(), State :: term()) ->
-    {ok, [Entities :: occi_entity()], term()} |
-    {error, Reason :: term()}.
-
--callback update(CatId :: occi_cid(), Entity :: occi_entity(), State :: term()) ->
-    {ok, State :: term()} |
-    {error, Reason :: term()}.
-
--callback delete(CatId :: occi_cid(), Id :: uri(), State :: term()) ->
-    {ok, State :: term()} |
-    {error, Reason :: term()}.
-
-%%%
+%%%===================================================================
 %%% API
-%%% 
--spec start_link(atom(), atom(), term()) -> {ok, pid()} | ignore | {error, term()}.
-start_link(Ref, Backend, Opts) ->
-    lager:info("Starting storage backend ~p (~p)~n", [Ref, Backend]),
-    gen_server:start_link({local, Ref}, ?MODULE, {Backend, Opts}, []).
+%%%===================================================================
 
-save(Ref, Entity) ->
-    gen_server:call(Ref, {save, Entity}).
+%%--------------------------------------------------------------------
+%% @doc
+%% Starts the server
+%%
+%% @spec start_link() -> {ok, Pid} | ignore | {error, Error}
+%% @end
+%%--------------------------------------------------------------------
+-spec start_link(atom(), {atom(), atom()}, reference()) -> 
+			{ok, pid()} 
+			    | ignore 
+			    | {error, term()}.
+start_link(Name, {Mod, Fun}, Ref) ->
+    gen_server:start_link({local, Ref}, ?MODULE, {Name, {Mod, Fun}}, []).
+
+%%%===================================================================
+%%% gen_server callbacks
+%%%===================================================================
 
 %%--------------------------------------------------------------------
 %% @private
@@ -92,14 +72,8 @@ save(Ref, Entity) ->
 %%                     {stop, Reason}
 %% @end
 %%--------------------------------------------------------------------
--spec init({atom(), term()}) -> {ok, term()} | {error, term()} | ignore.
-init({Backend, Args}) ->
-    case Backend:init(Args) of
-	{ok, BackendState} ->
-	    {ok, #state{backend=Backend, state=BackendState}};
-	{error, Error} ->
-	    {stop, Error}
-    end.
+init({Name, {Mod, Fun}}) ->
+    {ok, #state{name=Name, m=Mod, f=Fun}}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -115,24 +89,8 @@ init({Backend, Args}) ->
 %%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_call({save, Obj}, _From, #state{backend=Backend, state=BState}) ->
-    {Reply, RState} = Backend:save(Obj, BState),
-    {reply, Reply, #state{backend=Backend, state=RState}};
-handle_call({get, CatId, Id}, _From, #state{backend=Backend, state=BState}) ->
-    {Reply, RState} = Backend:get(CatId, Id, BState),
-    {reply, Reply, #state{backend=Backend, state=RState}};
-handle_call({find, CatId, Filter}, _From, #state{backend=Backend, state=BState}) ->
-    {Reply, RState} = Backend:find(CatId, Filter, BState),
-    {reply, Reply, #state{backend=Backend, state=RState}};
-handle_call({update, CatId, Entity}, _From, #state{backend=Backend, state=BState}) ->
-    {Reply, RState} = Backend:update(CatId, Entity, BState),
-    {reply, Reply, #state{backend=Backend, state=RState}};
-handle_call({delete, CatId, Id}, _From, #state{backend=Backend, state=BState}) ->
-    {Reply, RState} = Backend:delete(CatId, Id, BState),
-    {reply, Reply, #state{backend=Backend, state=RState}};
-handle_call(Req, From, State) ->
-    lager:error("Unknown message from ~p: ~p~n", [From, Req]),
-    {noreply, State}.
+handle_call(Request, From, S) ->
+    hook(Request, From, S).
 
 %%--------------------------------------------------------------------
 %% @private
@@ -144,8 +102,15 @@ handle_call(Req, From, State) ->
 %%                                  {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_cast(_Msg, State) ->
-    {noreply, State}.
+handle_cast(Msg, S) ->
+    case hook(Msg, undefined, S) of
+	{reply, _Reply, S2} -> {noreply, S2};
+	{reply, _Reply, S2, Timeout} -> {noreply, S2, Timeout};
+	{noreply, S2} -> {noreply, S2};
+	{noreply, S2, Timeout} -> {noreply, S2, Timeout};
+	{stop, Reason, _Reply, S2} -> {stop, Reason, S2};
+	{stop, Reason, S2} -> {stop, Reason, S2}
+    end.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -171,8 +136,8 @@ handle_info(_Info, State) ->
 %% @spec terminate(Reason, State) -> void()
 %% @end
 %%--------------------------------------------------------------------
-terminate(_Reason, #state{backend=Backend, state=State}) ->
-    Backend:terminate(State).
+terminate(_Reason, _State) ->
+    ok.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -184,3 +149,37 @@ terminate(_Reason, #state{backend=Backend, state=State}) ->
 %%--------------------------------------------------------------------
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
+
+%%%===================================================================
+%%% Internal functions
+%%%===================================================================
+%
+% @doc generic function for cast and call
+%
+hook({on_save, Entity}, _From, S) ->
+    Mod = S#state.m,
+    Fun = S#state.f,
+    logger:info("<hook:on_save> ~p:~p(~p)~n", [Mod, Fun, Entity]),
+    Reply = Mod:Fun(Entity),
+    {reply, Reply, S};
+hook({on_update, {Old, New}}, _From, S) ->
+    Mod = S#state.m,
+    Fun = S#state.f,
+    logger:info("<hook:on_update> ~p:~p(~p, ~p)~n", [Mod, Fun, Old, New]),
+    Reply = Mod:Fun(Old, New),
+    {reply, Reply, S};
+hook({on_delete, Entity}, _From, S) ->
+    Mod = S#state.m,
+    Fun = S#state.f,
+    logger:info("<hook:on_delete> ~p:~p(~p)~n", [Mod, Fun, Entity]),
+    Reply = Mod:Fun(Entity),
+    {reply, Reply, S};
+hook({on_action, Entity, Action}, _From, S) ->
+    Mod = S#state.m,
+    Fun = S#state.f,
+    logger:info("<hook:on_action> ~p:~p(~p, ~p)~n", [Mod, Fun, Entity, Action]),
+    Reply = Mod:Fun(Entity, Action),
+    {reply, Reply, S};
+hook(Request, _From, S) ->
+    logger:error("Unknown hook: ~p~n", [Request]),
+    {reply, error, S}.

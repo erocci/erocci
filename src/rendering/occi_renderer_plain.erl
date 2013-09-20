@@ -40,7 +40,7 @@
 %%%===================================================================
 render(Category) when is_record(Category, occi_kind); 
 		      is_record(Category, occi_mixin);
-		      is_record(Category, occi_action) ->
+		      is_record(Category, occi_action_spec) ->
     occi_renderer_text:render(Category, "\n\t");
 render(Categories) ->
     lists:map(fun(Cat) -> [<<"Category: ">>, render(Cat), "\n"] end, Categories).

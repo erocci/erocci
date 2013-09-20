@@ -21,17 +21,16 @@
 %%% @end
 %%% Created :  6 Aug 2013 by Jean Parpaillon <jean.parpaillon@free.fr>
 %%%-------------------------------------------------------------------
--module(occi_listener).
+-module(occi_hook).
 -compile({parse_transform, lager_transform}).
+
+-include("occi.hrl").
 
 -behaviour(supervisor).
 
 %% API
--export([start_link/0, add_listener/2]).
-
--type opts() :: [{atom(), any()}].
--callback start_link(opts()) -> ok | {error, atom()}.
--callback terminate() -> ok.
+-export([start_link/0]).
+-export([add_hook/2, notify/3]).
 
 %% Supervisor callbacks
 -export([init/1]).
@@ -52,14 +51,18 @@
 start_link() ->
     supervisor:start_link({local, ?SUPERVISOR}, ?MODULE, []).
 
-add_listener(Module, Opts) ->
-    ChildSpec = {Module,
-		 {Module, start_link, [Opts]},
-		 permanent,
-		 brutal_kill,
-		 worker,
-		 [Module]},
-    supervisor:start_child(?SUPERVISOR, ChildSpec).
+-spec add_hook(occi_cid(), hook()) -> ok.
+add_hook(Id, {Name, Fun}) ->
+    Ref = register_hook(Id, Name),
+    HookMgr = {Ref, {occi_hook_mgr, start_link, [Name, Fun, Ref]}, 
+	       permanent, 5000, worker, [occi_hook_mgr]},
+    supervisor:start_child(?MODULE, HookMgr).
+
+notify(HookName, Id, Data) ->
+    Managers = mnesia:dirty_match_object(#hook_rec{key={HookName, Id}, _ ='_'}),
+    list:foreach(fun(Manager) ->
+			 gen_server:cast(Manager#hook_rec.ref, {HookName, Data})
+		 end, Managers).
 
 %%%===================================================================
 %%% Supervisor callbacks
@@ -79,7 +82,11 @@ add_listener(Module, Opts) ->
 %% @end
 %%--------------------------------------------------------------------
 init(_) ->
-    lager:info("Starting OCCI listeners manager"),
+    lager:info("Starting OCCI hooks manager"),
+    mnesia:create_table(hook_rec,
+			[{ram_copies, [node()]},
+			 {attributes, record_info(fields, hook_rec)}]),
+    mnesia:wait_for_tables([hook_cat], infinite),
     RestartStrategy = one_for_one,
     MaxRestarts = 1000,
     MaxSecondsBetweenRestarts = 3600,
@@ -92,3 +99,11 @@ init(_) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+register_hook(Id, Name) ->
+    Ref = make_ref(),
+    HookRec = #hook_rec{key={Name, Id}, ref=Ref},
+    Trans = fun() -> 
+		    mnesia:write(HookRec)
+	    end,
+    mnesia:transaction(Trans),
+    HookRec.

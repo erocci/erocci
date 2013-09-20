@@ -23,6 +23,8 @@
 -compile({parse_transform, lager_transform}).
 
 -export([start/0, stop/0]).
+% External API (simple wrappers)
+-export([add_backend/2, add_category/2, add_listener/2]).
 
 %% @spec start() -> ok
 %% @doc Start the occi server.
@@ -35,3 +37,12 @@ start() ->
 stop() ->
     lager:info("Stopping erocci framework"),
     application:stop(occi).
+
+add_backend(Backend, Path) ->
+    occi_store:add_backend(Backend, Path).
+
+add_category(Category, Hooks) ->
+    occi_store:add_category(Category, Hooks).
+
+add_listener(Listener, Args) ->
+    occi_listener:add_listener(Listener, Args).

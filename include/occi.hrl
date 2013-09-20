@@ -6,7 +6,6 @@
 %%% Created : 14 Mar 2013 by Jean Parpaillon <jean.parpaillon@free.fr>
 -type(uri() :: [binary()]).
 -type(occi_class() :: kind | mixin | action).
--type(occi_action_spec() :: term()).
 
 %%% OCCI Attribute description
 -record(occi_attr_spec, {id             :: atom(),
@@ -24,7 +23,7 @@
 -record(occi_kind, {id         = #occi_cid{}  :: occi_cid(),
 		    title      = undefined    :: binary(),
 		    attributes = []           :: [occi_attr_spec()],
-		    rel        = []           :: uri(),
+		    rel        = []           :: occi_cid(),
 		    actions    = []           :: [occi_action_spec()],
 		    location                  :: uri()}).
 -type(occi_kind() :: #occi_kind{}).
@@ -39,11 +38,11 @@
 		     location                  :: uri()}).
 -type(occi_mixin() :: #occi_mixin{}).
 
-%%% OCCI Action
--record(occi_action, {id         = #occi_cid{}  :: occi_cid(),
-		      title      = undefined    :: binary(),
-		      attributes = []           :: [occi_attr_spec()]}).
--type(occi_action() :: #occi_action{}).
+%%% OCCI Action Spec
+-record(occi_action_spec, {id         = #occi_cid{}  :: occi_cid(),
+			   title      = undefined    :: binary(),
+			   attributes = []           :: [occi_attr_spec()]}).
+-type(occi_action_spec() :: #occi_action_spec{}).
 
 %%% OCCI Category
 -type(occi_category() :: occi_kind() | occi_mixin() | occi_action()).
@@ -68,8 +67,22 @@
 		    mixins     = []        :: [occi_cid()]}).
 -type(occi_link() :: #occi_link{}).
 
+%%% OCCI Action
+-record(occi_action, {id         = #occi_cid{}  :: occi_cid(),
+		      attributes = []           :: [{atom(), any()}]}).
+-type(occi_action() :: #occi_action{}).
+
 %%% OCCI Entity
 -type(occi_entity() :: #occi_resource{} | #occi_link{}).
 
 %%% OCCI Filter
 -type(occi_filter() :: any()).
+
+%%% OCCI hooks
+-record(hook_rec, {key    :: {hook_name(), #occi_cid{}},
+		   ref    :: reference()}).
+-type(hook_rec() :: #hook_rec{}).
+
+-type(hook() :: {hook_name(), hook_fun()}).
+-type(hook_name() :: on_save | on_update | on_delete | on_action).
+-type(hook_fun() :: {atom(), atom()} | fun()).

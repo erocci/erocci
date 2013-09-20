@@ -34,7 +34,6 @@
 	 find/3,
 	 update/3,
 	 delete/3]).
--export([valid_config/1]).
 
 -record(state, {pb :: pid()}).
 
@@ -42,13 +41,9 @@
 %%% occi_backend callbacks
 %%%===================================================================
 init(Opts) ->
-    Ref = element(2, lists:keyfind(ref, 1, Opts)),
-    Categories = element(2, lists:keyfind(categories, 1, Opts)),
-    lists:foreach(fun(Cat) -> 
-			  occi_store:register_category(Ref, Cat) 
-		  end, Categories),
-    {ip, Node} = lists:keyfind(ip, 1, Opts),
-    {port, Port} = lists:keyfind(port, 1, Opts),
+    Opts2 = valid_config(Opts),
+    {ip, Node} = lists:keyfind(ip, 1, Opts2),
+    {port, Port} = lists:keyfind(port, 1, Opts2),
     case riakc_pb_socket:start_link(Node, Port) of
 	{ok, Pid} -> 
 	    {ok, #state{pb=Pid}};
@@ -114,13 +109,7 @@ valid_config(Opts) ->
 		   8087;
 	       {port, I} -> I
 	   end,
-    Categories = case lists:keyfind(categories, 1, Opts) of
-		     false ->
-			 [];
-		     {categories, Val} ->
-			 occi_backend:valid_categories(Val)
-		 end,
-    [{ip, Address}, {port, Port}, {categories, Categories}].
+    [{ip, Address}, {port, Port}].
 
 %%%===================================================================
 %%% Internal functions

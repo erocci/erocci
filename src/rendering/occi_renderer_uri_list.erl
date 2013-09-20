@@ -38,7 +38,7 @@ render(#occi_kind{location=Url}) ->
     Url;
 render(#occi_mixin{location=Url}) ->
     Url;
-render(#occi_action{}) ->
+render(#occi_action_spec{}) ->
     [];
 render(List) ->
     occi_renderer:join(lists:map(fun(Obj) -> render(Obj) end, List), "\n").
