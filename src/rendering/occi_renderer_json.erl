@@ -40,8 +40,10 @@ render(Obj) when is_record(Obj, occi_kind);
 		 is_record(Obj, occi_cid) ->
     Ejson = render_ejson(Obj),
     jiffy:encode(Ejson);
-render(List) ->
-    lists:map(fun(Obj) -> render(Obj) end, List).
+render(List) when is_list(List) ->
+    jiffy:encode(lists:map(fun(Obj) -> 
+				   render_ejson(Obj) 
+			   end, List)).
 
 parse(Bin) ->
     {ok, jiffy:decode(Bin)}.
