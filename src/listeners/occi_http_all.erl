@@ -25,7 +25,8 @@
 	 resource_exists/2,
 	 allowed_methods/2,
 	 content_types_provided/2,
-	 content_types_accepted/2]).
+	 content_types_accepted/2,
+	 options/2]).
 
 %% Callback callbacks
 -export([to_plain/2, to_occi/2, to_uri_list/2, to_json/2,
@@ -33,7 +34,7 @@
 
 -include("occi.hrl").
 
--record(state, {resource :: occi_store:store_obj()}).
+-record(state, {resource :: term()}).
 
 init(_Transport, _Req, []) -> 
     {upgrade, protocol, cowboy_rest}.
@@ -43,6 +44,11 @@ rest_init(Req, _Opts) ->
 
 allowed_methods(Req, State) ->
     {[<<"HEAD">>, <<"GET">>, <<"PUT">>, <<"DELETE">>, <<"POST">>], Req, State}.
+
+options(Req, Ctx) ->
+    Req1 = cowboy_req:set_resp_header(<<"access-control-allow-methods">>, <<"GET, OPTIONS">>, Req),
+    Req2 = cowboy_req:set_resp_header(<<"access-control-allow-origin">>, <<"*">>, Req1),
+    {ok, Req2, Ctx}.
 
 content_types_provided(Req, State) ->
     {[
@@ -65,8 +71,10 @@ resource_exists(Req, State) ->
     case occi_store:is_valid_path(Path) of
 	false ->
 	    {false, Req1, State};
-	ResId ->
-	    {true, Req1, State#state{resource=ResId}}
+	{category, Mod} ->
+	    {true, Req1, State#state{resource={category, Mod}}};
+	{entity, Backend, ObjId} ->
+	    {true, Req1, State#state{resource={entity, Backend, ObjId}}}
     end.
 
 to_plain(Req, State) ->
