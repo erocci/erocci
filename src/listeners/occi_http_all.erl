@@ -25,8 +25,7 @@
 	 resource_exists/2,
 	 allowed_methods/2,
 	 content_types_provided/2,
-	 content_types_accepted/2,
-	 options/2]).
+	 content_types_accepted/2]).
 
 %% Callback callbacks
 -export([to_plain/2, to_occi/2, to_uri_list/2, to_json/2,
@@ -40,15 +39,17 @@ init(_Transport, _Req, []) ->
     {upgrade, protocol, cowboy_rest}.
 
 rest_init(Req, _Opts) ->
-    {ok, Req, #state{}}.
+    Req1 = cowboy_req:set_resp_header(<<"access-control-allow-methods">>, <<"HEAD, GET, PUT, POST, OPTIONS, DELETE">>, Req),
+    Req3 = case cowboy_req:header(<<"origin">>, Req1) of
+	       {undefined, Req2} ->
+		   Req2;
+	       {Origin, Req2} ->
+		   cowboy_req:set_resp_header(<<"access-control-allow-origin">>, Origin, Req2)
+	   end,
+    {ok, Req3, []}.
 
 allowed_methods(Req, State) ->
     {[<<"HEAD">>, <<"GET">>, <<"PUT">>, <<"DELETE">>, <<"POST">>], Req, State}.
-
-options(Req, Ctx) ->
-    Req1 = cowboy_req:set_resp_header(<<"access-control-allow-methods">>, <<"GET, OPTIONS">>, Req),
-    Req2 = cowboy_req:set_resp_header(<<"access-control-allow-origin">>, <<"*">>, Req1),
-    {ok, Req2, Ctx}.
 
 content_types_provided(Req, State) ->
     {[
