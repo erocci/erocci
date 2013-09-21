@@ -57,12 +57,14 @@ content_types_provided(Req, State) ->
       {<<"text/plain">>, to_plain},
       {<<"text/occi">>, to_occi},
       {<<"text/uri-list">>, to_uri_list},
+      {<<"application/json">>, to_json},
       {<<"application/occi+json">>, to_json}
      ],
      Req, State}.
 
 content_types_accepted(Req, State) ->
     {[
+      {<<"application/json">>, to_json},
       {<<"application/occi+json">>, from_json}
      ],
      Req, State}.
