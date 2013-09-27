@@ -24,7 +24,7 @@
 
 -export([start/0, stop/0]).
 % External API (simple wrappers)
--export([add_backend/2, add_category/2, add_listener/2]).
+-export([register_backend/2, register_category/3, register_listener/2]).
 
 %% @spec start() -> ok
 %% @doc Start the occi server.
@@ -38,11 +38,11 @@ stop() ->
     lager:info("Stopping erocci framework"),
     application:stop(occi).
 
-add_backend(Backend, Path) ->
-    occi_store:add_backend(Backend, Path).
+register_backend(Backend, Path) ->
+    occi_store:register(Backend, Path).
 
-add_category(Category, Hooks) ->
-    occi_store:add_category(Category, Hooks).
+register_category(Category, Location, Hooks) ->
+    occi_category_mgr:register(Category, Location, Hooks).
 
-add_listener(Listener, Args) ->
-    occi_listener:add_listener(Listener, Args).
+register_listener(Listener, Args) ->
+    occi_listener:register(Listener, Args).

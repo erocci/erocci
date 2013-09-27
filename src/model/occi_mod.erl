@@ -19,12 +19,13 @@
 %%%
 %%% @end
 %%% Created : 19 Aug 2013 by Jean Parpaillon <jean.parpaillon@free.fr>
--module(occi_type).
+-module(occi_mod).
 -compile([{parse_transform, lager_transform}]).
 
 -include("occi.hrl").
 
--export([get_category/2]).
+-export([get_kind/2,
+	 get_mixin/2]).
 -export([get_id/1,
 	 get_title/1,
 	 get_relations/1,
@@ -32,15 +33,6 @@
 	 get_actions/1,
 	 get_entity_type/1
 	]).
-
-get_category(Location, Mod) ->
-    Id = get_id(Mod),
-    case Id#occi_cid.class of
-	kind ->
-	    get_kind(Location, Mod);
-	mixin ->
-	    get_mixin(Location, Mod)
-    end.
 
 -spec get_kind(uri(), atom()) -> occi_kind().
 get_kind(Location, Mod) ->

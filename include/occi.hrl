@@ -27,8 +27,8 @@
 		    actions    = []           :: [occi_action_spec()],
 		    location                  :: uri()}).
 -type(occi_kind() :: #occi_kind{}).
-
 %%% OCCI Mixin
+
 -record(occi_mixin, {id         = #occi_cid{}  :: occi_cid(),
 		     title      = undefined    :: binary(),
 		     depends    = []           :: [occi_cid()],

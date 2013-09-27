@@ -97,8 +97,8 @@ attributes_attr -> attribute_kv_attr ',' attributes_attr : ['$1'|'$3'].
 attribute_kv_attr -> attribute_name_attr '=' attribute_value_attr : {unwrap('$1'), '$3'}.
 
 attribute_value_attr -> quoted_value : unwrap('$1').
-attribute_value_attr -> integer : unwrap('$1').
-attribute_value_attr -> float : unwrap('$1').
+attribute_value_attr -> integer : list_to_integer(binary_to_list(unwrap('$1'))).
+attribute_value_attr -> float : list_to_integer(binary_to_list(unwrap('$1'))).
 
 Erlang code.
 

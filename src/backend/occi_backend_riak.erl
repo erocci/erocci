@@ -30,6 +30,7 @@
 -export([init/1,
 	 terminate/1,
 	 save/2,
+	 lookup/2,
 	 get/3,
 	 find/3,
 	 update/3,
@@ -67,6 +68,10 @@ save(Obj, #state{pb=Pid}=State) when is_record(Obj, occi_resource);
 	  end,
     {Ret, State}.
 
+lookup(_Path, #state{pb=_Pid}=State) ->
+    %% TODO
+    {undefined, State}.
+
 get(CatId, Id, #state{pb=Pid}=State) ->
     {ok, Obj} = riakc_pb_socket:get(Pid,
 				    occi_tools:to_binary(CatId),
@@ -95,12 +100,12 @@ valid_config(Opts) ->
     Address = case lists:keyfind(ip, 1, Opts) of
 		  false ->
 		      {127,0,0,1};
-		  {ip, Bin} ->
-		      Str = binary_to_list(Bin),
-		      case inet_parse:address(Str) of
-			  {ok, _Ip} -> Str;
+		  {ip, Val} ->
+		      IpStr = to_list(Val),
+		      case inet_parse:address(IpStr) of
+			  {ok, _Ip} -> Val;
 			  {error, einval} -> 
-			      lager:error("Invalid address: ~p~n", [Str]),
+			      lager:error("Invalid address: ~p~n", [Val]),
 			      throw(einval)
 		      end
 	      end,
@@ -114,3 +119,7 @@ valid_config(Opts) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+to_list(S) when is_list(S) ->
+    S;
+to_list(S) when is_binary(S) ->
+    binary_to_list(S).

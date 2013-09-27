@@ -20,9 +20,33 @@
 %%% @end
 %%% Created : 25 Jul 2013 by Jean Parpaillon <jean.parpaillon@free.fr>
 -module(occi_mixin).
+-compile([{parse_transform, lager_transform}]).
 
--occi_scheme('http://schemas.ogf.org/occi/core').
--occi_term(mixin).
--occi_title("OCCI Core Extension Mechanism").
--occi_class(mixin).
+-behaviour(occi_category).
 
+-include("occi.hrl").
+
+%% occi_category callbacks
+-export([init/1, get/2]).
+
+init(#occi_mixin{}=Mixin) ->
+    Mixin.
+
+get(class, Data) ->
+    {mixin, Data};
+get(scheme, #occi_mixin{id=#occi_cid{scheme=Scheme}}=Data) ->
+    {Scheme, Data};
+get(term, #occi_mixin{id=#occi_cid{term=Term}}=Data) ->
+    {Term, Data};
+get(title, #occi_mixin{title=Title}=Data) ->
+    {Title, Data};
+get(attributes, #occi_mixin{attributes=Attributes}=Data) ->
+    {Attributes, Data};
+get(depends, #occi_mixin{depends=Depends}=Data) ->
+    {Depends, Data};
+get(applies, #occi_mixin{applies=Applies}=Data) ->
+    {Applies, Data};
+get(actions, #occi_mixin{actions=Actions}=Data) ->
+    {Actions, Data};
+get(location, #occi_mixin{location=Location}=Data) ->
+    {Location, Data}.

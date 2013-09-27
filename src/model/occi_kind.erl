@@ -20,11 +20,31 @@
 %%% @end
 %%% Created : 25 Jul 2013 by Jean Parpaillon <jean.parpaillon@free.fr>
 -module(occi_kind).
+-compile([{parse_transform, lager_transform}]).
+
+-behaviour(occi_category).
 
 -include("occi.hrl").
 
--occi_scheme('http://schemas.ogf.org/occi/core').
--occi_term(kind).
--occi_title("OCCI Type Identification Mechanism Base").
--occi_class(kind).
--occi_entity_type("Entity").
+%% occi_category callbacks
+-export([init/1, get/2]).
+
+init(#occi_kind{}=Data) ->
+    Data.
+
+get(class, Data) ->
+    {kind, Data};
+get(scheme, #occi_kind{id=#occi_cid{scheme=Scheme}}=Data) ->
+    {Scheme, Data};
+get(term, #occi_kind{id=#occi_cid{term=Term}}=Data) ->
+    {Term, Data};
+get(title, #occi_kind{title=Title}=Data) ->
+    {Title, Data};
+get(attributes, #occi_kind{attributes=Attributes}=Data) ->
+    {Attributes, Data};
+get(parent, #occi_kind{rel=Parent}=Data) ->
+    {Parent, Data};
+get(actions, #occi_kind{actions=Actions}=Data) ->
+    {Actions, Data};
+get(location, #occi_kind{location=Location}=Data) ->
+    {Location, Data}.

@@ -24,6 +24,7 @@
 
 -export([is_enum/2, is_integer/1, is_float/1, is_alnum/1, is_cidr/1, is_ipaddress/1]).
 -export([is_range/2, is_module/1]).
+-export([split_path/1]).
 
 -spec is_enum(any(), [any()]) -> {ok, any()} | error.
 is_enum(Obj, [ Val | _Values]) when Obj == Val ->
@@ -84,3 +85,31 @@ is_module(Mod) when is_atom(Mod) ->
     end;
 is_module(_) ->
     false.
+
+%% @doc Split a path into a list of path segments. Return in reverse order
+%%      Picked from cowboy_router
+%%
+%% Following RFC2396, this function may return path segments containing any
+%% character, including <em>/</em> if, and only if, a <em>/</em> was escaped
+%% and part of a path segment.
+-spec split_path(binary()) -> cowboy_router:tokens().
+split_path(<< $/, Path/bits >>) ->
+	split_path(Path, []);
+split_path(_) ->
+	badrequest.
+
+split_path(Path, Acc) ->
+	try
+		case binary:match(Path, <<"/">>) of
+			nomatch when Path =:= <<>> ->
+				[cowboy_http:urldecode(S) || S <- Acc];
+			nomatch ->
+				[cowboy_http:urldecode(S) || S <- [Path|Acc]];
+			{Pos, _} ->
+				<< Segment:Pos/binary, _:8, Rest/bits >> = Path,
+				split_path(Rest, [Segment|Acc])
+		end
+	catch
+		error:badarg ->
+			badrequest
+	end.

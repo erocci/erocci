@@ -19,24 +19,30 @@
 %%% @doc
 %%%
 %%% @end
-%%% Created :  6 Aug 2013 by Jean Parpaillon <jean.parpaillon@free.fr>
+%%% Created : 27 Sep 2013 by Jean Parpaillon <jean.parpaillon@free.fr>
 %%%-------------------------------------------------------------------
--module(occi_listener).
--compile({parse_transform, lager_transform}).
+-module(occi_category_mgr).
+-compile([{parse_transform, lager_transform}]).
+
+-include("occi.hrl").
 
 -behaviour(supervisor).
 
 %% API
--export([start_link/0, register/2]).
-
--type opts() :: [{atom(), any()}].
--callback start_link(opts()) -> ok | {error, atom()}.
--callback terminate() -> ok.
+-export([start_link/0]).
+-export([register/3,
+	 get_all/0,
+	 lookup_collection/1]).
 
 %% Supervisor callbacks
 -export([init/1]).
 
--define(SUPERVISOR, ?MODULE).
+-define(SERVER, ?MODULE).
+
+-record(tbl_category, {id     :: #occi_cid{}, 
+		       ref    :: reference(),
+		       uri    :: [binary()]}).
+%-type(category() :: #category{}).
 
 %%%===================================================================
 %%% API functions
@@ -50,16 +56,33 @@
 %% @end
 %%--------------------------------------------------------------------
 start_link() ->
-    supervisor:start_link({local, ?SUPERVISOR}, ?MODULE, []).
+    supervisor:start_link({local, ?SERVER}, ?MODULE, []).
 
-register(Module, Opts) ->
-    ChildSpec = {Module,
-		 {Module, start_link, [Opts]},
-		 permanent,
-		 brutal_kill,
-		 worker,
-		 [Module]},
-    supervisor:start_child(?SUPERVISOR, ChildSpec).
+-spec register(term(), uri(), [occi_hook:hook()]) -> ok.
+register(CategoryDef, Location, Hooks) ->
+    {Id, Ref} = occi_category:new(CategoryDef, Location),
+    mnesia:transaction(fun() -> 
+			       Entry = #tbl_category{id=Id, ref=Ref, uri=Location},
+			       mnesia:write(Entry)
+		       end),
+    lists:foreach(fun(Hook) ->
+			  occi_hook:add_hook(Id, Hook)
+		  end, Hooks).
+
+-spec get_all() -> [occi_category()].
+get_all() ->
+    Entries = mnesia:dirty_match_object(#tbl_category{_ ='_'}),
+    lists:flatten([ [ occi_category:get_data(Ref) |
+		      occi_category:get_actions(Ref) ]
+		    || #tbl_category{ref=Ref} <- Entries ]).
+
+lookup_collection(Path) ->
+    case mnesia:dirty_match_object(#tbl_category{uri=Path, _='_'}) of
+	[] ->
+	    undefined;
+	[Entry] ->
+	    Entry#tbl_category.ref
+    end.
 
 %%%===================================================================
 %%% Supervisor callbacks
@@ -78,16 +101,14 @@ register(Module, Opts) ->
 %%                     {error, Reason}
 %% @end
 %%--------------------------------------------------------------------
-init(_) ->
-    lager:info("Starting OCCI listeners manager"),
-    RestartStrategy = one_for_one,
-    MaxRestarts = 1000,
-    MaxSecondsBetweenRestarts = 3600,
-
-    SupFlags = {RestartStrategy, MaxRestarts, MaxSecondsBetweenRestarts},
-    Childs = [],
-
-    {ok, {SupFlags, Childs}}.
+init([]) ->
+    lager:info("Starting OCCI categories manager"),
+    mnesia:create_table(tbl_category,
+			[{ram_copies, [node()]},
+			 {attributes, record_info(fields, tbl_category)}]),
+    mnesia:wait_for_tables([tbl_category], 
+			   infinite),
+    {ok, {{one_for_one, 10, 10}, []}}.
 
 %%%===================================================================
 %%% Internal functions

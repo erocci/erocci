@@ -27,7 +27,7 @@
 -include("occi.hrl").
 %% API
 -export([start_link/3]).
--export([save/2]).
+-export([lookup/2, save/2]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -62,6 +62,10 @@
     {ok, [Entities :: occi_entity()], term()} |
     {error, Reason :: term()}.
 
+-callback lookup(Path :: [binary()], State :: term()) ->
+    {ok, Id :: uri()} |
+    undefined.
+
 -callback update(CatId :: occi_cid(), Entity :: occi_entity(), State :: term()) ->
     {ok, State :: term()} |
     {error, Reason :: term()}.
@@ -80,6 +84,9 @@ start_link(Ref, Backend, Opts) ->
 
 save(Ref, Entity) ->
     gen_server:call(Ref, {save, Entity}).
+
+lookup(Ref, Path) ->
+    gen_server:call(Ref, {lookup, Path}).
 
 %%--------------------------------------------------------------------
 %% @private
@@ -117,6 +124,9 @@ init({Backend, Args}) ->
 %%--------------------------------------------------------------------
 handle_call({save, Obj}, _From, #state{backend=Backend, state=BState}) ->
     {Reply, RState} = Backend:save(Obj, BState),
+    {reply, Reply, #state{backend=Backend, state=RState}};
+handle_call({lookup, Path}, _From, #state{backend=Backend, state=BState}) ->
+    {Reply, RState} = Backend:lookup(Path, BState),
     {reply, Reply, #state{backend=Backend, state=RState}};
 handle_call({get, CatId, Id}, _From, #state{backend=Backend, state=BState}) ->
     {Reply, RState} = Backend:get(CatId, Id, BState),

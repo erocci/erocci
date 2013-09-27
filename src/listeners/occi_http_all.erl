@@ -18,6 +18,7 @@
 %% @doc Example webmachine_resource.
 
 -module(occi_http_all).
+-compile({parse_transform, lager_transform}).
 
 %% REST Callbacks
 -export([init/3, 
@@ -30,7 +31,7 @@
 
 %% Callback callbacks
 -export([to_plain/2, to_occi/2, to_uri_list/2, to_json/2,
-	 from_json/2]).
+	 from_plain/2]).
 
 -include("occi.hrl").
 
@@ -67,8 +68,7 @@ content_types_provided(Req, State) ->
 
 content_types_accepted(Req, State) ->
     {[
-      {{<<"application">>, <<"json">>, []}, from_json},
-      {{<<"application">>, <<"occi+json">>, []}, from_json}
+      {{<<"text">>,          <<"plain">>,      []}, from_plain}
      ],
      Req, State}.
 
@@ -93,23 +93,17 @@ to_plain(Req, State) ->
     {Body, Req, State}.
 
 to_occi(Req, State) ->
-    Req2 = case State#state.resource of
-	       {category, Uri, Mod} ->
-		   Type = occi_type:get_category(Uri, Mod),
-		   cowboy_req:set_resp_header(<<"Category">>, occi_renderer_occi:render(Type), Req);
-	       {entity, _Backend, _ObjId} ->
-		   Req
-	   end,
-    {<<"OK\n">>, Req2, State}.
+    {<<"OK\n">>, Req, State}.
 
 to_uri_list(Req, State) ->
-    Obj = occi_store:load(State#state.resource),
-    Body = [occi_renderer_uri_list:render(Obj), <<"\n">>],
+    Body = <<"">>,
     {Body, Req, State}.
 
 to_json(Req, State) ->
-    Obj = occi_store:load(State#state.resource),
-    {occi_renderer_json:render(Obj), Req, State}.
+    {<<"\n">>, Req, State}.
 
-from_json(Req, State) ->
-    {ok, Req, State}.
+from_plain(Req, State) ->
+    {Body, Req2} = cowboy_req:body(Req),
+    Res = occi_renderer_plain:parse(Body),
+    Req3 = cowboy_req:set_resp_header(<<"location">>, Res#occi_resource.id, Req2),
+    {true, Req3, State}.
