@@ -17,38 +17,32 @@
 %%% 
 %% @doc Example webmachine_resource.
 
--module(occi_http_all).
+-module(occi_http_collection).
 -compile({parse_transform, lager_transform}).
 
 %% REST Callbacks
 -export([init/3, 
 	 rest_init/2,
-	 resource_exists/2,
 	 allow_missing_post/2,
 	 allowed_methods/2,
 	 content_types_provided/2,
 	 content_types_accepted/2]).
 
 %% Callback callbacks
--export([to_plain/2, to_occi/2, to_uri_list/2, to_json/2,
+-export([to_plain/2,
 	 from_plain/2]).
 
 -include("occi.hrl").
 
--record(state, {resource = undefined :: any()}).
+-record(state, {cid :: #occi_cid{},
+		ref :: reference()}).
 
-init(_Transport, _Req, []) -> 
+init(_Transport, _Req, _) -> 
     {upgrade, protocol, cowboy_rest}.
 
-rest_init(Req, _Opts) ->
-    Req1 = cowboy_req:set_resp_header(<<"access-control-allow-methods">>, <<"HEAD, GET, PUT, POST, OPTIONS, DELETE">>, Req),
-    Req3 = case cowboy_req:header(<<"origin">>, Req1) of
-	       {undefined, Req2} ->
-		   Req2;
-	       {Origin, Req2} ->
-		   cowboy_req:set_resp_header(<<"access-control-allow-origin">>, Origin, Req2)
-	   end,
-    {ok, Req3, #state{}}.
+rest_init(Req, {#occi_cid{}=Id, Ref}) ->
+    Req1 = occi_http:set_cors(Req),
+    {ok, Req1, #state{cid=Id, ref=Ref}}.
 
 allow_missing_post(_Req, _State) ->
     false.
@@ -58,11 +52,7 @@ allowed_methods(Req, State) ->
 
 content_types_provided(Req, State) ->
     {[
-      {{<<"text">>,          <<"plain">>,     []}, to_plain},
-      {{<<"text">>,          <<"occi">>,      []}, to_occi},
-      {{<<"text">>,          <<"uri-list">>,  []}, to_uri_list},
-      {{<<"application">>,   <<"json">>,      []}, to_json},
-      {{<<"application">>,   <<"occi+json">>, []}, to_json}
+      {{<<"text">>,          <<"plain">>,     []}, to_plain}
      ],
      Req, State}.
 
@@ -72,35 +62,9 @@ content_types_accepted(Req, State) ->
      ],
      Req, State}.
 
-resource_exists(Req, State) ->
-    {Path, Req1} = cowboy_req:path_info(Req),
-    case occi_store:is_valid_path(Path) of
-	false ->
-	    {false, Req1, State};
-	{collection, Mod} ->
-	    {true, Req1, State#state{resource={collection, Mod}}};
-	{entity, Backend, ObjId} ->
-	    {true, Req1, State#state{resource={entity, Backend, ObjId}}}
-    end.
-
-to_plain(Req, State) ->
-    Body = case State#state.resource of
-	       {collection, _Mod} ->
-		   [];
-	       {entity, _Backend, _ObjId} ->
-		   <<"OK">>
-	   end,
-    {Body, Req, State}.
-
-to_occi(Req, State) ->
-    {<<"OK\n">>, Req, State}.
-
-to_uri_list(Req, State) ->
-    Body = <<"">>,
-    {Body, Req, State}.
-
-to_json(Req, State) ->
-    {<<"\n">>, Req, State}.
+to_plain(Req, #state{ref=Ref}=State) ->
+    Entities = occi_category:get_collection(Ref),
+    {occi_renderer_plain:render(Entities), Req, State}.
 
 from_plain(Req, State) ->
     {Body, Req2} = cowboy_req:body(Req),

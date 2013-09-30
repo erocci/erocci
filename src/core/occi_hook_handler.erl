@@ -19,7 +19,7 @@
 %%%
 %%% @end
 %%% Created : 19 Sep 2013 by Jean Parpaillon <jean.parpaillon@free.fr>
--module(occi_hook_mgr).
+-module(occi_hook_handler).
 -compile({parse_transform, lager_transform}).
 
 -include("occi.hrl").

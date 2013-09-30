@@ -27,24 +27,36 @@
 -include("occi.hrl").
 
 %% occi_category callbacks
--export([init/1, get/2]).
+-export([init/2, 
+	 get_attr/2,
+	 get_obj/1,
+	 get_collection/1]).
 
-init(#occi_kind{}=Data) ->
-    Data.
+-record(data, {category      :: #occi_kind{},
+	       backend       :: occi_store:backend_ref()}).
 
-get(class, Data) ->
-    {kind, Data};
-get(scheme, #occi_kind{id=#occi_cid{scheme=Scheme}}=Data) ->
-    {Scheme, Data};
-get(term, #occi_kind{id=#occi_cid{term=Term}}=Data) ->
-    {Term, Data};
-get(title, #occi_kind{title=Title}=Data) ->
-    {Title, Data};
-get(attributes, #occi_kind{attributes=Attributes}=Data) ->
-    {Attributes, Data};
-get(parent, #occi_kind{rel=Parent}=Data) ->
-    {Parent, Data};
-get(actions, #occi_kind{actions=Actions}=Data) ->
-    {Actions, Data};
-get(location, #occi_kind{location=Location}=Data) ->
-    {Location, Data}.
+init(Backend, #occi_kind{}=Kind) ->
+    #data{category=Kind, backend=Backend}.
+
+get_attr(class, _Data) ->
+    kind;
+get_attr(scheme, #data{category=#occi_kind{id=#occi_cid{scheme=Scheme}}}) ->
+    Scheme;
+get_attr(term, #data{category=#occi_kind{id=#occi_cid{term=Term}}}) ->
+    Term;
+get_attr(title, #data{category=#occi_kind{title=Title}}) ->
+    Title;
+get_attr(attributes, #data{category=#occi_kind{attributes=Attributes}}) ->
+    Attributes;
+get_attr(parent, #data{category=#occi_kind{rel=Parent}}) ->
+    Parent;
+get_attr(actions, #data{category=#occi_kind{actions=Actions}}) ->
+    Actions;
+get_attr(location, #data{category=#occi_kind{location=Location}}) ->
+    Location.
+
+get_obj(#data{category=Obj}) ->
+    Obj.
+
+get_collection(#data{category=#occi_kind{id=Id}, backend=Ref}) ->
+    occi_backend:find_all(Ref, Id).

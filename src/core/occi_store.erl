@@ -30,17 +30,20 @@
 
 %% API
 -export([start_link/0, register/2]).
--export([is_valid_path/1]).
+-export([get_backend/1, is_valid_path/1]).
 
 %% supervisor callbacks
 -export([init/1]).
 
 -define(SUPERVISOR, ?MODULE).
 
--record(store_mountpoint, {uri :: [binary()], backend :: atom()}).
+-record(store_mountpoint, {uri :: [binary()], backend :: backend_ref()}).
 -type(store_mountpoint() :: #store_mountpoint{}).
 
--type(backend_desc() :: {atom(), atom(), term()}).
+-type(backend_ref() :: atom()).
+-type(backend_mod() :: atom()).
+-type(backend_opts() :: term()).
+-type(backend_desc() :: {backend_ref(), backend_mod(), backend_opts()}).
 
 -export_type([store_mountpoint/0]).
 
@@ -75,16 +78,11 @@ register({Ref, Mod, Opts}, Path) ->
 			       | {category, atom()}.
 is_valid_path(Path) ->
     lager:debug("Looking up path: ~p~n", [Path]),
-    case occi_category:lookup_collection(Path) of
-	undefined ->
-	    {Backend, Path2} = get_backend(Path),
-	    case occi_backend:lookup(Backend, Path2) of
-		undefined -> false;
-		ObjId -> {resource, Backend, ObjId}
-	    end;
-	Ref ->
-	    {collection, Ref}
-    end.
+    false.
+
+-spec get_backend(uri()) -> backend_ref().
+get_backend(Path) ->
+    get_backend2(lists:reverse(Path)).
 
 %%%===================================================================
 %%% supervisor callbacks
@@ -112,20 +110,13 @@ register_mountpoint(Path, Ref) ->
 	    end,
     mnesia:transaction(Trans).
 
-get_backend(Path) ->
-    {Mp, Path2} = get_backend2(occi_types:split_path(Path)),
-    {Mp#store_mountpoint.backend, Path2}.
-
 get_backend2([]) ->
-    [Mp] = mnesia:dirty_read(store_moutpoint, []),
-    {Mp, []};
+    [Mp] = mnesia:dirty_read(store_mountpoint, []),
+    Mp#store_mountpoint.backend;
 get_backend2([H|T]) ->
     case mnesia:dirty_read(store_mountpoint, [H|T]) of
 	[] ->
 	    get_backend2(T);
 	[Mp] ->
-	    {Mp, [H|T]}
-    end;
-get_backend2(badrequest) ->
-    undefined.
-
+	    Mp#store_mountpoint.backend
+    end.

@@ -26,25 +26,40 @@
 
 -behaviour(occi_listener).
 
+-include("occi.hrl").
+
+% API
+-export([add_collection/3, set_cors/1]).
+
 %% occi_listener callbacks
 -export([start_link/1, terminate/0]).
+
+-define(QUERY_ROUTE,  {<<"/-/">>,                          occi_http_query,    []}).
+-define(QUERY_ROUTE2, {<<"/.well-known/org/ogf/occi/-/">>, occi_http_query,    []}).
+-define(ENTITY_ROUTE, {<<"/[...]">>,                       occi_http_entity,   []}).
+
+-record(route, {path     :: binary(),
+		handler  :: atom(),
+		opts     :: term()}).
 
 start_link(Opts) ->
     application:start(crypto),
     application:start(ranch),
     application:start(cowboy),
     lager:info("Starting HTTP listener ~p~n", [Opts]),
-    Opts2 = validate_cfg(Opts),
-    Routes = [
-	      {<<"/-/">>, occi_http_query, []},
-	      {<<"/.well-known/org/ogf/occi/-/">>, occi_http_query, []},
-	      {<<"/[...]">>, occi_http_all, []}
-	     ],
-    Dispatch = cowboy_router:compile([{'_', Routes}]),
-    {ok, _} = cowboy:start_http(http, 100, Opts2,
-				[{env, [{dispatch, Dispatch}]}]
+    init(),
+    {ok, _} = cowboy:start_http(http, 100, validate_cfg(Opts),
+				[{env, [{dispatch, get_dispatch()}]}]
 			       ),
     loop().
+
+-spec add_collection(occi_cid(), reference(), uri()) -> ok.
+add_collection(Id, Ref, Uri) ->
+    Route = #route{path=occi_types:join_path([<<"">>|Uri]),
+		   handler=occi_http_collection,
+		   opts={Id, Ref}},
+    mnesia:dirty_write(Route),
+    cowboy:set_env(http, dispatch, get_dispatch()).
 
 validate_cfg(Opts) ->
     Address = case lists:keyfind(ip, 1, Opts) of
@@ -76,3 +91,42 @@ loop() ->
 
 terminate() ->
     ?MODULE ! stop.
+
+% Convenience function for setting CORS headers
+set_cors(Req) ->
+    case cowboy_req:header(<<"origin">>, Req) of
+	{undefined, Req1} -> 
+	    Req1;
+	{Origin, Req1} ->
+	    Req2 = cowboy_req:set_resp_header(<<"access-control-allow-methods">>, 
+				      <<"HEAD, GET, PUT, POST, OPTIONS, DELETE">>, 
+				      Req1),
+	    cowboy_req:set_resp_header(<<"access-control-allow-origin">>, Origin, Req2)
+    end.
+
+%%%
+%%% Private
+%%%
+init() ->
+    mnesia:create_table(route,
+			[{ram_copies, [node()]},
+			 {attributes, record_info(fields, route)}]),
+    mnesia:wait_for_tables([route],
+			   infinite),
+    Entries = occi_category_mgr:get_entries(),
+    mnesia:transaction(fun () ->
+			       lists:foreach(fun ({category_entry, Id, Ref, Uri}) -> 
+						     Route = #route{path=occi_types:join_path([<<"">>|Uri]),
+								    handler=occi_http_collection,
+								    opts={Id, Ref}},
+						     mnesia:write(Route)
+					     end, Entries)
+		       end).
+
+get_dispatch() ->
+    CollectionRoutes = mnesia:dirty_match_object(#route{_='_'}),
+    Routes = lists:flatten([?QUERY_ROUTE,
+     			    ?QUERY_ROUTE2,
+     			    [ {R#route.path, R#route.handler, R#route.opts} || R <- CollectionRoutes ],
+     			    ?ENTITY_ROUTE]),
+    cowboy_router:compile([{'_', Routes}]).

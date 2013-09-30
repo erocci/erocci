@@ -30,14 +30,9 @@
 
 %% API
 -export([new/2, 
-	 get/2, 
-	 get_data/1,
-	 get_class/1,
-	 get_scheme/1,
-	 get_term/1,
-	 get_title/1,
-	 get_attributes/1,
-	 get_actions/1]).
+	 get_attr/2, 
+	 get_collection/1,
+	 get_obj/1]).
 -export([start_link/3]).
 
 %% gen_server callbacks
@@ -46,13 +41,17 @@
 
 -type(category_src() :: {mod, atom()} | {xml, term()}).
 
--record(state, {class      :: atom(),
+-record(state, {handler    :: atom(),
 		data       :: term()}).
 
 %% occi_category callbacks definition
--callback init(occi_category()) -> term().
+-callback init(occi_store:backend_ref(), occi_category()) -> term().
 
--callback get(reference(), atom()) -> term().
+-callback get_attr(reference(), atom()) -> term().
+
+-callback get_obj(reference()) -> occi_category().
+
+-callback get_collection(reference()) -> [occi_entity()].
 
 %%%===================================================================
 %%% API
@@ -66,58 +65,26 @@
 %% @end
 %%--------------------------------------------------------------------
 -spec start_link(reference(), atom(), occi_category()) -> {ok, pid()} | {error, term()}.
-start_link(Ref, Class, Data) ->
-    gen_server:start_link({global, Ref}, occi_category, {Class, Data}, []).
+start_link(Ref, Handler, Data) ->
+    gen_server:start_link({global, Ref}, occi_category, {Handler, Data}, []).
 
 -spec new(category_src(), uri()) -> {occi_cid(), reference()} | {error, term()}.
 new({mod, Mod}, Location) ->
-    Ref = make_ref(),
-    Id = occi_mod:get_id(Mod),
-    {Class, Data} = case Id#occi_cid.class of
-		kind -> 
-		    lager:info("Registering kind: ~s -> ~s~n", [occi_renderer:to_uri(Id), Location]),
-		    {occi_kind, occi_mod:get_kind(Location, Mod)};
-		mixin -> 
-		    lager:info("Registering mixin: ~s -> ~s~n", [occi_renderer:to_uri(Id), Location]),
-		    {occi_mixin, occi_mod:get_mixin(Location, Mod)}
-	    end,
-    ChildSpec = {Ref, 
-		 {occi_category, start_link, [Ref, Class, Data]}, 
-		 permanent, brutal_kill, worker, [occi_category, Class]},
-    case supervisor:start_child(occi_category_mgr, ChildSpec) of
-	{ok, _Child} ->
-	    {Id, Ref};
-	{ok, _Child, _Info} ->
-	    {Id, Ref};
-	{error, Err} ->
-	    {error, Err}
-    end.
+    Category = occi_mod:get_category(Location, Mod),
+    register_category(Category).
 
--spec get(reference(), atom()) -> {ok, term()} | {error, term()}.
-get(Ref, Name) ->
-    gen_server:call({global, Ref}, {get, Name}).
+-spec get_attr(reference(), atom()) -> {ok, term()} | {error, term()}.
+get_attr(Ref, Name) ->
+    gen_server:call({global, Ref}, {get_attr, Name}).
 
-get_class(Ref) ->
-    gen_server:call({global, Ref}, {get, class}).
+-spec get_collection(reference()) -> [occi_entity()].
+get_collection(Ref) ->
+    gen_server:call({global, Ref}, get_collection).
 
-get_scheme(Ref) ->
-    gen_server:call({global, Ref}, {get, scheme}).
+-spec get_obj(reference()) -> occi_category().
+get_obj(Ref) ->
+    gen_server:call({global, Ref}, get_obj).
 
-get_term(Ref) ->
-    gen_server:call({global, Ref}, {get, term}).
-
-get_title(Ref) ->
-    gen_server:call({global, Ref}, {get, title}).
-
-get_attributes(Ref) ->
-    gen_server:call({global, Ref}, {get, attributes}).
-
-get_actions(Ref) ->
-    gen_server:call({global, Ref}, {get, actions}).
-
--spec get_data(reference()) -> occi_category().
-get_data(Ref) ->
-    gen_server:call({global, Ref}, get_data).
 
 %%%===================================================================
 %%% gen_server callbacks
@@ -130,9 +97,10 @@ get_data(Ref) ->
 %%
 %%--------------------------------------------------------------------
 -spec init({atom(), occi_category()}) -> {ok, #state{}} | {error, term()}.
-init({Class, Data}) ->
-    Data2 = Class:init(Data),
-    {ok, #state{class=Class, data=Data2}}.
+init({Handler, Obj}) ->
+    Backend = occi_store:get_backend(get_location(Obj)),
+    Data = Handler:init(Backend, Obj),
+    {ok, #state{handler=Handler, data=Data}}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -148,14 +116,18 @@ init({Class, Data}) ->
 %%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_call({get, Name}, _From, #state{class=Mod, data=Data}=State) ->
-    {Reply, Data2} = Mod:get(Name, Data),
-    {reply, Reply, State#state{data=Data2}};
-handle_call(get_data, _From, #state{data=Data}=State) ->
-    {reply, Data, State};
-handle_call(_Request, _From, State) ->
-    Reply = ok,
-    {reply, Reply, State}.
+handle_call({get_attr, Name}, _From, #state{handler=Mod, data=Data}=State) ->
+    Reply = Mod:get_attr(Name, Data),
+    {reply, Reply, State};
+handle_call(get_obj, _From, #state{handler=Mod, data=Data}=State) ->
+    Obj = Mod:get_obj(Data),
+    {reply, Obj, State};
+handle_call(get_collection, _From, #state{handler=Mod, data=Data}=State) ->
+    Entities = Mod:get_collection(Data),
+    {reply, Entities, State};
+handle_call(Request, From, State) ->
+    lager:error("Unknown message from ~p: ~p~n", [From, Request]),
+    {noreply, State}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -211,3 +183,33 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+register_category(Category) ->
+    Id = get_id(Category),
+    Handler = get_handler(Category),
+    Ref = make_ref(),
+    ChildSpec = {Ref, 
+		 {occi_category, start_link, [Ref, Handler, Category]}, 
+		 permanent, brutal_kill, worker, [occi_category, Handler]},
+    case supervisor:start_child(occi_category_mgr, ChildSpec) of
+	{ok, _Child} ->
+	    {Id, Ref};
+	{ok, _Child, _Info} ->
+	    {Id, Ref};
+	{error, Err} ->
+	    {error, Err}
+    end.
+
+get_id(#occi_kind{id=Id}) ->
+    Id;
+get_id(#occi_mixin{id=Id}) ->
+    Id.
+
+get_location(#occi_kind{location=Location}) ->
+    Location;
+get_location(#occi_mixin{location=Location}) ->
+    Location.
+
+get_handler(#occi_kind{}=_Obj) ->
+    occi_kind;
+get_handler(#occi_mixin{}=_Obj) ->
+    occi_mixin.

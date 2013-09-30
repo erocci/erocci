@@ -27,7 +27,8 @@
 -include("occi.hrl").
 %% API
 -export([start_link/3]).
--export([lookup/2, save/2]).
+-export([save/2,
+	find_all/2]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -53,25 +54,8 @@
     {ok, Obj :: occi_entity(), State :: term()} |
     {error, Reason :: term()}.
 
--callback get(CatId :: occi_cid(), Id :: uri(), State :: term()) ->
-    {ok, [Entities :: occi_entity()], State :: term()} |
-    {nok} |
-    {error, Reason :: term()}.
-
--callback find(CatId :: occi_cid(), Filter :: occi_filter(), State :: term()) ->
+-callback find_all(CatId :: occi_cid(), State :: term()) ->
     {ok, [Entities :: occi_entity()], term()} |
-    {error, Reason :: term()}.
-
--callback lookup(Path :: [binary()], State :: term()) ->
-    {ok, Id :: uri()} |
-    undefined.
-
--callback update(CatId :: occi_cid(), Entity :: occi_entity(), State :: term()) ->
-    {ok, State :: term()} |
-    {error, Reason :: term()}.
-
--callback delete(CatId :: occi_cid(), Id :: uri(), State :: term()) ->
-    {ok, State :: term()} |
     {error, Reason :: term()}.
 
 %%%
@@ -85,8 +69,8 @@ start_link(Ref, Backend, Opts) ->
 save(Ref, Entity) ->
     gen_server:call(Ref, {save, Entity}).
 
-lookup(Ref, Path) ->
-    gen_server:call(Ref, {lookup, Path}).
+find_all(Ref, CategoryId) ->
+    gen_server:call(Ref, {find_all, CategoryId}).
 
 %%--------------------------------------------------------------------
 %% @private
@@ -125,20 +109,8 @@ init({Backend, Args}) ->
 handle_call({save, Obj}, _From, #state{backend=Backend, state=BState}) ->
     {Reply, RState} = Backend:save(Obj, BState),
     {reply, Reply, #state{backend=Backend, state=RState}};
-handle_call({lookup, Path}, _From, #state{backend=Backend, state=BState}) ->
-    {Reply, RState} = Backend:lookup(Path, BState),
-    {reply, Reply, #state{backend=Backend, state=RState}};
-handle_call({get, CatId, Id}, _From, #state{backend=Backend, state=BState}) ->
-    {Reply, RState} = Backend:get(CatId, Id, BState),
-    {reply, Reply, #state{backend=Backend, state=RState}};
-handle_call({find, CatId, Filter}, _From, #state{backend=Backend, state=BState}) ->
-    {Reply, RState} = Backend:find(CatId, Filter, BState),
-    {reply, Reply, #state{backend=Backend, state=RState}};
-handle_call({update, CatId, Entity}, _From, #state{backend=Backend, state=BState}) ->
-    {Reply, RState} = Backend:update(CatId, Entity, BState),
-    {reply, Reply, #state{backend=Backend, state=RState}};
-handle_call({delete, CatId, Id}, _From, #state{backend=Backend, state=BState}) ->
-    {Reply, RState} = Backend:delete(CatId, Id, BState),
+handle_call({find_all, CatId}, _From, #state{backend=Backend, state=BState}) ->
+    {Reply, RState} = Backend:find_all(CatId, BState),
     {reply, Reply, #state{backend=Backend, state=RState}};
 handle_call(Req, From, State) ->
     lager:error("Unknown message from ~p: ~p~n", [From, Req]),

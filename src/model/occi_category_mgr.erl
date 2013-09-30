@@ -31,18 +31,19 @@
 %% API
 -export([start_link/0]).
 -export([register/3,
-	 get_all/0,
-	 lookup_collection/1]).
+	 get_entries/0,
+	 get_all/0]).
 
 %% Supervisor callbacks
 -export([init/1]).
 
 -define(SERVER, ?MODULE).
 
--record(tbl_category, {id     :: #occi_cid{}, 
-		       ref    :: reference(),
-		       uri    :: [binary()]}).
-%-type(category() :: #category{}).
+-record(category_entry, {id     :: #occi_cid{}, 
+			 ref    :: reference(),
+			 uri    :: [binary()]}).
+-type(category_entry() :: #category_entry{}).
+-export_type([category_entry/0]).
 
 %%%===================================================================
 %%% API functions
@@ -58,31 +59,32 @@
 start_link() ->
     supervisor:start_link({local, ?SERVER}, ?MODULE, []).
 
--spec register(term(), uri(), [occi_hook:hook()]) -> ok.
+-spec register(term(), uri() | binary(), [occi_hook:hook()]) -> ok.
+register(CategoryDef, Location, Hooks) when is_binary(Location) ->
+    register(CategoryDef, occi_types:split_path(Location), Hooks);
 register(CategoryDef, Location, Hooks) ->
     {Id, Ref} = occi_category:new(CategoryDef, Location),
+    Path = occi_types:join_path([<<"">> | Location]),
+    lager:info("Registering category: ~s~s (~s) -> ~s~n", 
+	       [Id#occi_cid.scheme, Id#occi_cid.term, Id#occi_cid.class, Path]),
     mnesia:transaction(fun() -> 
-			       Entry = #tbl_category{id=Id, ref=Ref, uri=Location},
+			       Entry = #category_entry{id=Id, ref=Ref, uri=Location},
 			       mnesia:write(Entry)
 		       end),
     lists:foreach(fun(Hook) ->
 			  occi_hook:add_hook(Id, Hook)
 		  end, Hooks).
 
+-spec get_entries() -> [category_entry()].
+get_entries() ->
+    mnesia:dirty_match_object(#category_entry{_ ='_'}).
+
 -spec get_all() -> [occi_category()].
 get_all() ->
-    Entries = mnesia:dirty_match_object(#tbl_category{_ ='_'}),
-    lists:flatten([ [ occi_category:get_data(Ref) |
-		      occi_category:get_actions(Ref) ]
-		    || #tbl_category{ref=Ref} <- Entries ]).
-
-lookup_collection(Path) ->
-    case mnesia:dirty_match_object(#tbl_category{uri=Path, _='_'}) of
-	[] ->
-	    undefined;
-	[Entry] ->
-	    Entry#tbl_category.ref
-    end.
+    Entries = mnesia:dirty_match_object(#category_entry{_ ='_'}),
+    lists:flatten([ [ occi_category:get_obj(Ref) |
+		      occi_category:get_attr(Ref, actions) ]
+		    || #category_entry{ref=Ref} <- Entries ]).
 
 %%%===================================================================
 %%% Supervisor callbacks
@@ -103,9 +105,9 @@ lookup_collection(Path) ->
 %%--------------------------------------------------------------------
 init([]) ->
     lager:info("Starting OCCI categories manager"),
-    mnesia:create_table(tbl_category,
+    mnesia:create_table(category_entry,
 			[{ram_copies, [node()]},
-			 {attributes, record_info(fields, tbl_category)}]),
+			 {attributes, record_info(fields, category_entry)}]),
     mnesia:wait_for_tables([tbl_category], 
 			   infinite),
     {ok, {{one_for_one, 10, 10}, []}}.

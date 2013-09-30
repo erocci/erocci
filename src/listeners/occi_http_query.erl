@@ -34,25 +34,15 @@ init(_Transport, _Req, []) ->
     {upgrade, protocol, cowboy_rest}.
 
 rest_init(Req, _Opts) ->
-    Req1 = cowboy_req:set_resp_header(<<"access-control-allow-methods">>, <<"HEAD, GET, PUT, POST, OPTIONS, DELETE">>, Req),
-    Req3 = case cowboy_req:header(<<"origin">>, Req1) of
-	       {undefined, Req2} ->
-		   Req2;
-	       {Origin, Req2} ->
-		   cowboy_req:set_resp_header(<<"access-control-allow-origin">>, Origin, Req2)
-	   end,
-    {ok, Req3, []}.
+    Req1 = occi_http:set_cors(Req),
+    {ok, Req1, []}.
 
 allowed_methods(Req, Ctx) ->
     {[<<"HEAD">>, <<"GET">>, <<"PUT">>, <<"DELETE">>, <<"POST">>], Req, Ctx}.
 
 content_types_provided(Req, Ctx) ->
     {[
-      {{<<"text">>,          <<"plain">>,     []}, to_plain},
-      {{<<"text">>,          <<"occi">>,      []}, to_occi},
-      {{<<"text">>,          <<"uri-list">>,  []}, to_uri_list},
-      {{<<"application">>,   <<"json">>,      []}, to_json},
-      {{<<"application">>,   <<"occi+json">>, []}, to_json}
+      {{<<"text">>,          <<"plain">>,     []}, to_plain}
      ],
      Req, Ctx}.
 

@@ -30,11 +30,9 @@
 -export([init/1,
 	 terminate/1,
 	 save/2,
-	 lookup/2,
-	 get/3,
-	 find/3,
-	 update/3,
-	 delete/3]).
+	 find_all/2,
+	 load_entities/3,
+	 load_entity/3]).
 
 -record(state, {pb :: pid()}).
 
@@ -68,32 +66,30 @@ save(Obj, #state{pb=Pid}=State) when is_record(Obj, occi_resource);
 	  end,
     {Ret, State}.
 
-lookup(_Path, #state{pb=_Pid}=State) ->
-    %% TODO
-    {undefined, State}.
+find_all(#occi_cid{}=Id, #state{pb=Pid}=State) ->
+    Entities = case riakc_pb_socket:stream_list_keys(Pid, occi_renderer_json:render(Id)) of
+		   {ok, ReqId} ->
+		       wait_for_keys(ReqId, [], Id, State);
+		   Error ->
+		       throw({error, Error})
+	       end,
+    {Entities, State}.
 
-get(CatId, Id, #state{pb=Pid}=State) ->
-    {ok, Obj} = riakc_pb_socket:get(Pid,
-				    occi_tools:to_binary(CatId),
-				    Id),
-    Resource = occi_tools:from_json(riakc_obj:get_value(Obj)),
-    {{ok, Resource}, State}.
+-spec load_entities(occi_cid() | binary(), [uri()], #state{}) -> [occi_entity()].
+load_entities(CatId, Ids, #state{}=State) ->
+    [ load_entity(CatId, Id, State) || Id <- Ids ].
 
-find(_CatId, _Filter, State) ->
-    % Not implemented yet
-    {{ok, []}, State}.
-
-update(CatId, Entity, #state{pb=Pid}=State) ->
-    % Update looks the same as create as there is no difference
-    % between riak key and entity id
-    Obj = riakc_obj:new(occi_tools:to_binary(CatId),
-			occi_tools:get_entity_id(Entity),
-			occi_tools:to_json(Entity)),
-    riakc_pb_socket:put(Pid, Obj),
-    {ok, State}.
-
-delete(_CatId,_Id, State) ->
-    {ok, State}.
+-spec load_entity(occi_cid() | binary(), uri(), #state{}) -> occi_entity().
+load_entity(#occi_cid{}=CatId, Id, State) ->
+    load_entity(occi_renderer_json:render(CatId), Id, State);
+load_entity(CatId, Id, #state{pb=Pid}=State) ->
+    case riakc_pb_socket:get(Pid, CatId, Id) of
+	{ok, Obj} ->
+	    lager:info("OBJECT VALUE: ~p~n", [riakc_obj:get_value(Obj)]),
+	    {occi_renderer_json:parse(riakc_obj:get_value(Obj)), State};
+	{error, Err} ->
+	    throw({occi_backend_error, Err})
+    end.
 
 -spec valid_config(Opts::occi_backend:backend_opts()) -> occi_backend:backend_opts().
 valid_config(Opts) ->
@@ -123,3 +119,13 @@ to_list(S) when is_list(S) ->
     S;
 to_list(S) when is_binary(S) ->
     binary_to_list(S).
+
+wait_for_keys(ReqId, Acc, CatId, State) ->
+    receive
+	{ReqId, done} ->
+	    lists:flatten(Acc);
+	{ReqId, {keys, Res}} ->
+	    wait_for_keys(ReqId, [load_entities(CatId, Res, State)|Acc], CatId, State);
+	{ReqId, {error, Reason}} -> 
+	    {error, Reason}
+    end.

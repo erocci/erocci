@@ -46,7 +46,7 @@ render(List) when is_list(List) ->
 			   end, List)).
 
 parse(Bin) ->
-    {ok, jiffy:decode(Bin)}.
+    jiffy:decode(Bin).
 
 %%%
 %%% Private
@@ -100,7 +100,9 @@ render_ejson(#occi_link{}=_Link) ->
     render_list([]);
 
 render_ejson(#occi_cid{}=Cid) ->
-    render_list([{scheme, render_uri(Cid#occi_cid.scheme)}, {term, Cid#occi_cid.term}, {class, Cid#occi_cid.class}]).
+    render_list([{scheme, list_to_binary(atom_to_list(Cid#occi_cid.scheme))}, 
+		 {term, Cid#occi_cid.term}, 
+		 {class, Cid#occi_cid.class}]).
 
 render_list(L) ->
     {render_list(L, [])}.
@@ -135,4 +137,4 @@ render_attribute_spec(#occi_attr_spec{}=Spec) ->
     {Spec#occi_attr_spec.id, render_list(L)}.
 
 render_uri(Uri) ->
-    occi_renderer:to_uri(Uri).
+    occi_types:join_path([<<"">> | Uri]).

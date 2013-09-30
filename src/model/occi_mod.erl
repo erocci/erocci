@@ -24,7 +24,8 @@
 
 -include("occi.hrl").
 
--export([get_kind/2,
+-export([get_category/2,
+	 get_kind/2,
 	 get_mixin/2]).
 -export([get_id/1,
 	 get_title/1,
@@ -34,7 +35,19 @@
 	 get_entity_type/1
 	]).
 
+-spec get_category(uri(), atom()) -> occi_category().
+get_category(Location, Mod) ->
+    Id = get_id(Mod),
+    case Id#occi_cid.class of
+	kind ->
+	    get_kind(Location, Mod);
+	mixin -> 
+	    get_mixin(Location, Mod)
+    end.
+
 -spec get_kind(uri(), atom()) -> occi_kind().
+get_kind(Location, Mod) when is_binary(Location) ->
+    get_kind(occi_types:split_path(Location), Mod);
 get_kind(Location, Mod) ->
     #occi_kind{id=get_id(Mod), 
 	       title=get_title(Mod),
@@ -44,6 +57,8 @@ get_kind(Location, Mod) ->
 	       location=Location}.
 
 -spec get_mixin(uri(), atom()) -> occi_mixin().
+get_mixin(Location, Mod) when is_binary(Location) ->
+    get_mixin(occi_types:split_path(Location), Mod);
 get_mixin(Location, Mod) ->
     #occi_mixin{id=get_id(Mod),
 		title=get_title(Mod),

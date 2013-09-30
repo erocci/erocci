@@ -66,7 +66,7 @@ render(O, _Sep) ->
 render_cid(#occi_cid{}=Cid, Sep) ->
     occi_renderer:join(
       occi_renderer:join([atom_to_list(Cid#occi_cid.term),
-			  render_kv(<<"scheme">>, render_uri(Cid#occi_cid.scheme)),
+			  render_kv(<<"scheme">>, list_to_binary(atom_to_list(Cid#occi_cid.scheme))),
 			  render_kv(<<"class">>, Cid#occi_cid.class) 
 			 ], 
 			 <<"; ">>), 
@@ -101,7 +101,7 @@ render_action_spec(#occi_action_spec{}=Action) ->
     render_cid_uri(Action#occi_action_spec.id).
 
 render_uri(Uri) ->
-    occi_renderer:to_uri(Uri).
+    occi_types:join_path([<<"">>|Uri]).
 
 render_kv(_Key, undefined) ->
     [];
