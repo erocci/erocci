@@ -13,5 +13,6 @@ pyOCNI), with the following objectives:
 
 Architecture
 --
-![erocci architecture](./doc/erocci.png "erocci Architecture diagram")
+<img src="https://raw.github.com/jeanparpaillon/erocci/master/doc/erocci.png" alt="erocci Architectrue diagram" />
+
 
