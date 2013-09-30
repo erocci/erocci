@@ -13,27 +13,5 @@ pyOCNI), with the following objectives:
 
 Architecture
 --
+![erocci architecture](doc/erocci.png "erocci Architecture diagram")
 
-         +------------------------------+
-         | occi_http.erl                |               
-         | Use cowboy HTTP server       |
-	 | routing                      |
-   	 |   /-/ -> occi_http_query.erl |		occi_rendering_plain.erl
- 	 |   /*  -> occi_http_all.erl   |	->	occi_rendering_occi.erl
-	 +------------------------------+	<-	occi_rendering_uri_list.erl
-				^ 			occi_rendering_json.erl
-				|			...
-				v
-			 +------------------------------+
-			 | occi_store.erl		|
-			 | Store backend <-> categories	|
-			 |				|
-			 +------------------------------+
-					^
-					|
-					v
-				+-----------------------------+
-				| occi_backend_riak.erl	      |
-				| behaviour: occi_backend.erl |
-				| 	     		      |
-				+-----------------------------+
