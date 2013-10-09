@@ -1,147 +1,227 @@
-<!-- -*- mode: nxml -*- -->
-<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" version="0.2.0" >
-  <xsd:annotation>
-    <xsd:documentation xml:lang="en" >
-      OCCI model Description Schema 
-      Version 1
-      Aligned with the OCCI Core Document
-    </xsd:documentation>
-  </xsd:annotation>
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema targetNamespace="http://schemas.ogf.org/occi"
+	elementFormDefault="qualified" version="0.2"
+	xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:occi="http://schemas.ogf.org/occi">
 
-  <xsd:element name="schema" type="occiSchema" version="0.2" />
+	<xs:import schemaLocation="http://www.w3.org/2001/XMLSchema.xsd"
+		namespace="http://www.w3.org/2001/XMLSchema"></xs:import>
+	<xs:annotation>
+		<xs:documentation xml:lang="en">
+			OCCI model Description
+			Schema Aligned with the OCCI Core
+			Document
+		</xs:documentation>
+	</xs:annotation>
 
-  <xsd:complexType name="occiSchema" >
-    <xsd:sequence>
-      <xsd:element name="extension" type="occiExtension" />
-    </xsd:sequence>
-    <xsd:attribute name="version" type="xsd:string" />
-  </xsd:complexType>
+	<!-- 
+	     OCCI request/response elements
+	-->
+	<xs:element name="extension" type="occi:extensionType"></xs:element>
+	<xs:element name="categories" type="occi:categoriesType"></xs:element>
+	<xs:element name="mixin" type="occi:mixinType" ></xs:element>
+	<xs:element name="filter" type="occi:filterType"></xs:element>
+	
+	<!--
+	    OCCI request types
+	-->
+	<xs:complexType name="filterType">
+		<xs:sequence>
+			<xs:element name="kind" type="occi:kindType" maxOccurs="unbounded" minOccurs="0"></xs:element>
+			<xs:element name="mixin" type="occi:mixinType" maxOccurs="unbounded" minOccurs="0"></xs:element>
+			<xs:element name="action" type="occi:actionSpecType" maxOccurs="unbounded" minOccurs="0"></xs:element>
+			<xs:element name="attribute" type="occi:attributeType" maxOccurs="unbounded" minOccurs="0"></xs:element>
+		</xs:sequence>
+	</xs:complexType>
 
-  <xsd:element name="extension" type="occiExtensionType" />
+	<xs:complexType name="categoriesType">
 
-  <xsd:complexType name="occiExtensionType" >
-    <xsd:sequence>
-      <xsd:element ref="xsd:annotation" minOccurs="0" maxOccurs="1" />
-      <xsd:element name="kind" type="occiKindType" minOccurs="0" maxOccurs="unbounded" />
-      <xsd:element name="mixin" type="occiMixinType" minOccurs="0" maxOccurs="unbounded" />
-    </xsd:sequence>
-    <xsd:attribute name="name" type="xsd:string" />
-    <xsd:attribute name="version" type="xsd:string" />
-    <xsd:attribute name="scheme" type="xsd:anyURI" use="required" >
-      <xsd:annotation>
-	<xsd:documentation xml:lang="en" >
-	  'scheme' attribute is only required for 'extension'
-	  elements. If not specified in child elements, 'scheme'
-	  attribute is parent element's one.
-	</xsd:documentation>
-	<xsd:documentation xml:lang="en" >
-	  'scheme' attribute can be a fully qualified url or can start
-	  with '.'.  In the latter case, '.' must be replaced with
-	  parent element's 'scheme' attribute value to get the full
-	  scheme url.
-	</xsd:documentation>
-      </xsd:annotation>
-    </xsd:attribute>
-  </xsd:complexType>
+		<xs:sequence>
+			<xs:element name="kind" type="occi:kindType"
+				maxOccurs="unbounded" minOccurs="0">
+			</xs:element>
+			<xs:element name="mixin" type="occi:mixinType"
+				maxOccurs="unbounded" minOccurs="0">
+			</xs:element>
+			<xs:element name="action" type="occi:actionSpecType" maxOccurs="unbounded" minOccurs="0"></xs:element>
+		</xs:sequence>
+	</xs:complexType>
 
-  <xsd:complexType name="occiCategoryType" >
-    <xsd:sequence>
-      <xsd:element name="annotation" type="occiAnnotationType" minOccurs="0" maxOccurs="1" />
-      <xsd:element name="attributes" type="occiAttributesType" />
-      <xsd:element name="actions" type="occiActionsType" />
-    </xsd:sequence>
-    <xsd:attribute name="scheme" type="xsd:anyURI" />
-    <xsd:attribute name="term" type="xsd:string" use="required" />
-    <xsd:attribute name="title" type="xsd:string" />
-    <xsd:attribute name="use" default="required" >
-      <xsd:annotation>
-	<xsd:documentation xml:lang="en" >
-	  If category is 'required', any implementation MUST support
-	  this category.  If category is 'optional', implementations
-	  SHOULD support this category.
-	</xsd:documentation>
-      </xsd:annotation>
-      <xsd:simpleType>
-	<xsd:restriction base="xsd:string" >
- 	  <xsd:enumeration name="required" />
-	  <xsd:enumeration name="optional" />
-	</xsd:restriction>
-      </xsd:simpleType>
-    </xsd:attribute>
-  </xsd:complexType>
+	<xs:complexType name="extensionType">
+		<xs:sequence>
+			<xs:element name="kind" type="occi:kindType"
+				maxOccurs="unbounded" minOccurs="0">
+			</xs:element>
+			<xs:element name="mixin" type="occi:mixinType"
+				maxOccurs="unbounded" minOccurs="0">
+			</xs:element>
+			<xs:element name="action" type="occi:actionSpecType"
+				maxOccurs="unbounded" minOccurs="0">
+			</xs:element>
+			<xs:element ref="xs:simpleType" maxOccurs="unbounded" minOccurs="0"></xs:element>
+		</xs:sequence>
+		<xs:attribute name="name" type="xs:string"></xs:attribute>
+		<xs:attribute name="version" type="xs:string"></xs:attribute>
+		<xs:attribute name="scheme" type="xs:anyURI"></xs:attribute>
+	</xs:complexType>
 
-  <xsd:complexType name="occiAttributesType" >
-    <xsd:sequence>
-      <xsd:element name="attribute" type="occiAttributeType" />
-      <xsd:element name="instance" type="occiCategoryType" />
-    </xsd:sequence>
-  </xsd:complexType>
+	<!-- 
+	     OCCI types
+	-->
+	<xs:complexType name="kindType">
+		<xs:sequence>
+			<xs:element name="parent" type="occi:relatedType"
+				minOccurs="1" maxOccurs="1">
+			</xs:element>
+			<xs:element name="attribute" type="occi:attributeSpecType"
+				minOccurs="0" maxOccurs="unbounded">
+			</xs:element>
+			<xs:element name="action" type="occi:actionSpecType"
+				minOccurs="0" maxOccurs="unbounded">
+			</xs:element>
+		</xs:sequence>
+		<xs:attributeGroup ref="occi:categoryGroup"></xs:attributeGroup>
+		<xs:attribute name="location" type="xs:anyURI"></xs:attribute>
+	</xs:complexType>
 
-  <xsd:copmplexType name="occiActionsType" >
-    <xsd:sequence>
-      <xsd:element name="action" type="occiActionType" />
-    </xsd:sequence>
-  </xsd:copmplexType>
+	<xs:complexType name="mixinType">
+		<xs:sequence>
+			<xs:element name="depends" type="occi:relatedType"
+				minOccurs="0" maxOccurs="unbounded">
+			</xs:element>
+			<xs:element name="applies" type="occi:relatedType"
+				minOccurs="0" maxOccurs="unbounded">
+			</xs:element>
+			<xs:element name="attribute" type="occi:attributeSpecType"
+				minOccurs="0" maxOccurs="unbounded">
+			</xs:element>
+			<xs:element name="action" type="occi:actionSpecType"
+				minOccurs="0" maxOccurs="unbounded">
+			</xs:element>
+		</xs:sequence>
+		<xs:attributeGroup ref="occi:categoryGroup"></xs:attributeGroup>
+		<xs:attribute name="location" type="xs:anyURI"></xs:attribute>
+	</xs:complexType>
 
-  <xsd:complexType name="occiKindType" >
-    <xsd:extension base="occiCategoryType" >
-      <xsd:attribute name="rel" type="xsd:anyURI" />
-      <xsd:attribute name="class" type="xsd:string" fixed="kind" />
-    </xsd:extension>
-  </xsd:complexType>
+	<xs:complexType name="attributeSpecType">
+		<xs:complexContent>
+			<xs:extension base="xs:attribute">
+				<xs:attribute name="immutable" type="xs:boolean"
+					default="false">
+					<xs:annotation>
+						<xs:documentation>
+							If 'immutable' is true, the attribute can
+							not be
+							modified by user.
+						</xs:documentation>
+					</xs:annotation>
+				</xs:attribute>
+				<xs:attribute name="minOccurs" type="xs:nonNegativeInteger"
+					use="optional" default="1" />
+				<xs:attribute name="maxOccurs" type="xs:allNNI" use="optional"
+					default="1" />
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
 
-  <xsd:complexType name="occiMixinType" >
-    <xsd:extension base="occiCategoryType" >
-      <xsd:sequence>
-	<xsd:element name="relations" type="occiRelationsType" />
-      </xsd:sequence>
-      <xsd:attribute name="class" type="xsd:string" fixed="mixin" />
-    </xsd:extension>
-  </xsd:complexType>
+	<xs:complexType name="resourceType">
+		<xs:complexContent>
+			<xs:extension base="occi:entityType">
+				<xs:sequence>
+					<xs:element name="summary" type="xs:string" minOccurs="0"
+						maxOccurs="1">
+					</xs:element>
+					<xs:element name="link" type="occi:uriType" minOccurs="0"
+						maxOccurs="unbounded">
+					</xs:element>
+				</xs:sequence>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
 
-  <xsd:complexType name="occiRelationsType" >
-    <xsd:sequence>
-      <xsd:element name="relation" type="occiRelationType" />
-    </xsd:sequence>
-  </xsd:complexType>
+	<xs:complexType name="linkType">
+		<xs:complexContent>
+			<xs:extension base="occi:entityType">
+				<xs:attribute name="target" type="xs:anyURI" use="required">
+				</xs:attribute>
+				<xs:attribute name="source" type="xs:anyURI" use="required">
+				</xs:attribute>
+			</xs:extension>
+		</xs:complexContent>
+	</xs:complexType>
 
-  <xsd:complexType name="occiRelationType" >
-    <xsd:attribute name="id" type="xsd:anyURI" />
-  </xsd:complexType>
+	<xs:complexType name="entityType">
+		<xs:sequence>
+			<xs:element name="kind" type="occi:relatedType" minOccurs="1"
+				maxOccurs="1">
+			</xs:element>
+			<xs:element name="mixin" type="occi:relatedType" minOccurs="0"
+				maxOccurs="unbounded">
+			</xs:element>
+			<xs:element name="attribute" type="occi:attributeType"
+				minOccurs="0" maxOccurs="unbounded">
+			</xs:element>
+			<xs:element name="action" type="occi:relatedType" minOccurs="0"
+				maxOccurs="unbounded">
+			</xs:element>
+		</xs:sequence>
+		<xs:attribute name="id" type="xs:anyURI" use="required"></xs:attribute>
+		<xs:attribute name="title" type="xs:string"></xs:attribute>
+	</xs:complexType>
 
-  <xsd:complexType name="occiAttributeType" >
-    <xsd:complexContent>
-      <xsd:extension base="xsd:attribute" >
-	<xsd:attribute name="immutable" type="xsd:boolean" default="false" />
-      </xsd:extension>
-    </xsd:complexContent>
-  </xsd:complexType>
+	<xs:complexType name="actionSpecType">
+		<xs:sequence>
+			<xs:element name="attribute" type="occi:attributeSpecType"
+				minOccurs="0" maxOccurs="unbounded">
+			</xs:element>
+		</xs:sequence>
+		<xs:attributeGroup ref="occi:categoryGroup"></xs:attributeGroup>
+	</xs:complexType>
 
-  <!--
-      Extend annotation to include implementation specific attributes
-  -->
-  <xsd:complexType name="occiAnnotationType" >
-    <xsd:complexContent>
-      <xsd:extension base="xsd:annotation" >
-	<xsd:sequence>
-	  <xsd:element name="attribute" type="occiImplemAttrType" />
-	</xsd:sequence>
-      </xsd:extension>
-    </xsd:complexContent>
-  </xsd:complexType>
+	<xs:complexType name="attributeType">
+		<xs:sequence>
+			<xs:element name="value" type="xs:anyURI" minOccurs="0"
+				maxOccurs="unbounded">
+			</xs:element>
+		</xs:sequence>
+		<xs:attribute name="name" type="xs:string"></xs:attribute>
+		<xs:attribute name="value" type="xs:string"></xs:attribute>
+	</xs:complexType>
 
-  <xsd:complexType name="occiImplemAttrType" >
-    <xsd:attribute name="name" type="xsd:string" />
-    <xsd:attribute name="value" type="xsd:string" />
-  </xsd:complexType>
 
-  <xsd:complexType name="occiActionType" >
-    <xsd:sequence>
-      <xsd:element ref="xsd:annotation" minOccurs="0" maxOccurs="1" />
-      <xsd:element name="attributes" type="occiAttributesType" />
-    </xsd:sequence>
-    <xsd:attribute name="scheme" type="xsd:anyURI" />
-    <xsd:attribute name="term" type="xsd:string" use="required" />    
-    <xsd:attribute name="title" type="xsd:string" />
-  </xsd:complexType>
-</xsd:schema>
+
+	<xs:attributeGroup name="categoryGroup">
+
+		<xs:attribute name="scheme" type="xs:anyURI"></xs:attribute>
+
+		<xs:attribute name="term" type="xs:string" use="required"></xs:attribute>
+
+		<xs:attribute name="title" type="xs:string"></xs:attribute>
+
+		<xs:attribute name="use">
+
+			<xs:simpleType>
+				<xs:restriction base="xs:string">
+					<xs:enumeration value="required"></xs:enumeration>
+					<xs:enumeration value="optional"></xs:enumeration>
+				</xs:restriction>
+			</xs:simpleType>
+		</xs:attribute>
+	</xs:attributeGroup>
+
+	<xs:complexType name="relatedType">
+		<xs:attribute name="scheme" type="xs:anyURI" use="required"></xs:attribute>
+		<xs:attribute name="term" type="xs:string" use="required"></xs:attribute>
+	</xs:complexType>
+
+	<xs:complexType name="actionType">
+		<xs:sequence>
+			<xs:element name="attribute" type="occi:attributeType"></xs:element>
+		</xs:sequence>
+		<xs:attributeGroup ref="occi:categoryGroup"></xs:attributeGroup>
+	</xs:complexType>
+
+	<xs:complexType name="uriType">
+		<xs:attribute name="uri" type="xs:anyURI"></xs:attribute>
+	</xs:complexType>
+
+</xs:schema>

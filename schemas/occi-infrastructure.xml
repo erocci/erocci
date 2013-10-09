@@ -1,365 +1,241 @@
-<?xml version="1.0" encoding="utf-8"?>
-<occi:schema xmlns:occi="http://schemas.ogf.org/occi"
-	     xmlns:xsd="http://www.w3.org/2001/XMLSchema"
-	     version="0.2.0" >
-  <occi:extension name="infrastructure" version="1.0" >
-    <!--
-	Compute Resource
-    -->
-    <occi:kind term="compute" title="Compute Resource" >
-      <xsd:annotation>
-	<xsd:documentation xml:lang="en" >Information processing resources.</xsd:documentation>
-      </xsd:annotation>
-      <occi:related scheme="http://schemas.ogf.org/occi/core" term="resource" />
-      <occi:attribute name="occi.compute.architecture" mutable="true" >
-	<xsd:annotation>
-	  <xsd:documentation xml:lang="en" >CPU architecture of the instance</xsd:documentation>
-	</xsd:annotation>
-	<xsd:simpleType>
-	  <xsd:restriction base="xsd:string" >
-	    <xsd:enumeration name="x86" />
-	    <xsd:enumeration name="x64" />
-	  </xsd:restriction>
-	</xsd:simpleType>
-      </occi:attribute>
-      <occi:attribute name="occi.compute.cores" type="xsd:integer" >
-	<xsd:annotation>
-	  <xsd:documentation xml:lang="en" >Number of CPU cores assigned to the instance</xsd:documentation>
-	</xsd:annotation>
-      </occi:attribute>
-      <occi:attribute name="occi.compute.hostname" type="xsd:string" >
-	<xsd:annotation>
-	  <xsd:documentation xml:lang="en" >Fully qualified DNS hostname for the instance</xsd:documentation>
-	</xsd:annotation>
-      </occi:attribute>
-      <occi:attribute name="occi.compute.speed" type="xsd:float" >
-	<xsd:annotation>
-	  <xsd:documentation xml:lang="en" >CPU clock frequency (speed) in gigahertz</xsd:documentation>
-	</xsd:annotation>
-      </occi:attribute>
-      <occi:attribute name="occi.compute.memory" type="xsd:float" >
-	<xsd:annotation>
-	  <xsd:documentation xml:lang="en" >Maximum RAM in gigabytes allocated to the instance</xsd:documentation>
-	</xsd:annotation>
-      </occi:attribute>
-      <occi:attribute name="occi.compute.state" mutable="false" use="required" >
-	<xsd:annotation>
-	  <xsd:documentation xml:lang="en" >Current state of the instance</xsd:documentation>
-	</xsd:annotation>
-	<xsd:simpleType>
-	  <xsd:restriction base="xsd:string" >
-	    <xsd:enumeration name="active" />
-	    <xsd:enumeration name="inactive" />
-	  </xsd:restriction>
-	</xsd:simpleType>
-      </occi:attribute>
-      <occi:action scheme="./compute/action" term="start" />
-      <occi:action scheme="./compute/action" term="stop" >
-	<occi:attribute name="method" >
-	  <xsd:simpleType>
-	    <xsd:restriction base="xsd:string" >
-	      <xsd:enumeration name="graceful" />
-	      <xsd:enumeration name="acpioff" />
-	      <xsd:enumeration name="poweroff" />
-	    </xsd:restriction>
-	  </xsd:simpleType>
-	</occi:attribute>
-      </occi:action>
-      <occi:action scheme="./compute/action" term="restart" >
-	<occi:attribute name="method" >
-	  <xsd:simpleType>
-	    <xsd:restriction base="xsd:string" >
-	      <xsd:enumeration name="graceful" />
-	      <xsd:enumeration name="warm" />
-	      <xsd:enumeration name="cold" />
-	    </xsd:restriction>
-	  </xsd:simpleType>
-	</occi:attribute>
-      </occi:action>
-      <occi:action scheme="./compute/action" term="suspend" >
-	<occi:attribute name="method" >
-	  <xsd:simpleType>
-	    <xsd:restriction base="xsd:string" >
-	      <xsd:enumeration name="hibernate" />
-	      <xsd:enumeration name="suspend" />
-	    </xsd:restriction>
-	  </xsd:simpleType>
-	</occi:attribute>
-      </occi:action>
-    </occi:kind>
+<?xml version="1.0" encoding="UTF-8"?>
+<occi:extension xmlns:occi="http://schemas.ogf.org/occi"
+	xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://schemas.ogf.org/occi occi.xsd " name="Infrastructure"
+	version="1">
+	<!-- Compute Kind -->
+	<occi:kind term="compute" scheme="http://schemas.ogf.org/occi/infrastructure#"
+		title="Compute Resource">
+		<occi:parent scheme="http://schemas.ogf.org/occi/core#"
+			term="resource" />
+		<occi:attribute name="occi.compute.architecture" type="occi:arch" />
+		<occi:attribute name="occi.compute.cores" type="xs:integer"></occi:attribute>
+		<occi:attribute name="occi.compute.hostname" type="xs:string"></occi:attribute>
+		<occi:attribute name="occi.compute.speed" type="xs:float"></occi:attribute>
+		<occi:attribute name="occi.compute.memory" type="xs:float"></occi:attribute>
+		<occi:attribute name="occi.compute.state" use="required"
+			default="inactive" immutable="true">
+			<xs:simpleType>
+				<xs:restriction base="xs:string">
+					<xs:enumeration value="active"></xs:enumeration>
+					<xs:enumeration value="inactive"></xs:enumeration>
+					<xs:enumeration value="suspended"></xs:enumeration>
+				</xs:restriction>
+			</xs:simpleType>
+		</occi:attribute>
+		<occi:action term="start"
+			scheme="http://schemas.ogf.org/occi/infrastructure/compute/action#"></occi:action>
+		<occi:action term="stop"
+			scheme="http://schemas.ogf.org/occi/infrastructure/compute/action#">
+			<occi:attribute name="method">
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:enumeration value="graceful" />
+						<xs:enumeration value="acpioff" />
+						<xs:enumeration value="poweroff" />
+					</xs:restriction>
+				</xs:simpleType>
+			</occi:attribute>
+		</occi:action>
+		<occi:action term="restart"
+			scheme="http://schemas.ogf.org/occi/infrastructure/compute/action#">
+			<occi:attribute name="method">
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:enumeration value="graceful" />
+						<xs:enumeration value="warm" />
+						<xs:enumeration value="cold" />
+					</xs:restriction>
+				</xs:simpleType>
+			</occi:attribute>
+		</occi:action>
+		<occi:action term="suspend"
+			scheme="http://schemas.ogf.org/occi/infrastructure/compute/action#">
+			<occi:attribute name="method">
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:enumeration value="hibernate" />
+						<xs:enumeration value="suspend" />
+					</xs:restriction>
+				</xs:simpleType>
+			</occi:attribute>
+		</occi:action>
+	</occi:kind>
 
-    <!--
-	Storage Resource
-    -->
-    <occi:kind term="storage" title="Storage Resource" >
-      <xsd:annotation>
-	<xsd:documentation xml:lang="en" >Information recording resources.</xsd:documentation>
-      </xsd:annotation>
-      <occi:related scheme="http://schemas.ogf.org/occi/core" term="resource" /> 
-      <occi:attribute name="occi.storage.size" type="xsd:float" use="required" >
-	<xsd:annotation>
-	  <xsd:documentation xml:lang="en" >Storage size in gigabytes of the instance.</xsd:documentation>
-	</xsd:annotation>
-      </occi:attribute>
-      <occi:attribute name="occi.storage.state" mutable="false" use="required" >
-	<xsd:annotation>
-	  <xsd:documentation xml:lang="en" >Current status of the instance</xsd:documentation>
-	</xsd:annotation>
-	<xsd:simpleType>
-	  <xsd:restriction base="xsd:string" >
-	    <xsd:enumeration name="online" />
-	    <xsd:enumeration name="offline" />
-	    <xsd:enumeration name="backup" />
-	    <xsd:enumeration name="snapshot" />
-	    <xsd:enumeration name="resize" />
-	    <xsd:enumeration name="degraded" />
-	  </xsd:restriction>
-	</xsd:simpleType>
-      </occi:attribute>
-      <occi:action scheme="./storage/action" term="online" />
-      <occi:action scheme="./storage/action" term="offline" />
-      <occi:action scheme="./storage/action" term="backup" />
-      <occi:action scheme="./storage/action" term="snapshot" />
-      <occi:action scheme="./storage/action" term="resize" >
-	<occi:attribute name="size" type="xsd:float" >
-	  <xsd:annotation>
-	    <xsd:documentation xml:lang="en" >gigabytes</xsd:documentation>
-	  </xsd:annotation>
-	</occi:attribute>
-      </occi:action>
-    </occi:kind>
+	<!-- Storage Resource -->
+	<occi:kind scheme="http://schemas.ogf.org/occi/infrastructure#"
+		term="storage" title="Storage Resource">
+		<occi:parent scheme="http://schemas.ogf.org/occi/core#"
+			term="resource" />
+		<occi:attribute name="occi.storage.size" type="xs:float"
+			use="required"></occi:attribute>
+		<occi:attribute name="occi.storage.state" use="required">
+			<xs:simpleType>
+				<xs:restriction base="xs:string">
+					<xs:enumeration value="online" />
+					<xs:enumeration value="offline" />
+					<xs:enumeration value="backup" />
+					<xs:enumeration value="snapshot" />
+					<xs:enumeration value="resize" />
+					<xs:enumeration value="degraded" />
+				</xs:restriction>
+			</xs:simpleType>
+		</occi:attribute>
+		<occi:action
+			scheme="http://schemas.ogf.org/occi/infrastructrue/storage/action#"
+			term="online" />
+		<occi:action
+			scheme="http://schemas.ogf.org/occi/infrastructrue/storage/action#"
+			term="offline" />
+		<occi:action
+			scheme="http://schemas.ogf.org/occi/infrastructrue/storage/action#"
+			term="backup" />
+		<occi:action
+			scheme="http://schemas.ogf.org/occi/infrastructrue/storage/action#"
+			term="snapshot" />
+		<occi:action
+			scheme="http://schemas.ogf.org/occi/infrastructrue/storage/action#"
+			term="resize">
+			<occi:attribute name="size" type="xs:float"></occi:attribute>
+		</occi:action>
+	</occi:kind>
 
-    <!--
-	StorageLink Link
-    -->
-    <occi:kind term="storagelink" title="StorageLink Link" >
-      <occi:related scheme="http://schemas.ogf.org/occi/core" term="link" /> 
-      <occi:attribute name="occi.storagelink.deviceid" use="required" type="xsd:string" >
-	<xsd:annotation>
-	  <xsd:documentation xml:lang="en" >
-	    Device identifier as defined by the OCCI service provider.
-	  </xsd:documentation>
-	</xsd:annotation>
-      </occi:attribute>
-      <occi:attribute name="occi.storagelink.mountpoint" type="xsd:string" >
-	<xsd:annotation>
-	  <xsd:documentation xml:lang="en" >
-	    Point to where the storage is mounted in the guest OS.
-	  </xsd:documentation>
-	</xsd:annotation>
-      </occi:attribute>
-      <occi:attribute name="occi.storagelink.state" use="required" mutable="false" >
-	<xsd:annotation>
-	  <xsd:documentation xml:lang="en" >
-	    Current status of the instance.
-	  </xsd:documentation>
-	</xsd:annotation>
-	<xsd:simpleType>
-	  <xsd:restriction base="xsd:string" >
-	    <xsd:enumeration name="active" />
-	    <xsd:enumeration name="inactive" />
-	  </xsd:restriction>
-	</xsd:simpleType>
-      </occi:attribute>
-    </occi:kind>
+	<!-- StorageLink Link -->
+	<occi:kind scheme="http://schemas.ogf.org/occi/infrastructure#"
+		term="storagelink" title="StorageLink Link">
+		<occi:parent scheme="http://schemas.ogf.org/occi/core#"
+			term="link" />
+		<occi:attribute name="occi.storagelink.deviceid" use="required"
+			type="xs:string"></occi:attribute>
+		<occi:attribute name="occi.storagelink.mountpoint"
+			type="xs:string"></occi:attribute>
+		<occi:attribute name="occi.storagelink.state" use="required"
+			immutable="true">
+			<xs:simpleType>
+				<xs:restriction base="xs:string">
+					<xs:enumeration value="active" />
+					<xs:enumeration value="inactive" />
+				</xs:restriction>
+			</xs:simpleType>
+		</occi:attribute>
+	</occi:kind>
 
-    <!--
-	Network
-    -->
-    <occi:kind term="network" title="Network Resource" >
-      <xsd:annotation>
-	<xsd:documentation xml:lang="en" >
-	  Interconnection resoruce and represents a L2 networking
-	  resource. This is complimented by the IPNetwork Mixin.
-	</xsd:documentation>
-      </xsd:annotation>
-      <occi:related scheme="http://schemas.ogf.org/occi/core" term="resource" />
-      <occi:attribute name="occi.network.vlan" mutable="true" >
-	<xsd:simpleType>
-	  <xsd:restriction base="xsd:integer" >
-	    <xsd:minInclusive value="0" />
-	    <xsd:maxInclusive value="4095" />
-	  </xsd:restriction>
-	</xsd:simpleType>
-	<xsd:annotation>
-	  <xsd:documentation xml:lang="en" >802.1q VLAN identifier (e.g 343)</xsd:documentation>
-	</xsd:annotation>
-      </occi:attribute>
-      <occi:attribute name="occi.network.label" mutable="true" type="xsd:string" >
-	<xsd:annotation>
-	  <xsd:documentation xml:lang="en" >Tag based VLANs (e.g. external-dmz)</xsd:documentation>
-	</xsd:annotation>
-      </occi:attribute>
-      <occi:attribute name="occi.network.state" mutable="false" use="required" >
-	<xsd:annotation>
-	  <xsd:documentation xml:lang="en" >Current state of the instance</xsd:documentation>
-	</xsd:annotation>
-	<xsd:simpleType>
-	  <xsd:restriction base="xsd:string" >
-	    <xsd:enumeration name="active" />
-	    <xsd:enumeration name="inactive" />
-	  </xsd:restriction>
-	</xsd:simpleType>
-      </occi:attribute>
-      <occi:action scheme="./network/action" term="up" />
-      <occi:action scheme="./network/action" term="down" />
-    </occi:kind>
+	<!-- Network -->
+	<occi:kind scheme="http://schemas.ogf.org/occi/infrastructure#"
+		term="network" title="Network Resource">
+		<occi:parent scheme="http://schemas.ogf.org/occi/core#"
+			term="resource" />
+		<occi:attribute name="occi.network.vlan">
+			<xs:simpleType>
+				<xs:restriction base="xs:integer">
+					<xs:minInclusive value="0" />
+					<xs:maxInclusive value="4095" />
+				</xs:restriction>
+			</xs:simpleType>
+		</occi:attribute>
+		<occi:attribute name="occi.network.label" type="xs:string"></occi:attribute>
+		<occi:attribute name="occi.network.state" immutable="true"
+			use="required">
+			<xs:simpleType>
+				<xs:restriction base="xs:string">
+					<xs:enumeration value="active" />
+					<xs:enumeration value="inactive" />
+				</xs:restriction>
+			</xs:simpleType>
+		</occi:attribute>
+		<occi:action scheme="http://schemas.ogf.org/occi/infrastructure/action#"
+			term="up" />
+		<occi:action scheme="http://schemas.ogf.org/occi/infrastructure/action#"
+			term="down" />
+	</occi:kind>
 
-    <!--
-	NetworkInterface Link
-    -->
-    <occi:kind term="networkinterface" title="NetworkInterface Link" >
-      <occi:related scheme="http://schemas.ogf.org/occi/core" term="link" />
-      <occi:attribute name="occi.networkinterface.interface" mutable="false" type="xsd:string" use="required" >
-	<xsd:annotation>
-	  <xsd:documentation xml:lang="en" >
-	    Identifier that relates the link to the link's device
-	    interface.
-	  </xsd:documentation>
-	</xsd:annotation>
-      </occi:attribute>
-      <occi:attribute name="occi.networkinterface.mac" type="occi:mac802" use="required" >
-	<xsd:annotation>
-	  <xsd:documentation xml:lang="en" >
-	    MAC address associated with the link's device interface.
-	  </xsd:documentation>
-	</xsd:annotation>
-      </occi:attribute>
-      <occi:attribute name="occi.networkinterface.state" mutable="false" use="required" >
-	<xsd:annotation>
-	  <xsd:documentation xml:lang="en" >Current status of the instance.</xsd:documentation>
-	</xsd:annotation>
-	<xsd:simpleType>
-	  <xsd:restriction base="xsd:string" >
-	    <xsd:enumeration name="active" />
-	    <xsd:enumeration name="inactive" />
-	  </xsd:restriction>
-	</xsd:simpleType>
-      </occi:attribute>
-    </occi:kind>
+	<!-- NetworkInterface Link -->
+	<occi:kind scheme="http://schemas.ogf.org/occi/infrastructure#"
+		term="networkinterface" title="NetworkInterface Link">
+		<occi:parent scheme="http://schemas.ogf.org/occi/core#"
+			term="link" />
+		<occi:attribute name="occi.networkinterface.interface"
+			immutable="true" type="xs:string" use="required"></occi:attribute>
+		<occi:attribute name="occi.networkinterface.mac" type="occi:mac802"
+			use="required"></occi:attribute>
+		<occi:attribute name="occi.networkinterface.state"
+			immutable="true" use="required">
+			<xs:simpleType>
+				<xs:restriction base="xs:string">
+					<xs:enumeration value="active" />
+					<xs:enumeration value="inactive" />
+				</xs:restriction>
+			</xs:simpleType>
+		</occi:attribute>
+	</occi:kind>
 
-    <!--
-	IP Networking Mixin
-    -->
-    <occi:mixin term="ipnetwork" title="IP Networking Mixin" scheme="./network" >
-      <xsd:annotation>
-	<xsd:documentation xml:lang="en" >
-	  IPNetworking Mixin is defined in order to support L3/L4 capabilities
-	</xsd:documentation>
-      </xsd:annotation>
-      <occi:attribute name="occi.network.address" type="occi:cidr" >
-	<xsd:annotation>
-	  <xsd:documentation xml:lang="en" >
-	    Internet Protocol (IP) network address (e.g. 192.168.0.1/24, fc00::/7)
-	  </xsd:documentation>
-	</xsd:annotation>
-      </occi:attribute>
-      <occi:attribute name="occi.network.gateway" type="occi:ip" >
-	<xsd:annotation>
-	  <xsd:documentation xml:lang="en" >
-	    Internet Protocol (IP) network address (e.g. 192.168.0.1, fc00::/7)
-	  </xsd:documentation>
-	</xsd:annotation>
-      </occi:attribute>
-      <occi:attribute name="occi.network.allocation" use="required" >
-	<xsd:annotation>
-	  <xsd:documentation xml:lang="en" >
-	    Address allocation mechanism, 'dynamic' e.g. uses the
-	    dynamic host configuration protocol, 'static' e.g. uses
-	    user supplied static network configurations.
-	  </xsd:documentation>
-	</xsd:annotation>
-	<xsd:simpleType>
-	  <xsd:restriction base="xsd:string" >
-	    <xsd:enumeration name="dynamic" />
-	    <xsd:enumeration name="static" />
-	  </xsd:restriction>
-	</xsd:simpleType>
-      </occi:attribute>
-    </occi:mixin>
+	<!-- IP Networking Mixin -->
+	<occi:mixin scheme="http://schemas.ogf.org/occi/infrastructure/network#"
+		term="ipnetwork" title="IP Networking Mixin">
+		<occi:attribute name="occi.network.address" type="occi:cidr"></occi:attribute>
+		<occi:attribute name="occi.network.gateway" type="occi:ip"></occi:attribute>
+		<occi:attribute name="occi.network.allocation" use="required">
+			<xs:simpleType>
+				<xs:restriction base="xs:string">
+					<xs:enumeration value="dynamic" />
+					<xs:enumeration value="static" />
+				</xs:restriction>
+			</xs:simpleType>
+		</occi:attribute>
+	</occi:mixin>
 
-    <!--
-	IP NetworkInterface Mixin
-    -->
-    <occi:mixin term="ipnetworkinterface" title="IP Network Interface Mixin" scheme="./networkinterface" >
-      <xsd:annotation>
-	<xsd:documentation xml:lang="en" >
-	  IPNetworkInterface mixin is described in order for
-	  NetworkInterface to support L3/L4 capabilities (e.g. IP, TCP
-	  etc.).
-	</xsd:documentation>
-      </xsd:annotation>
-      <occi:attribute name="occi.networkinterface.address" type="occi:cidr" use="required" >
-	<xsd:annotation>
-	  <xsd:documentation xml:lang="en" >
-	    Internet Procotol (IP) network address (e.g. 192.168.0.1/24,
-	    fc00::/7) of the link.
-	  </xsd:documentation>
-	</xsd:annotation>
-      </occi:attribute>
-      <occi:attribute name="occi.networkinterface.gateway"  type="occi:ip">
-	<xsd:annotation>
-	  <xsd:documentation xml:lang="en" >
-	    Internet Protocol (IP) network address (e.g. 192.168.0.1/24, fc00::/7)
-	  </xsd:documentation>
-	</xsd:annotation>
-      </occi:attribute>
-      <occi:attribute name="occi.networkinterface.allocation" use="required" >
-	<xsd:annotation>
-	  <xsd:documentation xml:lang="en" >
-	    Address mechanism, 'dynamic' e.g. uses the
-	    dynamic host configuration protocol, 'static' e.g. uses
-	    user supplied static network configurations.
-	  </xsd:documentation>
-	</xsd:annotation>
-	<xsd:simpleType>
-	  <xsd:restriction base="xsd:string" >
-	    <xsd:enumeration name="dynamic" />
-	    <xsd:enumeration name="static" />
-	  </xsd:restriction>
-	</xsd:simpleType>
-      </occi:attribute>
-    </occi:mixin>
+	<!-- IP NetworkInterface Mixin -->
+	<occi:mixin term="ipnetworkinterface" title="IP Network Interface Mixin"
+		scheme="http://schemas.ogf.org/occi/infrastructure/networkinterface#">
+		<occi:attribute name="occi.networkinterface.address"
+			type="occi:cidr" use="required"></occi:attribute>
+		<occi:attribute name="occi.networkinterface.gateway"
+			type="occi:ip"></occi:attribute>
+		<occi:attribute name="occi.networkinterface.allocation"
+			use="required">
+			<xs:simpleType>
+				<xs:restriction base="xs:string">
+					<xs:enumeration value="dynamic" />
+					<xs:enumeration value="static" />
+				</xs:restriction>
+			</xs:simpleType>
+		</occi:attribute>
+	</occi:mixin>
 
-    <!--
-	OS template
-    -->
-    <occi:mixin term="os_tpl" title="OS Template" />
+	<!-- OS template -->
+	<occi:mixin scheme="http://schemas.ogf.org/occi/infrastructure#"
+		term="os_tpl" title="OS Template" />
 
-    <!--
-	Resource template
-    -->
-    <occi:mixin term="resource_tpl" title="Resoruce template" />
+	<!-- Resource template -->
+	<occi:mixin scheme="http://schemas.ogf.org/occi/infrastructrue#"
+		term="resource_tpl" title="Resource template" />
 
-    <!-- 
-	 Attribute Types 
-    -->
-    <xsd:simpleType name="ip">
-      <xsd:annotation>
-	<xsd:documentation xml:lang="en">
-	  The datatype denoting a string corresponding to a IPv4 or IPv6 address.
-	</xsd:documentation>
-      </xsd:annotation>
-      <xsd:restriction base="xsd:string">
-	<xsd:pattern value="(((([1-9]?\d|1\d{2}|2[0-4]\d|25[0-5])\.){3}([1-9]?\d|1\d{2}|2[0-4]\d|25[0-5]))|((([\da-fA-F]{1,4})|(\:))\:){7}(([\da-fA-F]{1,4})|(\:))))"/>
-      </xsd:restriction>
-    </xsd:simpleType>
+	<!-- Extended types -->
+	<xs:simpleType name="arch">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="x86" />
+			<xs:enumeration value="x86_64" />
+			<xs:enumeration value="armv7" />
+		</xs:restriction>
+	</xs:simpleType>
 
-    <xsd:simpleType name="cidr" >
-      <xsd:annotation>
-	<xsd:documentation xml:lang="en">
-	  The datatype denoting a string corresponding to a CIDR block.
-	</xsd:documentation>
-      </xsd:annotation>
-      <xsd:restriction base="xsd:string">
-	<xsd:pattern value="(((([1-9]?\d|1\d{2}|2[0-4]\d|25[0-5])\.){3}([1-9]?\d|1\d{2}|2[0-4]\d|25[0-5])\/(\d|[1-2]\d|3[0-2]))|((([\da-fA-F]{0,4})|(\:))\:){7}(([\da-fA-F]{0,4})|(\:)))\/([1-9]?\d|1[01]\d|12[0-8])))"/>
-      </xsd:restriction>
-    </xsd:simpleType>
+	<xs:simpleType name="ip">
+		<xs:restriction base="xs:string">
+			<xs:pattern
+				value="(((([1-9]?\d|1\d{2}|2[0-4]\d|25[0-5])\.){3}([1-9]?\d|1\d{2}|2[0-4]\d|25[0-5]))|((([\da-fA-F]{1,4})|(\:))\:){7}(([\da-fA-F]{1,4})|(\:))))" />
+		</xs:restriction>
+	</xs:simpleType>
 
-    <xsd:simpleType name="mac802" >
-      <xsd:restriction base="xsd:string" >
-	<xsd:pattern value="[\da-fA-F]{2}(\:[\da-fA-F]){5}" />
-      </xsd:restriction>
-    </xsd:simpleType>
-  </occi:extension>
-</occi:schema>
+	<xs:simpleType name="cidr">
+		<xs:restriction base="xs:string">
+			<xs:pattern
+				value="(((([1-9]?\d|1\d{2}|2[0-4]\d|25[0-5])\.){3}([1-9]?\d|1\d{2}|2[0-4]\d|25[0-5])\/(\d|[1-2]\d|3[0-2]))|((([\da-fA-F]{0,4})|(\:))\:){7}(([\da-fA-F]{0,4})|(\:)))\/([1-9]?\d|1[01]\d|12[0-8])))" />
+		</xs:restriction>
+	</xs:simpleType>
+
+	<xs:simpleType name="mac802">
+		<xs:restriction base="xs:string">
+			<xs:pattern value="[\da-fA-F]{2}(\:[\da-fA-F]){5}" />
+		</xs:restriction>
+	</xs:simpleType>
+</occi:extension>
