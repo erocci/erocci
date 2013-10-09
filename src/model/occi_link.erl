@@ -18,32 +18,31 @@
 %%% @doc
 %%%
 %%% @end
-%%% Created : 29 Aug 2013 by Jean Parpaillon <jean.parpaillon@free.fr>
--module(occi_entity).
+%%% Created : 30 Aug 2013 by Jean Parpaillon <jean.parpaillon@free.fr>
+-module(occi_link).
 -compile([{parse_transform, lager_transform}]).
 
-%% OCCI entity methods
--export([new/2,
-	 do/3,
-	 to_plain/1]).
--export([impl_to_plain/1]).
+-export([new/1,
+	 new/2, 
+	 init/4]).
 
--include("occi_object.hrl").
+-include("occi_entity.hrl").
 
-%%%===================================================================
+-record(data, {category   :: reference(),
+	       mixins     :: [reference()],
+	       data       :: occi_link()}).
+
+%%%
 %%% API
-%%%===================================================================
-new(Mods, Args) ->
-    occi_object:new(lists:reverse([?MODULE|Mods]), Args).
-
-do(Ref, Action, Attributes) ->
-    occi_object:call(Ref, impl_do, [Action, Attributes]).
-
-to_plain(Ref) ->
-    occi_object:call(Ref, to_plain, []).
-
 %%%
-%%% Fallback functions
-%%%
-impl_to_plain(Data) ->
-    {{ok, occi_renderer_plain:render(Data)}, Data}.
+-spec new({Category :: reference(), Mixins :: [reference()], Source :: uri(), Target :: uri()}) -> pid().
+new({Category, Mixins, Source, Target}) ->
+    new([], {Category, Mixins, Source, Target}).
+
+new(Mods, {Category, Mixins, Src, Target}) ->
+    occi_entity:new(lists:reverse([?MODULE|Mods]), {Category, Mixins, Src, Target}).
+
+init(CategoryRef, MixinRefs, Src, Target) ->
+    #data{category=CategoryRef, 
+	  mixins=MixinRefs,
+	 data=#occi_link{source=Src, target=Target}}.

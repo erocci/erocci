@@ -19,31 +19,4 @@
 %%%
 %%% @end
 %%% Created : 29 Aug 2013 by Jean Parpaillon <jean.parpaillon@free.fr>
--module(occi_entity).
--compile([{parse_transform, lager_transform}]).
-
-%% OCCI entity methods
--export([new/2,
-	 do/3,
-	 to_plain/1]).
--export([impl_to_plain/1]).
-
 -include("occi_object.hrl").
-
-%%%===================================================================
-%%% API
-%%%===================================================================
-new(Mods, Args) ->
-    occi_object:new(lists:reverse([?MODULE|Mods]), Args).
-
-do(Ref, Action, Attributes) ->
-    occi_object:call(Ref, impl_do, [Action, Attributes]).
-
-to_plain(Ref) ->
-    occi_object:call(Ref, to_plain, []).
-
-%%%
-%%% Fallback functions
-%%%
-impl_to_plain(Data) ->
-    {{ok, occi_renderer_plain:render(Data)}, Data}.

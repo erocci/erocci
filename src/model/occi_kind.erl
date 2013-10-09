@@ -22,41 +22,56 @@
 -module(occi_kind).
 -compile([{parse_transform, lager_transform}]).
 
--behaviour(occi_category).
-
--include("occi.hrl").
-
 %% occi_category callbacks
--export([init/2, 
-	 get_attr/2,
-	 get_obj/1,
-	 get_collection/1]).
+-export([new/1,
+	 new/2,
+	 init/2,
+	 set_parent/3]).
 
--record(data, {category      :: #occi_kind{},
-	       backend       :: occi_store:backend_ref()}).
+-export([impl_get_attr/2, impl_set_parent/3]).
 
-init(Backend, #occi_kind{}=Kind) ->
-    #data{category=Kind, backend=Backend}.
+-include("occi_category.hrl").
 
-get_attr(class, _Data) ->
-    kind;
-get_attr(scheme, #data{category=#occi_kind{id=#occi_cid{scheme=Scheme}}}) ->
-    Scheme;
-get_attr(term, #data{category=#occi_kind{id=#occi_cid{term=Term}}}) ->
-    Term;
-get_attr(title, #data{category=#occi_kind{title=Title}}) ->
-    Title;
-get_attr(attributes, #data{category=#occi_kind{attributes=Attributes}}) ->
-    Attributes;
-get_attr(parent, #data{category=#occi_kind{rel=Parent}}) ->
-    Parent;
-get_attr(actions, #data{category=#occi_kind{actions=Actions}}) ->
-    Actions;
-get_attr(location, #data{category=#occi_kind{location=Location}}) ->
-    Location.
+-record(data, {scheme       :: atom(),
+	       term         :: atom(),
+	       title,
+	       attributes,
+	       parent       :: occi_cid(),
+	       actions,
+	       location}).
 
-get_obj(#data{category=Obj}) ->
-    Obj.
+new({Scheme, Term}) ->
+    new([], {Scheme, Term}).
 
-get_collection(#data{category=#occi_kind{id=Id}, backend=Ref}) ->
-    occi_backend:find_all(Ref, Id).
+new(Mods, {Scheme, Term}) ->
+    occi_category:new(lists:reverse([?MODULE|Mods]), {Scheme, Term}).
+
+init(Scheme, Term) ->
+    #data{scheme=Scheme, term=Term}.
+
+set_parent(Ref, Scheme, Term) ->
+    occi_object:call(Ref, impl_set_parent, [Scheme, Term]).
+
+impl_get_attr(Data, class) ->
+    {kind, Data};
+impl_get_attr(#data{scheme=Scheme}=Data, scheme) ->
+    {Scheme, Data};
+impl_get_attr(#data{term=Term}=Data, term) ->
+    {Term, Data};
+impl_get_attr(#data{title=Title}=Data, title) ->
+    {Title, Data};
+impl_get_attr(#data{attributes=Attributes}=Data, attributes) ->
+    {Attributes, Data};
+impl_get_attr(#data{parent=Parent}=Data, parent) ->
+    {Parent, Data};
+impl_get_attr(#data{actions=Actions}=Data, actions) ->
+    {Actions, Data};
+impl_get_attr(#data{location=Location}=Data, location) ->
+    {Location, Data}.
+
+impl_set_parent(#data{}=Data, undefined, _Term) ->
+    {{error, {einval, "Undefined scheme"}}, Data};
+impl_set_parent(#data{}=Data, _Scheme, undefined) ->
+    {{error, {einval, "Undefined term"}}, Data};
+impl_set_parent(#data{}=Data, Scheme, Term) ->
+    {ok, Data#data{parent=#occi_cid{scheme=Scheme, term=Term}}}.

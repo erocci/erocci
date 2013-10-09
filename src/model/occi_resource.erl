@@ -22,33 +22,38 @@
 -module(occi_resource).
 -compile([{parse_transform, lager_transform}]).
 
--include("occi.hrl").
+-export([new/1,
+	 new/2,
+	 init/2]).
+-export([impl_get_attr/2]).
 
--export([new/2, new/3, new/5,
-	 save/1]).
+-include("occi_entity.hrl").
+
+-record(data, {category                 :: reference(),
+	       mixins     = []          :: [reference()],
+	       attributes = dict:new()  :: term()}).
 
 %%%
 %%% API
 %%%
-new(Module, Attributes) ->
-    new(Module, undefined, <<>>, <<>>, Attributes).
+-spec new({Category :: reference(), Mixins :: [reference()]}) -> pid().
+new({Category, Mixins}) ->
+    new([], {Category, Mixins}).
 
-new(Module, Id, Attributes) ->
-    new(Module, Id, <<>>, <<>>, Attributes).
+new(Mods, [Category, Mixins]) ->
+    occi_entity:new(lists:reverse([?MODULE|Mods]), {Category, Mixins}).
 
-new(Module, Id, Title, Summary, AttrValues) ->
-    SpecsDict = lists:foldl(fun({K, P, F}, Acc) ->
-				    dict:store(K, {P, F}, Acc)
-			    end, dict:new(), 
-			    occi_type:get_attributes(Module)),
-    {Attrs, Errors} = occi_entity:set_attributes(SpecsDict, AttrValues),
-    case Errors of
-	[] ->
-	    Cid = occi_type:get_id(Module),
-	    {ok, #occi_resource{id=Id, cid=Cid, title=Title, summary=Summary, attributes=Attrs}};
-	L ->
-	    {error, L}
+init(CategoryRef, MixinRefs) ->
+    Attributes = occi_category:get_attr(CategoryRef, attributes),
+    Attributes2 = lists:foldl(fun(Ref, Acc) ->
+				      [occi_category:get_attr_specs(Ref, attributes)|Acc]
+			      end, Attributes, MixinRefs),
+    #data{category=CategoryRef, mixins=MixinRefs, attributes=dict:from_list(Attributes2)}.
+
+impl_get_attr(#data{}=Data, Name) ->
+    case dict:find(Name, Data#data.attributes) of
+	{ok, Value} ->
+	    {{ok, Value}, Data};
+	error ->
+	    {{error, einval}, Data}
     end.
-
-save(#occi_resource{}=Resource) ->
-    occi_entity:save(Resource).

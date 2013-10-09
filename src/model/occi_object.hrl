@@ -19,31 +19,21 @@
 %%%
 %%% @end
 %%% Created : 29 Aug 2013 by Jean Parpaillon <jean.parpaillon@free.fr>
--module(occi_entity).
--compile([{parse_transform, lager_transform}]).
+%% implementation callbacks
+-include("occi.hrl").
 
-%% OCCI entity methods
--export([new/2,
-	 do/3,
-	 to_plain/1]).
--export([impl_to_plain/1]).
+-export([destroy/1, 
+	 save/1,
+	 get_attr/2,
+	 set_attr/3,
+	 set_attrs/2]).
 
--include("occi_object.hrl").
+destroy(Ref) -> occi_object:destroy(Ref).
 
-%%%===================================================================
-%%% API
-%%%===================================================================
-new(Mods, Args) ->
-    occi_object:new(lists:reverse([?MODULE|Mods]), Args).
+save(Ref) -> occi_object:save(Ref).
 
-do(Ref, Action, Attributes) ->
-    occi_object:call(Ref, impl_do, [Action, Attributes]).
+get_attr(Ref, Name) -> occi_object:get_attr(Ref, Name).
 
-to_plain(Ref) ->
-    occi_object:call(Ref, to_plain, []).
+set_attr(Ref, Name, Value) -> occi_object:set_attr(Ref, Name, Value).
 
-%%%
-%%% Fallback functions
-%%%
-impl_to_plain(Data) ->
-    {{ok, occi_renderer_plain:render(Data)}, Data}.
+set_attrs(Ref, Attributes) -> occi_object:set_attrs(Ref, Attributes).

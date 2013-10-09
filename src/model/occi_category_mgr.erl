@@ -30,12 +30,13 @@
 
 %% API
 -export([start_link/0]).
--export([register/3,
+-export([register_extension/1, 
+	 register/3,
 	 get_entries/0,
 	 get_all/0]).
 
 %% Supervisor callbacks
--export([init/1]).
+-export([init/1, get_ref/1]).
 
 -define(SERVER, ?MODULE).
 
@@ -59,15 +60,20 @@
 start_link() ->
     supervisor:start_link({local, ?SERVER}, ?MODULE, []).
 
+register_extension({xml, Path}) ->
+    occi_parser_xml:load(Path).
+
 -spec register(term(), uri() | binary(), [occi_hook:hook()]) -> ok.
 register(CategoryDef, Location, Hooks) when is_binary(Location) ->
     register(CategoryDef, occi_types:split_path(Location), Hooks);
 register(CategoryDef, Location, Hooks) ->
-    {Id, Ref} = occi_category:new(CategoryDef, Location),
+    Ref = occi_category:load(CategoryDef),
+    occi_category:set_attr(Ref, location, Location),
     Path = occi_types:join_path([<<"">> | Location]),
+    Id = occi_category:get_attr(Ref, id),
     lager:info("Registering category: ~s~s (~s) -> ~s~n", 
 	       [Id#occi_cid.scheme, Id#occi_cid.term, Id#occi_cid.class, Path]),
-    mnesia:transaction(fun() -> 
+    mnesia:transaction(fun() ->
 			       Entry = #category_entry{id=Id, ref=Ref, uri=Location},
 			       mnesia:write(Entry)
 		       end),
@@ -85,6 +91,15 @@ get_all() ->
     lists:flatten([ [ occi_category:get_obj(Ref) |
 		      occi_category:get_attr(Ref, actions) ]
 		    || #category_entry{ref=Ref} <- Entries ]).
+
+-spec get_ref(occi_cid()) -> reference().
+get_ref(#occi_cid{}=Id) ->
+    case mnesia:dirty_match_read(category_entry, Id) of
+	[] ->
+	    undefined;
+	[Entry] ->
+	    Entry#category_entry.ref
+    end.
 
 %%%===================================================================
 %%% Supervisor callbacks
