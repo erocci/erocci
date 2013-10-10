@@ -24,9 +24,9 @@
 
 -include("occi.hrl").
 
--export([get_category/2,
-	 get_kind/2,
-	 get_mixin/2]).
+-export([get_category/1,
+	 get_kind/1,
+	 get_mixin/1]).
 -export([get_id/1,
 	 get_title/1,
 	 get_relations/1,
@@ -35,36 +35,30 @@
 	 get_entity_type/1
 	]).
 
--spec get_category(uri(), atom()) -> occi_category().
-get_category(Location, Mod) ->
+-spec get_category(atom()) -> occi_category().
+get_category(Mod) ->
     Id = get_id(Mod),
     case Id#occi_cid.class of
 	kind ->
-	    get_kind(Location, Mod);
+	    get_kind(Mod);
 	mixin -> 
-	    get_mixin(Location, Mod)
+	    get_mixin(Mod)
     end.
 
--spec get_kind(uri(), atom()) -> occi_kind().
-get_kind(Location, Mod) when is_binary(Location) ->
-    get_kind(occi_types:split_path(Location), Mod);
-get_kind(Location, Mod) ->
+-spec get_kind(atom()) -> occi_kind().
+get_kind(Mod) ->
     #occi_kind{id=get_id(Mod), 
 	       title=get_title(Mod),
 	       attributes=get_attributes(Mod),
 	       rel=lists:nth(1, get_relations(Mod)),
-	       actions=get_actions(Mod),
-	       location=Location}.
+	       actions=get_actions(Mod)}.
 
--spec get_mixin(uri(), atom()) -> occi_mixin().
-get_mixin(Location, Mod) when is_binary(Location) ->
-    get_mixin(occi_types:split_path(Location), Mod);
-get_mixin(Location, Mod) ->
+-spec get_mixin(atom()) -> occi_mixin().
+get_mixin(Mod) ->
     #occi_mixin{id=get_id(Mod),
 		title=get_title(Mod),
 		attributes=get_attributes(Mod),
-		actions=get_actions(Mod),
-		location=Location}.
+		actions=get_actions(Mod)}.
 
 -spec get_actions(atom()) -> [occi_action_spec()].
 get_actions(Mod) ->

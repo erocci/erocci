@@ -24,11 +24,23 @@
 
 -include("occi.hrl").
 
--export([is_required/1, 
+-export([new/1,
+	 get_id/1,
+	 set_type/2,
+	 is_required/1, 
 	 is_immutable/1, 
 	 get_title/1,
 	 get_default/1,
 	 get_type/1]).
+
+new(Id) ->
+    #occi_attr_spec{id=Id}.
+
+get_id(Spec) ->
+    Spec#occi_attr_spec.id.
+
+set_type(Spec, Type) ->
+    Spec#occi_attr_spec{type=Type}.
 
 is_required(Spec) ->
     is_defined(Spec, required).

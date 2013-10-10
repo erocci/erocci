@@ -28,16 +28,19 @@
 	 init/2,
 	 set_parent/3]).
 
--export([impl_get_attr/2, impl_set_parent/3]).
+-export([impl_get_attr/2, 
+	 impl_set_attr/3,
+	 impl_set_parent/3, 
+	 impl_add_attr_spec/2]).
 
 -include("occi_category.hrl").
 
--record(data, {scheme       :: atom(),
-	       term         :: atom(),
-	       title,
-	       attributes,
-	       parent       :: occi_cid(),
-	       actions,
+-record(data, {scheme           :: atom(),
+	       term             :: atom(),
+	       title            :: binary(),
+	       attributes = []  :: term(),      % dict
+	       parent           :: occi_cid(),
+	       actions    = [],
 	       location}).
 
 new({Scheme, Term}) ->
@@ -47,7 +50,10 @@ new(Mods, {Scheme, Term}) ->
     occi_category:new(lists:reverse([?MODULE|Mods]), {Scheme, Term}).
 
 init(Scheme, Term) ->
-    #data{scheme=Scheme, term=Term}.
+    
+    #data{scheme=Scheme, 
+	  term=Term,
+	  attributes=dict:new()}.
 
 set_parent(Ref, Scheme, Term) ->
     occi_object:call(Ref, impl_set_parent, [Scheme, Term]).
@@ -69,9 +75,16 @@ impl_get_attr(#data{actions=Actions}=Data, actions) ->
 impl_get_attr(#data{location=Location}=Data, location) ->
     {Location, Data}.
 
+impl_set_attr(#data{}=Data, title, Title) ->
+    {ok, Data#data{title=Title}}.
+
 impl_set_parent(#data{}=Data, undefined, _Term) ->
     {{error, {einval, "Undefined scheme"}}, Data};
 impl_set_parent(#data{}=Data, _Scheme, undefined) ->
     {{error, {einval, "Undefined term"}}, Data};
 impl_set_parent(#data{}=Data, Scheme, Term) ->
     {ok, Data#data{parent=#occi_cid{scheme=Scheme, term=Term}}}.
+
+impl_add_attr_spec(#data{attributes=Attrs}=Data, #occi_attr_spec{}=A) ->
+    Attrs2 = dict:store(A#occi_attr_spec.id, A, Attrs),
+    {ok, Data#data{attributes=Attrs2}}.

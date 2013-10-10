@@ -27,16 +27,18 @@
 	 new/2,
 	 init/2]).
 
--export([impl_get_attr/2]).
+-export([impl_get_attr/2, 
+	 impl_set_attr/3,
+	 impl_add_attr_spec/2]).
 
 -include("occi_category.hrl").
 
 -record(data, {scheme,
 	       term,
-	       title,
-	       attributes,
-	       applies,
-	       depends,
+	       title               :: binary(),
+	       attributes          :: term(),   % dict
+	       applies    = []     :: [occi_cid()],
+	       depends    = []     :: [occi_cid()],
 	       actions,
 	       location}).
 
@@ -47,7 +49,9 @@ new(Mods, {Scheme, Term}) ->
     occi_category:new(lists:reverse([?MODULE|Mods]), {Scheme, Term}).
 
 init(Scheme, Term) ->
-    #data{scheme=Scheme, term=Term}.
+    #data{scheme=Scheme, 
+	  term=Term,
+	  attributes=dict:new()}.
 
 impl_get_attr(Data, class) ->
     {mixin, Data};
@@ -67,3 +71,10 @@ impl_get_attr(#data{actions=Actions}=Data, actions) ->
     {Actions, Data};
 impl_get_attr(#data{location=Location}=Data, location) ->
     {Location, Data}.
+
+impl_set_attr(#data{}=Data, title, Title) ->
+    {ok, Data#data{title=Title}}.
+
+impl_add_attr_spec(#data{attributes=Attrs}=Data, #occi_attr_spec{}=A) ->
+    Attrs2 = dict:store(A#occi_attr_spec.id, A, Attrs),
+    {ok, Data#data{attributes=Attrs2}}.

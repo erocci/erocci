@@ -25,7 +25,8 @@
 -compile([{parse_transform, lager_transform}]).
 
 %% API
--export([new/2]).
+-export([new/2,
+	add_attr_spec/2]).
 
 -include("occi_object.hrl").
 
@@ -47,3 +48,6 @@ new(Mods, Args) ->
 	{error, Err} ->
 	    {error, Err}
     end.
+
+add_attr_spec(Ref, Attr) ->
+    occi_object:call(Ref, impl_add_attr_spec, {Attr}).

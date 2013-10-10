@@ -19,4 +19,9 @@
 %%%
 %%% @end
 %%% Created : 29 Aug 2013 by Jean Parpaillon <jean.parpaillon@free.fr>
+-export([add_attr_spec/2]).
+
 -include("occi_object.hrl").
+
+add_attr_spec(Ref, Spec) -> 
+    occi_category:add_attr_spec(Ref, Spec).

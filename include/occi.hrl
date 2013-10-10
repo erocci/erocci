@@ -7,6 +7,14 @@
 -type(uri() :: [binary()]).
 -type(occi_class() :: kind | mixin | action).
 
+%%% OCCI Extension
+-record(occi_extension, {name           :: atom(),
+			 scheme         :: atom(),
+			 version        :: term(),
+			 kinds          :: [occi_cid()],
+			 mixins         :: [occi_cid()]}).
+-type(occi_extension() :: #occi_extension{}).
+
 %%% OCCI Attribute description
 -record(occi_attr_spec, {id             :: atom(),
 			 type           :: {atom(), mfa()} | atom(),

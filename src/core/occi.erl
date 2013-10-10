@@ -24,7 +24,9 @@
 
 -export([start/0, stop/0]).
 % External API (simple wrappers)
--export([register_backend/2, register_category/3, register_listener/2]).
+-export([register_backend/2, 
+	 register_extension/1,
+	 register_listener/2]).
 
 %% @spec start() -> ok
 %% @doc Start the occi server.
@@ -41,8 +43,8 @@ stop() ->
 register_backend(Backend, Path) ->
     occi_store:register(Backend, Path).
 
-register_category(Category, Location, Hooks) ->
-    occi_category_mgr:register(Category, Location, Hooks).
-
 register_listener(Listener, Args) ->
     occi_listener:register(Listener, Args).
+
+register_extension(Extension) ->
+    occi_category_mgr:register_extension(Extension).
