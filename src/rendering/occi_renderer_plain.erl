@@ -33,7 +33,7 @@
 -include("occi.hrl").
 
 %% API
--export([render/1, parse/1]).
+-export([render/1, parse/1, parse_resource_repr/1]).
 
 %%%===================================================================
 %%% API
@@ -47,7 +47,11 @@ render(Categories) ->
 
 -spec parse(binary()) -> occi_entity() | {error, occi_parse_error}.
 parse(_Bin) ->
-    ok.
+    #occi_resource{}.
+
+-spec parse_resource_repr(Bin :: binary()) -> [occi_entity()].
+parse_resource_repr(Bin) ->
+    occi_parser:parse_resource_repr(occi_scanner:scan(Bin)).    
 
 %%%
 %%% Tests

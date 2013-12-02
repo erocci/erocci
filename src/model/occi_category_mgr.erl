@@ -30,8 +30,8 @@
 
 %% API
 -export([start_link/0]).
--export([register_extension/1, 
-	 register/3,
+-export([register_extension/1,
+	 register_category/1,
 	 get_entries/0,
 	 get_all/0]).
 
@@ -41,8 +41,7 @@
 -define(SERVER, ?MODULE).
 
 -record(category_entry, {id     :: #occi_cid{}, 
-			 ref    :: reference(),
-			 uri    :: [binary()]}).
+			 ref    :: reference()}).
 -type(category_entry() :: #category_entry{}).
 -export_type([category_entry/0]).
 
@@ -61,25 +60,24 @@ start_link() ->
     supervisor:start_link({local, ?SERVER}, ?MODULE, []).
 
 register_extension({xml, Path}) ->
-    occi_parser_xml:load(Path).
+    case occi_parser_xml:load_extension(Path) of
+	{error, parse_error} ->
+	    {error, parse_error};
+	Ext ->
+	    lists:foreach(fun(Category) -> 
+				  register_category(Category)
+			  end,
+			  occi_extension:get_categories(Ext))
+    end.
 
--spec register(term(), uri() | binary(), [occi_hook:hook()]) -> ok.
-register(CategoryDef, Location, Hooks) when is_binary(Location) ->
-    register(CategoryDef, occi_types:split_path(Location), Hooks);
-register(CategoryDef, Location, Hooks) ->
-    Ref = occi_category:load(CategoryDef),
-    occi_category:set_attr(Ref, location, Location),
-    Path = occi_types:join_path([<<"">> | Location]),
-    Id = occi_category:get_attr(Ref, id),
-    lager:info("Registering category: ~s~s (~s) -> ~s~n", 
-	       [Id#occi_cid.scheme, Id#occi_cid.term, Id#occi_cid.class, Path]),
+register_category(Category) ->
+    Id = occi_category:get_id(Category),
+    lager:info("Registering category: ~s~s (~s)~n", 
+	       [Id#occi_cid.scheme, Id#occi_cid.term, Id#occi_cid.class  ]),
     mnesia:transaction(fun() ->
-			       Entry = #category_entry{id=Id, ref=Ref, uri=Location},
+			       Entry = #category_entry{id=Id, ref=Category},
 			       mnesia:write(Entry)
-		       end),
-    lists:foreach(fun(Hook) ->
-			  occi_hook:add_hook(Id, Hook)
-		  end, Hooks).
+		       end).
 
 -spec get_entries() -> [category_entry()].
 get_entries() ->

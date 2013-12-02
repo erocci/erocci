@@ -19,10 +19,8 @@
 %%%
 %%% @end
 %%% Created : 25 Jul 2013 by Jean Parpaillon <jean.parpaillon@free.fr>
--module(occi_kind).
+-module(occi_action).
 -compile([{parse_transform, lager_transform}]).
-
--include("occi.hrl").
 
 %% from occi_object
 -export([destroy/1,
@@ -38,24 +36,14 @@
 	 add_attribute/2,
 	 set_types_check/2]).
 
+%% specific
 -export([new/1,
 	 new/2,
-	 init/2,
-	 get_parent/1,
-	 set_parent/3,
-	 get_actions/1,
-	 add_action/2]).
+	 init/2]).
 
-%% specific implementations
--export([impl_get_class/1,
-	 impl_get_parent/1,
-	 impl_set_parent/3,
-	 impl_get_actions/1,
-	 impl_add_action/2]).
+-export([impl_get_class/1]).
 
--record(data, {super            :: term(),
-	       parent           :: occi_cid(),
-	       actions    = []}).
+-record(data, {super         :: term()}).
 
 %%
 %% from occi_object
@@ -94,7 +82,7 @@ set_types_check(Ref, Types) ->
     occi_category:set_types_check(Ref, Types).
 
 %%
-%% specific methods
+%% specific
 %%
 new({Scheme, Term}) ->
     new([], {Scheme, Term}).
@@ -106,36 +94,8 @@ init(Scheme, Term) ->
     Cat = occi_category:init(Scheme, Term),
     #data{super=Cat}.
 
-get_parent(Ref) ->
-    occi_object:call(Ref, impl_get_parent, []).
-
-set_parent(Ref, Scheme, Term) ->
-    occi_object:call(Ref, impl_set_parent, [Scheme, Term]).
-
-get_actions(Ref) ->
-    occi_object:call(Ref, impl_get_actions, []).
-
-add_action(Ref, Action) ->
-    occi_object:call(Ref, impl_add_action, [Action]).
-
 %%
 %% implementations
 %%
 impl_get_class(Data) ->
-    {{ok, kind}, Data}.
-
-impl_get_parent(#data{parent=Parent}=Data) ->
-    {{ok, Parent}, Data}.
-
-impl_set_parent(#data{}=Data, undefined, _Term) ->
-    {{error, {einval, "Undefined scheme"}}, Data};
-impl_set_parent(#data{}=Data, _Scheme, undefined) ->
-    {{error, {einval, "Undefined term"}}, Data};
-impl_set_parent(#data{}=Data, Scheme, Term) ->
-    {ok, Data#data{parent=#occi_cid{scheme=Scheme, term=Term}}}.
-
-impl_get_actions(#data{actions=Actions}=Data) ->
-    {{ok, Actions}, Data}.
-
-impl_add_action(#data{actions=Actions}=Data, Action) ->
-    {ok, Data#data{actions=[Action|Actions]}}.
+    {{ok, action}, Data}.

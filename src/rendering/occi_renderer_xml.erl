@@ -15,13 +15,35 @@
 %%% specific language governing permissions and limitations
 %%% under the License.
 %%% 
-%%% @doc
+%%% @doc use EEP1108 format ofr JSON internal representation
+%%% http://www.erlang.org/eeps/eep-0018.html
 %%%
 %%% @end
-%%% Created : 29 Aug 2013 by Jean Parpaillon <jean.parpaillon@free.fr>
--export([add_attr_spec/2]).
+%%% Created : 30 Aug 2013 by Jean Parpaillon <jean.parpaillon@free.fr>
+-module(occi_renderer_xml).
+-compile({parse_transform, lager_transform}).
 
--include("occi_object.hrl").
+-behaviour(occi_renderer).
 
-add_attr_spec(Ref, Spec) -> 
-    occi_category:add_attr_spec(Ref, Spec).
+-include("occi.hrl").
+
+-export([load/1,
+	 render/1, 
+	 parse/1]).
+
+%%%
+%%% API
+%%%
+render(_Elem) ->
+    ok.
+
+load(Path) ->
+    {ok, Bin} = file:read_file(Path),
+    parse(Bin).
+
+parse(_Bin) ->
+    ok.
+
+%%%
+%%% Private
+%%%

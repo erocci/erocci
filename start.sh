@@ -13,7 +13,6 @@ _exit()
 trap _exit EXIT
 
 debug=info
-
 while getopts ":d" opt; do
     case $opt in
 	d)

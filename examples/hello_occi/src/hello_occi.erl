@@ -18,19 +18,20 @@
 
 start() ->
     application:start(occi),
-    occi:register_backend({riak, occi_backend_riak, 
-			   [{ip, "127.0.0.1"}, {port, 8087}]},
-			  <<"/">>), 
-    Hooks = [
-	     {on_save, {?MODULE, on_save}},
-	     {on_update, {?MODULE, on_update}},
-	     {on_delete, {?MODULE, on_delete}},
-	     {on_action, {?MODULE, on_action}}
-	    ],
-    occi:register_category({mod, occi_infra_compute}, <<"/compute/">>, Hooks),
-    occi:register_category({mod, occi_infra_network}, <<"/network/">>, Hooks),
-    occi:register_category({mod, occi_infra_ipnetworking}, <<"/ipnetworking/">>, Hooks),
-    occi:register_listener(occi_http, [{port, 8080}]),
+    occi:register_extension({xml, "priv/schemas/occi-infrastructure.xml"}),
+    %% occi:register_backend({riak, occi_backend_riak, 
+    %% 			   [{ip, "127.0.0.1"}, {port, 8087}]},
+    %% 			  <<"/">>), 
+    %% Hooks = [
+    %% 	     {on_save, {?MODULE, on_save}},
+    %% 	     {on_update, {?MODULE, on_update}},
+    %% 	     {on_delete, {?MODULE, on_delete}},
+    %% 	     {on_action, {?MODULE, on_action}}
+    %% 	    ],
+    %% occi:register_category({mod, occi_infra_compute}, <<"/compute/">>, Hooks),
+    %% occi:register_category({mod, occi_infra_network}, <<"/network/">>, Hooks),
+    %% occi:register_category({mod, occi_infra_ipnetworking}, <<"/ipnetworking/">>, Hooks),
+    %%occi:register_listener(occi_http, [{port, 8080}]),
     register(?MODULE, self()),
     erlang:hibernate(?MODULE, loop, []).
 

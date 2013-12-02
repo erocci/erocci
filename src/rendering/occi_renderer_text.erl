@@ -75,9 +75,9 @@ render_cid(#occi_cid{}=Cid, Sep) ->
 render_cid_uri(#occi_cid{}=Cid) ->
     [ atom_to_list(Cid#occi_cid.scheme), atom_to_list(Cid#occi_cid.term) ].
 
-render_attr_spec(#occi_attr_spec{}=Attr) ->
-    Ret = atom_to_list(Attr#occi_attr_spec.id),
-    case render_attr_properties(Attr#occi_attr_spec.properties) of
+render_attr_spec(#occi_attr{}=Attr) ->
+    Ret = atom_to_list(Attr#occi_attr.id),
+    case render_attr_properties(Attr#occi_attr.properties) of
 	[] -> Ret;
 	L -> [ Ret, L ]
     end.

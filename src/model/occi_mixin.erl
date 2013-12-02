@@ -22,26 +22,84 @@
 -module(occi_mixin).
 -compile([{parse_transform, lager_transform}]).
 
-%% occi_category callbacks
+-include("occi.hrl").
+
+%% from occi_object
+-export([destroy/1,
+	 save/1]).
+
+%% from occi_category
+-export([get_id/1,
+	 get_class/1,
+	 get_scheme/1,
+	 get_term/1,
+	 get_title/1,
+	 set_title/2,
+	 add_attribute/2,
+	 set_types_check/2]).
+
 -export([new/1, 
 	 new/2,
-	 init/2]).
+	 init/2,
+	 get_applies/1,
+	 add_applies/3,
+	 get_depends/1,
+	 add_depends/3,
+	 get_actions/1,
+	 add_action/2]).
 
--export([impl_get_attr/2, 
-	 impl_set_attr/3,
-	 impl_add_attr_spec/2]).
+-export([impl_get_class/1,
+	 impl_get_applies/1,
+	 impl_add_applies/3,
+	 impl_get_depends/1,
+	 impl_add_depends/3,
+	 impl_get_actions/1,
+	 impl_add_action/2]).
 
--include("occi_category.hrl").
-
--record(data, {scheme,
-	       term,
-	       title               :: binary(),
-	       attributes          :: term(),   % dict
+-record(data, {super               :: term(),
 	       applies    = []     :: [occi_cid()],
 	       depends    = []     :: [occi_cid()],
-	       actions,
-	       location}).
+	       actions}).
 
+%%
+%% from occi_object
+%%
+destroy(Ref) -> 
+    occi_category:destroy(Ref).
+
+save(Ref) -> 
+    occi_category:save(Ref).
+
+%%
+%% from occi_category
+%%
+get_id(Ref) -> 
+    occi_category:get_id(Ref).
+
+get_class(Ref) -> 
+    occi_category:get_class(Ref).
+
+get_scheme(Ref) -> 
+    occi_category:get_scheme(Ref).
+
+get_term(Ref) -> 
+    occi_category:get_term(Ref).
+
+get_title(Ref) -> 
+    occi_category:get_title(Ref).
+
+set_title(Ref, Title) -> 
+    occi_category:set_title(Ref, Title).
+
+add_attribute(Ref, A) -> 
+    occi_category:add_attribute(Ref, A).
+
+set_types_check(Ref, Types) -> 
+    occi_category:set_types_check(Ref, Types).
+
+%%
+%% Specific methods
+%%
 new({Scheme, Term}) ->
     new([], {Scheme, Term}).
 
@@ -49,32 +107,55 @@ new(Mods, {Scheme, Term}) ->
     occi_category:new(lists:reverse([?MODULE|Mods]), {Scheme, Term}).
 
 init(Scheme, Term) ->
-    #data{scheme=Scheme, 
-	  term=Term,
-	  attributes=dict:new()}.
+    Cat = occi_category:init(Scheme, Term),
+    #data{super=Cat}.
 
-impl_get_attr(Data, class) ->
-    {mixin, Data};
-impl_get_attr(#data{scheme=Scheme}=Data, scheme) ->
-    {Scheme, Data};
-impl_get_attr(#data{term=Term}=Data, term) ->
-    {Term, Data};
-impl_get_attr(#data{title=Title}=Data, title) ->
-    {Title, Data};
-impl_get_attr(#data{attributes=Attributes}=Data, attributes) ->
-    {Attributes, Data};
-impl_get_attr(#data{applies=Applies}=Data, applies) ->
-    {Applies, Data};
-impl_get_attr(#data{depends=Depends}=Data, depends) ->
-    {Depends, Data};
-impl_get_attr(#data{actions=Actions}=Data, actions) ->
-    {Actions, Data};
-impl_get_attr(#data{location=Location}=Data, location) ->
-    {Location, Data}.
+get_applies(Ref) ->
+    occi_object:call(Ref, impl_get_applies, []).
 
-impl_set_attr(#data{}=Data, title, Title) ->
-    {ok, Data#data{title=Title}}.
+add_applies(Ref, Scheme, Term) ->
+    occi_object:call(Ref, impl_add_applies, [Scheme, Term]).
 
-impl_add_attr_spec(#data{attributes=Attrs}=Data, #occi_attr_spec{}=A) ->
-    Attrs2 = dict:store(A#occi_attr_spec.id, A, Attrs),
-    {ok, Data#data{attributes=Attrs2}}.
+get_depends(Ref) ->
+    occi_object:call(Ref, impl_get_depends, []).
+
+add_depends(Ref, Scheme, Term) ->
+    occi_object:call(Ref, impl_add_depends, [Scheme, Term]).
+
+get_actions(Ref) ->
+    occi_object:call(Ref, impl_get_actions, []).
+
+add_action(Ref, Action) ->
+    occi_object:call(Ref, impl_add_action, [Action]).
+
+%%
+%% implementations
+%%
+impl_get_class(Data) ->
+    {{ok, mixin}, Data}.
+
+impl_get_applies(#data{applies=Applies}=Data) ->
+    {{ok, Applies}, Data}.
+
+impl_add_applies(#data{}=Data, undefined, _Term) ->
+    {{error, {einval, "Undefined scheme"}}, Data};
+impl_add_applies(#data{}=Data, _Scheme, undefined) ->
+    {{error, {einval, "Undefined term"}}, Data};
+impl_add_applies(#data{applies=Applies}=Data, Scheme, Term) ->
+    {ok, Data#data{applies=[#occi_cid{scheme=Scheme, term=Term}|Applies]}}.
+
+impl_get_depends(#data{depends=Depends}=Data) ->
+    {{ok, Depends}, Data}.
+
+impl_add_depends(#data{}=Data, undefined, _Term) ->
+    {{error, {einval, "Undefined scheme"}}, Data};
+impl_add_depends(#data{}=Data, _Scheme, undefined) ->
+    {{error, {einval, "Undefined term"}}, Data};
+impl_add_depends(#data{depends=Depends}=Data, Scheme, Term) ->
+    {ok, Data#data{depends=[#occi_cid{scheme=Scheme, term=Term}|Depends]}}.
+
+impl_get_actions(#data{actions=Actions}=Data) ->
+    {{ok, Actions}, Data}.
+
+impl_add_action(#data{actions=Actions}=Data, Action) ->
+    {ok, Data#data{actions=[Action|Actions]}}.

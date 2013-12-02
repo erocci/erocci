@@ -66,8 +66,8 @@ to_plain(Req, #state{ref=Ref}=State) ->
     Entities = occi_category:get_collection(Ref),
     {occi_renderer_plain:render(Entities), Req, State}.
 
-from_plain(Req, State) ->
-    {Body, Req2} = cowboy_req:body(Req),
-    Res = occi_renderer_plain:parse(Body),
-    Req3 = cowboy_req:set_resp_header(<<"location">>, Res#occi_resource.id, Req2),
+from_plain(Req, #state{ref=Ref}=State) ->
+    {ok, Body, Req2} = cowboy_req:body(Req),
+    Obj = occi_renderer_plain:parse_resource(Ref, Body),
+    Req3 = cowboy_req:set_resp_header(<<"location">>, Obj#occi_resource.id, Req2),
     {true, Req3, State}.

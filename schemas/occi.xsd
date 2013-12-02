@@ -62,6 +62,15 @@
 		<xs:attribute name="name" type="xs:string"></xs:attribute>
 		<xs:attribute name="version" type="xs:string"></xs:attribute>
 		<xs:attribute name="scheme" type="xs:anyURI"></xs:attribute>
+		<xs:attribute name="status" >
+		  <xs:simpleType>
+		    <xs:restriction base="xs:string">
+		      <xs:enumeration value="draft"></xs:enumeration>
+		      <xs:enumeration value="experimental"></xs:enumeration>
+		      <xs:enumeration value="stable"></xs:enumeration>	
+	    </xs:restriction>
+		  </xs:simpleType>
+		</xs:attribute>
 	</xs:complexType>
 
 	<!-- 

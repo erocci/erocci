@@ -12,14 +12,25 @@
 			 scheme         :: atom(),
 			 version        :: term(),
 			 kinds          :: [occi_cid()],
-			 mixins         :: [occi_cid()]}).
+			 mixins         :: [occi_cid()],
+			 types          :: term()           % dict
+			}).
 -type(occi_extension() :: #occi_extension{}).
 
+%%% OCCI simple types
+-record(occi_type, {id           :: occi_type_id(),
+		    f            :: fun()}).
+-type(occi_type_id() :: atom() | {atom(), atom()}).
+-type(occi_type() :: #occi_type{}).
+
 %%% OCCI Attribute description
--record(occi_attr_spec, {id             :: atom(),
-			 type           :: {atom(), mfa()} | atom(),
-			 properties     :: [term()]}).
--type(occi_attr_spec() :: #occi_attr_spec{}).
+-record(occi_attr, {id                           :: atom(),
+		    type_id                      :: occi_type_id(),
+		    check                        :: fun(),
+		    scalar          = true       :: boolean(),
+		    properties                   :: [term()],
+		    value           = undefined  :: any()}).
+-type(occi_attr() :: #occi_attr{}).
 
 %%% OCCI Category ID
 -record(occi_cid, {scheme    = undefined :: atom() | uri(),
@@ -30,7 +41,7 @@
 %%% OCCI Kind
 -record(occi_kind, {id         = #occi_cid{}  :: occi_cid(),
 		    title      = undefined    :: binary(),
-		    attributes = []           :: [occi_attr_spec()],
+		    attributes = []           :: [occi_attr()],
 		    rel        = []           :: occi_cid(),
 		    actions    = []           :: [occi_action_spec()],
 		    location                  :: uri()}).
@@ -41,7 +52,7 @@
 		     title      = undefined    :: binary(),
 		     depends    = []           :: [occi_cid()],
 		     applies    = []           :: [occi_cid()],
-		     attributes = []           :: [occi_attr_spec()],
+		     attributes = []           :: [occi_attr()],
 		     actions    = []           :: [occi_action_spec()],
 		     location                  :: uri()}).
 -type(occi_mixin() :: #occi_mixin{}).
@@ -49,7 +60,7 @@
 %%% OCCI Action Spec
 -record(occi_action_spec, {id         = #occi_cid{}  :: occi_cid(),
 			   title      = undefined    :: binary(),
-			   attributes = []           :: [occi_attr_spec()]}).
+			   attributes = []           :: [occi_attr()]}).
 -type(occi_action_spec() :: #occi_action_spec{}).
 
 %%% OCCI Category

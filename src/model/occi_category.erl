@@ -24,15 +24,53 @@
 -module(occi_category).
 -compile([{parse_transform, lager_transform}]).
 
-%% API
+-include("occi.hrl").
+
+%% from occi_object
+-export([destroy/1,
+	 save/1]).
+
+% specific
 -export([new/2,
-	add_attr_spec/2]).
+	 init/2,
+	 get_id/1,
+	 get_class/1,
+	 get_scheme/1,
+	 get_term/1,
+	 get_title/1,
+	 set_title/2,
+	 add_attribute/2,
+	 set_types_check/2]).
 
--include("occi_object.hrl").
+% specific implementations
+-export([impl_get_scheme/1,
+	 impl_get_term/1,
+	 impl_get_title/1,
+	 impl_set_title/2,
+	 impl_add_attribute/2,
+	 impl_set_types_check/2]).
 
-%%%===================================================================
-%%% API
-%%%===================================================================
+-record(data, {super                :: term(),
+	       scheme,
+	       term,
+	       title                :: binary(),
+	       attributes           :: term()      % dict
+	      }).
+
+-define(super(X), X#data.obj).
+
+%%
+%% from occi_object
+%%
+destroy(Ref) -> 
+    occi_object:destroy(Ref).
+
+save(Ref) -> 
+    occi_object:save(Ref).
+
+%%
+%% specific
+%%
 -spec new(atom(), term()) -> {global, reference()} | {error, term()}.
 new(Mods, Args) ->
     Ref = make_ref(),
@@ -49,5 +87,53 @@ new(Mods, Args) ->
 	    {error, Err}
     end.
 
-add_attr_spec(Ref, Attr) ->
-    occi_object:call(Ref, impl_add_attr_spec, {Attr}).
+init(Scheme, Term) ->
+    #data{scheme=Scheme, term=Term, attributes=dict:new()}.
+
+get_id(Ref) ->
+    #occi_cid{scheme=get_scheme(Ref),
+	      term=get_term(Ref),
+	      class=get_class(Ref)}.
+
+get_class(Ref) ->
+    occi_object:call(Ref, impl_get_class, []).
+
+get_scheme(Ref) ->
+    occi_object:call(Ref, impl_get_scheme, []).
+
+get_term(Ref)->
+    occi_object:call(Ref, impl_get_term, []).
+
+get_title(Ref) ->
+    occi_object:call(Ref, impl_get_title, []).
+
+set_title(Ref, Title) ->
+    occi_object:call(Ref, impl_set_title, [Title]).
+
+add_attribute(Ref, Attr) ->
+    occi_object:call(Ref, impl_add_attribute, [Attr]).
+
+set_types_check(Ref, Types) ->
+    occi_object:call(Ref, impl_set_types_check, {Types}).
+
+impl_get_scheme(#data{scheme=Scheme}=Data) ->
+    {{ok, Scheme}, Data}.
+
+impl_get_term(#data{term=Term}=Data) ->
+    {{ok, Term}, Data}.
+
+impl_get_title(#data{title=Title}=Data) ->
+    {{ok, Title}, Data}.
+
+impl_set_title(#data{}=Data, Title) ->
+    {ok, Data#data{title=Title}}.
+
+impl_add_attribute(#data{attributes=Attrs}=Data, A) ->
+    Attrs2 = dict:store(occi_attribute:get_id(A), A, Attrs),
+    {ok, Data#data{attributes=Attrs2}}.
+
+impl_set_types_check(#data{}=Data, Types) ->
+    Attrs = dict:map(fun (_Id, Attr) ->
+			     occi_attribute:set_check(Attr, Types)
+		     end, Data#data.attributes),
+    {ok, Data#data{attributes=Attrs}}.

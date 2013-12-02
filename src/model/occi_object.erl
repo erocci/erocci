@@ -30,7 +30,7 @@
 	 get_attr/2,
 	 set_attr/3,
 	 set_attrs/2]).
--export([call/3, impl_fun/3]).
+-export([call/3]).
 
 %% fallback methods
 -export([impl_abstract/1]).
@@ -46,6 +46,11 @@
 	       Ref  :: pid() | reference() | {local, atom()} | {global, atom()}}).
 -export_type([id/0]).
 
+-define(callMethod(Req), element(1, Req)).
+-define(callArgs(Req), element(2, Req)).
+-define(superData(Data), element(2, Data)).
+-define(setSuperData(Data, Val), setelement(2, Data, Val)).
+
 %%%
 %%% API
 %%%
@@ -56,24 +61,9 @@ new(Mods, Args) ->
 	{error, Error} -> {error, Error}
     end.
 
-impl_fun(Mods, Name, Arity) ->
-    impl_fun(Mods, Name, Arity, fun impl_abstract/1).
-
-impl_fun([], Name, Arity, Default) ->
-    case erlang:function_exported(?MODULE, Name, Arity) of
-	true -> {?MODULE, Name};
-	false -> Default
-    end;
-impl_fun([Mod|Tail], Name, Arity, Default) ->
-    case erlang:function_exported(Mod, Name, Arity) of
-	true -> {Mod, Name};
-	false -> 
-	    impl_fun(Tail, Name, Arity, Default)
-    end.
-
 call(Ref, Name, Args) ->
     case gen_server:call(Ref, {Name, Args}) of
-	ok -> ok;
+	ok -> Ref;
 	{ok, Reply} -> Reply;
 	{error, Err} -> throw({error, Err})
     end.
@@ -119,13 +109,8 @@ impl_abstract(Data) ->
 %%--------------------------------------------------------------------
 init({[Mod|Parents], Args}) ->
     Args2 = args_list(Args),
-    case impl_fun([Mod|Parents], init, length(Args2), undefined) of
-	undefined ->
-	    {ok, #state{handlers=[Mod|Parents]}};
-	{Mod, Fun} ->
-	    Data = apply(Mod, Fun, Args2),
-	    {ok, #state{handlers=[Mod|Parents], data=Data}}
-    end.
+    Data = apply(Mod, init, Args2),
+    {ok, #state{handlers=[Mod|Parents], data=Data}}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -142,9 +127,8 @@ init({[Mod|Parents], Args}) ->
 %% @end
 %%--------------------------------------------------------------------
 handle_call(Req, _From, State) ->
-    Args2 = args_list(element(2, Req)),
-    {Mod, Fun} = occi_object:impl_fun(State#state.handlers, element(1, Req), length(Args2)+1),
-    {Reply, Data2} = apply(Mod, Fun, [State#state.data | Args2]),
+    Args = args_list(?callArgs(Req)),
+    {Reply, Data2} = call_impl(State#state.handlers, State#state.data, ?callMethod(Req), Args, length(Args)+1),
     {reply, Reply, State#state{data=Data2}}.
 
 %%--------------------------------------------------------------------
@@ -209,3 +193,21 @@ args_list(Args) when is_list(Args) ->
     Args;
 args_list(Args) ->
     [Args].
+
+call_impl([], Data, Name, Args, Arity) ->
+    case erlang:function_exported(?MODULE, Name, Arity) of
+	true -> 
+	    {Ret, SuperData} = apply(?MODULE, Name, [?superData(Data) | Args]),
+	    {Ret, ?setSuperData(Data, SuperData)};
+	false ->
+	    impl_abstract(Data)
+    end;
+call_impl([Mod|Tail], Data, Name, Args, Arity) ->
+    lager:debug("Call ~p:~p/~p~n", [Mod, Name, Arity]),
+    case erlang:function_exported(Mod, Name, Arity) of
+	true ->
+	    apply(Mod, Name, [Data | Args]);
+	false ->
+	    {Ret, SuperData} = call_impl(Tail, ?superData(Data), Name, Args, Arity),
+	    {Ret, ?setSuperData(Data, SuperData)}
+    end.

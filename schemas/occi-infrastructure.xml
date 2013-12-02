@@ -207,7 +207,7 @@
 		term="os_tpl" title="OS Template" />
 
 	<!-- Resource template -->
-	<occi:mixin scheme="http://schemas.ogf.org/occi/infrastructrue#"
+	<occi:mixin scheme="http://schemas.ogf.org/occi/infrastructure#"
 		term="resource_tpl" title="Resource template" />
 
 	<!-- Extended types -->
