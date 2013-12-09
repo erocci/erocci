@@ -32,9 +32,8 @@
 %%%
 %%% API
 %%%
-render(Obj) when is_record(Obj, occi_kind); 
-		 is_record(Obj, occi_mixin); 
-		 is_record(Obj, occi_action_spec); 
+render(Obj) when is_record(Obj, occi_category); 
+		 is_record(Obj, occi_action); 
 		 is_record(Obj, occi_resource); 
 		 is_record(Obj, occi_link);
 		 is_record(Obj, occi_cid) ->
@@ -51,37 +50,37 @@ parse(Bin) ->
 %%%
 %%% Private
 %%%
-render_ejson(#occi_kind{}=Kind) ->
-    render_list([{term, Kind#occi_kind.id#occi_cid.term}
-		 ,{scheme, Kind#occi_kind.id#occi_cid.scheme}
-		 ,{title, Kind#occi_kind.title}
-		 ,{parent, render_cid_uri(Kind#occi_kind.rel)}
-		 ,{attributes, render_attribute_specs(Kind#occi_kind.attributes)}
+render_ejson(#occi_category{id=#occi_cid{class=kind}, location=Uri}=Kind) ->
+    render_list([{term, occi_kind:get_term(Kind)}
+		 ,{scheme, occi_kind:get_scheme(Kind)}
+		 ,{title, occi_kind:get_title(Kind)}
+		 ,{parent, render_cid_uri(occi_kind:get_parent(Kind))}
+		 ,{attributes, render_attribute_specs(occi_kind:get_attributes(Kind))}
 		 ,{actions, lists:map(fun(Action) -> 
-					      render_cid_uri(Action#occi_action_spec.id) 
-				      end, Kind#occi_kind.actions)}
-		 ,{location, render_uri(Kind#occi_kind.location)}
+					      render_cid_uri(occi_action:get_id(Action)) 
+				      end, occi_kind:get_actions(Kind))}
+		 ,{location, Uri}
 		]);
 
-render_ejson(#occi_mixin{}=Mixin) ->
-    render_list([{term, Mixin#occi_mixin.id#occi_cid.term}
-		 ,{scheme, Mixin#occi_mixin.id#occi_cid.scheme}
+render_ejson(#occi_category{id=#occi_cid{class=mixin}, location=Uri}=Mixin) ->
+    render_list([{term, occi_mixin:get_term(Mixin)}
+		 ,{scheme, occi_mixin:get_scheme(Mixin)}
 		 ,{depends, lists:map(fun(Cid) -> render_cid_uri(Cid) end, 
-				      Mixin#occi_mixin.depends)}
+				      occi_mixin:get_depends(Mixin))}
 		 ,{applies, lists:map(fun(Cid) -> render_cid_uri(Cid) end, 
-				      Mixin#occi_mixin.applies)}
-		 ,{title, Mixin#occi_mixin.title}
-		 ,{attributes, render_attribute_specs(Mixin#occi_mixin.attributes)}
+				      occi_mixin:get_applies(Mixin))}
+		 ,{title, occi_mixin:get_title(Mixin)}
+		 ,{attributes, render_attribute_specs(occi_mixin:get_attributes(Mixin))}
 		 ,{actions, lists:map(fun(Action) -> 
-					      render_cid_uri(Action#occi_action_spec.id)
-				      end, Mixin#occi_mixin.actions)}
-		 ,{location, render_uri(Mixin#occi_mixin.location)}]);
+					      render_cid_uri(occi_action:get_id(Action))
+				      end, occi_mixin:get_actions(Mixin))}
+		 ,{location, Uri}]);
 
-render_ejson(#occi_action_spec{}=Action) ->
-    render_list([{term, Action#occi_action_spec.id#occi_cid.term}
-		 ,{scheme, Action#occi_action_spec.id#occi_cid.scheme}
-		 ,{title, Action#occi_action_spec.title}
-		 ,{attributes, render_attribute_specs(Action#occi_action_spec.attributes)}
+render_ejson(#occi_action{}=Action) ->
+    render_list([{term, occi_action:get_term(Action)}
+		 ,{scheme, occi_action:get_scheme(Action)}
+		 ,{title, occi_action:get_title(Action)}
+		 ,{attributes, render_attribute_specs(occi_action:get_attributes(Action))}
 		]);
 
 render_ejson(#occi_resource{}=Res) ->
@@ -124,17 +123,17 @@ render_cid_uri(#occi_cid{}=Cid) ->
     << BScheme/binary, BTerm/binary >>.
 
 render_attribute_specs(Attributes) ->
-    {[ render_attribute_spec(Attr) || Attr <- Attributes ]}.
+    {[ render_attribute_spec(Key, dict:fetch(Key, Attributes)) 
+       || Key <- dict:fetch_keys(Attributes) ]}.
 
-render_attribute_spec(#occi_attr{}=Spec) ->
+render_attribute_spec(Key, Attr) ->
     L = [
-	 {mutable, not occi_attribute:is_immutable(Spec)},
-	 {required, occi_attribute:is_required(Spec)},
-	 {type, occi_attribute:get_type(Spec)},
-	 {default, occi_attribute:get_default(Spec)},
-	 {description, occi_attribute:get_title(Spec)}
+	 {mutable, not occi_attribute:is_immutable(Attr)},
+	 {required, occi_attribute:is_required(Attr)},
+	 {type, occi_attribute:get_type_id(Attr)},
+	 {default, occi_attribute:get_default(Attr)}
 	],
-    {Spec#occi_attr.id, render_list(L)}.
+    {Key, render_list(L)}.
 
 render_uri(Uri) ->
     occi_types:join_path([<<"">> | Uri]).

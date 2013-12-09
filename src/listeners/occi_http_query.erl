@@ -42,7 +42,9 @@ allowed_methods(Req, Ctx) ->
 
 content_types_provided(Req, Ctx) ->
     {[
-      {{<<"text">>,          <<"plain">>,     []}, to_plain}
+      {{<<"text">>,          <<"plain">>,     []}, to_plain},
+      {{<<"application">>,   <<"occi+json">>, []}, to_json},
+      {{<<"application">>,   <<"json">>,      []}, to_json}
      ],
      Req, Ctx}.
 
