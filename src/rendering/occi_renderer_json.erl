@@ -27,11 +27,18 @@
 
 -include("occi.hrl").
 
+-export([render_query/1]).
 -export([render/1, parse/1]).
 
 %%%
 %%% API
 %%%
+render_query(Categories) ->
+    Content = {<<"categories">>, lists:map(fun(Obj) -> 
+						   render_ejson(Obj) 
+					   end, Categories)},
+    jiffy:encode({[Content]}, [pretty]).
+
 render(Obj) when is_record(Obj, occi_category); 
 		 is_record(Obj, occi_action); 
 		 is_record(Obj, occi_resource); 
@@ -53,6 +60,7 @@ parse(Bin) ->
 render_ejson(#occi_category{id=#occi_cid{class=kind}, location=Uri}=Kind) ->
     render_list([{term, occi_kind:get_term(Kind)}
 		 ,{scheme, occi_kind:get_scheme(Kind)}
+		 ,{class, kind}
 		 ,{title, occi_kind:get_title(Kind)}
 		 ,{parent, render_cid_uri(occi_kind:get_parent(Kind))}
 		 ,{attributes, render_attribute_specs(occi_kind:get_attributes(Kind))}
@@ -65,6 +73,7 @@ render_ejson(#occi_category{id=#occi_cid{class=kind}, location=Uri}=Kind) ->
 render_ejson(#occi_category{id=#occi_cid{class=mixin}, location=Uri}=Mixin) ->
     render_list([{term, occi_mixin:get_term(Mixin)}
 		 ,{scheme, occi_mixin:get_scheme(Mixin)}
+		 ,{class, mixin}
 		 ,{depends, lists:map(fun(Cid) -> render_cid_uri(Cid) end, 
 				      occi_mixin:get_depends(Mixin))}
 		 ,{applies, lists:map(fun(Cid) -> render_cid_uri(Cid) end, 
@@ -79,6 +88,7 @@ render_ejson(#occi_category{id=#occi_cid{class=mixin}, location=Uri}=Mixin) ->
 render_ejson(#occi_action{}=Action) ->
     render_list([{term, occi_action:get_term(Action)}
 		 ,{scheme, occi_action:get_scheme(Action)}
+		 ,{class, action}
 		 ,{title, occi_action:get_title(Action)}
 		 ,{attributes, render_attribute_specs(occi_action:get_attributes(Action))}
 		]);
