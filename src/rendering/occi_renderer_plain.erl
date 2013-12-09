@@ -38,9 +38,8 @@
 %%%===================================================================
 %%% API
 %%%===================================================================
-render(Category) when is_record(Category, occi_kind); 
-		      is_record(Category, occi_mixin);
-		      is_record(Category, occi_action_spec) ->
+render(Category) when is_record(Category, occi_category); 
+		      is_record(Category, occi_action) ->
     occi_renderer_text:render(Category, "\n\t");
 render(Categories) ->
     lists:map(fun(Cat) -> [<<"Category: ">>, render(Cat), "\n"] end, Categories).

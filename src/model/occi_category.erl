@@ -40,7 +40,10 @@
 	 get_title/1,
 	 set_title/2,
 	 add_attribute/2,
-	 set_types_check/2]).
+	 get_attributes/1,
+	 set_types_check/2,
+	 get_actions/1,
+	 add_action/2]).
 
 % specific implementations
 -export([impl_get_scheme/1,
@@ -48,13 +51,17 @@
 	 impl_get_title/1,
 	 impl_set_title/2,
 	 impl_add_attribute/2,
-	 impl_set_types_check/2]).
+	 impl_get_attributes/1,
+	 impl_set_types_check/2,
+	 impl_get_actions/1,
+	 impl_add_action/2]).
 
 -record(data, {super                :: term(),
 	       scheme,
 	       term,
 	       title                :: binary(),
-	       attributes           :: term()      % dict
+	       attributes           :: term(),      % dict
+	       actions    = []
 	      }).
 
 -define(super(X), X#data.obj).
@@ -90,32 +97,42 @@ new(Mods, Args) ->
 init(Scheme, Term) ->
     #data{scheme=Scheme, term=Term, attributes=dict:new()}.
 
-get_id(Ref) ->
-    #occi_cid{scheme=get_scheme(Ref),
-	      term=get_term(Ref),
-	      class=get_class(Ref)}.
+get_id(#occi_category{id=Id}) ->
+    Id.
 
-get_class(Ref) ->
-    occi_object:call(Ref, impl_get_class, []).
+get_class(O) ->
+    occi_object:call(O, impl_get_class, []).
 
-get_scheme(Ref) ->
-    occi_object:call(Ref, impl_get_scheme, []).
+get_scheme(O) ->
+    occi_object:call(O, impl_get_scheme, []).
 
-get_term(Ref)->
-    occi_object:call(Ref, impl_get_term, []).
+get_term(O)->
+    occi_object:call(O, impl_get_term, []).
 
-get_title(Ref) ->
-    occi_object:call(Ref, impl_get_title, []).
+get_title(O) ->
+    occi_object:call(O, impl_get_title, []).
 
-set_title(Ref, Title) ->
-    occi_object:call(Ref, impl_set_title, [Title]).
+set_title(O, Title) ->
+    occi_object:call(O, impl_set_title, [Title]).
 
-add_attribute(Ref, Attr) ->
-    occi_object:call(Ref, impl_add_attribute, [Attr]).
+add_attribute(O, Attr) ->
+    occi_object:call(O, impl_add_attribute, [Attr]).
 
-set_types_check(Ref, Types) ->
-    occi_object:call(Ref, impl_set_types_check, {Types}).
+get_attributes(O) ->
+    occi_object:call(O, impl_get_attributes, []).
 
+set_types_check(O, Types) ->
+    occi_object:call(O, impl_set_types_check, {Types}).
+
+get_actions(O) ->
+    occi_object:call(O, impl_get_actions, []).
+
+add_action(O, Action) ->
+    occi_object:call(O, impl_add_action, [Action]).
+
+%%
+%% Implementations
+%%
 impl_get_scheme(#data{scheme=Scheme}=Data) ->
     {{ok, Scheme}, Data}.
 
@@ -132,8 +149,17 @@ impl_add_attribute(#data{attributes=Attrs}=Data, A) ->
     Attrs2 = dict:store(occi_attribute:get_id(A), A, Attrs),
     {ok, Data#data{attributes=Attrs2}}.
 
+impl_get_attributes(#data{attributes=Attrs}=Data) ->
+    {{ok, Attrs}, Data}.
+
 impl_set_types_check(#data{}=Data, Types) ->
     Attrs = dict:map(fun (_Id, Attr) ->
 			     occi_attribute:set_check(Attr, Types)
 		     end, Data#data.attributes),
     {ok, Data#data{attributes=Attrs}}.
+
+impl_get_actions(#data{actions=Actions}=Data) ->
+    {{ok, Actions}, Data}.
+
+impl_add_action(#data{actions=Actions}=Data, Action) ->
+    {ok, Data#data{actions=[Action|Actions]}}.

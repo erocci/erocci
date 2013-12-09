@@ -26,7 +26,14 @@
 	 new/2, 
 	 init/4]).
 
--include("occi_entity.hrl").
+-include("occi.hrl").
+
+%% from occi_object
+-export([destroy/1,
+	 save/1]).
+
+%% from occi_entity
+-export([do/3]).
 
 -record(data, {category   :: reference(),
 	       mixins     :: [reference()],
@@ -46,3 +53,18 @@ init(CategoryRef, MixinRefs, Src, Target) ->
     #data{category=CategoryRef, 
 	  mixins=MixinRefs,
 	 data=#occi_link{source=Src, target=Target}}.
+
+%%
+%% from occi_object
+%%
+destroy(Ref) -> 
+    occi_category:destroy(Ref).
+
+save(Ref) -> 
+    occi_category:save(Ref).
+
+%%
+%% from occi_entity
+%%
+do(Ref, Action, Attributes) -> 
+    occi_entity:do(Ref, Action, Attributes).

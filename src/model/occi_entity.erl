@@ -22,13 +22,17 @@
 -module(occi_entity).
 -compile([{parse_transform, lager_transform}]).
 
+-include("occi.hrl").
+
+%% from occi_object
+-export([destroy/1,
+	 save/1]).
+
 %% OCCI entity methods
 -export([new/2,
 	 do/3,
 	 to_plain/1]).
 -export([impl_to_plain/1]).
-
--include("occi_object.hrl").
 
 %%%===================================================================
 %%% API
@@ -41,6 +45,19 @@ do(Ref, Action, Attributes) ->
 
 to_plain(Ref) ->
     occi_object:call(Ref, to_plain, []).
+
+%%
+%% from occi_object
+%%
+
+%%
+%% from occi_object
+%%
+destroy(Ref) -> 
+    occi_object:destroy(Ref).
+
+save(Ref) -> 
+    occi_object:save(Ref).
 
 %%%
 %%% Fallback functions

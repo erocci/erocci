@@ -82,19 +82,19 @@
 			</xs:simpleType>
 		</occi:attribute>
 		<occi:action
-			scheme="http://schemas.ogf.org/occi/infrastructrue/storage/action#"
+			scheme="http://schemas.ogf.org/occi/infrastructure/storage/action#"
 			term="online" />
 		<occi:action
-			scheme="http://schemas.ogf.org/occi/infrastructrue/storage/action#"
+			scheme="http://schemas.ogf.org/occi/infrastructure/storage/action#"
 			term="offline" />
 		<occi:action
-			scheme="http://schemas.ogf.org/occi/infrastructrue/storage/action#"
+			scheme="http://schemas.ogf.org/occi/infrastructure/storage/action#"
 			term="backup" />
 		<occi:action
-			scheme="http://schemas.ogf.org/occi/infrastructrue/storage/action#"
+			scheme="http://schemas.ogf.org/occi/infrastructure/storage/action#"
 			term="snapshot" />
 		<occi:action
-			scheme="http://schemas.ogf.org/occi/infrastructrue/storage/action#"
+			scheme="http://schemas.ogf.org/occi/infrastructure/storage/action#"
 			term="resize">
 			<occi:attribute name="size" type="xs:float"></occi:attribute>
 		</occi:action>

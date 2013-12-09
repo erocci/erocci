@@ -30,20 +30,16 @@
 
 %% API
 -export([start_link/0]).
--export([register_extension/1,
-	 register_category/1,
-	 get_entries/0,
-	 get_all/0]).
+-export([register_extension/2,
+	 register_category/3,
+	 register_action/1,
+	 get_categories/0,
+	 get_actions/0]).
 
 %% Supervisor callbacks
 -export([init/1, get_ref/1]).
 
 -define(SERVER, ?MODULE).
-
--record(category_entry, {id     :: #occi_cid{}, 
-			 ref    :: reference()}).
--type(category_entry() :: #category_entry{}).
--export_type([category_entry/0]).
 
 %%%===================================================================
 %%% API functions
@@ -59,36 +55,52 @@
 start_link() ->
     supervisor:start_link({local, ?SERVER}, ?MODULE, []).
 
-register_extension({xml, Path}) ->
+register_extension({xml, Path}, Mapping) ->
     case occi_parser_xml:load_extension(Path) of
 	{error, parse_error} ->
 	    {error, parse_error};
 	Ext ->
-	    lists:foreach(fun(Category) -> 
-				  register_category(Category)
+	    lists:foreach(fun(Cat) -> 
+				  Id = occi_category:get_id(Cat),
+				  case catch dict:find(Id, Mapping) of
+				      error ->
+					  lager:error("Unmapped category: ~s~s~n", [Id#occi_cid.scheme, 
+										    Id#occi_cid.term]),
+					  throw({unmapped_category, Id});
+				      {ok, Uri} -> 				  
+					  register_category(Id, Cat, Uri)
+				  end
 			  end,
 			  occi_extension:get_categories(Ext))
     end.
 
-register_category(Category) ->
-    Id = occi_category:get_id(Category),
-    lager:info("Registering category: ~s~s (~s)~n", 
-	       [Id#occi_cid.scheme, Id#occi_cid.term, Id#occi_cid.class  ]),
+register_category(Id, Cat, Uri) ->
+    Id = Cat#occi_category.id,
+    lager:info("Registering ~s: ~s~s -> ~s~n", 
+	       [ Id#occi_cid.class, Id#occi_cid.scheme, Id#occi_cid.term, Uri ]),
     mnesia:transaction(fun() ->
-			       Entry = #category_entry{id=Id, ref=Category},
-			       mnesia:write(Entry)
-		       end).
+			       mnesia:write(Cat#occi_category{location=Uri})
+		       end),
+    lists:foreach(fun(Action) ->
+			  register_action(Action)
+		  end,
+		  occi_category:get_actions(Cat)).
 
--spec get_entries() -> [category_entry()].
-get_entries() ->
-    mnesia:dirty_match_object(#category_entry{_ ='_'}).
+register_action(Action) ->
+    Id = Action#occi_action.id,
+    lager:info("Registering action: ~s~s~n", 
+	       [ Id#occi_cid.scheme, Id#occi_cid.term ]),
+    mnesia:transaction(fun() ->
+			       mnesia:write(Action)
+		       end).    
 
--spec get_all() -> [occi_category()].
-get_all() ->
-    Entries = mnesia:dirty_match_object(#category_entry{_ ='_'}),
-    lists:flatten([ [ occi_category:get_obj(Ref) |
-		      occi_category:get_attr(Ref, actions) ]
-		    || #category_entry{ref=Ref} <- Entries ]).
+-spec get_categories() -> [occi_category()].
+get_categories() ->
+    mnesia:dirty_match_object(#occi_category{_ ='_'}).
+
+-spec get_actions() -> [occi_action()].
+get_actions() ->
+    mnesia:dirty_match_object(#occi_action{_ ='_'}).
 
 -spec get_ref(occi_cid()) -> reference().
 get_ref(#occi_cid{}=Id) ->
@@ -96,7 +108,7 @@ get_ref(#occi_cid{}=Id) ->
 	[] ->
 	    undefined;
 	[Entry] ->
-	    Entry#category_entry.ref
+	    Entry#occi_category.ref
     end.
 
 %%%===================================================================
@@ -118,10 +130,13 @@ get_ref(#occi_cid{}=Id) ->
 %%--------------------------------------------------------------------
 init([]) ->
     lager:info("Starting OCCI categories manager"),
-    mnesia:create_table(category_entry,
+    mnesia:create_table(occi_category,
 			[{ram_copies, [node()]},
-			 {attributes, record_info(fields, category_entry)}]),
-    mnesia:wait_for_tables([tbl_category], 
+			 {attributes, record_info(fields, occi_category)}]),
+    mnesia:create_table(occi_action,
+			[{ram_copies, [node()]},
+			 {attributes, record_info(fields, occi_action)}]),
+    mnesia:wait_for_tables([category_entry, action_entry], 
 			   infinite),
     {ok, {{one_for_one, 10, 10}, []}}.
 

@@ -136,7 +136,8 @@ stop_parser(Ref) ->
 %%%===================================================================
 init([]) ->
     XmlParser = exmpp_xml:start_parser(?PARSER_OPTIONS),
-    {ok, init, #state{parser=XmlParser, stack=[init]}}.
+    {ok, init, #state{parser=XmlParser, 
+		      stack=[init]}}.
 
 -define(occi_ns, 'http://schemas.ogf.org/occi').
 -define(xmlschema_ns, 'http://www.w3.org/2001/XMLSchema').
@@ -271,8 +272,8 @@ mixin(E=?action, _From, State) ->
 	    push(action_spec, State#state{action=Action})
     end;
 mixin(_E=?mixinEnd, _From, #state{extension=Ext, mixin=Mixin}=State) ->
-    occi_extension:add_mixin(Ext, Mixin),
-    pop(State#state{mixin=undefined});
+    pop(State#state{mixin=undefined,
+		   extension=occi_extension:add_mixin(Ext, Mixin)});
 mixin(#xmlcdata{}, _From, State) ->
     {reply, ok, mixin, State};
 mixin(E, _From, State) ->
@@ -481,8 +482,8 @@ make_attribute(E, State) ->
     occi_attribute:set_type_id(Attr, Type).
 
 make_action(E, _State) ->
-    Scheme = get_attr_value(E, <<"scheme">>),
-    Term = get_attr_value(E, <<"term">>),
+    Scheme = to_atom(get_attr_value(E, <<"scheme">>)),
+    Term = to_atom(get_attr_value(E, <<"term">>)),
     lager:debug("Load action spec: ~s~s~n", [Scheme, Term]),
     Action = occi_action:new({Scheme, Term}),
     Title = get_attr_value(E, <<"title">>, undefined),

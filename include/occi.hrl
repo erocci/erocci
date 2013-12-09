@@ -17,6 +17,22 @@
 			}).
 -type(occi_extension() :: #occi_extension{}).
 
+%%% OCCI Category ID
+-record(occi_cid, {scheme    = undefined :: atom() | uri(),
+		   term      = undefined :: atom(),
+		   class                 :: occi_class()}).
+-type(occi_cid() :: #occi_cid{}).
+
+-record(occi_category, {ref      :: reference(),
+			id       :: #occi_cid{},
+			location :: uri()}).
+-type(occi_category() :: #occi_category{}).
+
+-record(occi_action, {ref      :: reference(),
+		      id       :: #occi_cid{},
+		      location :: uri()}).
+-type(occi_action() :: #occi_action{}).
+
 %%% OCCI simple types
 -record(occi_type, {id           :: occi_type_id(),
 		    f            :: fun()}).
@@ -31,40 +47,6 @@
 		    properties                   :: [term()],
 		    value           = undefined  :: any()}).
 -type(occi_attr() :: #occi_attr{}).
-
-%%% OCCI Category ID
--record(occi_cid, {scheme    = undefined :: atom() | uri(),
-		   term      = undefined :: atom(),
-		   class                 :: occi_class()}).
--type(occi_cid() :: #occi_cid{}).
-
-%%% OCCI Kind
--record(occi_kind, {id         = #occi_cid{}  :: occi_cid(),
-		    title      = undefined    :: binary(),
-		    attributes = []           :: [occi_attr()],
-		    rel        = []           :: occi_cid(),
-		    actions    = []           :: [occi_action_spec()],
-		    location                  :: uri()}).
--type(occi_kind() :: #occi_kind{}).
-%%% OCCI Mixin
-
--record(occi_mixin, {id         = #occi_cid{}  :: occi_cid(),
-		     title      = undefined    :: binary(),
-		     depends    = []           :: [occi_cid()],
-		     applies    = []           :: [occi_cid()],
-		     attributes = []           :: [occi_attr()],
-		     actions    = []           :: [occi_action_spec()],
-		     location                  :: uri()}).
--type(occi_mixin() :: #occi_mixin{}).
-
-%%% OCCI Action Spec
--record(occi_action_spec, {id         = #occi_cid{}  :: occi_cid(),
-			   title      = undefined    :: binary(),
-			   attributes = []           :: [occi_attr()]}).
--type(occi_action_spec() :: #occi_action_spec{}).
-
-%%% OCCI Category
--type(occi_category() :: occi_kind() | occi_mixin() | occi_action()).
 
 %%% OCCI Resource
 -record(occi_resource, {id         = undefined :: uri(),
@@ -85,11 +67,6 @@
 		    target                 :: uri(),
 		    mixins     = []        :: [occi_cid()]}).
 -type(occi_link() :: #occi_link{}).
-
-%%% OCCI Action
--record(occi_action, {id         = #occi_cid{}  :: occi_cid(),
-		      attributes = []           :: [{atom(), any()}]}).
--type(occi_action() :: #occi_action{}).
 
 %%% OCCI Entity
 -type(occi_entity() :: #occi_resource{} | #occi_link{}).

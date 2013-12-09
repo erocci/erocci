@@ -47,23 +47,24 @@ content_types_provided(Req, Ctx) ->
      Req, Ctx}.
 
 to_plain(Req, Ctx) ->
-    Categories = occi_category_mgr:get_all(),
-    Body = occi_renderer_plain:render(Categories),
+    Categories = occi_category_mgr:get_categories(),
+    Actions = occi_category_mgr:get_actions(),
+    Body = occi_renderer_plain:render(lists:flatten([Categories|Actions])),
     {Body, Req, Ctx}.
 
 to_occi(Req, Ctx) ->
-    Categories = occi_category_mgr:get_all(),
+    Categories = occi_category_mgr:get_categories(),
     Req2 = cowboy_req:set_resp_header(<<"Category">>, occi_renderer_occi:render(Categories), Req),
     Body = <<"OK\n">>,
     {Body, Req2, Ctx}.
 
 to_uri_list(Req, Ctx) ->
-    Categories = occi_category_mgr:get_all(),
+    Categories = occi_category_mgr:get_categories(),
     Body = [occi_renderer_uri_list:render(Categories), "\n"],
     {Body, Req, Ctx}.
 
 to_json(Req, Ctx) ->
-    Categories = occi_category_mgr:get_all(),
+    Categories = occi_category_mgr:get_categories(),
     Body = [occi_renderer_json:render(Categories), "\n"],
     {Body, Req, Ctx}.
 

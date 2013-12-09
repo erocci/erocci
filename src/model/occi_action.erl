@@ -22,6 +22,8 @@
 -module(occi_action).
 -compile([{parse_transform, lager_transform}]).
 
+-include("occi.hrl").
+
 %% from occi_object
 -export([destroy/1,
 	 save/1]).
@@ -34,11 +36,11 @@
 	 get_title/1,
 	 set_title/2,
 	 add_attribute/2,
+	 get_attributes/1,
 	 set_types_check/2]).
 
 %% specific
 -export([new/1,
-	 new/2,
 	 init/2]).
 
 -export([impl_get_class/1]).
@@ -48,47 +50,48 @@
 %%
 %% from occi_object
 %%
-destroy(Ref) -> 
-    occi_category:destroy(Ref).
+destroy(O) -> 
+    occi_category:destroy(O).
 
-save(Ref) -> 
-    occi_category:save(Ref).
+save(O) -> 
+    occi_category:save(O).
 
 %%
 %% from occi_category
 %%
-get_id(Ref) -> 
-    occi_category:get_id(Ref).
+get_id(#occi_action{id=Id}) -> 
+    Id.
 
-get_class(Ref) -> 
-    occi_category:get_class(Ref).
+get_class(O) -> 
+    occi_category:get_class(O).
 
-get_scheme(Ref) -> 
-    occi_category:get_scheme(Ref).
+get_scheme(O) -> 
+    occi_category:get_scheme(O).
 
-get_term(Ref) -> 
-    occi_category:get_term(Ref).
+get_term(O) -> 
+    occi_category:get_term(O).
 
-get_title(Ref) -> 
-    occi_category:get_title(Ref).
+get_title(O) -> 
+    occi_category:get_title(O).
 
-set_title(Ref, Title) -> 
-    occi_category:set_title(Ref, Title).
+set_title(O, Title) -> 
+    occi_category:set_title(O, Title).
 
-add_attribute(Ref, A) -> 
-    occi_category:add_attribute(Ref, A).
+add_attribute(O, A) -> 
+    occi_category:add_attribute(O, A).
 
-set_types_check(Ref, Types) -> 
-    occi_category:set_types_check(Ref, Types).
+get_attributes(O) ->
+    occi_category:get_attributes(O).
+
+set_types_check(O, Types) -> 
+    occi_category:set_types_check(O, Types).
 
 %%
 %% specific
 %%
 new({Scheme, Term}) ->
-    new([], {Scheme, Term}).
-
-new(Mods, {Scheme, Term}) ->
-    occi_category:new(lists:reverse([?MODULE|Mods]), {Scheme, Term}).
+    Ref = occi_category:new([?MODULE], {Scheme, Term}),
+    #occi_action{id=#occi_cid{scheme=Scheme, term=Term, class=action}, ref=Ref}.
 
 init(Scheme, Term) ->
     Cat = occi_category:init(Scheme, Term),

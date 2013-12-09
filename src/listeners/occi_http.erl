@@ -113,12 +113,13 @@ init() ->
 			 {attributes, record_info(fields, route)}]),
     mnesia:wait_for_tables([route],
 			   infinite),
-    Entries = occi_category_mgr:get_entries(),
+    Entries = occi_category_mgr:get_categories(),
     mnesia:transaction(fun () ->
-			       lists:foreach(fun ({category_entry, Id, Ref, Uri}) -> 
-						     Route = #route{path=occi_types:join_path([<<"">>|Uri]),
+			       lists:foreach(fun (#occi_category{}=Entry) -> 
+						     Route = #route{path=Entry#occi_category.location,
 								    handler=occi_http_collection,
-								    opts={Id, Ref}},
+								    opts={Entry#occi_category.id, 
+									  Entry#occi_category.ref}},
 						     mnesia:write(Route)
 					     end, Entries)
 		       end).

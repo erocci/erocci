@@ -50,6 +50,7 @@
 -define(callArgs(Req), element(2, Req)).
 -define(superData(Data), element(2, Data)).
 -define(setSuperData(Data, Val), setelement(2, Data, Val)).
+-define(objRef(X), element(2, X)).
 
 %%%
 %%% API
@@ -61,9 +62,10 @@ new(Mods, Args) ->
 	{error, Error} -> {error, Error}
     end.
 
-call(Ref, Name, Args) ->
+call(Obj, Name, Args) ->
+    Ref = ?objRef(Obj),
     case gen_server:call(Ref, {Name, Args}) of
-	ok -> Ref;
+	ok -> Obj;
 	{ok, Reply} -> Reply;
 	{error, Err} -> throw({error, Err})
     end.
@@ -203,7 +205,6 @@ call_impl([], Data, Name, Args, Arity) ->
 	    impl_abstract(Data)
     end;
 call_impl([Mod|Tail], Data, Name, Args, Arity) ->
-    lager:debug("Call ~p:~p/~p~n", [Mod, Name, Arity]),
     case erlang:function_exported(Mod, Name, Arity) of
 	true ->
 	    apply(Mod, Name, [Data | Args]);

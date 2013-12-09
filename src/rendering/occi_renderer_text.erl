@@ -32,30 +32,36 @@
 %%%===================================================================
 %%% API
 %%%===================================================================
-render(#occi_kind{}=Kind, Sep) ->
+render(#occi_category{id=#occi_cid{class=kind}=Id, location=Uri}=Kind, Sep) ->
     occi_renderer:join(
-      occi_renderer:join([render_cid(Kind#occi_kind.id, Sep),
-			  render_kv(<<"title">>, [Kind#occi_kind.title]),
-			  render_kv(<<"rel">>, render_cid_uri(Kind#occi_kind.rel)),
-			  render_kv(<<"attributes">>, lists:map(fun(X) -> render_attr_spec(X) end, Kind#occi_kind.attributes)),
-			  render_kv(<<"actions">>, lists:map(fun(X) -> render_action_spec(X) end, Kind#occi_kind.actions)),
-			  render_kv(<<"location">>, render_uri(Kind#occi_kind.location))],
+      occi_renderer:join([render_cid(Id, Sep),
+			  render_kv(<<"title">>, [occi_kind:get_title(Kind)]),
+			  render_kv(<<"rel">>, render_cid_uri(occi_kind:get_parent(Kind))),
+			  render_kv(<<"attributes">>, render_attr_specs(occi_kind:get_attributes(Kind))),
+			  render_kv(<<"actions">>, lists:map(fun(X) -> 
+								     render_action_spec(X) 
+							     end,
+							     occi_kind:get_actions(Kind))),
+			  render_kv(<<"location">>, Uri)],
 			 <<"; ">>),
       Sep);
-render(#occi_mixin{}=Mixin, Sep) ->
+render(#occi_category{id=#occi_cid{class=mixin}=Id, location=Uri}=Mixin, Sep) ->
     occi_renderer:join(
-      occi_renderer:join([render_cid(Mixin#occi_mixin.id, Sep),
-			  render_kv(<<"title">>, [Mixin#occi_mixin.title]),
-			  render_kv(<<"attributes">>, lists:map(fun(X) -> render_attr_spec(X) end, Mixin#occi_mixin.attributes)),
-			  render_kv(<<"actions">>, lists:map(fun(X) -> render_action_spec(X) end, Mixin#occi_mixin.actions)),
-			  render_kv(<<"location">>, render_uri(Mixin#occi_mixin.location))], 
+      occi_renderer:join([render_cid(Id, Sep),
+			  render_kv(<<"title">>, [occi_mixin:get_title(Mixin)]),
+			  render_kv(<<"attributes">>, render_attr_specs(occi_mixin:get_attributes(Mixin))),
+			  render_kv(<<"actions">>, lists:map(fun(X) -> 
+								     render_action_spec(X)
+							     end,
+							     occi_mixin:get_actions(Mixin))),
+			  render_kv(<<"location">>, Uri)], 
 			 <<"; ">>),
       Sep);
-render(#occi_action_spec{}=Action, Sep) ->
+render(#occi_action{id=Id}=Action, Sep) ->
     occi_renderer:join(
-      occi_renderer:join([render_cid(Action#occi_action_spec.id, Sep),
-			  render_kv(<<"title">>, [Action#occi_action_spec.title]),
-			  render_kv(<<"attributes">>, lists:map(fun(X) -> render_attr_spec(X) end, Action#occi_action_spec.attributes))],
+      occi_renderer:join([render_cid(Id, Sep),
+			  render_kv(<<"title">>, [occi_action:get_title(Action)]),
+			  render_kv(<<"attributes">>, render_attr_specs(occi_action:get_attributes(Action)))],
 			 <<"; ">>),
       Sep);
 
@@ -75,33 +81,36 @@ render_cid(#occi_cid{}=Cid, Sep) ->
 render_cid_uri(#occi_cid{}=Cid) ->
     [ atom_to_list(Cid#occi_cid.scheme), atom_to_list(Cid#occi_cid.term) ].
 
+render_attr_specs(Attrs) ->
+    lists:map(fun(Key) -> 
+		      render_attr_spec(dict:fetch(Key, Attrs))
+	      end, 
+	      dict:fetch_keys(Attrs)).
+
 render_attr_spec(#occi_attr{}=Attr) ->
-    Ret = atom_to_list(Attr#occi_attr.id),
-    case render_attr_properties(Attr#occi_attr.properties) of
+    Ret = occi_attribute:get_id(Attr),
+    case render_attr_properties(Attr) of
 	[] -> Ret;
 	L -> [ Ret, L ]
     end.
 
-render_attr_properties(undefined) ->
-    [];
-render_attr_properties(Properties) ->
-    case lists:foldl(fun(required, Acc) ->
-			      [atom_to_list(required) | Acc];
-			 (immutable, Acc) ->
-			      [atom_to_list(immutable) | Acc];
-			 (_, Acc) ->
-			      Acc
-		      end, [], Properties) of
+render_attr_properties(#occi_attr{}=A) ->
+    L = case occi_attribute:is_required(A) of
+	    true -> ["required"];		
+	    false -> []
+	end,
+    L1 = lists:append(L, case occi_attribute:is_immutable(A) of
+			     true -> ["immutable"];
+			     false -> []
+			 end),
+    case L1 of
 	[] -> [];
-	L ->
-	    [ <<"{">>, occi_renderer:join(L, <<",">>), <<"}">>]
+	L2 ->
+	    [ <<"{">>, occi_renderer:join(L2, <<",">>), <<"}">>]
     end.
 
-render_action_spec(#occi_action_spec{}=Action) ->
-    render_cid_uri(Action#occi_action_spec.id).
-
-render_uri(Uri) ->
-    occi_types:join_path([<<"">>|Uri]).
+render_action_spec(#occi_action{}=Action) ->
+    render_cid_uri(occi_action:get_id(Action)).
 
 render_kv(_Key, undefined) ->
     [];

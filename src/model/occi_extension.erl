@@ -49,8 +49,8 @@ get_name(#occi_extension{name=Name}) ->
 get_version(#occi_extension{version=Version}) ->
     Version.
 
-get_categories(#occi_extension{}=Ext) ->
-    lists:flatten([get_kinds(Ext), get_mixins(Ext), get_actions(Ext)]).
+get_categories(#occi_extension{kinds=Kinds, mixins=Mixins}) ->
+    lists:flatten([Kinds, Mixins]).
 
 get_kinds(#occi_extension{kinds=Kinds}) ->
     Kinds.

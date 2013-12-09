@@ -22,12 +22,21 @@
 -module(occi_resource).
 -compile([{parse_transform, lager_transform}]).
 
+-include("occi.hrl").
+
 -export([new/1,
 	 new/2,
 	 init/2]).
--export([impl_get_attr/2]).
 
--include("occi_entity.hrl").
+%% from occi_object
+-export([destroy/1,
+	 save/1]).
+
+%% from occi_entity
+-export([do/3]).
+
+%% specific implementations
+-export([impl_get_attr/2]).
 
 -record(data, {category                 :: reference(),
 	       mixins     = []          :: [reference()],
@@ -49,6 +58,21 @@ init(CategoryRef, MixinRefs) ->
 				      [occi_category:get_attr_specs(Ref, attributes)|Acc]
 			      end, Attributes, MixinRefs),
     #data{category=CategoryRef, mixins=MixinRefs, attributes=dict:from_list(Attributes2)}.
+
+%%
+%% from occi_object
+%%
+destroy(Ref) -> 
+    occi_category:destroy(Ref).
+
+save(Ref) -> 
+    occi_category:save(Ref).
+
+%%
+%% from occi_entity
+%%
+do(Ref, Action, Attributes) -> 
+    occi_entity:do(Ref, Action, Attributes).
 
 impl_get_attr(#data{}=Data, Name) ->
     case dict:find(Name, Data#data.attributes) of

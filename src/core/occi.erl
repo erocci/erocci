@@ -25,7 +25,7 @@
 -export([start/0, stop/0]).
 % External API (simple wrappers)
 -export([register_backend/2, 
-	 register_extension/1,
+	 register_extension/2,
 	 register_listener/2]).
 
 %% @spec start() -> ok
@@ -46,5 +46,5 @@ register_backend(Backend, Path) ->
 register_listener(Listener, Args) ->
     occi_listener:register(Listener, Args).
 
-register_extension(Extension) ->
-    occi_category_mgr:register_extension(Extension).
+register_extension(Extension, Mapping) ->
+    occi_category_mgr:register_extension(Extension, Mapping).

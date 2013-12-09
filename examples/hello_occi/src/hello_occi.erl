@@ -11,6 +11,9 @@
 -include_lib("occi.hrl").
 
 -define(BASE, <<"http://localhost:8080">>).
+-define(SCHEME_INFRA, 'http://schemas.ogf.org/occi/infrastructure#').
+-define(SCHEME_NET, 'http://schemas.ogf.org/occi/infrastructure/network#').
+-define(SCHEME_NET_IF, 'http://schemas.ogf.org/occi/infrastructure/networkinterface#').
 
 -export([start/0, stop/0, loop/0]).
 %% Hooks
@@ -18,7 +21,18 @@
 
 start() ->
     application:start(occi),
-    occi:register_extension({xml, "priv/schemas/occi-infrastructure.xml"}),
+    Mapping = dict:from_list([
+			      {#occi_cid{scheme=?SCHEME_INFRA, term='compute', class=kind}, <<"/compute/">>},
+			      {#occi_cid{scheme=?SCHEME_INFRA, term='storage', class=kind}, <<"/storage/">>},
+			      {#occi_cid{scheme=?SCHEME_INFRA, term='storagelink', class=kind}, <<"/storagelink/">>},
+			      {#occi_cid{scheme=?SCHEME_INFRA, term='network', class=kind}, <<"/network/">>},
+			      {#occi_cid{scheme=?SCHEME_INFRA, term='networkinterface', class=kind}, <<"/networkinterface/">>},
+			      {#occi_cid{scheme=?SCHEME_NET, term='ipnetwork', class=mixin}, <<"/ipnetwork/">>},
+			      {#occi_cid{scheme=?SCHEME_NET_IF, term='ipnetworkinterface', class=mixin}, <<"/ipnetworkinterface/">>},
+			      {#occi_cid{scheme=?SCHEME_INFRA, term='os_tpl', class=mixin}, <<"/os_tpl/">>},
+			      {#occi_cid{scheme=?SCHEME_INFRA, term='resource_tpl', class=mixin}, <<"/resource_tpl/">>}
+			     ]),
+    occi:register_extension({xml, "priv/schemas/occi-infrastructure.xml"}, Mapping),
     %% occi:register_backend({riak, occi_backend_riak, 
     %% 			   [{ip, "127.0.0.1"}, {port, 8087}]},
     %% 			  <<"/">>), 
@@ -31,7 +45,7 @@ start() ->
     %% occi:register_category({mod, occi_infra_compute}, <<"/compute/">>, Hooks),
     %% occi:register_category({mod, occi_infra_network}, <<"/network/">>, Hooks),
     %% occi:register_category({mod, occi_infra_ipnetworking}, <<"/ipnetworking/">>, Hooks),
-    %%occi:register_listener(occi_http, [{port, 8080}]),
+    occi:register_listener(occi_http, [{port, 8080}]),
     register(?MODULE, self()),
     erlang:hibernate(?MODULE, loop, []).
 
@@ -62,6 +76,6 @@ on_update(_Old, New) ->
 on_delete(Obj) ->
     {reply, Obj}.
 
--spec on_action(occi_entity(), occi_action()) -> {reply, occi_entity()} | reply.
+-spec on_action(occi_entity(), any()) -> {reply, occi_entity()} | reply.
 on_action(Obj, _Action) ->
     {reply, Obj}.
