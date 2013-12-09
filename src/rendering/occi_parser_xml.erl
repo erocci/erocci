@@ -465,13 +465,17 @@ make_kind(E, #state{extension=Ext}) ->
     Scheme = to_atom(get_attr_value(E, <<"scheme">>, Ext#occi_extension.scheme)),
     Term = to_atom(get_attr_value(E, <<"term">>)),
     lager:info("Load kind: ~s~s~n", [Scheme, Term]),
-    occi_kind:new({Scheme, Term}).
+    Kind = occi_kind:new({Scheme, Term}),
+    Title = get_attr_value(E, <<"title">>, undefined),
+    occi_kind:set_title(Kind, Title).
 
 make_mixin(E, #state{extension=Ext}) ->
     Scheme = to_atom(get_attr_value(E, <<"scheme">>, Ext#occi_extension.scheme)),
     Term = to_atom(get_attr_value(E, <<"term">>)),
     lager:info("Load mixin: ~s~s~n", [Scheme, Term]),
-    occi_mixin:new({Scheme, Term}).
+    Mixin = occi_mixin:new({Scheme, Term}),
+    Title = get_attr_value(E, <<"title">>, undefined),
+    occi_mixin:set_title(Mixin, Title).
 
 make_attribute(E, State) ->
     Name = get_attr_value(E, <<"name">>),
@@ -479,7 +483,9 @@ make_attribute(E, State) ->
 			 State),
     lager:debug("Load attribute spec: ~s~n", [Name]),
     Attr = occi_attribute:new(Name),
-    occi_attribute:set_type_id(Attr, Type).
+    Attr2 = occi_attribute:set_type_id(Attr, Type),
+    Title = get_attr_value(E, <<"title">>, undefined),
+    occi_attribute:set_title(Attr2, Title).
 
 make_action(E, _State) ->
     Scheme = to_atom(get_attr_value(E, <<"scheme">>)),
@@ -487,8 +493,7 @@ make_action(E, _State) ->
     lager:debug("Load action spec: ~s~s~n", [Scheme, Term]),
     Action = occi_action:new({Scheme, Term}),
     Title = get_attr_value(E, <<"title">>, undefined),
-    occi_action:set_title(Action, Title),
-    Action.
+    occi_action:set_title(Action, Title).
 
 make_related(E, _State) ->
     {to_atom(get_attr_value(E, <<"scheme">>)),

@@ -8,13 +8,19 @@
 		title="Compute Resource">
 		<occi:parent scheme="http://schemas.ogf.org/occi/core#"
 			term="resource" />
-		<occi:attribute name="occi.compute.architecture" type="occi:arch" />
-		<occi:attribute name="occi.compute.cores" type="xs:integer"></occi:attribute>
-		<occi:attribute name="occi.compute.hostname" type="xs:string"></occi:attribute>
-		<occi:attribute name="occi.compute.speed" type="xs:float"></occi:attribute>
-		<occi:attribute name="occi.compute.memory" type="xs:float"></occi:attribute>
+		<occi:attribute name="occi.compute.architecture" type="occi:arch"
+				title="CPU Architecture" />
+		<occi:attribute name="occi.compute.cores" type="xs:integer"
+				title="CPU cores number" ></occi:attribute>
+		<occi:attribute name="occi.compute.hostname" type="xs:string"
+				title="System hostname" ></occi:attribute>
+		<occi:attribute name="occi.compute.speed" type="xs:float"
+				title="CPU speed (GHz)" ></occi:attribute>
+		<occi:attribute name="occi.compute.memory" type="xs:float"
+				title="System RAM (GB)" ></occi:attribute>
 		<occi:attribute name="occi.compute.state" use="required"
-			default="inactive" immutable="true">
+				default="inactive" immutable="true"
+				title="System state" >
 			<xs:simpleType>
 				<xs:restriction base="xs:string">
 					<xs:enumeration value="active"></xs:enumeration>
@@ -24,9 +30,11 @@
 			</xs:simpleType>
 		</occi:attribute>
 		<occi:action term="start"
-			scheme="http://schemas.ogf.org/occi/infrastructure/compute/action#"></occi:action>
+			     scheme="http://schemas.ogf.org/occi/infrastructure/compute/action#"
+			     title="Start the system" ></occi:action>
 		<occi:action term="stop"
-			scheme="http://schemas.ogf.org/occi/infrastructure/compute/action#">
+			     scheme="http://schemas.ogf.org/occi/infrastructure/compute/action#"
+			     title="Stop the system (graceful, acpioff or poweroff)" >
 			<occi:attribute name="method">
 				<xs:simpleType>
 					<xs:restriction base="xs:string">
@@ -38,7 +46,8 @@
 			</occi:attribute>
 		</occi:action>
 		<occi:action term="restart"
-			scheme="http://schemas.ogf.org/occi/infrastructure/compute/action#">
+			     scheme="http://schemas.ogf.org/occi/infrastructure/compute/action#"
+			     title="Restart the system (graceful, warm or cold)" >
 			<occi:attribute name="method">
 				<xs:simpleType>
 					<xs:restriction base="xs:string">
@@ -50,7 +59,8 @@
 			</occi:attribute>
 		</occi:action>
 		<occi:action term="suspend"
-			scheme="http://schemas.ogf.org/occi/infrastructure/compute/action#">
+			     scheme="http://schemas.ogf.org/occi/infrastructure/compute/action#"
+			     title="Suspend the system (hibernate or in RAM)" >
 			<occi:attribute name="method">
 				<xs:simpleType>
 					<xs:restriction base="xs:string">
@@ -64,12 +74,14 @@
 
 	<!-- Storage Resource -->
 	<occi:kind scheme="http://schemas.ogf.org/occi/infrastructure#"
-		term="storage" title="Storage Resource">
+		   term="storage" title="Storage Resource">
 		<occi:parent scheme="http://schemas.ogf.org/occi/core#"
 			term="resource" />
 		<occi:attribute name="occi.storage.size" type="xs:float"
-			use="required"></occi:attribute>
-		<occi:attribute name="occi.storage.state" use="required">
+				use="required"
+				title="Storage size" ></occi:attribute>
+		<occi:attribute name="occi.storage.state" use="required"
+				title="Storage state" >
 			<xs:simpleType>
 				<xs:restriction base="xs:string">
 					<xs:enumeration value="online" />
@@ -83,19 +95,19 @@
 		</occi:attribute>
 		<occi:action
 			scheme="http://schemas.ogf.org/occi/infrastructure/storage/action#"
-			term="online" />
+			term="online" title="Set storage online" />
 		<occi:action
 			scheme="http://schemas.ogf.org/occi/infrastructure/storage/action#"
-			term="offline" />
+			term="offline" title="Set storage offline" />
 		<occi:action
 			scheme="http://schemas.ogf.org/occi/infrastructure/storage/action#"
-			term="backup" />
+			term="backup" title="Set storage as backup" />
 		<occi:action
 			scheme="http://schemas.ogf.org/occi/infrastructure/storage/action#"
-			term="snapshot" />
+			term="snapshot" title="Take storage snapshot" />
 		<occi:action
 			scheme="http://schemas.ogf.org/occi/infrastructure/storage/action#"
-			term="resize">
+			term="resize" title="Resize storage" >
 			<occi:attribute name="size" type="xs:float"></occi:attribute>
 		</occi:action>
 	</occi:kind>
@@ -106,7 +118,7 @@
 		<occi:parent scheme="http://schemas.ogf.org/occi/core#"
 			term="link" />
 		<occi:attribute name="occi.storagelink.deviceid" use="required"
-			type="xs:string"></occi:attribute>
+			type="xs:string" ></occi:attribute>
 		<occi:attribute name="occi.storagelink.mountpoint"
 			type="xs:string"></occi:attribute>
 		<occi:attribute name="occi.storagelink.state" use="required"
@@ -144,9 +156,9 @@
 			</xs:simpleType>
 		</occi:attribute>
 		<occi:action scheme="http://schemas.ogf.org/occi/infrastructure/action#"
-			term="up" />
+			term="up" title="Set network up" />
 		<occi:action scheme="http://schemas.ogf.org/occi/infrastructure/action#"
-			term="down" />
+			term="down" title="Set network down" />
 	</occi:kind>
 
 	<!-- NetworkInterface Link -->

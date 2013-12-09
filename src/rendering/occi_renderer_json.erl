@@ -139,6 +139,7 @@ render_attribute_specs(Attributes) ->
 render_attribute_spec(Key, Attr) ->
     L = [
 	 {mutable, not occi_attribute:is_immutable(Attr)},
+	 {title, occi_attribute:get_title(Attr)},
 	 {required, occi_attribute:is_required(Attr)},
 	 {type, occi_attribute:get_type_id(Attr)},
 	 {default, occi_attribute:get_default(Attr)}

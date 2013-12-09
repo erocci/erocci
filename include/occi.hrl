@@ -42,6 +42,7 @@
 %%% OCCI Attribute description
 -record(occi_attr, {id                           :: atom(),
 		    type_id                      :: occi_type_id(),
+		    title           = undefined  :: binary(),
 		    check                        :: fun(),
 		    scalar          = true       :: boolean(),
 		    properties                   :: [term()],

@@ -39,7 +39,9 @@
 	 set_check/2,
 	 set_value/2,
 	 add_value/2,
-	 get_value/1]).
+	 get_value/1,
+	 set_title/2,
+	 get_title/1]).
 
 -define(attr_default, [{immutable, false},
 		       {minOccurs, 0},
@@ -118,7 +120,13 @@ add_value(#occi_attr{properties=Props, check=Fun, value=List}=A, Value) ->
 	    A#occi_attr{value=[Fun(Value)|List]};
 	_ ->
 	    throw({error, bad_arity})
-    end.	    
+    end.
+
+set_title(A, Title) ->
+    A#occi_attr{title=Title}.
+
+get_title(A) ->
+    A#occi_attr.title.
 
 %%%
 %%% Private functions
