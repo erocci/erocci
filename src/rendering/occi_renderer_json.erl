@@ -28,7 +28,7 @@
 -include("occi.hrl").
 
 -export([render_query/1]).
--export([render/1, parse/1]).
+-export([render/1]).
 
 %%%
 %%% API
@@ -50,9 +50,6 @@ render(List) when is_list(List) ->
     jiffy:encode(lists:map(fun(Obj) -> 
 				   render_ejson(Obj) 
 			   end, List)).
-
-parse(Bin) ->
-    jiffy:decode(Bin).
 
 %%%
 %%% Private

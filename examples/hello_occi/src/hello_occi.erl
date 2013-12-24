@@ -32,10 +32,10 @@ start() ->
 			      {#occi_cid{scheme=?SCHEME_INFRA, term='os_tpl', class=mixin}, <<"/os_tpl/">>},
 			      {#occi_cid{scheme=?SCHEME_INFRA, term='resource_tpl', class=mixin}, <<"/resource_tpl/">>}
 			     ]),
-    occi:register_extension({xml, "priv/schemas/occi-infrastructure.xml"}, Mapping),
-    %% occi:register_backend({riak, occi_backend_riak, 
-    %% 			   [{ip, "127.0.0.1"}, {port, 8087}]},
-    %% 			  <<"/">>), 
+    occi:register_extension({xml, "schemas/occi-infrastructure.xml"}, Mapping),
+    occi:register_backend({riak, occi_backend_riak, 
+			   [{ip, "127.0.0.1"}, {port, 8087}]},
+			  <<"/">>), 
     %% Hooks = [
     %% 	     {on_save, {?MODULE, on_save}},
     %% 	     {on_update, {?MODULE, on_update}},

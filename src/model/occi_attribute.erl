@@ -132,36 +132,40 @@ get_title(A) ->
 %%% Private functions
 %%%
 get_check_fun(string, _) ->
-    fun (X) ->
-	    case is_list(X) of
-		true -> X;
-		false -> throw({error, einval})
-	    end
+    fun (X) when is_list(X) ->
+	    true;
+	(X) ->
+	    throw({error, {einval, X}})
     end;
+
 get_check_fun(integer, _) ->
-    fun (X) ->
-	    case is_integer(X) of
-		true -> X;
-		false ->
-		    case catch string:to_integer(X) of
-			{I, []} -> I;
-			{I, _} when is_integer(I) -> throw({error, einval});
-			{error, no_integer} -> throw({error, einval})
-		    end
-	    end
+    fun (X) when is_integer(X) ->
+	    X;
+	(X) when is_list(X) ->
+	    case catch string:to_integer(X) of
+		{I, []} -> I;
+		{I, _} when is_integer(I) -> throw({error, einval});
+		{error, no_integer} -> throw({error, einval})
+	    end;
+	(X) ->
+	    throw({error, {einval, X}})
     end;
+
 get_check_fun(float, _) ->
-    fun (X) ->
-	    case is_float(X) of
-		true -> X;
-		false ->
-		    case catch string:to_float(X) of
-			{I, []} -> I;
-			{I, _} when is_integer(I)-> throw({error, einval});
-			{error, no_float} -> throw({error, einval})
-		    end
-	    end
+    fun (X) when is_float(X) ->
+	    X;
+	(X) when is_integer(X) ->
+	    X+0.0;
+	(X) when is_list(X) ->
+	    case catch string:to_float(X) of
+		{I, []} -> I;
+		{I, _} when is_integer(I)-> throw({error, einval});
+		{error, no_float} -> throw({error, einval})
+	    end;
+	(X) ->
+	    throw({error, {einval, X}})
     end;
+
 get_check_fun(NonBuiltin, Types) ->
     case dict:find(NonBuiltin, Types) of
 	{ok, Fun} -> Fun;

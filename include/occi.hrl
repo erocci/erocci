@@ -17,6 +17,10 @@
 			}).
 -type(occi_extension() :: #occi_extension{}).
 
+-record(occi_manifest, {resources       :: term(), 
+		        links           :: term()}).
+-type(occi_manifest() :: #occi_manifest{}).
+
 %%% OCCI Category ID
 -record(occi_cid, {scheme    = undefined :: atom() | uri(),
 		   term      = undefined :: atom(),
@@ -40,7 +44,8 @@
 -type(occi_type() :: #occi_type{}).
 
 %%% OCCI Attribute description
--record(occi_attr, {id                           :: atom(),
+-type(occi_attr_key() :: atom()).
+-record(occi_attr, {id                           :: occi_attr_key(),
 		    type_id                      :: occi_type_id(),
 		    title           = undefined  :: binary(),
 		    check                        :: fun(),
@@ -54,7 +59,7 @@
 			cid                    :: occi_cid(),
 			title      = undefined :: binary(),
 		        summary    = undefined :: binary(),
-			attributes = []        :: [{atom(), any()}],
+			attributes = undefined :: term(),       % dict
 			links      = []        :: [uri()],
 			mixins     = []        :: [occi_cid()]}).
 -type(occi_resource() :: #occi_resource{}).

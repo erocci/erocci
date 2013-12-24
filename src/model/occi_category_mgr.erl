@@ -30,14 +30,15 @@
 
 %% API
 -export([start_link/0]).
--export([register_extension/2,
+-export([get/1,
+	 register_extension/2,
 	 register_category/3,
 	 register_action/1,
 	 get_categories/0,
 	 get_actions/0]).
 
 %% Supervisor callbacks
--export([init/1, get_ref/1]).
+-export([init/1]).
 
 -define(SERVER, ?MODULE).
 
@@ -54,6 +55,15 @@
 %%--------------------------------------------------------------------
 start_link() ->
     supervisor:start_link({local, ?SERVER}, ?MODULE, []).
+
+-spec get(occi_cid()) -> occi_category().
+get(#occi_cid{}=Cid) ->
+    case mnesia:dirty_match_object(#occi_category{id=Cid, _='_'}) of
+	[] ->
+	    undefined;
+	[Entry] ->
+	    Entry
+    end.
 
 register_extension({xml, Path}, Mapping) ->
     case occi_parser_xml:load_extension(Path) of
@@ -101,15 +111,6 @@ get_categories() ->
 -spec get_actions() -> [occi_action()].
 get_actions() ->
     mnesia:dirty_match_object(#occi_action{_ ='_'}).
-
--spec get_ref(occi_cid()) -> reference().
-get_ref(#occi_cid{}=Id) ->
-    case mnesia:dirty_match_read(category_entry, Id) of
-	[] ->
-	    undefined;
-	[Entry] ->
-	    Entry#occi_category.ref
-    end.
 
 %%%===================================================================
 %%% Supervisor callbacks

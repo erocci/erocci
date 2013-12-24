@@ -30,19 +30,18 @@
 
 %% Callback callbacks
 -export([to_plain/2,
-	 from_plain/2]).
+	 from_json/2]).
 
 -include("occi.hrl").
 
--record(state, {cid :: #occi_cid{},
-		ref :: reference()}).
+-record(state, {category     :: occi_category()}).
 
 init(_Transport, _Req, _) -> 
     {upgrade, protocol, cowboy_rest}.
 
-rest_init(Req, {#occi_cid{}=Id, Ref}) ->
+rest_init(Req, Cat) ->
     Req1 = occi_http:set_cors(Req),
-    {ok, Req1, #state{cid=Id, ref=Ref}}.
+    {ok, Req1, #state{category=Cat}}.
 
 allow_missing_post(_Req, _State) ->
     false.
@@ -58,16 +57,18 @@ content_types_provided(Req, State) ->
 
 content_types_accepted(Req, State) ->
     {[
-      {{<<"text">>,          <<"plain">>,      []}, from_plain}
+      {{<<"application">>,     <<"json">>,      []}, from_json},
+      {{<<"application">>,     <<"occi+json">>, []}, from_json}
      ],
      Req, State}.
 
-to_plain(Req, #state{ref=Ref}=State) ->
-    Entities = occi_category:get_collection(Ref),
+to_plain(Req, #state{category=Cat}=State) ->
+    Entities = occi_store:get_collection(Cat#occi_category.ref),
     {occi_renderer_plain:render(Entities), Req, State}.
 
-from_plain(Req, #state{ref=Ref}=State) ->
+from_json(Req, #state{category=_Cat}=State) ->
     {ok, Body, Req2} = cowboy_req:body(Req),
-    Obj = occi_renderer_plain:parse_resource(Ref, Body),
-    Req3 = cowboy_req:set_resp_header(<<"location">>, Obj#occi_resource.id, Req2),
-    {true, Req3, State}.
+    Obj = occi_parser_json:parse(Body),
+    %Req3 = cowboy_req:set_resp_header(<<"location">>, Obj#occi_resource.id, Req2),
+    lager:info("Create resource: ~p~n", [Obj]),
+    {true, Req2, State}.

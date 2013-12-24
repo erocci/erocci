@@ -8,7 +8,7 @@
             "attributes": {
                 "occi.compute.speed": 2,
                 "occi.compute.memory": 4,
-                "occi.compute.cores": 2
+                "occi.compute.cores": 2,
                 "com.example.occi.templates.my_os_mixin.my_attribute": "my_value"
             },
             "actions": [

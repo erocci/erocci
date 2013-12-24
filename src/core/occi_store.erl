@@ -30,7 +30,9 @@
 
 %% API
 -export([start_link/0, register/2]).
--export([get_backend/1, is_valid_path/1]).
+-export([get_backend/1, 
+	 is_valid_path/1,
+	 get_collection/1]).
 
 %% supervisor callbacks
 -export([init/1]).
@@ -83,6 +85,9 @@ is_valid_path(Path) ->
 -spec get_backend(uri()) -> backend_ref().
 get_backend(Path) ->
     get_backend2(lists:reverse(Path)).
+
+get_collection(_Path) ->
+    [].
 
 %%%===================================================================
 %%% supervisor callbacks
