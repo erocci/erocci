@@ -30,6 +30,7 @@
 
 %% Callback callbacks
 -export([to_plain/2,
+	 to_json/2,
 	 from_json/2]).
 
 -include("occi.hrl").
@@ -51,7 +52,9 @@ allowed_methods(Req, State) ->
 
 content_types_provided(Req, State) ->
     {[
-      {{<<"text">>,          <<"plain">>,     []}, to_plain}
+      {{<<"text">>,          <<"plain">>,     []}, to_plain},
+      {{<<"application">>,   <<"json">>,      []}, to_json},
+      {{<<"application">>,   <<"occi+json">>, []}, to_json}
      ],
      Req, State}.
 
@@ -63,12 +66,30 @@ content_types_accepted(Req, State) ->
      Req, State}.
 
 to_plain(Req, #state{category=Cat}=State) ->
-    Entities = occi_store:get_collection(Cat#occi_category.ref),
+    {ok, Entities} = occi_store:get_collection(Cat),
     {occi_renderer_plain:render(Entities), Req, State}.
 
-from_json(Req, #state{category=_Cat}=State) ->
+to_json(Req, #state{category=Cat}=State) ->
+    {ok, Entities} = occi_store:get_collection(Cat),
+    {occi_renderer_json:render(Entities), Req, State}.
+
+from_json(Req, #state{category=#occi_category{id=#occi_cid{class=kind}}=Cat}=State) ->
     {ok, Body, Req2} = cowboy_req:body(Req),
-    Obj = occi_parser_json:parse(Body),
-    %Req3 = cowboy_req:set_resp_header(<<"location">>, Obj#occi_resource.id, Req2),
-    lager:info("Create resource: ~p~n", [Obj]),
-    {true, Req2, State}.
+    case occi_parser_json:parse_resource(Body, Cat) of
+	{error, Reason} ->
+	    lager:debug("Error processing request: ~p~n", [Reason]),
+	    {true, cowboy_req:reply(400, Req2), State};
+	{ok, #occi_resource{}=Res} ->
+	    {Host, Req3} = cowboy_req:host(Req2),
+	    {Prefix, Req4} = cowboy_req:path(Req3),
+	    Res2 = occi_resource:set_id(Res, occi_store:gen_id(Host, Prefix)),
+	    case occi_store:create(Cat#occi_category.backend, Res2) of
+		{ok, _Res} ->
+		    {true, Req4, State};
+		{error, Reason} ->
+		    lager:debug("Error creating resource"),
+		    throw({error, Reason})
+	    end
+    end;
+from_json(Req, #state{category=#occi_category{id=#occi_cid{class=mixin}}=_Cat}=State) ->
+    {ok, Req, State}.

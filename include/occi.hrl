@@ -29,7 +29,8 @@
 
 -record(occi_category, {ref      :: reference(),
 			id       :: #occi_cid{},
-			location :: uri()}).
+			location :: uri(),
+			backend  :: atom()}).
 -type(occi_category() :: #occi_category{}).
 
 -record(occi_action, {ref      :: reference(),

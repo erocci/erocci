@@ -31,6 +31,8 @@
 % API
 -export([add_collection/3, set_cors/1]).
 
+-export([onresponse/4]).
+
 %% occi_listener callbacks
 -export([start_link/1, terminate/0]).
 
@@ -52,6 +54,13 @@ start_link(Opts) ->
 				[{env, [{dispatch, get_dispatch()}]}]
 			       ),
     loop().
+
+onresponse(Code, Headers, Body, Req) ->
+    lager:debug("### Code: ~p~n", [Code]),
+    lager:debug("### Headers: ~p~n", [Headers]),
+    lager:debug("### Body: ~p~n", [Body]),
+    lager:debug("### Req: ~p~n", [Req]),
+    Req.
 
 -spec add_collection(occi_cid(), reference(), uri()) -> ok.
 add_collection(Id, Ref, Uri) ->

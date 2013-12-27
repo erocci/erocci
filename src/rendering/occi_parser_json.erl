@@ -29,10 +29,10 @@
 -include("occi_parser.hrl").
 
 %% API
--export([start_parser/0,
+-export([start_parser/1,
 	 reset_parser/1,
 	 stop_parser/1,
-	 parse/1,
+	 parse_resource/2,
 	 parse/2]).
 
 %% gen_fsm callbacks
@@ -46,10 +46,7 @@
 	 value/3]).
 
 %% OCCI parsing states
--export([init_occi/3,
-	 resources/3,
-	 resources_list/3,
-	 resource/3,
+-export([resource/3,
 	 resource_kind/3,
 	 resource_attributes/3,
 	 resource_attribute/3,
@@ -62,19 +59,18 @@
 
 -record(state, {stack          = []            :: [atom()],
 		next           = undefined     :: pid(),
-		manifest       = undefined     :: term(),
 		resource       = undefined     :: term(),
 		link           = undefined     :: term(),
 		attrKey        = undefined     :: term()}).
 
 -type(parser_id() :: reference()).
--type(parser_result() :: term()).
+-type(parser_result() :: {ok, term()} | {error, term()}).
 
 %%%===================================================================
 %%% API
 %%%===================================================================
-parse(Data) ->
-    JP = start_parser(),
+parse_resource(Data, #occi_category{}=Cat) ->
+    JP = start_parser(occi_resource:new(Cat)),
     parse(JP, Data).
 
 -spec parse(parser_id(), binary()) -> parser_result().
@@ -89,8 +85,8 @@ parse(Parser, Data) when is_list(Data)->
 parse(Parser, Data) when is_binary(Data) ->
     parse(Parser, binary_to_list(Data)).
 
-start_parser() ->
-    case gen_fsm:start(?MODULE, json, []) of
+start_parser(#occi_resource{}=Res) ->
+    case gen_fsm:start(?MODULE, {json, Res}, []) of
 	{ok, Pid} -> Pid;
 	Other -> 
 	    lager:error("Error starting json parser: ~p~n", [Other])
@@ -119,10 +115,10 @@ stop_parser(Ref) ->
 %%                     {stop, StopReason}
 %% @end
 %%--------------------------------------------------------------------
-init(occi) ->
-    {ok, init_occi, #state{stack=[init_occi]}};
-init(json) ->
-    case gen_fsm:start(?MODULE, occi, []) of
+init({occi, #occi_resource{}=Res}) ->
+    {ok, resource, #state{stack=[resource], resource=Res}};
+init({json, Args}) ->
+    case gen_fsm:start(?MODULE, {occi, Args}, []) of
 	{ok, Pid} -> 
 	    {ok, init_json, #state{next=Pid, stack=[init_json]}};
 	Err ->
@@ -315,39 +311,19 @@ value(#token{}=Token, _From, State) ->
     parse_error(Token, State).
 
 %% OCCI parsing states
-init_occi(#token{name=objKey, data="resources"}, _From, State) ->
-    push(resources, State#state{manifest=occi_manifest:new()});
-init_occi(Token, _From, State) ->
-    parse_error(Token, State).
-
-resources(#token{name=objArr}, _From, State) ->
-    push(resources_list, State);
-resources(#token{name=objEnd}, _From, State) ->
-    {reply, {eof, State#state.manifest}, eof, State#state{manifest=undefined}};
-resources(Token, _From, State) ->
-    parse_error(Token, State).
-
-resources_list(#token{name=arrObj}, _From, State) ->
-    push(resource, State#state{resource=occi_resource:new()});
-resources_list(#token{name=arrEnd}, _From, State) ->
-    pop(State);
-resources_list(Token, _From, State) ->
-    parse_error(Token, State).
-
 resource(#token{name=objKey, data="kind"}, _From, State) ->
     push(resource_kind, State);
 resource(#token{name=objKey, data="attributes"}, _From, State) ->
     push(resource_attributes, State);
 resource(#token{name=objEnd}, _From, #state{resource=Res}=State) ->
-    Manifest = occi_manifest:add_resource(State#state.manifest, Res),
-    pop(State#state{manifest=Manifest, resource=undefined});
+    {reply, {eof, Res}, eof, State#state{resource=undefined}};
 resource(Token, _From, State) ->
     parse_error(Token, State).
 
 resource_kind(#token{name=objValue, data=Data}, _From, #state{resource=Res}=State) ->
-    case build_category(kind, Data) of
-	{ok, #occi_cid{}=Id} ->
-	    pop(State#state{resource=occi_resource:set_cid(Res, Id)});
+    case check_category(occi_resource:get_cid(Res), {kind, Data}) of
+	ok ->
+	    pop(State);
 	{error, Err} ->
 	    {reply, {error, Err}, eof, State}
     end;
@@ -394,25 +370,26 @@ send_events(Parser, [Event|Tail]) ->
     case catch gen_fsm:sync_send_event(Parser, Event) of
 	{'EXIT', Reason} ->
 	    gen_fsm:send_all_state_event(Parser, stop),
-	    throw({error, {'EXIT', Reason}});
+	    {error, Reason};
 	ok ->
 	    send_events(Parser, Tail);
 	{error, Reason} ->
 	    gen_fsm:send_all_state_event(Parser, stop),
-	    throw({error, {parse_error, Reason}});
+	    {error, Reason};
 	{eof, Result} ->
 	    gen_fsm:send_all_state_event(Parser, stop),
-	    Result
+	    {ok, Result}
     end;
 send_events(Parser, []) ->
     lager:debug("Event: eof~n", []),
-    case catch gen_fsm:sync_send_all_state_event(Parser, eof) of
-	{'EXIT', Reason} ->
-	    throw({error, {'EXIT', Reason}});
-	{error, Reason} ->
-	    throw({error, {parse_error, Reason}})
-    end,
-    gen_fsm:send_all_state_event(Parser, stop).
+    Ret = case catch gen_fsm:sync_send_all_state_event(Parser, eof) of
+	      {'EXIT', Reason} ->
+		  {error, Reason};
+	      {error, Reason} ->
+		  {error, Reason}
+	  end,
+    gen_fsm:send_all_state_event(Parser, stop),
+    Ret.
 
 send_event_next(Pid, Event, IfOk, State) ->
     case catch gen_fsm:sync_send_event(Pid, Event) of
@@ -464,10 +441,11 @@ log_stack2([Head|Tail]) ->
     lager:error("\t~s~n", [Head]),
     log_stack2(Tail).
 
-build_category(Class, Str) ->
+check_category(#occi_cid{}=Cid, {Class, Str}) ->
     case string:tokens(Str, "#") of
 	[Scheme, Term] ->
-	    {ok, #occi_cid{scheme=list_to_atom(Scheme++"#"), term=list_to_atom(Term), class=Class}};
-	_ ->
-	    {error, {invalid_category, Str}}
+	    case #occi_cid{scheme=list_to_atom(Scheme++"#"), term=list_to_atom(Term), class=Class} of
+		Cid -> ok;
+		_ -> {error, {invalid_category, Str}}
+	    end
     end.

@@ -51,12 +51,12 @@
     term().
 
 -callback save(Obj :: occi_entity(), State :: term()) ->
-    {ok, Obj :: occi_entity(), State :: term()} |
-    {error, Reason :: term()}.
+    {{ok, Obj :: occi_entity()}, State :: term()} |
+    {{error, Reason :: term()}, State :: term()}.
 
 -callback find_all(CatId :: occi_cid(), State :: term()) ->
-    {ok, [Entities :: occi_entity()], term()} |
-    {error, Reason :: term()}.
+    {{ok, [Entities :: occi_entity()]}, term()} |
+    {{error, Reason :: term()}, State :: term()}.
 
 %%%
 %%% API

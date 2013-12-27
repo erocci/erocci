@@ -29,10 +29,12 @@
 -behaviour(supervisor).
 
 %% API
--export([start_link/0, register/2]).
--export([get_backend/1, 
-	 is_valid_path/1,
-	 get_collection/1]).
+-export([start_link/0, register/1]).
+-export([create/2,
+	 get_collection/1,
+	 gen_id/2,
+	 get_backend/1, 
+	 is_valid_path/1]).
 
 %% supervisor callbacks
 -export([init/1]).
@@ -40,14 +42,13 @@
 -define(SUPERVISOR, ?MODULE).
 
 -record(store_mountpoint, {uri :: [binary()], backend :: backend_ref()}).
--type(store_mountpoint() :: #store_mountpoint{}).
 
 -type(backend_ref() :: atom()).
 -type(backend_mod() :: atom()).
 -type(backend_opts() :: term()).
 -type(backend_desc() :: {backend_ref(), backend_mod(), backend_opts()}).
 
--export_type([store_mountpoint/0]).
+-export_type([backend_ref/0]).
 
 %%%===================================================================
 %%% API
@@ -63,13 +64,12 @@
 start_link() ->
     supervisor:start_link({local, ?SUPERVISOR}, ?MODULE, []).
 
--spec register(backend_desc(), uri()) ->
-		 {ok, pid()} 
-		     | ignore 
-		     | {error, term()}.
-register({Ref, Mod, Opts}, Path) ->
-    lager:info("Registering backend: ~p -> ~p~n", [Ref, Path]),
-    register_mountpoint(Path, Ref),
+-spec register(backend_desc()) ->
+		      {ok, pid()} 
+			  | ignore 
+			  | {error, term()}.
+register({Ref, Mod, Opts}) ->
+    lager:info("Registering backend: ~p~n", [Ref]),
     Backend = {Ref, {occi_backend, start_link, [Ref, Mod, [{ref, Ref} | Opts]]}, 
 	       permanent, 5000, worker, [occi_backend, Mod]},
     supervisor:start_child(occi_store, Backend).
@@ -86,19 +86,32 @@ is_valid_path(Path) ->
 get_backend(Path) ->
     get_backend2(lists:reverse(Path)).
 
-get_collection(_Path) ->
-    [].
+-spec gen_id(binary(), binary()) -> binary().
+gen_id(Seed, Prefix) when is_binary(Prefix), 
+			  is_binary(Seed) ->
+    Id = list_to_binary(uuid:to_string(uuid:uuid3(uuid:uuid4(), Seed))),
+    <<Prefix/binary, Id/binary>>.
+
+-spec create(backend_ref(), occi_resource()) -> {ok, occi_resource()} 
+						    | {error, term()}.
+create(Backend, #occi_resource{id=Id}=Res) ->
+    lager:debug("Create resource: ~s~n", [Id]),
+    occi_backend:save(Backend, Res).
+
+get_collection(#occi_category{id=Id, backend=Backend}) ->
+    lager:debug("Retrieve collection: ~p~n", [Id]),
+    occi_backend:find_all(Backend, Id).
 
 %%%===================================================================
 %%% supervisor callbacks
 %%%===================================================================
 init([]) ->
     lager:info("Starting OCCI storage manager"),
-    mnesia:create_table(store_mountpoint,
-			[{ram_copies, [node()]},
-			 {attributes, record_info(fields, store_mountpoint)}]),
-    mnesia:wait_for_tables([store_mountpoint], 
-			   infinite),
+    %mnesia:create_table(store_mountpoint,
+    %			[{ram_copies, [node()]},
+    %			 {attributes, record_info(fields, store_mountpoint)}]),
+    %   mnesia:wait_for_tables([store_mountpoint], 
+    %			   infinite),
     % start no child, will be added with backends
     {ok, {{one_for_one, 10, 10}, []}}.
 
@@ -108,12 +121,12 @@ init([]) ->
 
 %% @doc Store path as reverse ordered tokens: optimized for lookup
 %%
-register_mountpoint(Path, Ref) ->
-    Trans = fun() -> 
-		    Mp = #store_mountpoint{uri=occi_types:split_path(Path), backend=Ref},
-		    mnesia:write(Mp)
-	    end,
-    mnesia:transaction(Trans).
+%% register_mountpoint(Path, Ref) ->
+%%     Trans = fun() -> 
+%% 		    Mp = #store_mountpoint{uri=occi_types:split_path(Path), backend=Ref},
+%% 		    mnesia:write(Mp)
+%% 	    end,
+%%     mnesia:transaction(Trans).
 
 get_backend2([]) ->
     [Mp] = mnesia:dirty_read(store_mountpoint, []),

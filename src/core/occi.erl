@@ -24,7 +24,7 @@
 
 -export([start/0, stop/0]).
 % External API (simple wrappers)
--export([register_backend/2, 
+-export([register_backend/1, 
 	 register_extension/2,
 	 register_listener/2]).
 
@@ -40,8 +40,8 @@ stop() ->
     lager:info("Stopping erocci framework"),
     application:stop(occi).
 
-register_backend(Backend, Path) ->
-    occi_store:register(Backend, Path).
+register_backend(Backend) ->
+    occi_store:register(Backend).
 
 register_listener(Listener, Args) ->
     occi_listener:register(Listener, Args).

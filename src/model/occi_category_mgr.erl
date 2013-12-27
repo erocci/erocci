@@ -32,7 +32,7 @@
 -export([start_link/0]).
 -export([get/1,
 	 register_extension/2,
-	 register_category/3,
+	 register_category/4,
 	 register_action/1,
 	 get_categories/0,
 	 get_actions/0]).
@@ -77,19 +77,19 @@ register_extension({xml, Path}, Mapping) ->
 					  lager:error("Unmapped category: ~s~s~n", [Id#occi_cid.scheme, 
 										    Id#occi_cid.term]),
 					  throw({unmapped_category, Id});
-				      {ok, Uri} -> 				  
-					  register_category(Id, Cat, Uri)
+				      {ok, {Uri, Backend}} -> 				  
+					  register_category(Id, Cat, Uri, Backend)
 				  end
 			  end,
 			  occi_extension:get_categories(Ext))
     end.
 
-register_category(Id, Cat, Uri) ->
+register_category(Id, Cat, Uri, Backend) ->
     Id = Cat#occi_category.id,
     lager:info("Registering ~s: ~s~s -> ~s~n", 
 	       [ Id#occi_cid.class, Id#occi_cid.scheme, Id#occi_cid.term, Uri ]),
     mnesia:transaction(fun() ->
-			       mnesia:write(Cat#occi_category{location=Uri})
+			       mnesia:write(Cat#occi_category{location=Uri, backend=Backend})
 		       end),
     lists:foreach(fun(Action) ->
 			  register_action(Action)
@@ -102,7 +102,7 @@ register_action(Action) ->
 	       [ Id#occi_cid.scheme, Id#occi_cid.term ]),
     mnesia:transaction(fun() ->
 			       mnesia:write(Action)
-		       end).    
+		       end).
 
 -spec get_categories() -> [occi_category()].
 get_categories() ->

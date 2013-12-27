@@ -25,7 +25,12 @@
 -include("occi.hrl").
 
 -export([new/0,
+	 new/1,
+	 get_id/1,
+	 set_id/2,
+	 get_cid/1,
 	 set_cid/2,
+	 get_mixins/1,
 	 add_mixin/2,
 	 set_attr_value/3,
 	 add_attr_value/3,
@@ -38,6 +43,23 @@
 new() ->
     #occi_resource{attributes=dict:new()}.
 
+-spec new(occi_category()) -> occi_resource().
+new(#occi_category{}=Kind) ->
+    #occi_resource{cid=occi_kind:get_id(Kind), 
+		   attributes=occi_kind:get_attributes(Kind)}.
+
+-spec get_id(occi_resource()) -> uri().
+get_id(#occi_resource{id=Id}) ->
+    Id.
+
+-spec set_id(occi_resource(), uri()) -> occi_resource().
+set_id(#occi_resource{}=Res, Id) ->
+    Res#occi_resource{id=Id}.
+
+-spec get_cid(occi_resource()) -> occi_cid().
+get_cid(#occi_resource{cid=Cid}) ->
+    Cid.
+
 -spec set_cid(occi_resource(), occi_cid()) -> occi_resource().
 set_cid(#occi_resource{attributes=Attrs}=Res, Cid) ->
     case occi_category_mgr:get(Cid) of
@@ -49,6 +71,10 @@ set_cid(#occi_resource{attributes=Attrs}=Res, Cid) ->
 				end, Attrs, occi_kind:get_attributes(Kind)),
 	    Res#occi_resource{cid=Cid, attributes=Attrs2}
     end.
+
+-spec get_mixins(occi_resource()) -> [occi_cid()].
+get_mixins(#occi_resource{mixins=Mixins}) ->
+    Mixins.
 
 -spec add_mixin(occi_resource(), occi_cid()) -> occi_resource().
 add_mixin(#occi_resource{mixins=Mixins, attributes=Attrs}=Res, #occi_cid{}=Cid) ->
