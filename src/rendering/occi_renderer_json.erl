@@ -27,7 +27,8 @@
 
 -include("occi.hrl").
 
--export([render_query/1]).
+-export([render_query/1,
+	 render_collection/1]).
 -export([render/1]).
 
 %%%
@@ -37,6 +38,12 @@ render_query(Categories) ->
     Content = {<<"categories">>, lists:map(fun(Obj) -> 
 						   render_ejson(Obj) 
 					   end, Categories)},
+    jiffy:encode({[Content]}, [pretty]).
+
+render_collection(Collection) ->
+    Content = {<<"resources">>, lists:map(fun(Obj) ->
+						  render_ejson(Obj)
+					  end, Collection)},
     jiffy:encode({[Content]}, [pretty]).
 
 render(Obj) when is_record(Obj, occi_category); 
@@ -91,15 +98,11 @@ render_ejson(#occi_action{}=Action) ->
 		]);
 
 render_ejson(#occi_resource{}=Res) ->
-    render_list([{kind, render_cid_uri(Res#occi_resource.cid)}
-		 ,{categories, lists:map(fun render_ejson/1, 
-					[Res#occi_resource.cid | Res#occi_resource.mixins])
-		 }
-		 ,{'occi.core.id', Res#occi_resource.id}
-		 ,{'occi.core.title', Res#occi_resource.title}
-		 ,{'occi.core.summary', Res#occi_resource.summary}
-		 ,{attributes, {lists:map(fun({Key, Val}) -> {Key, Val} end, Res#occi_resource.attributes)}}
-		 ,{location, render_uri(Res#occi_resource.id)}
+    render_list([{kind, render_cid_uri(occi_resource:get_cid(Res))}
+		 ,{mixins, lists:map(fun render_cid_uri/1, occi_resource:get_mixins(Res))}
+		 ,{attributes, render_list(lists:map(
+					     fun render_attribute_kv/1, occi_resource:get_attributes(Res)))}
+		 ,{id, occi_resource:get_id(Res)}
 		]);
 
 render_ejson(#occi_link{}=_Link) ->
@@ -143,5 +146,5 @@ render_attribute_spec(Key, Attr) ->
 	],
     {Key, render_list(L)}.
 
-render_uri(Uri) ->
-    occi_types:join_path([<<"">> | Uri]).
+render_attribute_kv(Attr) ->
+    {occi_attribute:get_id(Attr), occi_attribute:get_value(Attr)}.

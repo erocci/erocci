@@ -34,7 +34,8 @@
 	 add_mixin/2,
 	 set_attr_value/3,
 	 add_attr_value/3,
-	 get_attr/2]).
+	 get_attr/2,
+	 get_attributes/1]).
 
 %%%
 %%% API
@@ -111,3 +112,7 @@ add_attr_value(#occi_resource{attributes=Attrs}=Res, Key, Val) when is_atom(Key)
 -spec get_attr(occi_resource(), occi_attr_key()) -> any().
 get_attr(#occi_resource{attributes=Attr}, Key) ->
     dict:find(Key, Attr).
+
+-spec get_attributes(occi_resource()) -> [occi_attr()].
+get_attributes(#occi_resource{attributes=Attrs}) ->
+    dict:fold(fun (_Key, Value, Acc) -> [Value|Acc] end, [], Attrs).

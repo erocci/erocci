@@ -29,9 +29,6 @@
 -callback render(Obj :: term()) ->
     binary() | list().
 
--callback parse(binary()) ->
-    term().
-
 %%%
 %%% API
 %%%

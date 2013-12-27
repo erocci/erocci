@@ -67,11 +67,11 @@ content_types_accepted(Req, State) ->
 
 to_plain(Req, #state{category=Cat}=State) ->
     {ok, Entities} = occi_store:get_collection(Cat),
-    {occi_renderer_plain:render(Entities), Req, State}.
+    {occi_renderer_plain:render_collection(Entities), Req, State}.
 
 to_json(Req, #state{category=Cat}=State) ->
     {ok, Entities} = occi_store:get_collection(Cat),
-    {occi_renderer_json:render(Entities), Req, State}.
+    {occi_renderer_json:render_collection(Entities), Req, State}.
 
 from_json(Req, #state{category=#occi_category{id=#occi_cid{class=kind}}=Cat}=State) ->
     {ok, Body, Req2} = cowboy_req:body(Req),
@@ -84,8 +84,9 @@ from_json(Req, #state{category=#occi_category{id=#occi_cid{class=kind}}=Cat}=Sta
 	    {Prefix, Req4} = cowboy_req:path(Req3),
 	    Res2 = occi_resource:set_id(Res, occi_store:gen_id(Host, Prefix)),
 	    case occi_store:create(Cat#occi_category.backend, Res2) of
-		{ok, _Res} ->
-		    {true, Req4, State};
+		{ok, Res3} ->
+		    RespBody = occi_renderer_json:render_collection([Res3]),
+		    {true, cowboy_req:set_resp_body(RespBody, Req4), State};
 		{error, Reason} ->
 		    lager:debug("Error creating resource"),
 		    throw({error, Reason})
