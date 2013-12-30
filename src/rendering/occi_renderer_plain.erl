@@ -33,24 +33,46 @@
 -include("occi.hrl").
 
 %% API
--export([render/1, parse/1, parse_resource_repr/1]).
+-export([render/1,
+	 render_collection/1,
+	 parse_resource_repr/1]).
 
 %%%===================================================================
 %%% API
 %%%===================================================================
+render_collection(Collection) ->
+    Headers = lists:foldl(fun (Entity, Acc) ->
+				  orddict:append(<<"x-occi-location">>, occi_resource:get_id(Entity), Acc)
+			  end, orddict:new(), Collection),
+    render_headers(Headers).
+
 render(Category) when is_record(Category, occi_category); 
 		      is_record(Category, occi_action) ->
     occi_renderer_text:render(Category, "\n\t");
+
 render(Categories) ->
     lists:map(fun(Cat) -> [<<"Category: ">>, render(Cat), "\n"] end, Categories).
 
--spec parse(binary()) -> occi_entity() | {error, occi_parse_error}.
-parse(_Bin) ->
-    #occi_resource{}.
-
 -spec parse_resource_repr(Bin :: binary()) -> [occi_entity()].
 parse_resource_repr(Bin) ->
-    occi_parser:parse_resource_repr(occi_scanner:scan(Bin)).    
+    occi_parser:parse_resource_repr(occi_scanner:scan(Bin)).
+
+%%
+%% Private
+%%
+render_headers(Headers) ->
+    occi_renderer:join(
+      lists:map(fun (Name) -> 
+			render_header(Name, orddict:fetch(Name, Headers))
+		end, orddict:fetch_keys(Headers)),
+      "\n").
+
+render_header(Name, Values) ->
+    occi_renderer:join(
+      lists:map(fun (Value) ->
+			occi_renderer:join([Name, Value], ": ")
+		end, Values),
+      "\n").
 
 %%%
 %%% Tests

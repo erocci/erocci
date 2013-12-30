@@ -67,11 +67,13 @@ content_types_accepted(Req, State) ->
 
 to_plain(Req, #state{category=Cat}=State) ->
     {ok, Entities} = occi_store:get_collection(Cat),
-    {occi_renderer_plain:render_collection(Entities), Req, State}.
+    Body = [occi_renderer_plain:render_collection(Entities), "\n"],
+    {Body, Req, State}.
 
 to_json(Req, #state{category=Cat}=State) ->
     {ok, Entities} = occi_store:get_collection(Cat),
-    {occi_renderer_json:render_collection(Entities), Req, State}.
+    Body = [occi_renderer_json:render_collection(Entities), "\n"],
+    {Body, Req, State}.
 
 from_json(Req, #state{category=#occi_category{id=#occi_cid{class=kind}}=Cat}=State) ->
     {ok, Body, Req2} = cowboy_req:body(Req),

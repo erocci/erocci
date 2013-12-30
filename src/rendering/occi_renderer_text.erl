@@ -45,6 +45,7 @@ render(#occi_category{id=#occi_cid{class=kind}=Id, location=Uri}=Kind, Sep) ->
 			  render_kv(<<"location">>, Uri)],
 			 <<"; ">>),
       Sep);
+
 render(#occi_category{id=#occi_cid{class=mixin}=Id, location=Uri}=Mixin, Sep) ->
     occi_renderer:join(
       occi_renderer:join([render_cid(Id, Sep),
@@ -57,6 +58,7 @@ render(#occi_category{id=#occi_cid{class=mixin}=Id, location=Uri}=Mixin, Sep) ->
 			  render_kv(<<"location">>, Uri)], 
 			 <<"; ">>),
       Sep);
+
 render(#occi_action{id=Id}=Action, Sep) ->
     occi_renderer:join(
       occi_renderer:join([render_cid(Id, Sep),
