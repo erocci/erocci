@@ -55,7 +55,7 @@
     {{error, Reason :: term()}, State :: term()}.
 
 -callback find_all(CatId :: occi_cid(), State :: term()) ->
-    {{ok, [Entities :: occi_entity()]}, term()} |
+    {{ok, occi_collection()}, term()} |
     {{error, Reason :: term()}, State :: term()}.
 
 %%%

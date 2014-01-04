@@ -17,9 +17,9 @@
 			}).
 -type(occi_extension() :: #occi_extension{}).
 
--record(occi_manifest, {resources       :: term(), 
-		        links           :: term()}).
--type(occi_manifest() :: #occi_manifest{}).
+-record(occi_collection, {resources       :: term(), 
+			  links           :: term()}).
+-type(occi_collection() :: #occi_collection{}).
 
 %%% OCCI Category ID
 -record(occi_cid, {scheme    = undefined :: atom() | uri(),

@@ -40,10 +40,10 @@
 %%%===================================================================
 %%% API
 %%%===================================================================
-render_collection(Collection) ->
+render_collection(Coll) ->
     Headers = lists:foldl(fun (Entity, Acc) ->
 				  orddict:append(<<"x-occi-location">>, occi_resource:get_id(Entity), Acc)
-			  end, orddict:new(), Collection),
+			  end, orddict:new(), occi_collection:get_resources(Coll)),
     render_headers(Headers).
 
 render(Category) when is_record(Category, occi_category); 

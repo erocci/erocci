@@ -54,8 +54,9 @@ save(Obj, #state{}=State) when is_record(Obj, occi_resource) ->
     {{ok, Obj}, State}.
 
 find_all(#occi_cid{}=Id, #state{}=State) ->
-    Objects = mnesia:dirty_match_object(#occi_resource{cid=Id, _='_'}),
-    {{ok, Objects}, State}.
+    Coll = occi_collection:new(),
+    Resources = mnesia:dirty_match_object(#occi_resource{cid=Id, _='_'}),
+    {{ok, occi_collection:set_resources(Coll, Resources)}, State}.
 
 %%%===================================================================
 %%% Internal functions

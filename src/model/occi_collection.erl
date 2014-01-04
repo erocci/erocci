@@ -19,29 +19,37 @@
 %%%
 %%% @end
 %%% Created : 19 Aug 2013 by Jean Parpaillon <jean.parpaillon@free.fr>
--module(occi_manifest).
+-module(occi_collection).
 -compile([{parse_transform, lager_transform}]).
 
 -include("occi.hrl").
 
 -export([new/0,
 	 get_resources/1,
+	 set_resources/2,
 	 add_resource/2,
 	 get_links/1,
+	 set_links/2,
 	 add_link/2]).
 
 new() ->
-    #occi_manifest{resources=[],
-		   links=[]}.
+    #occi_collection{resources=[],
+		     links=[]}.
 
-get_resources(#occi_manifest{resources=R}) ->
+get_resources(#occi_collection{resources=R}) ->
     R.
 
-add_resource(#occi_manifest{resources=R}=M, Res) ->
-    M#occi_manifest{resources=[Res|R]}.
+set_resources(#occi_collection{}=C, Resources) ->
+    C#occi_collection{resources=Resources}.
 
-get_links(#occi_manifest{links=L}) ->
+add_resource(#occi_collection{resources=R}=C, Res) ->
+    C#occi_collection{resources=[Res|R]}.
+
+get_links(#occi_collection{links=L}) ->
     L.
 
-add_link(#occi_manifest{links=L}=M, Link) ->
-    M#occi_manifest{links=[Link|L]}.
+set_links(#occi_collection{}=C, Links) ->
+    C#occi_collection{links=Links}.
+
+add_link(#occi_collection{links=L}=C, Link) ->
+    C#occi_collection{links=[Link|L]}.

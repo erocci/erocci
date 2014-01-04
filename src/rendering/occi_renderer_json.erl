@@ -40,10 +40,10 @@ render_query(Categories) ->
 					   end, Categories)},
     jiffy:encode({[Content]}, [pretty]).
 
-render_collection(Collection) ->
+render_collection(Coll) ->
     Content = {<<"resources">>, lists:map(fun(Obj) ->
 						  render_ejson(Obj)
-					  end, Collection)},
+					  end, occi_collection:get_resources(Coll))},
     jiffy:encode({[Content]}, [pretty]).
 
 render(Obj) when is_record(Obj, occi_category); 
