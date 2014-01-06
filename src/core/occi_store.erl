@@ -87,10 +87,10 @@ get_backend(Path) ->
     get_backend2(lists:reverse(Path)).
 
 -spec gen_id(binary(), binary()) -> binary().
-gen_id(Seed, Prefix) when is_binary(Prefix), 
-			  is_binary(Seed) ->
-    Id = list_to_binary(uuid:to_string(uuid:uuid3(uuid:uuid4(), Seed))),
-    <<Prefix/binary, Id/binary>>.
+gen_id(Host, Prefix) when is_binary(Prefix), 
+			  is_binary(Host) ->
+    Id = list_to_binary(uuid:to_string(uuid:uuid3(uuid:uuid4(), Host))),
+    <<"http://", Host/binary, Prefix/binary, Id/binary>>.
 
 -spec create(backend_ref(), occi_resource()) -> {ok, occi_resource()} 
 						    | {error, term()}.
