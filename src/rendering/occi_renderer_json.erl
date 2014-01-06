@@ -28,7 +28,8 @@
 -include("occi.hrl").
 
 -export([render_query/1,
-	 render_collection/1]).
+	 render_collection/1,
+	 render_resource/1]).
 -export([render/1]).
 
 %%%
@@ -44,6 +45,10 @@ render_collection(Coll) ->
     Content = {<<"resources">>, lists:map(fun(Obj) ->
 						  render_ejson(Obj)
 					  end, occi_collection:get_resources(Coll))},
+    jiffy:encode({[Content]}, [pretty]).
+
+render_resource(Res) ->
+    Content = {<<"resources">>, [render_ejson(Res)]},
     jiffy:encode({[Content]}, [pretty]).
 
 render(Obj) when is_record(Obj, occi_category); 
