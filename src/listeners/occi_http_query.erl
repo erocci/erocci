@@ -25,8 +25,10 @@
 	 allowed_methods/2,
 	 content_types_provided/2
 	]).
--export([to_plain/2, to_occi/2, to_uri_list/2, to_json/2,
-	 from_plain/2, from_occi/2, from_uri_list/2, from_json/2]).
+-export([to_plain/2, 
+	 to_occi/2,
+	 to_uri_list/2,
+	 to_json/2]).
 
 -include("occi.hrl").
 
@@ -44,15 +46,16 @@ content_types_provided(Req, Ctx) ->
     {[
       {{<<"text">>,          <<"plain">>,     []}, to_plain},
       {{<<"text">>,          <<"occi">>,      []}, to_occi},
+      {{<<"text">>,          <<"uri-list">>,  []}, to_uri_list},
       {{<<"application">>,   <<"occi+json">>, []}, to_json},
       {{<<"application">>,   <<"json">>,      []}, to_json}
      ],
      Req, Ctx}.
 
 to_plain(Req, Ctx) ->
-    Categories = occi_category_mgr:get_categories(),
-    Actions = occi_category_mgr:get_actions(),
-    Body = occi_renderer_plain:render_capabilities(lists:flatten([Categories|Actions])),
+    Categories = lists:flatten(occi_category_mgr:get_categories(),
+			       occi_category_mgr:get_actions()),
+    Body = occi_renderer_plain:render_capabilities(Categories),
     {Body, Req, Ctx}.
 
 to_occi(Req, Ctx) ->
@@ -64,23 +67,13 @@ to_occi(Req, Ctx) ->
     {Body, Req2, Ctx}.
 
 to_uri_list(Req, Ctx) ->
-    Categories = occi_category_mgr:get_categories(),
-    Body = [occi_renderer_uri_list:render_capabilites(Categories), "\n"],
+    Categories = lists:flatten(occi_category_mgr:get_categories(),
+			       occi_category_mgr:get_actions()),
+    Body = [occi_renderer_uri_list:render_capabilities(Categories), "\n"],
     {Body, Req, Ctx}.
 
 to_json(Req, Ctx) ->
-    Categories = occi_category_mgr:get_categories(),
+    Categories = lists:flatten(occi_category_mgr:get_categories(),
+			       occi_category_mgr:get_actions()),
     Body = [occi_renderer_json:render_capabilities(Categories), "\n"],
     {Body, Req, Ctx}.
-
-from_plain(Req, Ctx) ->
-    {ok, Req, Ctx}.
-
-from_occi(Req, Ctx) ->
-    {ok, Req, Ctx}.
-
-from_uri_list(Req, Ctx) ->
-    {ok, Req, Ctx}.
-
-from_json(Req, Ctx) ->
-    {ok, Req, Ctx}.

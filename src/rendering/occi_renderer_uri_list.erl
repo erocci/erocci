@@ -29,19 +29,26 @@
 -include("occi.hrl").
 
 %% API
--export([render/1, parse/1]).
+-export([render_capabilities/1,
+	 render_collection/1]).
 
 %%%===================================================================
 %%% API
 %%%===================================================================
-render(#occi_kind{location=Url}) ->
-    Url;
-render(#occi_mixin{location=Url}) ->
-    Url;
-render(#occi_action_spec{}) ->
-    [];
-render(List) ->
-    occi_renderer:join(lists:map(fun(Obj) -> render(Obj) end, List), "\n").
+render_capabilities(Categories) ->
+    occi_renderer:join(
+      lists:reverse(
+	lists:foldl(fun (#occi_category{location=Uri}, Acc) ->
+			    [Uri|Acc];
+			(#occi_action{location=undefined}, Acc) ->
+			    Acc;
+			(#occi_action{location=Uri}, Acc) ->
+			    [Uri|Acc]
+		    end, [], Categories)),
+      <<"\n">>).
 
-parse(_Bin) ->
-    {}.
+render_collection(#occi_collection{}=Coll) ->
+    occi_renderer:join(lists:map(fun (#occi_resource{}=Res) ->
+					 occi_resource:get_id(Res)
+				 end, occi_collection:get_resources(Coll)),
+		       <<"\n">>).

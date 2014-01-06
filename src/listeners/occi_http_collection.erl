@@ -32,6 +32,7 @@
 -export([to_plain/2,
 	 to_json/2,
 	 to_occi/2,
+	 to_uri_list/2,
 	 from_json/2]).
 
 -include("occi.hrl").
@@ -55,6 +56,7 @@ content_types_provided(Req, State) ->
     {[
       {{<<"text">>,          <<"plain">>,     []}, to_plain},
       {{<<"text">>,          <<"occi">>,      []}, to_occi},
+      {{<<"text">>,          <<"uri-list">>,  []}, to_uri_list},
       {{<<"application">>,   <<"json">>,      []}, to_json},
       {{<<"application">>,   <<"occi+json">>, []}, to_json}
      ],
@@ -78,6 +80,11 @@ to_occi(Req, #state{category=Cat}=State) ->
 				      occi_renderer_occi:render_collection(Coll), Req),
     Body = <<"OK\n">>,
     {Body, Req2, State}.
+
+to_uri_list(Req, #state{category=Cat}=State) ->
+    {ok, Coll} = occi_store:get_collection(Cat),
+    Body = [occi_renderer_uri_list:render_collection(Coll), "\n"],
+    {Body, Req, State}.
 
 to_json(Req, #state{category=Cat}=State) ->
     {ok, Coll} = occi_store:get_collection(Cat),
