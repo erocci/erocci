@@ -28,7 +28,8 @@
 -include("occi.hrl").
 -include("exmpp_xml.hrl").
 
--export([render_capabilities/1]).
+-export([render_capabilities/1,
+	 render_collection/1]).
 
 %%%
 %%% API
@@ -43,6 +44,18 @@ render_capabilities(Categories) ->
 			  render_action(Action)
 		  end, Categories))).
 
+render_collection(#occi_collection{}=Coll) ->
+    render_xml(
+      exmpp_xml:set_children(
+       exmpp_xml:element(occi, collection),
+       lists:map(fun (#occi_resource{}=Res) ->
+			 E = exmpp_xml:element(resource),
+			 exmpp_xml:set_attribute(E, <<"id">>, occi_resource:get_id(Res))
+		 end, occi_collection:get_resources(Coll)))).
+
+%%%
+%%% Private
+%%%
 render_category(#occi_category{id=#occi_cid{class=kind}}=Kind) ->
     E = render_category2(exmpp_xml:element(kind), Kind),
     E2 = render_parent(E, occi_kind:get_parent(Kind)),
@@ -61,9 +74,6 @@ render_action(#occi_action{location=Uri}=Action) ->
     E = set_attributes(exmpp_xml:element(action), Attrs),
     render_attr_specs(E, occi_action:get_attr_list(Action)).
 
-%%%
-%%% Private
-%%%
 render_category2(#xmlel{}=E, #occi_category{location=Uri}=Cat) ->
     Attrs = [{<<"scheme">>, occi_category:get_scheme(Cat)},
 	     {<<"term">>, occi_category:get_term(Cat)},
