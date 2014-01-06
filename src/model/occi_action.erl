@@ -37,6 +37,7 @@
 	 set_title/2,
 	 add_attribute/2,
 	 get_attributes/1,
+	 get_attr_list/1,
 	 set_types_check/2]).
 
 %% specific
@@ -82,6 +83,9 @@ add_attribute(O, A) ->
 
 get_attributes(O) ->
     occi_category:get_attributes(O).
+
+get_attr_list(O) ->
+    occi_category:get_attr_list(O).
 
 set_types_check(O, Types) -> 
     occi_category:set_types_check(O, Types).

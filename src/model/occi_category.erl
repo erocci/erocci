@@ -41,6 +41,7 @@
 	 set_title/2,
 	 add_attribute/2,
 	 get_attributes/1,
+	 get_attr_list/1,
 	 set_types_check/2,
 	 get_actions/1,
 	 add_action/2]).
@@ -52,6 +53,7 @@
 	 impl_set_title/2,
 	 impl_add_attribute/2,
 	 impl_get_attributes/1,
+	 impl_get_attr_list/1,
 	 impl_set_types_check/2,
 	 impl_get_actions/1,
 	 impl_add_action/2]).
@@ -121,6 +123,9 @@ add_attribute(O, Attr) ->
 get_attributes(O) ->
     occi_object:call(O, impl_get_attributes, []).
 
+get_attr_list(O) ->
+    occi_object:call(O, impl_get_attr_list, []).
+
 set_types_check(O, Types) ->
     occi_object:call(O, impl_set_types_check, {Types}).
 
@@ -151,6 +156,12 @@ impl_add_attribute(#data{attributes=Attrs}=Data, A) ->
 
 impl_get_attributes(#data{attributes=Attrs}=Data) ->
     {{ok, Attrs}, Data}.
+
+impl_get_attr_list(#data{attributes=Attrs}=Data) ->
+    Ret = lists:map(fun ({_Key, Val}) ->
+			    Val
+		    end, dict:to_list(Attrs)),
+    {{ok, Ret}, Data}.
 
 impl_set_types_check(#data{}=Data, Types) ->
     Attrs = dict:map(fun (_Id, Attr) ->

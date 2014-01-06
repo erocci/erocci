@@ -28,7 +28,8 @@
 -export([to_plain/2, 
 	 to_occi/2,
 	 to_uri_list/2,
-	 to_json/2]).
+	 to_json/2,
+	 to_xml/2]).
 
 -include("occi.hrl").
 
@@ -48,7 +49,9 @@ content_types_provided(Req, Ctx) ->
       {{<<"text">>,          <<"occi">>,      []}, to_occi},
       {{<<"text">>,          <<"uri-list">>,  []}, to_uri_list},
       {{<<"application">>,   <<"occi+json">>, []}, to_json},
-      {{<<"application">>,   <<"json">>,      []}, to_json}
+      {{<<"application">>,   <<"json">>,      []}, to_json},
+      {{<<"application">>,   <<"xml">>,       []}, to_xml},
+      {{<<"application">>,   <<"occi+xml">>,  []}, to_xml}
      ],
      Req, Ctx}.
 
@@ -76,4 +79,10 @@ to_json(Req, Ctx) ->
     Categories = lists:flatten(occi_category_mgr:get_categories(),
 			       occi_category_mgr:get_actions()),
     Body = [occi_renderer_json:render_capabilities(Categories), "\n"],
+    {Body, Req, Ctx}.
+
+to_xml(Req, Ctx) ->
+    Categories = lists:flatten(occi_category_mgr:get_categories(),
+			       occi_category_mgr:get_actions()),
+    Body = [occi_renderer_xml:render_capabilities(Categories), "\n"],
     {Body, Req, Ctx}.
