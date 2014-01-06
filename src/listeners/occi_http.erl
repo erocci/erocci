@@ -45,6 +45,7 @@
 		opts     :: term()}).
 
 start_link(Opts) ->
+    application:start(cowlib),
     application:start(crypto),
     application:start(ranch),
     application:start(cowboy),
