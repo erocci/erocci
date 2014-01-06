@@ -29,7 +29,8 @@
 -include("occi.hrl").
 
 %% API
--export([render_capabilities/1]).
+-export([render_capabilities/1,
+	 render_collection/1]).
 
 %%%===================================================================
 %%% API
@@ -40,3 +41,9 @@ render_capabilities(Categories) ->
 			occi_renderer_text:render(Cat, "")
 		end, Categories),
       <<", ">>).
+
+render_collection(#occi_collection{}=Coll) ->
+    occi_renderer:join(lists:map(fun (Entity) ->
+					 occi_resource:get_id(Entity)
+				 end, occi_collection:get_resources(Coll)),
+		       <<", ">>).

@@ -31,6 +31,7 @@
 %% Callback callbacks
 -export([to_plain/2,
 	 to_json/2,
+	 to_occi/2,
 	 from_json/2]).
 
 -include("occi.hrl").
@@ -53,6 +54,7 @@ allowed_methods(Req, State) ->
 content_types_provided(Req, State) ->
     {[
       {{<<"text">>,          <<"plain">>,     []}, to_plain},
+      {{<<"text">>,          <<"occi">>,      []}, to_occi},
       {{<<"application">>,   <<"json">>,      []}, to_json},
       {{<<"application">>,   <<"occi+json">>, []}, to_json}
      ],
@@ -69,6 +71,13 @@ to_plain(Req, #state{category=Cat}=State) ->
     {ok, Coll} = occi_store:get_collection(Cat),
     Body = [occi_renderer_plain:render_collection(Coll), "\n"],
     {Body, Req, State}.
+
+to_occi(Req, #state{category=Cat}=State) ->
+    {ok, Coll} = occi_store:get_collection(Cat),
+    Req2 = cowboy_req:set_resp_header(<<"x-occi-location">>, 
+				      occi_renderer_occi:render_collection(Coll), Req),
+    Body = <<"OK\n">>,
+    {Body, Req2, State}.
 
 to_json(Req, #state{category=Cat}=State) ->
     {ok, Coll} = occi_store:get_collection(Cat),
