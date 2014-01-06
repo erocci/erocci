@@ -43,6 +43,7 @@ allowed_methods(Req, Ctx) ->
 content_types_provided(Req, Ctx) ->
     {[
       {{<<"text">>,          <<"plain">>,     []}, to_plain},
+      {{<<"text">>,          <<"occi">>,      []}, to_occi},
       {{<<"application">>,   <<"occi+json">>, []}, to_json},
       {{<<"application">>,   <<"json">>,      []}, to_json}
      ],
@@ -51,23 +52,25 @@ content_types_provided(Req, Ctx) ->
 to_plain(Req, Ctx) ->
     Categories = occi_category_mgr:get_categories(),
     Actions = occi_category_mgr:get_actions(),
-    Body = occi_renderer_plain:render(lists:flatten([Categories|Actions])),
+    Body = occi_renderer_plain:render_capabilities(lists:flatten([Categories|Actions])),
     {Body, Req, Ctx}.
 
 to_occi(Req, Ctx) ->
-    Categories = occi_category_mgr:get_categories(),
-    Req2 = cowboy_req:set_resp_header(<<"Category">>, occi_renderer_occi:render(Categories), Req),
+    Categories = lists:flatten(occi_category_mgr:get_categories(),
+			       occi_category_mgr:get_actions()),
+    Req2 = cowboy_req:set_resp_header(<<"category">>, 
+				      occi_renderer_occi:render_capabilities(Categories), Req),
     Body = <<"OK\n">>,
     {Body, Req2, Ctx}.
 
 to_uri_list(Req, Ctx) ->
     Categories = occi_category_mgr:get_categories(),
-    Body = [occi_renderer_uri_list:render(Categories), "\n"],
+    Body = [occi_renderer_uri_list:render_capabilites(Categories), "\n"],
     {Body, Req, Ctx}.
 
 to_json(Req, Ctx) ->
     Categories = occi_category_mgr:get_categories(),
-    Body = [occi_renderer_json:render_query(Categories), "\n"],
+    Body = [occi_renderer_json:render_capabilities(Categories), "\n"],
     {Body, Req, Ctx}.
 
 from_plain(Req, Ctx) ->

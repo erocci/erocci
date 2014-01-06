@@ -27,15 +27,15 @@
 
 -include("occi.hrl").
 
--export([render_query/1,
+-export([render_capabilities/1,
 	 render_collection/1,
-	 render_resource/1]).
+	 render_entity/1]).
 -export([render/1]).
 
 %%%
 %%% API
 %%%
-render_query(Categories) ->
+render_capabilities(Categories) ->
     Content = {<<"categories">>, lists:map(fun(Obj) -> 
 						   render_ejson(Obj) 
 					   end, Categories)},
@@ -47,7 +47,7 @@ render_collection(Coll) ->
 					  end, occi_collection:get_resources(Coll))},
     jiffy:encode({[Content]}, [pretty]).
 
-render_resource(Res) ->
+render_entity(#occi_resource{}=Res) ->
     Content = {<<"resources">>, [render_ejson(Res)]},
     jiffy:encode({[Content]}, [pretty]).
 

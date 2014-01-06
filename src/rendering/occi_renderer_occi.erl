@@ -29,17 +29,14 @@
 -include("occi.hrl").
 
 %% API
--export([render/1, parse/1]).
+-export([render_capabilities/1]).
 
 %%%===================================================================
 %%% API
 %%%===================================================================
-render(Category) when is_record(Category, occi_kind); 
-		      is_record(Category, occi_mixin);
-		      is_record(Category, occi_action_spec) ->
-    occi_renderer_text:render(Category, " ");
-render(Categories) ->
-    occi_renderer:join(lists:map(fun(Cat) -> render(Cat) end, Categories), ", ").
-
-parse(_Bin) ->
-    {}.
+render_capabilities(Categories) ->
+    occi_renderer:join(
+      lists:map(fun (Cat) ->
+			occi_renderer_text:render(Cat, "")
+		end, Categories),
+      <<", ">>).

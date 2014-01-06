@@ -26,7 +26,13 @@
 % Some common functions
 -export([join/2, to_list/1]).
 
--callback render(Obj :: term()) ->
+-callback render_capabilites(Categories :: [occi_category()]) ->
+    binary() | list().
+
+-callback render_collection(Collection :: occi_collection()) ->
+    binary() | list().
+
+-callback render_entity(Entity :: occi_resource() | occi_link()) ->
     binary() | list().
 
 %%%

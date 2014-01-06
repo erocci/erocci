@@ -33,13 +33,17 @@
 -include("occi.hrl").
 
 %% API
--export([render/1,
-	 render_collection/1,
-	 parse_resource_repr/1]).
+-export([render_capabilities/1,
+	 render_collection/1]).
+
+-export([parse_resource_repr/1]).
 
 %%%===================================================================
 %%% API
 %%%===================================================================
+render_capabilities(Categories) ->
+    lists:map(fun(Cat) -> [<<"Category: ">>, render(Cat), "\n"] end, Categories).
+
 render_collection(Coll) ->
     Headers = lists:foldl(fun (Entity, Acc) ->
 				  orddict:append(<<"x-occi-location">>, occi_resource:get_id(Entity), Acc)
@@ -48,10 +52,7 @@ render_collection(Coll) ->
 
 render(Category) when is_record(Category, occi_category); 
 		      is_record(Category, occi_action) ->
-    occi_renderer_text:render(Category, "\n\t");
-
-render(Categories) ->
-    lists:map(fun(Cat) -> [<<"Category: ">>, render(Cat), "\n"] end, Categories).
+    occi_renderer_text:render(Category, "\n\t").
 
 -spec parse_resource_repr(Bin :: binary()) -> [occi_entity()].
 parse_resource_repr(Bin) ->
