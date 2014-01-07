@@ -33,6 +33,7 @@
 -export([get/1,
 	 register_extension/2,
 	 register_category/4,
+	 register_mixin/1,
 	 register_action/1,
 	 get_categories/0,
 	 get_actions/0]).
@@ -41,6 +42,7 @@
 -export([init/1]).
 
 -define(SERVER, ?MODULE).
+-define(TABLE, ?MODULE).
 
 %%%===================================================================
 %%% API functions
@@ -58,7 +60,7 @@ start_link() ->
 
 -spec get(occi_cid()) -> occi_category().
 get(#occi_cid{}=Cid) ->
-    case mnesia:dirty_match_object(#occi_category{id=Cid, _='_'}) of
+    case ets:match_object(?TABLE, {occi_category, '_', Cid, '_', '_'}) of
 	[] ->
 	    undefined;
 	[Entry] ->
@@ -88,29 +90,28 @@ register_category(Id, Cat, Uri, Backend) ->
     Id = Cat#occi_category.id,
     lager:info("Registering ~s: ~s~s -> ~s~n", 
 	       [ Id#occi_cid.class, Id#occi_cid.scheme, Id#occi_cid.term, Uri ]),
-    mnesia:transaction(fun() ->
-			       mnesia:write(Cat#occi_category{location=Uri, backend=Backend})
-		       end),
+    ets:insert(?TABLE, Cat#occi_category{location=Uri, backend=Backend}),
     lists:foreach(fun(Action) ->
 			  register_action(Action)
 		  end,
 		  occi_category:get_actions(Cat)).
 
+register_mixin(#occi_category{}=_Mixin) ->
+    ok.
+
 register_action(Action) ->
     Id = Action#occi_action.id,
     lager:info("Registering action: ~s~s~n", 
 	       [ Id#occi_cid.scheme, Id#occi_cid.term ]),
-    mnesia:transaction(fun() ->
-			       mnesia:write(Action)
-		       end).
+    ets:insert(?TABLE, Action).
 
 -spec get_categories() -> [occi_category()].
 get_categories() ->
-    mnesia:dirty_match_object(#occi_category{_ ='_'}).
+    ets:match_object(?TABLE, {occi_category, '_', '_', '_', '_'}).
 
 -spec get_actions() -> [occi_action()].
 get_actions() ->
-    mnesia:dirty_match_object(#occi_action{_ ='_'}).
+    ets:match_object(?TABLE, {occi_action, '_', '_', '_'}).
 
 %%%===================================================================
 %%% Supervisor callbacks
@@ -131,14 +132,8 @@ get_actions() ->
 %%--------------------------------------------------------------------
 init([]) ->
     lager:info("Starting OCCI categories manager"),
-    mnesia:create_table(occi_category,
-			[{ram_copies, [node()]},
-			 {attributes, record_info(fields, occi_category)}]),
-    mnesia:create_table(occi_action,
-			[{ram_copies, [node()]},
-			 {attributes, record_info(fields, occi_action)}]),
-    mnesia:wait_for_tables([category_entry, action_entry], 
-			   infinite),
+    ?TABLE = ets:new(?TABLE, 
+		     [set, public, {keypos, 2}, named_table, {read_concurrency, true}]),
     {ok, {{one_for_one, 10, 10}, []}}.
 
 %%%===================================================================

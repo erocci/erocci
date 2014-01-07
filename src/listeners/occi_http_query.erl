@@ -30,6 +30,7 @@
 	 to_uri_list/2,
 	 to_json/2,
 	 to_xml/2]).
+-export([from_json/2]).
 
 -include("occi.hrl").
 
@@ -86,3 +87,6 @@ to_xml(Req, Ctx) ->
 			       occi_category_mgr:get_actions()),
     Body = [occi_renderer_xml:render_capabilities(Categories), "\n"],
     {Body, Req, Ctx}.
+
+from_json(Req, Req) ->
+    ok.

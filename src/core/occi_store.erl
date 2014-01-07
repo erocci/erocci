@@ -33,15 +33,14 @@
 -export([create/2,
 	 get_collection/1,
 	 gen_id/2,
-	 get_backend/1, 
+	 get_backend/0, 
 	 is_valid_path/1]).
 
 %% supervisor callbacks
 -export([init/1]).
 
 -define(SUPERVISOR, ?MODULE).
-
--record(store_mountpoint, {uri :: [binary()], backend :: backend_ref()}).
+-define(TABLE, ?MODULE).
 
 -type(backend_ref() :: atom()).
 -type(backend_mod() :: atom()).
@@ -72,7 +71,9 @@ register({Ref, Mod, Opts}) ->
     lager:info("Registering backend: ~p~n", [Ref]),
     Backend = {Ref, {occi_backend, start_link, [Ref, Mod, [{ref, Ref} | Opts]]}, 
 	       permanent, 5000, worker, [occi_backend, Mod]},
-    supervisor:start_child(occi_store, Backend).
+    Pid = supervisor:start_child(occi_store, Backend),
+    ets:insert(?TABLE, {backend, Ref}),
+    Pid.
 
 -spec is_valid_path(Path :: uri()) -> 
 			   false 
@@ -82,9 +83,10 @@ is_valid_path(Path) ->
     lager:debug("Looking up path: ~p~n", [Path]),
     false.
 
--spec get_backend(uri()) -> backend_ref().
-get_backend(Path) ->
-    get_backend2(lists:reverse(Path)).
+-spec get_backend() -> backend_ref().
+get_backend() ->
+    [{backend, Ref}] = ets:lookup(?TABLE, backend),
+    Ref.
 
 -spec gen_id(binary(), binary()) -> binary().
 gen_id(Host, Prefix) when is_binary(Prefix), 
@@ -107,34 +109,10 @@ get_collection(#occi_category{id=Id, backend=Backend}) ->
 %%%===================================================================
 init([]) ->
     lager:info("Starting OCCI storage manager"),
-    %mnesia:create_table(store_mountpoint,
-    %			[{ram_copies, [node()]},
-    %			 {attributes, record_info(fields, store_mountpoint)}]),
-    %   mnesia:wait_for_tables([store_mountpoint], 
-    %			   infinite),
+    ?TABLE = ets:new(?TABLE, [set, public, {keypos, 1}, named_table]),
     % start no child, will be added with backends
     {ok, {{one_for_one, 10, 10}, []}}.
 
 %%%===================================================================
 %%% internals
 %%%===================================================================
-
-%% @doc Store path as reverse ordered tokens: optimized for lookup
-%%
-%% register_mountpoint(Path, Ref) ->
-%%     Trans = fun() -> 
-%% 		    Mp = #store_mountpoint{uri=occi_types:split_path(Path), backend=Ref},
-%% 		    mnesia:write(Mp)
-%% 	    end,
-%%     mnesia:transaction(Trans).
-
-get_backend2([]) ->
-    [Mp] = mnesia:dirty_read(store_mountpoint, []),
-    Mp#store_mountpoint.backend;
-get_backend2([H|T]) ->
-    case mnesia:dirty_read(store_mountpoint, [H|T]) of
-	[] ->
-	    get_backend2(T);
-	[Mp] ->
-	    Mp#store_mountpoint.backend
-    end.

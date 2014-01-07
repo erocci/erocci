@@ -31,7 +31,7 @@
 % API
 -export([add_collection/3, set_cors/1]).
 
--export([onresponse/4]).
+-export([onresponse_debug/4]).
 
 %% occi_listener callbacks
 -export([start_link/1, terminate/0]).
@@ -39,6 +39,8 @@
 -define(QUERY_ROUTE,  {<<"/-/">>,                          occi_http_query,    []}).
 -define(QUERY_ROUTE2, {<<"/.well-known/org/ogf/occi/-/">>, occi_http_query,    []}).
 -define(ENTITY_ROUTE, {<<"/[...]">>,                       occi_http_entity,   []}).
+
+-define(TABLE, ?MODULE).
 
 -record(route, {path     :: binary(),
 		handler  :: atom(),
@@ -50,13 +52,13 @@ start_link(Opts) ->
     application:start(ranch),
     application:start(cowboy),
     lager:info("Starting HTTP listener ~p~n", [Opts]),
-    init(),
+    Dispatch = init(),
     {ok, _} = cowboy:start_http(http, 100, validate_cfg(Opts),
-				[{env, [{dispatch, get_dispatch()}]}]
+				[{env, [{dispatch, Dispatch}]}]
 			       ),
     loop().
 
-onresponse(Code, Headers, Body, Req) ->
+onresponse_debug(Code, Headers, Body, Req) ->
     lager:debug("### Code: ~p~n", [Code]),
     lager:debug("### Headers: ~p~n", [Headers]),
     lager:debug("### Body: ~p~n", [Body]),
@@ -68,7 +70,7 @@ add_collection(Id, Ref, Uri) ->
     Route = #route{path=occi_types:join_path([<<"">>|Uri]),
 		   handler=occi_http_collection,
 		   opts={Id, Ref}},
-    mnesia:dirty_write(Route),
+    ets:insert(?TABLE, Route),
     cowboy:set_env(http, dispatch, get_dispatch()).
 
 validate_cfg(Opts) ->
@@ -118,23 +120,17 @@ set_cors(Req) ->
 %%% Private
 %%%
 init() ->
-    mnesia:create_table(route,
-			[{ram_copies, [node()]},
-			 {attributes, record_info(fields, route)}]),
-    mnesia:wait_for_tables([route],
-			   infinite),
-    Categories = occi_category_mgr:get_categories(),
-    mnesia:transaction(fun () ->
-			       lists:foreach(fun (#occi_category{}=Cat) -> 
-						     Route = #route{path=Cat#occi_category.location,
-								    handler=occi_http_collection,
-								    opts=Cat},
-						     mnesia:write(Route)
-					     end, Categories)
-		       end).
+    ?TABLE = ets:new(?TABLE, [set, public, {keypos, 2}, named_table]),
+    Routes = lists:map(fun (#occi_category{}=Cat) ->
+			       #route{path=Cat#occi_category.location,
+				      handler=occi_http_collection,
+				      opts=Cat}
+		       end, occi_category_mgr:get_categories()),
+    ets:insert(?TABLE, Routes),
+    get_dispatch().
 
 get_dispatch() ->
-    CollectionRoutes = mnesia:dirty_match_object(#route{_='_'}),
+    CollectionRoutes = ets:match_object(?TABLE, {route, '_', '_', '_'}),
     Routes = lists:flatten([?QUERY_ROUTE,
      			    ?QUERY_ROUTE2,
      			    [ {R#route.path, R#route.handler, R#route.opts} || R <- CollectionRoutes ],

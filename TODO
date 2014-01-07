@@ -1,3 +1,1 @@
-- Use ETS instead of Mnesia wherever possible: occi_category_mgr,
-   occi_http
 - Fix resources rendering: json, plain, etc.

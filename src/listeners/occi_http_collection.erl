@@ -55,13 +55,13 @@ allowed_methods(Req, State) ->
 
 content_types_provided(Req, State) ->
     {[
-      {{<<"text">>,          <<"plain">>,     []}, to_plain},
-      {{<<"text">>,          <<"occi">>,      []}, to_occi},
-      {{<<"text">>,          <<"uri-list">>,  []}, to_uri_list},
-      {{<<"application">>,   <<"json">>,      []}, to_json},
-      {{<<"application">>,   <<"occi+json">>, []}, to_json},
-      {{<<"application">>,   <<"xml">>,       []}, to_xml},
-      {{<<"application">>,   <<"occi+xml">>,       []}, to_xml}
+      {{<<"text">>,          <<"plain">>,       []}, to_plain},
+      {{<<"text">>,          <<"occi">>,        []}, to_occi},
+      {{<<"text">>,          <<"uri-list">>,    []}, to_uri_list},
+      {{<<"application">>,   <<"json">>,        []}, to_json},
+      {{<<"application">>,   <<"occi+json">>,   []}, to_json},
+      {{<<"application">>,   <<"xml">>,         []}, to_xml},
+      {{<<"application">>,   <<"occi+xml">>,    []}, to_xml}
      ],
      Req, State}.
 
