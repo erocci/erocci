@@ -34,12 +34,14 @@
 
 -include("occi.hrl").
 
+-record(state, {}).
+
 init(_Transport, _Req, []) -> 
     {upgrade, protocol, cowboy_rest}.
 
 rest_init(Req, _Opts) ->
     Req1 = occi_http:set_cors(Req),
-    {ok, Req1, []}.
+    {ok, Req1, #state{}}.
 
 allowed_methods(Req, Ctx) ->
     {[<<"HEAD">>, <<"GET">>, <<"PUT">>, <<"DELETE">>, <<"POST">>, <<"OPTIONS">>], Req, Ctx}.
@@ -88,5 +90,18 @@ to_xml(Req, Ctx) ->
     Body = [occi_renderer_xml:render_capabilities(Categories), "\n"],
     {Body, Req, Ctx}.
 
-from_json(Req, Req) ->
-    ok.
+from_json(Req, State) ->
+    {ok, Body, Req2} = cowboy_req:body(Req),
+    case occi_parser_json:parse_mixin(Body) of
+	{error, Reason} ->
+	    lager:debug("Error processing request: ~p~n", [Reason]),
+	    {true, cowboy_req:reply(400, Req2), State};
+	{ok, #occi_mixin{}=Mixin} ->
+	    case occi_category_mgr:register_user_mixin(Mixin) of
+		{ok, _Res} ->
+		    {true, Req2, State};
+		{error, Reason} ->
+		    lager:debug("Error creating resource"),
+		    throw({error, Reason})
+	    end
+    end.

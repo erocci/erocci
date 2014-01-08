@@ -32,8 +32,9 @@
 -export([start_link/0]).
 -export([get/1,
 	 register_extension/2,
-	 register_category/4,
+	 register_kind/1,
 	 register_mixin/1,
+	 register_user_mixin/1,
 	 register_action/1,
 	 get_categories/0,
 	 get_actions/0]).
@@ -60,7 +61,7 @@ start_link() ->
 
 -spec get(occi_cid()) -> occi_category().
 get(#occi_cid{}=Cid) ->
-    case ets:match_object(?TABLE, {occi_category, '_', Cid, '_', '_'}) of
+    case ets:match_object(?TABLE, {occi_kind, Cid, '_', '_', '_', '_', '_', '_'}) of
 	[] ->
 	    undefined;
 	[Entry] ->
@@ -72,32 +73,37 @@ register_extension({xml, Path}, Mapping) ->
 	{error, parse_error} ->
 	    {error, parse_error};
 	Ext ->
-	    lists:foreach(fun(Cat) -> 
-				  Id = occi_category:get_id(Cat),
-				  case catch dict:find(Id, Mapping) of
-				      error ->
-					  lager:error("Unmapped category: ~s~s~n", [Id#occi_cid.scheme, 
-										    Id#occi_cid.term]),
-					  throw({unmapped_category, Id});
-				      {ok, {Uri, Backend}} -> 				  
-					  register_category(Id, Cat, Uri, Backend)
-				  end
+	    lists:foreach(fun(#occi_kind{id=Id}=Kind) ->
+				  {Uri, Backend} = get_mapping(Id, Mapping),
+				  register_kind(Kind#occi_kind{location=Uri, backend=Backend});
+			     (#occi_mixin{id=Id}=Mixin) ->
+				  {Uri, Backend} = get_mapping(Id, Mapping),
+				  register_mixin(Mixin#occi_mixin{location=Uri, backend=Backend})
 			  end,
 			  occi_extension:get_categories(Ext))
     end.
 
-register_category(Id, Cat, Uri, Backend) ->
-    Id = Cat#occi_category.id,
-    lager:info("Registering ~s: ~s~s -> ~s~n", 
-	       [ Id#occi_cid.class, Id#occi_cid.scheme, Id#occi_cid.term, Uri ]),
-    ets:insert(?TABLE, Cat#occi_category{location=Uri, backend=Backend}),
+register_kind(#occi_kind{id=Id, location=Uri}=Kind) ->
+    lager:info("Registering kind: ~s~s -> ~s~n", 
+	       [ Id#occi_cid.scheme, Id#occi_cid.term, Uri ]),
+    ets:insert(?TABLE, Kind),
     lists:foreach(fun(Action) ->
 			  register_action(Action)
 		  end,
-		  occi_category:get_actions(Cat)).
+		  occi_kind:get_actions(Kind)).
 
-register_mixin(#occi_category{}=_Mixin) ->
-    ok.
+register_mixin(#occi_mixin{id=Id, location=Uri}=Mixin) ->
+    lager:info("Registering mixin: ~s~s -> ~s~n", 
+	       [ Id#occi_cid.scheme, Id#occi_cid.term, Uri ]),
+    ets:insert(?TABLE, Mixin),
+    lists:foreach(fun(Action) ->
+			  register_action(Action)
+		  end,
+		  occi_mixin:get_actions(Mixin)).
+
+register_user_mixin(#occi_mixin{id=Id, location=Uri}=Mixin) ->
+    lager:info("Registering mixin: ~s~s -> ~s~n", [Id#occi_cid.scheme, Id#occi_cid.term, Uri]),
+    occi_store:create(Mixin).
 
 register_action(Action) ->
     Id = Action#occi_action.id,
@@ -107,11 +113,12 @@ register_action(Action) ->
 
 -spec get_categories() -> [occi_category()].
 get_categories() ->
-    ets:match_object(?TABLE, {occi_category, '_', '_', '_', '_'}).
+    Categories = ets:match_object(?TABLE, {occi_kind, '_', '_', '_', '_', '_', '_', '_'}),
+    Categories ++ ets:match_object(?TABLE, {occi_mixin, '_', '_', '_', '_', '_', '_', '_', '_'}).
 
 -spec get_actions() -> [occi_action()].
 get_actions() ->
-    ets:match_object(?TABLE, {occi_action, '_', '_', '_'}).
+    ets:match_object(?TABLE, {occi_action, '_', '_', '_', '_'}).
 
 %%%===================================================================
 %%% Supervisor callbacks
@@ -133,9 +140,18 @@ get_actions() ->
 init([]) ->
     lager:info("Starting OCCI categories manager"),
     ?TABLE = ets:new(?TABLE, 
-		     [set, public, {keypos, 2}, named_table, {read_concurrency, true}]),
+		     [ordered_set, public, {keypos, 2}, named_table, {read_concurrency, true}]),
     {ok, {{one_for_one, 10, 10}, []}}.
 
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+get_mapping(Id, Mapping) ->
+    case catch dict:find(Id, Mapping) of
+	error ->
+	    lager:error("Unmapped category: ~s~s~n", [Id#occi_cid.scheme, 
+						      Id#occi_cid.term]),
+	    throw({unmapped_category, Id});
+	{ok, {Uri, Backend}} ->
+	    {Uri, Backend}
+    end.

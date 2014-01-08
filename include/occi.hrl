@@ -31,11 +31,35 @@
 			id       :: #occi_cid{},
 			location :: uri(),
 			backend  :: atom()}).
--type(occi_category() :: #occi_category{}).
 
--record(occi_action, {ref      :: reference(),
-		      id       :: #occi_cid{},
-		      location :: uri()}).
+-record(occi_kind, {id                  :: #occi_cid{},
+		    title               :: binary(),
+		    location            :: uri(),
+		    backend             :: atom(),
+		    parent              :: #occi_cid{},
+		    attributes          :: term(),            % orddict
+		    actions     = []    :: [occi_action()]
+		   }).
+-type(occi_kind() :: #occi_kind{}).
+
+-record(occi_mixin, {id                  :: #occi_cid{},
+		     title               :: binary(),
+		     location            :: uri(),
+		     backend             :: atom(),
+		     depends     = []    :: [#occi_cid{}],
+		     applies     = []    :: [#occi_cid{}],
+		     attributes          :: term(),            % orddict
+		     actions     = []    :: [occi_action()]
+		    }).
+-type(occi_mixin() :: #occi_mixin{}).
+
+-type(occi_category() :: occi_kind() | occi_mixin()).
+
+-record(occi_action, {id                 :: #occi_cid{},
+		      title              :: binary(),
+		      location           :: uri(),
+		      attributes         :: term()             % orddict
+		     }).
 -type(occi_action() :: #occi_action{}).
 
 %%% OCCI simple types
@@ -89,3 +113,5 @@
 -type(hook() :: {hook_name(), hook_fun()}).
 -type(hook_name() :: on_save | on_update | on_delete | on_action).
 -type(hook_fun() :: {atom(), atom()} | fun()).
+
+-type(occi_object() :: occi_entity() | occi_category()).

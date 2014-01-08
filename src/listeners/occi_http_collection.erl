@@ -99,9 +99,9 @@ to_xml(Req, #state{category=Cat}=State) ->
     Body = [occi_renderer_xml:render_collection(Coll), "\n"],
     {Body, Req, State}.
 
-from_json(Req, #state{category=#occi_category{id=#occi_cid{class=kind}}=Cat}=State) ->
+from_json(Req, #state{category=#occi_kind{backend=Backend}=Kind}=State) ->
     {ok, Body, Req2} = cowboy_req:body(Req),
-    case occi_parser_json:parse_resource(Body, Cat) of
+    case occi_parser_json:parse_resource(Body, Kind) of
 	{error, Reason} ->
 	    lager:debug("Error processing request: ~p~n", [Reason]),
 	    {true, cowboy_req:reply(400, Req2), State};
@@ -109,7 +109,7 @@ from_json(Req, #state{category=#occi_category{id=#occi_cid{class=kind}}=Cat}=Sta
 	    {Host, Req3} = cowboy_req:host(Req2),
 	    {Prefix, Req4} = cowboy_req:path(Req3),
 	    Res2 = occi_resource:set_id(Res, occi_store:gen_id(Host, Prefix)),
-	    case occi_store:create(Cat#occi_category.backend, Res2) of
+	    case occi_store:create(Backend, Res2) of
 		{ok, Res3} ->
 		    RespBody = occi_renderer_json:render_entity(Res3),
 		    {true, cowboy_req:set_resp_body(RespBody, Req4), State};
@@ -118,5 +118,5 @@ from_json(Req, #state{category=#occi_category{id=#occi_cid{class=kind}}=Cat}=Sta
 		    throw({error, Reason})
 	    end
     end;
-from_json(Req, #state{category=#occi_category{id=#occi_cid{class=mixin}}=_Cat}=State) ->
+from_json(Req, #state{category=#occi_mixin{}=_Mixin}=State) ->
     {ok, Req, State}.

@@ -25,6 +25,8 @@
 -include("occi.hrl").
 
 -export([new/2,
+	 get_location/1,
+	 set_location/2,
 	 get_name/1,
 	 get_version/1,
 	 get_categories/1,
@@ -42,6 +44,12 @@ new(Name, Version) ->
 		    kinds=[],
 		    mixins=[],
 		    types=dict:new()}.
+
+get_location(#occi_mixin{location=Uri}) ->
+    Uri.
+
+set_location(#occi_mixin{}=Mixin, Uri) ->
+    Mixin#occi_mixin{location=Uri}.
 
 get_name(#occi_extension{name=Name}) ->
     Name.

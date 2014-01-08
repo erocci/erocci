@@ -24,12 +24,9 @@
 
 -include("occi.hrl").
 
-%% from occi_object
--export([destroy/1,
-	 save/1]).
-
-%% from occi_category
--export([get_id/1,
+%% API
+-export([new/2, 
+	 get_id/1,
 	 get_class/1,
 	 get_scheme/1,
 	 get_term/1,
@@ -40,119 +37,65 @@
 	 get_attr_list/1,
 	 set_types_check/2,
 	 get_actions/1,
-	 add_action/2]).
-
--export([new/1, 
-	 init/2,
+	 add_action/2,	 
 	 get_applies/1,
 	 add_applies/3,
 	 get_depends/1,
 	 add_depends/3]).
 
--export([impl_get_class/1,
-	 impl_get_applies/1,
-	 impl_add_applies/3,
-	 impl_get_depends/1,
-	 impl_add_depends/3]).
+new(Scheme, Term) ->
+    #occi_mixin{id=#occi_cid{scheme=Scheme, term=Term, class=mixin},
+		attributes=orddict:new()}.
 
--record(data, {super               :: term(),
-	       applies    = []     :: [occi_cid()],
-	       depends    = []     :: [occi_cid()],
-	       actions}).
+get_id(#occi_mixin{id=Id}) -> 
+    Id.
 
-%%
-%% from occi_object
-%%
-destroy(O) -> 
-    occi_category:destroy(O).
+get_class(_) -> 
+    mixin.
 
-save(O) -> 
-    occi_category:save(O).
+get_scheme(#occi_mixin{id=#occi_cid{scheme=Scheme}}) -> 
+    Scheme.
 
-%%
-%% from occi_category
-%%
-get_id(O) -> 
-    occi_category:get_id(O).
+get_term(#occi_mixin{id=#occi_cid{term=Term}}) -> 
+    Term.
 
-get_class(O) -> 
-    occi_category:get_class(O).
+get_title(#occi_mixin{title=Title}) -> 
+    Title.
 
-get_scheme(O) -> 
-    occi_category:get_scheme(O).
+set_title(#occi_mixin{}=Mixin, Title) -> 
+    Mixin#occi_mixin{title=Title}.
 
-get_term(O) -> 
-    occi_category:get_term(O).
+add_attribute(#occi_mixin{attributes=Attrs}=Mixin, A) -> 
+    Mixin#occi_mixin{attributes=orddict:store(occi_attribute:get_id(A), A, Attrs)}.
 
-get_title(O) -> 
-    occi_category:get_title(O).
+get_attributes(#occi_mixin{attributes=Attrs}) ->
+    Attrs.
 
-set_title(O, Title) -> 
-    occi_category:set_title(O, Title).
+get_attr_list(#occi_mixin{attributes=Attrs}) ->
+    lists:map(fun ({_Key, Val}) ->
+		      Val
+	      end, orddict:to_list(Attrs)).
 
-add_attribute(O, A) -> 
-    occi_category:add_attribute(O, A).
+set_types_check(#occi_mixin{attributes=Attrs}=Mixin, Types) -> 
+    Attrs2 = orddict:map(fun (_Id, Attr) ->
+				 occi_attribute:set_check(Attr, Types)
+			 end, Attrs),
+    Mixin#occi_mixin{attributes=Attrs2}.
 
-get_attributes(O) ->
-    occi_category:get_attributes(O).
+get_actions(#occi_mixin{actions=Actions}) ->
+    Actions.
 
-get_attr_list(O) ->
-    occi_category:get_attr_list(O).
+add_action(#occi_mixin{actions=Actions}=Mixin, Action) ->
+    Mixin#occi_mixin{actions=[Action|Actions]}.
 
-set_types_check(O, Types) -> 
-    occi_category:set_types_check(O, Types).
+get_applies(#occi_mixin{applies=Applies}) ->
+    Applies.
 
-get_actions(O) ->
-    occi_category:get_actions(O).
+add_applies(#occi_mixin{applies=Applies}=Mixin, Scheme, Term) ->
+    Mixin#occi_mixin{applies=[#occi_cid{scheme=Scheme, term=Term}|Applies]}.
 
-add_action(O, Action) ->
-    occi_category:add_action(O, Action).
+get_depends(#occi_mixin{depends=Depends}) ->
+    Depends.
 
-%%
-%% Specific methods
-%%
-new({Scheme, Term}) ->
-    Ref = occi_category:new([?MODULE], {Scheme, Term}),
-    #occi_category{id=#occi_cid{scheme=Scheme, term=Term, class=mixin}, ref=Ref}.
-
-init(Scheme, Term) ->
-    Cat = occi_category:init(Scheme, Term),
-    #data{super=Cat}.
-
-get_applies(O) ->
-    occi_object:call(O, impl_get_applies, []).
-
-add_applies(O, Scheme, Term) ->
-    occi_object:call(O, impl_add_applies, [Scheme, Term]).
-
-get_depends(O) ->
-    occi_object:call(O, impl_get_depends, []).
-
-add_depends(O, Scheme, Term) ->
-    occi_object:call(O, impl_add_depends, [Scheme, Term]).
-
-%%
-%% implementations
-%%
-impl_get_class(Data) ->
-    {{ok, mixin}, Data}.
-
-impl_get_applies(#data{applies=Applies}=Data) ->
-    {{ok, Applies}, Data}.
-
-impl_add_applies(#data{}=Data, undefined, _Term) ->
-    {{error, {einval, "Undefined scheme"}}, Data};
-impl_add_applies(#data{}=Data, _Scheme, undefined) ->
-    {{error, {einval, "Undefined term"}}, Data};
-impl_add_applies(#data{applies=Applies}=Data, Scheme, Term) ->
-    {ok, Data#data{applies=[#occi_cid{scheme=Scheme, term=Term}|Applies]}}.
-
-impl_get_depends(#data{depends=Depends}=Data) ->
-    {{ok, Depends}, Data}.
-
-impl_add_depends(#data{}=Data, undefined, _Term) ->
-    {{error, {einval, "Undefined scheme"}}, Data};
-impl_add_depends(#data{}=Data, _Scheme, undefined) ->
-    {{error, {einval, "Undefined term"}}, Data};
-impl_add_depends(#data{depends=Depends}=Data, Scheme, Term) ->
-    {ok, Data#data{depends=[#occi_cid{scheme=Scheme, term=Term}|Depends]}}.
+add_depends(#occi_mixin{depends=Depends}=Mixin, Scheme, Term) ->
+    Mixin#occi_mixin{depends=[#occi_cid{scheme=Scheme, term=Term}|Depends]}.

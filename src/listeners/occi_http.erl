@@ -29,16 +29,16 @@
 -include("occi.hrl").
 
 % API
--export([add_collection/3, set_cors/1]).
+-export([add_collection/2, set_cors/1]).
 
 -export([onresponse_debug/4]).
 
 %% occi_listener callbacks
 -export([start_link/1, terminate/0]).
 
--define(QUERY_ROUTE,  {<<"/-/">>,                          occi_http_query,    []}).
--define(QUERY_ROUTE2, {<<"/.well-known/org/ogf/occi/-/">>, occi_http_query,    []}).
--define(ENTITY_ROUTE, {<<"/[...]">>,                       occi_http_entity,   []}).
+-define(QUERY_ROUTES(Opts), [{<<"/-/">>,                          occi_http_query,    Opts},
+			     {<<"/.well-known/org/ogf/occi/-/">>, occi_http_query,    Opts}]).
+-define(ENTITY_ROUTE,       {<<"/[...]">>,                       occi_http_entity,   []}).
 
 -define(TABLE, ?MODULE).
 
@@ -53,10 +53,7 @@ start_link(Opts) ->
     application:start(cowboy),
     lager:info("Starting HTTP listener ~p~n", [Opts]),
     Dispatch = init(),
-    {ok, _} = cowboy:start_http(http, 100, validate_cfg(Opts),
-				[{env, [{dispatch, Dispatch}]}]
-			       ),
-    loop().
+    cowboy:start_http(http, 100, validate_cfg(Opts), [{env, [{dispatch, Dispatch}]}]).
 
 onresponse_debug(Code, Headers, Body, Req) ->
     lager:debug("### Code: ~p~n", [Code]),
@@ -65,11 +62,11 @@ onresponse_debug(Code, Headers, Body, Req) ->
     lager:debug("### Req: ~p~n", [Req]),
     Req.
 
--spec add_collection(occi_cid(), reference(), uri()) -> ok.
-add_collection(Id, Ref, Uri) ->
+-spec add_collection(occi_category(), uri()) -> ok.
+add_collection(Category, Uri) ->
     Route = #route{path=occi_types:join_path([<<"">>|Uri]),
 		   handler=occi_http_collection,
-		   opts={Id, Ref}},
+		   opts=Category},
     ets:insert(?TABLE, Route),
     cowboy:set_env(http, dispatch, get_dispatch()).
 
@@ -93,16 +90,8 @@ validate_cfg(Opts) ->
 	   end,
     [{ip, Address}, {port, Port}].
 
-loop() ->
-    receive
-	stop ->
-	    cowboy:stop_listener(http);
-	_ ->
-	    loop()
-    end.
-
 terminate() ->
-    ?MODULE ! stop.
+    cowboy:stop_listener(http).
 
 % Convenience function for setting CORS headers
 set_cors(Req) ->
@@ -121,18 +110,17 @@ set_cors(Req) ->
 %%%
 init() ->
     ?TABLE = ets:new(?TABLE, [set, public, {keypos, 2}, named_table]),
-    Routes = lists:map(fun (#occi_category{}=Cat) ->
-			       #route{path=Cat#occi_category.location,
-				      handler=occi_http_collection,
-				      opts=Cat}
+    Routes = lists:map(fun (#occi_kind{location=Uri}=Kind) ->
+			       #route{path=Uri, handler=occi_http_collection, opts=Kind};
+			   (#occi_mixin{location=Uri}=Mixin) ->
+			       #route{path=Uri, handler=occi_http_collection, opts=Mixin}			   
 		       end, occi_category_mgr:get_categories()),
     ets:insert(?TABLE, Routes),
     get_dispatch().
 
 get_dispatch() ->
     CollectionRoutes = ets:match_object(?TABLE, {route, '_', '_', '_'}),
-    Routes = lists:flatten([?QUERY_ROUTE,
-     			    ?QUERY_ROUTE2,
+    Routes = lists:flatten([?QUERY_ROUTES([]),
      			    [ {R#route.path, R#route.handler, R#route.opts} || R <- CollectionRoutes ],
      			    ?ENTITY_ROUTE]),
     cowboy_router:compile([{'_', Routes}]).

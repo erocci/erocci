@@ -44,8 +44,8 @@
 new() ->
     #occi_resource{attributes=dict:new()}.
 
--spec new(occi_category()) -> occi_resource().
-new(#occi_category{}=Kind) ->
+-spec new(occi_kind()) -> occi_resource().
+new(#occi_kind{}=Kind) ->
     #occi_resource{cid=occi_kind:get_id(Kind), 
 		   attributes=occi_kind:get_attributes(Kind)}.
 

@@ -38,7 +38,9 @@
 render_capabilities(Categories) ->
     occi_renderer:join(
       lists:reverse(
-	lists:foldl(fun (#occi_category{location=Uri}, Acc) ->
+	lists:foldl(fun (#occi_kind{location=Uri}, Acc) ->
+			    [Uri|Acc];
+			(#occi_mixin{location=Uri}, Acc) ->
 			    [Uri|Acc];
 			(#occi_action{location=undefined}, Acc) ->
 			    Acc;

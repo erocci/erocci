@@ -24,12 +24,9 @@
 
 -include("occi.hrl").
 
-%% from occi_object
--export([destroy/1,
-	 save/1]).
-
 %% from occi_category
--export([get_id/1,
+-export([new/2,
+	 get_id/1,
 	 get_class/1,
 	 get_scheme/1,
 	 get_term/1,
@@ -40,69 +37,41 @@
 	 get_attr_list/1,
 	 set_types_check/2]).
 
-%% specific
--export([new/1,
-	 init/2]).
+new(Scheme, Term) ->
+    #occi_action{id=#occi_cid{scheme=Scheme, term=Term, class=action},
+		 attributes=orddict:new()}.
 
--export([impl_get_class/1]).
-
--record(data, {super         :: term()}).
-
-%%
-%% from occi_object
-%%
-destroy(O) -> 
-    occi_category:destroy(O).
-
-save(O) -> 
-    occi_category:save(O).
-
-%%
-%% from occi_category
-%%
 get_id(#occi_action{id=Id}) -> 
     Id.
 
-get_class(O) -> 
-    occi_category:get_class(O).
+get_class(_) -> 
+    action.
 
-get_scheme(O) -> 
-    occi_category:get_scheme(O).
+get_scheme(#occi_action{id=#occi_cid{scheme=Scheme}}) -> 
+    Scheme.
 
-get_term(O) -> 
-    occi_category:get_term(O).
+get_term(#occi_action{id=#occi_cid{term=Term}}) -> 
+    Term.
 
-get_title(O) -> 
-    occi_category:get_title(O).
+get_title(#occi_action{title=Title}) -> 
+    Title.
 
-set_title(O, Title) -> 
-    occi_category:set_title(O, Title).
+set_title(#occi_action{}=Action, Title) -> 
+    Action#occi_action{title=Title}.
 
-add_attribute(O, A) -> 
-    occi_category:add_attribute(O, A).
+add_attribute(#occi_action{attributes=Attrs}=Action, A) -> 
+    Action#occi_action{attributes=orddict:store(occi_attribute:get_id(A), A, Attrs)}.
 
-get_attributes(O) ->
-    occi_category:get_attributes(O).
+get_attributes(#occi_action{attributes=Attrs}) ->
+    Attrs.
 
-get_attr_list(O) ->
-    occi_category:get_attr_list(O).
+get_attr_list(#occi_action{attributes=Attrs}) ->
+    lists:map(fun ({_Key, Val}) ->
+		      Val
+	      end, orddict:to_list(Attrs)).
 
-set_types_check(O, Types) -> 
-    occi_category:set_types_check(O, Types).
-
-%%
-%% specific
-%%
-new({Scheme, Term}) ->
-    Ref = occi_category:new([?MODULE], {Scheme, Term}),
-    #occi_action{id=#occi_cid{scheme=Scheme, term=Term, class=action}, ref=Ref}.
-
-init(Scheme, Term) ->
-    Cat = occi_category:init(Scheme, Term),
-    #data{super=Cat}.
-
-%%
-%% implementations
-%%
-impl_get_class(Data) ->
-    {{ok, action}, Data}.
+set_types_check(#occi_action{attributes=Attrs}=Action, Types) -> 
+    Attrs2 = orddict:map(fun (_Id, Attr) ->
+				 occi_attribute:set_check(Attr, Types)
+			 end, Attrs),
+    Action#occi_action{attributes=Attrs2}.

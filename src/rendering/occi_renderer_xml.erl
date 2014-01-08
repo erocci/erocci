@@ -38,8 +38,10 @@ render_capabilities(Categories) ->
     render_xml(
       exmpp_xml:set_children(
 	exmpp_xml:element(occi, component),
-	lists:map(fun (#occi_category{}=Cat) ->
-			  render_category(Cat);
+	lists:map(fun (#occi_kind{}=Kind) ->
+			  render_kind(Kind);
+		      (#occi_mixin{}=Mixin) ->
+			  render_mixin(Mixin);
 		      (#occi_action{}=Action) ->
 			  render_action(Action)
 		  end, Categories))).
@@ -56,15 +58,32 @@ render_collection(#occi_collection{}=Coll) ->
 %%%
 %%% Private
 %%%
-render_category(#occi_category{id=#occi_cid{class=kind}}=Kind) ->
-    E = render_category2(exmpp_xml:element(kind), Kind),
+render_kind(#occi_kind{}=Kind) ->
+    E = render_category(exmpp_xml:element(kind), Kind),
     E2 = render_parent(E, occi_kind:get_parent(Kind)),
-    render_attr_specs(E2, occi_kind:get_attr_list(Kind));
-render_category(#occi_category{id=#occi_cid{class=mixin}}=Mixin) ->
-    E = render_category2(exmpp_xml:element(mixin), Mixin),
+    render_attr_specs(E2, occi_kind:get_attr_list(Kind)).
+
+render_mixin(#occi_mixin{}=Mixin) ->
+    E = render_category(exmpp_xml:element(mixin), Mixin),
     E2 = render_depends(E, occi_mixin:get_depends(Mixin)),
     E3 = render_applies(E2, occi_mixin:get_applies(Mixin)),
     render_attr_specs(E3, occi_mixin:get_attr_list(Mixin)).
+
+render_category(#xmlel{}=E, #occi_kind{location=Uri}=Kind) ->
+    render_category(E, 
+		    occi_kind:get_scheme(Kind),
+		    occi_kind:get_term(Kind),
+		    occi_kind:get_title(Kind),
+		    Uri);
+render_category(#xmlel{}=E, #occi_mixin{location=Uri}=Mixin) ->
+    render_category(E, 
+		    occi_mixin:get_scheme(Mixin),
+		    occi_mixin:get_term(Mixin),
+		    occi_mixin:get_title(Mixin),
+		    Uri).
+
+render_category(E, Scheme, Term, Title, Uri) ->
+    set_attributes(E, [{<<"scheme">>, Scheme}, {<<"term">>, Term}, {<<"title">>, Title}, {<<"location">>, Uri}]).
 
 render_action(#occi_action{location=Uri}=Action) ->
     Attrs = [{<<"scheme">>, occi_action:get_scheme(Action)},
@@ -74,13 +93,8 @@ render_action(#occi_action{location=Uri}=Action) ->
     E = set_attributes(exmpp_xml:element(action), Attrs),
     render_attr_specs(E, occi_action:get_attr_list(Action)).
 
-render_category2(#xmlel{}=E, #occi_category{location=Uri}=Cat) ->
-    Attrs = [{<<"scheme">>, occi_category:get_scheme(Cat)},
-	     {<<"term">>, occi_category:get_term(Cat)},
-	     {<<"title">>, occi_category:get_title(Cat)},
-	     {<<"location">>, Uri}],
-    set_attributes(E, Attrs).
-
+render_parent(E, undefined) ->
+    E;
 render_parent(E, #occi_cid{scheme=Scheme, term=Term}) ->
     P = set_attributes(exmpp_xml:element(parent), 
 		       [{<<"scheme">>, Scheme},

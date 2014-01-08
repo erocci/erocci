@@ -30,7 +30,8 @@
 
 %% API
 -export([start_link/0, register/1]).
--export([create/2,
+-export([create/1,
+	 create/2,
 	 get_collection/1,
 	 gen_id/2,
 	 get_backend/0, 
@@ -94,13 +95,24 @@ gen_id(Host, Prefix) when is_binary(Prefix),
     Id = list_to_binary(uuid:to_string(uuid:uuid3(uuid:uuid4(), Host))),
     <<"http://", Host/binary, Prefix/binary, Id/binary>>.
 
--spec create(backend_ref(), occi_resource()) -> {ok, occi_resource()} 
-						    | {error, term()}.
+-spec create(occi_object()) -> {ok, occi_object()} | {error, term()}.
+create(Obj) ->
+    Backend = get_backend(),
+    create(Backend, Obj).
+
+-spec create(backend_ref(), occi_object()) -> {ok, occi_resource()} 
+						  | {error, term()}.
 create(Backend, #occi_resource{id=Id}=Res) ->
     lager:debug("Create resource: ~s~n", [Id]),
-    occi_backend:save(Backend, Res).
+    occi_backend:save(Backend, Res);
+create(Backend, #occi_mixin{}=Cat) ->
+    lager:debug("Create mixin: ~s~n", [Cat]),
+    occi_backend:save(Backend, Cat).
 
-get_collection(#occi_category{id=Id, backend=Backend}) ->
+get_collection(#occi_kind{id=Id, backend=Backend}) ->
+    lager:debug("Retrieve collection: ~p~n", [Id]),
+    occi_backend:find_all(Backend, Id);
+get_collection(#occi_mixin{id=Id, backend=Backend}) ->
     lager:debug("Retrieve collection: ~p~n", [Id]),
     occi_backend:find_all(Backend, Id).
 

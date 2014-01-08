@@ -41,17 +41,25 @@ init(_) ->
     mnesia:create_table(occi_resource,
 		       [{disc_copies, [node()]},
 			{attributes, record_info(fields, occi_resource)}]),
-    mnesia:wait_for_tables([occi_resource], infinite),
+    mnesia:create_table(occi_category,
+		       [{disc_copies, [node()]},
+			{attributes, record_info(fields, occi_category)}]),
+    mnesia:wait_for_tables([occi_resource, occi_category], infinite),
     {ok, #state{}}.
 
 terminate(#state{}) ->
     ok.
 
-save(Obj, #state{}=State) when is_record(Obj, occi_resource) ->
+save(#occi_resource{}=Res, #state{}=State) ->
     mnesia:transaction(fun() ->
-			       mnesia:write(Obj)
+			       mnesia:write(Res)
 		       end),
-    {{ok, Obj}, State}.
+    {{ok, Res}, State};
+save(#occi_mixin{}=Mixin, #state{}=State) ->
+    mnesia:transaction(fun() ->
+			       mnesia:write(Mixin)
+		       end),
+    {{ok, Mixin}, State}.
 
 find_all(#occi_cid{}=Id, #state{}=State) ->
     Coll = occi_collection:new(),

@@ -50,8 +50,8 @@
 -callback terminate(State :: term()) ->
     term().
 
--callback save(Obj :: occi_entity(), State :: term()) ->
-    {{ok, Obj :: occi_entity()}, State :: term()} |
+-callback save(Obj :: occi_object(), State :: term()) ->
+    {{ok, Obj :: occi_object()}, State :: term()} |
     {{error, Reason :: term()}, State :: term()}.
 
 -callback find_all(CatId :: occi_cid(), State :: term()) ->

@@ -69,8 +69,8 @@
 %%%===================================================================
 %%% API
 %%%===================================================================
-parse_resource(Data, #occi_category{}=Cat) ->
-    JP = start_parser(occi_resource:new(Cat)),
+parse_resource(Data, #occi_kind{}=Kind) ->
+    JP = start_parser(occi_resource:new(Kind)),
     parse(JP, Data).
 
 -spec parse(parser_id(), binary()) -> parser_result().

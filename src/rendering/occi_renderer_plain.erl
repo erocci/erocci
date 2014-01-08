@@ -50,7 +50,8 @@ render_collection(Coll) ->
 			  end, orddict:new(), occi_collection:get_resources(Coll)),
     render_headers(Headers).
 
-render(Category) when is_record(Category, occi_category); 
+render(Category) when is_record(Category, occi_kind); 
+		      is_record(Category, occi_mixin);
 		      is_record(Category, occi_action) ->
     occi_renderer_text:render(Category, "\n\t").
 
