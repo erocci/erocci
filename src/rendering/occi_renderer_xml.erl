@@ -26,7 +26,7 @@
 -behaviour(occi_renderer).
 
 -include("occi.hrl").
--include_lib("exmpp_xml.hrl").
+-include_lib("exmpp/include/exmpp_xml.hrl").
 
 -export([render_capabilities/1,
 	 render_collection/1]).

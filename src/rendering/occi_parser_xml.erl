@@ -27,7 +27,7 @@
 -behaviour(gen_fsm).
 
 -include("occi.hrl").
--include_lib("exmpp_xml.hrl").
+-include_lib("exmpp/include/exmpp_xml.hrl").
 
 %% API
 -export([start_parser/0,
