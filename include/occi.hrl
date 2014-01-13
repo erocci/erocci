@@ -42,14 +42,14 @@
 		   }).
 -type(occi_kind() :: #occi_kind{}).
 
--record(occi_mixin, {id                  :: #occi_cid{},
-		     title               :: binary(),
-		     location            :: uri(),
-		     backend             :: atom(),
-		     depends     = []    :: [#occi_cid{}],
-		     applies     = []    :: [#occi_cid{}],
-		     attributes          :: term(),            % orddict
-		     actions     = []    :: [occi_action()]
+-record(occi_mixin, {id                      :: #occi_cid{},
+		     title       = undefined :: binary(),
+		     location    = undefined :: uri(),
+		     backend                 :: atom(),
+		     depends     = []        :: [#occi_cid{}],
+		     applies     = []        :: [#occi_cid{}],
+		     attributes              :: term(),            % orddict
+		     actions     = []        :: [occi_action()]
 		    }).
 -type(occi_mixin() :: #occi_mixin{}).
 
@@ -115,3 +115,11 @@
 -type(hook_fun() :: {atom(), atom()} | fun()).
 
 -type(occi_object() :: occi_entity() | occi_category()).
+
+-record(occi_request, {kinds      = []     :: [occi_kind()],
+		       mixins     = []     :: [occi_mixin()],
+		       actions    = []     :: [occi_action()],
+		       resources  = []     :: [occi_resource()],
+		       links      = []     :: [occi_link()]
+		      }).
+-type(occi_request() :: #occi_request{}).

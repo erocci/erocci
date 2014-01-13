@@ -23,7 +23,8 @@
 -export([init/3, 
 	 rest_init/2,
 	 allowed_methods/2,
-	 content_types_provided/2
+	 content_types_provided/2,
+	 content_types_accepted/2
 	]).
 -export([to_plain/2, 
 	 to_occi/2,
@@ -57,6 +58,13 @@ content_types_provided(Req, Ctx) ->
       {{<<"application">>,   <<"occi+xml">>,  []}, to_xml}
      ],
      Req, Ctx}.
+
+content_types_accepted(Req, State) ->
+    {[
+      {{<<"application">>,     <<"json">>,      []}, from_json},
+      {{<<"application">>,     <<"occi+json">>, []}, from_json}
+     ],
+     Req, State}.
 
 to_plain(Req, Ctx) ->
     Categories = lists:flatten(occi_category_mgr:get_categories(),
@@ -95,6 +103,9 @@ from_json(Req, State) ->
     case occi_parser_json:parse_mixin(Body) of
 	{error, Reason} ->
 	    lager:debug("Error processing request: ~p~n", [Reason]),
+	    {true, cowboy_req:reply(400, Req2), State};
+	{ok, undefined} ->
+	    lager:debug("Empty request~n"),
 	    {true, cowboy_req:reply(400, Req2), State};
 	{ok, #occi_mixin{}=Mixin} ->
 	    case occi_category_mgr:register_user_mixin(Mixin) of

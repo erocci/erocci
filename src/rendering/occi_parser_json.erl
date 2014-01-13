@@ -29,73 +29,69 @@
 -include("occi_parser.hrl").
 
 %% API
--export([start_parser/1,
-	 reset_parser/1,
-	 stop_parser/1,
-	 parse_resource/2,
+-export([start/0,
+	 stop/1,
 	 parse/2]).
+-export([parse_resource/2]).
 
 %% gen_fsm callbacks
 -export([init/1, handle_event/3, handle_sync_event/4, handle_info/3, terminate/3, code_change/4]).
 
-%% JSON parsing states
--export([init_json/3,
-	 array/3,
-	 object/3,
-	 pair/3,
-	 value/3]).
-
 %% OCCI parsing states
--export([resource/3,
+-export([init/3,
+	 request/3,
+	 resources_req/3,
+	 resources/3,
+	 resource/3,
 	 resource_kind/3,
+	 resource_mixins/3,
+	 resource_mixin/3,
 	 resource_attributes/3,
 	 resource_attribute/3,
-	 resource_attribute_list/3]).
-
-%% Shared states
--export([eof/3]).
+	 resource_id/3,
+	 resource_links/3,
+	 resource_link/3,
+	 eof/3]).
 
 -define(SERVER, ?MODULE).
 
--record(state, {stack          = []            :: [atom()],
-		next           = undefined     :: pid(),
-		resource       = undefined     :: term(),
-		link           = undefined     :: term(),
-		attrKey        = undefined     :: term()}).
-
--type(parser_id() :: reference()).
--type(parser_result() :: {ok, term()} | {error, term()}).
+-record(state, {request        = #occi_request{}   :: occi_request(),
+		resource       = undefined         :: term(),
+		link           = undefined         :: term(),
+		attrKey        = undefined         :: term()}).
 
 %%%===================================================================
 %%% API
 %%%===================================================================
-parse_resource(Data, #occi_kind{}=Kind) ->
-    JP = start_parser(occi_resource:new(Kind)),
-    parse(JP, Data).
+parse_resource(Data, #occi_kind{id=Cid}) ->
+    P = start(),
+    case parse(P, Data) of
+	{error, Reason} ->
+	    {error, Reason};
+	{ok, #occi_request{resources=[#occi_resource{cid=Cid}=Res]}} ->
+	    {ok, Res};
+	Ret ->
+	    lager:error("### parse_resource result: ~p~n", [Ret]),
+	    {error, invalid_request}
+    end.	    
 
--spec parse(parser_id(), binary()) -> parser_result().
-parse(Parser, Data) when is_list(Data)->
-    case occi_scanner_json:string(Data) of
-	{ok, Tokens, _EndLine} ->
-	    send_events(Parser, Tokens);
-	{error, Err, Line} ->
-	    lager:error("Error parsing json data at line: ~p~n", [Line]),
-	    throw({error, Err, Line})
-    end;
-parse(Parser, Data) when is_binary(Data) ->
-    parse(Parser, binary_to_list(Data)).
+-spec parse(parser(), binary()) -> parser_result().
+parse(#parser{src=#parser{mod=Mod}=Src}, Data) ->
+    Mod:parse(Src, Data).
 
-start_parser(#occi_resource{}=Res) ->
-    case gen_fsm:start(?MODULE, {json, Res}, []) of
-	{ok, Pid} -> Pid;
-	Other -> 
-	    lager:error("Error starting json parser: ~p~n", [Other])
+start() ->
+    Parser = #parser{mod=?MODULE, stack=[eof], state=#state{}},
+    case gen_fsm:start(?MODULE, Parser, []) of
+	{ok, Pid} -> 
+	    Src = occi_parser_json0:start(Parser#parser{id=Pid}),
+	    Parser#parser{id=Pid, src=Src};
+	Err -> 
+	    lager:error("Error starting occi/json parser: ~p~n", [Err]),
+	    throw(Err)
     end.
 
-reset_parser(Ref) ->
-    gen_fsm:send_all_state_event(Ref, stop).
-
-stop_parser(Ref) ->
+stop(#parser{id=Ref, src=#parser{mod=Mod}=Src}) ->
+    Mod:stop(Src),
     gen_fsm:send_all_state_event(Ref, stop).
 
 %%%===================================================================
@@ -115,15 +111,8 @@ stop_parser(Ref) ->
 %%                     {stop, StopReason}
 %% @end
 %%--------------------------------------------------------------------
-init({occi, #occi_resource{}=Res}) ->
-    {ok, resource, #state{stack=[resource], resource=Res}};
-init({json, Args}) ->
-    case gen_fsm:start(?MODULE, {occi, Args}, []) of
-	{ok, Pid} -> 
-	    {ok, init_json, #state{next=Pid, stack=[init_json]}};
-	Err ->
-	    {stop, Err}
-    end.
+init(#parser{}=Parser) ->
+    {ok, init, Parser}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -140,11 +129,8 @@ init({json, Args}) ->
 %%--------------------------------------------------------------------
 handle_event(reset, _, State) ->
     {next_state, init, State};
-handle_event(stop, _, #state{next=undefined}=State) ->
+handle_event(stop, _, State) ->
     {stop, normal, State};
-handle_event(stop, _, #state{next=Pid}=State) ->
-    gen_fsm:send_all_state_event(Pid, stop),
-    {stop, normal, State#state{next=undefined}};
 handle_event(_Event, StateName, State) ->
     {next_state, StateName, State}.
 
@@ -164,13 +150,10 @@ handle_event(_Event, StateName, State) ->
 %%                   {stop, Reason, Reply, NewState}
 %% @end
 %%--------------------------------------------------------------------
-handle_sync_event(eof, _From, _StateName, #state{next=undefined}=State) ->
+handle_sync_event(eof, _From, _StateName, State) ->
     {stop, eof, State};
-handle_sync_event(eof, _From, _StateName, #state{next=Pid}=State) ->
-    gen_fsm:sync_send_all_state_event(Pid, eof),
-    {stop, eof, State#state{next=undefined}};
 handle_sync_event(Event, _From, _StateName, State) ->
-    parse_error(Event, State).
+    occi_parser:parse_error(Event, State).
 
 %%--------------------------------------------------------------------
 %% @private
@@ -199,10 +182,7 @@ handle_info(_Info, StateName, State) ->
 %% @spec terminate(Reason, StateName, State) -> void()
 %% @end
 %%--------------------------------------------------------------------
-terminate(Reason, StateName, #state{next=undefined}=State) ->
-    lager:debug("Terminate with reason ~p in state ~s [~p]", [Reason, StateName, State]);
-terminate(Reason, StateName, #state{next=Pid}=State) ->
-    gen_fsm:send_all_state_event(Pid, stop),
+terminate(Reason, StateName, State) ->
     lager:debug("Terminate with reason ~p in state ~s [~p]", [Reason, StateName, State]).
 
 %%--------------------------------------------------------------------
@@ -217,235 +197,138 @@ terminate(Reason, StateName, #state{next=Pid}=State) ->
 code_change(_OldVsn, StateName, State, _Extra) ->
     {ok, StateName, State}.
 
-%% JSON parsing states
-init_json(#token{name=objBegin}, _From, State) ->
-    push(object, State);
-init_json(#token{name=arrBegin}, _From, State) ->
-    push(array, State);
-init_json(#token{}=Token, _From, State) ->
-    parse_error(Token, State).
-
-array(#token{name=arrEnd}=Token, _From, #state{next=Pid}=State) ->
-    send_event_next(Pid, Token, 
-	       pop(State), State);
-array(#token{name=string, data=Data}, _From, #state{next=Pid}=State) ->
-    send_event_next(Pid, #token{name=arrValue, data=Data}, 
-	       {reply, ok, array, State}, State);
-array(#token{name=float, data=Data}, _From, #state{next=Pid}=State) ->
-    send_event_next(Pid, #token{name=arrValue, data=Data},
-	      {reply, ok, array, State}, State);
-array(#token{name=integer, data=Data}, _From, #state{next=Pid}=State) ->
-    send_event_next(Pid, #token{name=arrValue, data=Data},
-	       {reply, ok, array, State}, State);
-array(#token{name=true}, _From, #state{next=Pid}=State) ->
-    send_event_next(Pid, #token{name=arrValue, data=true},
-	       {reply, ok, array, State}, State);
-array(#token{name=false}, _From, #state{next=Pid}=State) ->
-    send_event_next(Pid, #token{name=arrValue, data=false},
-	       {reply, ok, array, State}, State);
-array(#token{name=null}, _From, #state{next=Pid}=State) ->
-    send_event_next(Pid, #token{name=arrValue, data=null},
-	       {reply, ok, array, State}, State);
-array(#token{name=arrBegin}, _From, #state{next=Pid}=State) ->
-    send_event_next(Pid, #token{name=arrArr},
-	       push(array, State), State);
-array(#token{name=objBegin}, _From, #state{next=Pid}=State) ->
-    send_event_next(Pid, #token{name=arrObj},
-	       push(object, State), State);
-array(#token{}=Token, _From, State) ->
-    parse_error(Token, State).
-
-object(#token{name=objEnd}=Token, _From, #state{next=Pid}=State) ->
-    send_event_next(Pid, Token,
-	       pop(State), State);
-object(#token{name=string, data=Data}, _From, #state{next=Pid}=State) ->
-    send_event_next(Pid, #token{name=objKey, data=Data},
-	       push(pair, State), State);
-object(#token{}=Token, _From, State) ->
-    parse_error(Token, State).
-
-pair(#token{name=colon}, _From, State) ->
-    push(value, State);
-pair(#token{name=comma}, _From, State) ->
-    {reply, ok, pair, State};
-pair(#token{name=string, data=Data}, _From, #state{next=Pid}=State) ->
-    send_event_next(Pid, #token{name=objKey, data=Data},
-	       {reply, ok, pair, State}, State);
-pair(#token{name=objEnd}=Token, _From, #state{next=Pid}=State) ->
-    send_event_next(Pid, Token,
-	       pop(State), State);
-pair(#token{name=arrEnd}=Token, _From, #state{next=Pid}=State) ->
-    send_event_next(Token, Pid,
-	       pop(State), State);
-pair(#token{}=Token, _From, State) ->
-    parse_error(Token, State).
-
-value(#token{name=string, data=Data}, _From, #state{next=Pid}=State) ->
-    send_event_next(Pid, #token{name=objValue, data=Data},
-	       pop(State), State);
-value(#token{name=float, data=Data}, _From, #state{next=Pid}=State) ->
-    send_event_next(Pid, #token{name=objValue, data=Data},
-	       pop(State), State);
-value(#token{name=integer, data=Data}, _From, #state{next=Pid}=State) ->
-    send_event_next(Pid, #token{name=objValue, data=Data}, 
-	       pop(State), State);
-value(#token{name=true}, _From, #state{next=Pid}=State) ->
-    send_event_next(Pid, #token{name=objValue, data=true},
-	       pop(State), State);
-value(#token{name=false}, _From, #state{next=Pid}=State) ->
-    send_event_next(Pid, #token{name=objValue, data=false},
-	       pop(State), State);
-value(#token{name=null}, _From, #state{next=Pid}=State) ->
-    send_event_next(Pid, #token{name=objValue, data=null},
-	       pop(State), State);
-value(#token{name=arrBegin}, _From, #state{next=Pid}=State) ->
-    send_event_next(Pid, #token{name=objArr},
-	       push(array, State), State);
-value(#token{name=objBegin}, _From, #state{next=Pid}=State) ->
-    send_event_next(Pid, #token{name=objObj},
-	       push(object, State), State);
-value(#token{name=arrEnd}=Token, _From, #state{next=Pid}=State) ->
-    send_event_next(Pid, Token,
-	       pop(State), State);
-value(#token{}=Token, _From, State) ->
-    parse_error(Token, State).
-
 %% OCCI parsing states
-resource(#token{name=objKey, data="kind"}, _From, State) ->
-    push(resource_kind, State);
-resource(#token{name=objKey, data="attributes"}, _From, State) ->
-    push(resource_attributes, State);
-resource(#token{name=objEnd}, _From, #state{resource=Res}=State) ->
-    {reply, {eof, Res}, eof, State#state{resource=undefined}};
-resource(Token, _From, State) ->
-    parse_error(Token, State).
+init(#token{name=objBegin}, _From, Ctx) ->
+    {reply, ok, request, Ctx};
+init(Token, _From, Ctx) ->
+    occi_parser:parse_error(Token, Ctx).
 
-resource_kind(#token{name=objValue, data=Data}, _From, #state{resource=Res}=State) ->
-    case check_category(occi_resource:get_cid(Res), {kind, Data}) of
-	ok ->
-	    pop(State);
-	{error, Err} ->
-	    {reply, {error, Err}, eof, State}
+request(#token{name=key, data="resources"}, _From, Ctx) ->
+    {reply, ok, resources_req, Ctx};
+request(#token{name=key, data="links"}, _From, Ctx) ->
+    % TODO
+    {stop, {error, invalid_request}, Ctx};
+request(#token{name=key, data="action"}, _From, Ctx) ->
+    % TODO
+    {stop, {error, invalid_request}, _From, Ctx};
+request(#token{name=key, data="kinds"}, _From, Ctx) ->
+    % TODO
+    {stop, {error, invalid_request}, Ctx};
+request(#token{name=key, data="mixins"}, _From, Ctx) ->
+    % TODO
+    {stop, {error, invalid_request}, Ctx};
+request(#token{name=key, data="actions"}, _From, Ctx) ->
+    % TODO
+    {stop, {error, invalid_request}, Ctx};
+request(#token{name=objEnd}, _From, #parser{state=#state{request=Req}}=Ctx) ->
+    {reply, {eof, Req}, eof, Ctx};
+request(Token, _From, Ctx) ->
+    occi_parser:parse_error(Token, Ctx).
+
+resources_req(#token{name=arrBegin}, _From, Ctx) ->
+    {reply, ok, resources, Ctx};
+resources_req(Token, _From, Ctx) ->
+    occi_parser:parse_error(Token, Ctx).
+
+resources(#token{name=objBegin}, _From, #parser{state=State}=Ctx) ->
+    {reply, ok, resource, Ctx#parser{state=State#state{resource=occi_resource:new()}}};
+resources(#token{name=arrEnd}, _From, Ctx) ->
+    {reply, ok, request, Ctx};
+resources(Token, _From, Ctx) ->
+    occi_parser:parse_error(Token, Ctx).
+    
+resource(#token{name=key, data="kind"}, _From, Ctx) ->
+    {reply, ok, resource_kind, Ctx};
+resource(#token{name=key, data="mixins"}, _From, Ctx) ->
+    {reply, ok, resource_mixins, Ctx};
+resource(#token{name=key, data="attributes"}, _From, Ctx) ->
+    {reply, ok, resource_attributes, Ctx};
+resource(#token{name=key, data="id"}, _From, Ctx) ->
+    {reply, ok, resource_id, Ctx};
+resource(#token{name=key, data="links"}, _From, Ctx) ->
+    {reply, ok, resource_links, Ctx};
+resource(#token{name=objEnd}, _From, #parser{state=#state{resource=Res, request=Req}=State}=Ctx) ->
+    {reply, ok, resources, 
+     ?set_state(Ctx, State#state{resource=undefined, request=occi_request:add_resource(Req, Res)})};
+resource(Token, _From, Ctx) ->
+    occi_parser:parse_error(Token, Ctx).
+
+resource_kind(#token{name=value, data=Val}, _From, #parser{state=#state{resource=Res}=State}=Ctx) ->
+    case split_cid(Val) of
+	{Scheme, Term} ->
+	    Res2 = occi_resource:set_cid(Res, #occi_cid{class=kind, scheme=Scheme, term=Term}),
+	    {reply, ok, resource, 
+	     ?set_state(Ctx, State#state{resource=Res2})};
+	parse_error ->
+	    {reply, {error, invalid_cid}, eof, Ctx}
     end;
-resource_kind(Token, _From, State) ->
-    parse_error(Token, State).
+resource_kind(Token, _From, Ctx) ->
+    occi_parser:parse_error(Token, Ctx).
 
-resource_attributes(#token{name=objObj}, _From, State) ->
-    push(resource_attribute, State);
-resource_attributes(Token, _From, State) ->
-    parse_error(Token, State).
+resource_mixins(#token{name=arrBegin}, _From, Ctx) ->
+    {reply, ok, resource_mixin, Ctx};
+resource_mixins(#token{name=arrEnd}, _From, Ctx) ->
+    {reply, ok, resource, Ctx};
+resource_mixins(Token, _From, Ctx) ->
+    occi_parser:parse_error(Token, Ctx).
 
-resource_attribute(#token{name=objKey, data=Data}, _From, State) ->
-    {reply, ok, resource_attribute, State#state{attrKey=Data}};
-resource_attribute(#token{name=objValue, data=Data}, _From, 
-		   #state{attrKey=A, resource=Res}=State) ->
+resource_mixin(#token{name=value, data=Val}, _From, #parser{state=#state{resource=Res}=State}=Ctx) ->
+    case split_cid(Val) of
+	{Scheme, Term} ->
+	    Res2 = occi_resource:add_mixin(Res, #occi_cid{class=mixin, scheme=Scheme, term=Term}),
+	    {reply, ok, resource_mixins, 
+	     ?set_state(Ctx, State#state{resource=Res2})};
+	parse_error ->
+	    {reply, {error, invalid_cid}, eof, Ctx}
+    end;
+resource_mixin(Token, _From, Ctx) ->
+    occi_parser:parse_error(Token, Ctx).
+
+resource_attributes(#token{name=objBegin}, _From, Ctx) ->
+    occi_parser:push(resource_attribute, Ctx);
+resource_attributes(Token, _From, Ctx) ->
+    occi_parser:parse_error(Token, Ctx).
+
+resource_attribute(#token{name=key, data=Val}, _From, #parser{state=State}=Ctx) ->
+    {reply, ok, resource_attribute, ?set_state(Ctx, State#state{attrKey=Val})};
+resource_attribute(#token{name=value, data=Val}, _From, 
+		   #parser{state=#state{attrKey=A, resource=Res}=State}=Ctx) ->
     {reply, ok, resource_attribute, 
-     State#state{resource=occi_resource:set_attr_value(Res, A, Data)}};
-resource_attribute(#token{name=objArr}, _From, State) ->
-    push(resource_attribute_list, State);
-resource_attribute(#token{name=objEnd}, _From, 
-		   #state{stack=[_S0, _S1, S2|Stack]}=State) ->
-    {reply, ok, S2, State#state{stack=[S2|Stack], attrKey=undefined}};
-resource_attribute(Token, _From, State) ->
-    parse_error(Token, State).
+     ?set_state(Ctx, State#state{attrKey=undefined, resource=occi_resource:set_attr_value(Res, A, Val)})};
+resource_attribute(#token{name=objEnd}, _From, Ctx) ->
+    {reply, ok, resource, Ctx};
+resource_attribute(Token, _From, Ctx) ->
+    occi_parser:parse_error(Token, Ctx).
 
-resource_attribute_list(#token{name=arrValue, data=Data}, _From, 
-			#state{resource=Res, attrKey=A}=State) ->
-    {reply, ok, resource_attribute_list, 
-     State#state{resource=occi_resource:add_attr_value(Res, A, Data)}};
-resource_attribute_list(#token{name=arrEnd}, _From, State) ->
-    pop(State);
-resource_attribute_list(Token, _From, State) ->
-    parse_error(Token, State).    
+resource_id(#token{name=value, data=Val}, _From, #parser{state=#state{resource=Res}=State}=Ctx) ->
+    {reply, ok, resource, 
+     ?set_state(Ctx, State#state{resource=occi_resource:set_id(Res, Val)})};
+resource_id(Token, _From, Ctx) ->
+    occi_parser:parse_error(Token, Ctx).
 
-%% Shared states
-eof(_E, _F, State) ->
-    {stop, eof, State}.
+resource_links(#token{name=arrBegin}, _From, Ctx) ->
+    {reply, ok, resource_link, Ctx};
+resource_links(#token{name=arrEnd}, _From, Ctx) ->
+    {reply, ok, resource, Ctx};
+resource_links(Token, _From, Ctx) ->
+    occi_parser:parse_error(Token, Ctx).
+
+resource_link(#token{name=value, data=Val}, _From, #parser{state=#state{resource=Res}=State}=Ctx) ->
+    {reply, ok, resource_links, 
+     ?set_state(Ctx, State#state{resource=occi_resource:add_link(Res, Val)})};
+resource_link(Token, _From, Ctx) ->
+    occi_parser:parse_error(Token, Ctx).
+    
+eof(_E, _F, Ctx) ->
+    {stop, eof, Ctx}.
 
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
-send_events(Parser, [Event|Tail]) ->
-    lager:debug("Event: ~p~n", [Event]),
-    case catch gen_fsm:sync_send_event(Parser, Event) of
-	{'EXIT', Reason} ->
-	    gen_fsm:send_all_state_event(Parser, stop),
-	    {error, Reason};
-	ok ->
-	    send_events(Parser, Tail);
-	{error, Reason} ->
-	    gen_fsm:send_all_state_event(Parser, stop),
-	    {error, Reason};
-	{eof, Result} ->
-	    gen_fsm:send_all_state_event(Parser, stop),
-	    {ok, Result}
-    end;
-send_events(Parser, []) ->
-    lager:debug("Event: eof~n", []),
-    Ret = case catch gen_fsm:sync_send_all_state_event(Parser, eof) of
-	      {'EXIT', Reason} ->
-		  {error, Reason};
-	      {error, Reason} ->
-		  {error, Reason}
-	  end,
-    gen_fsm:send_all_state_event(Parser, stop),
-    Ret.
-
-send_event_next(Pid, Event, IfOk, State) ->
-    case catch gen_fsm:sync_send_event(Pid, Event) of
-	{'EXIT', Reason} ->
-	    gen_fsm:send_all_state_event(Pid, stop),
-	    {reply, {error, Reason}, eof, State#state{next=undefined}};
-	ok ->
-	    IfOk;
-	{eof, Result} ->
-	    gen_fsm:send_all_state_event(Pid, stop),
-	    {reply, {eof, Result}, eof, State#state{next=undefined}};
-	{error, Reason} ->
-	    gen_fsm:send_all_state_event(Pid, stop),
-	    {reply, {error, Reason}, eof, State#state{next=undefined}}
-    end.
-
-push(Next, #state{stack=undefined}=State) ->
-    push(Next, State#state{stack=[]});
-push(Next, #state{stack=Stack}=State) ->
-    {reply, ok, Next, State#state{stack=[Next|Stack]}}.
-
-pop(#state{stack=[]}=State) ->
-    {stop, {error, stack_error}, State};
-pop(#state{stack=[_Cur,Previous|Stack]}=State) ->
-    {reply, ok, Previous, State#state{stack=[Previous|Stack]}}.
-
-parse_error(#token{}=Token, State) ->
-    Err = build_err(Token),
-    lager:error(Err),
-    log_stack(State#state.stack),
-    {stop, {error, Err}, State}.
-
-build_err(#token{name=Name, pos=undefined, data=undefined}) ->
-    io_lib:format("Invalid term: ~p~n", [Name]);
-build_err(#token{name=Name, pos=undefined, data=Data}) ->
-    io_lib:format("Invalid term: ~p(~p)~n", [Name, Data]);
-build_err(#token{name=Name, pos=Pos, data=undefined}) ->
-    io_lib:format("Invalid term at line ~p: ~p~n", [Pos, Name]);
-build_err(#token{name=Name, pos=Pos, data=Data}) ->
-    io_lib:format("Invalid term at line ~p: ~p(~p)~n", [Pos, Name, Data]).
-
-log_stack(Stack) ->
-    lager:error("Parser states stack:~n", []),
-    log_stack2(Stack).
-
-log_stack2([]) ->
-    ok;
-log_stack2([Head|Tail]) ->
-    lager:error("\t~s~n", [Head]),
-    log_stack2(Tail).
-
-check_category(#occi_cid{}=Cid, {Class, Str}) ->
+split_cid(Str) ->
     case string:tokens(Str, "#") of
 	[Scheme, Term] ->
-	    case #occi_cid{scheme=list_to_atom(Scheme++"#"), term=list_to_atom(Term), class=Class} of
-		Cid -> ok;
-		_ -> {error, {invalid_category, Str}}
-	    end
-    end.
+	    {list_to_atom(Scheme++"#"), list_to_atom(Term)};
+	_ ->
+	    parse_error
+    end.		

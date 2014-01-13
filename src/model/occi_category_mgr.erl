@@ -60,12 +60,15 @@ start_link() ->
     supervisor:start_link({local, ?SERVER}, ?MODULE, []).
 
 -spec get(occi_cid()) -> occi_category().
-get(#occi_cid{}=Cid) ->
+get(#occi_cid{class=kind}=Cid) ->
     case ets:match_object(?TABLE, {occi_kind, Cid, '_', '_', '_', '_', '_', '_'}) of
-	[] ->
-	    undefined;
-	[Entry] ->
-	    Entry
+	[] -> undefined;
+	[Kind] -> Kind
+    end;
+get(#occi_cid{class=mixin}=Cid) ->
+    case ets:match_object(?TABLE, {occi_mixin, Cid, '_', '_', '_', '_', '_', '_', '_'}) of
+	[] -> undefined;
+	[Mixin] -> Mixin
     end.
 
 register_extension({xml, Path}, Mapping) ->

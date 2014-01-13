@@ -1,27 +1,27 @@
 % -*- mode: erlang -*-
 Definitions.
 
+White         = (\s|\t|\n)
 Digit1to9     = [1-9]
 Digit         = [0-9]
 Digits        = {Digit}+
-Int           = {Digit}|{Digit1to9}{Digits}|-{Digit}|-{Digit1to9}{Digits}
-Frac          = \.{Digits}
-Exp           = {E}{Digits}
+Int           = ({Digit}|{Digit1to9}{Digits}|-{Digit}|-{Digit1to9}{Digits})
+Frac          = (\.{Digits})
+Exp           = ({E}{Digits})
 E             = [eE][+-]?
 HexDigit      = [0-9a-f]
-Float         = {Int}{Frac}|{Int}{Exp}|{Int}{Frac}{Exp}
+Float         = ({Int}{Frac}|{Int}{Exp}|{Int}{Frac}{Exp})
 UnescapedChar = [\s!#\[\]\-~]
 EscapedChar   = \\["\\bfnrt/]
 UnicodeChar   = \\u{HexDigit}{HexDigit}{HexDigit}{HexDigit}
-Char          = {UnescapedChar}|{EscapedChar}|{UnicodeChar}|[a-zA-Z]
+Char          = ({UnescapedChar}|{EscapedChar}|{UnicodeChar}|[a-zA-Z])
 Chars         = {Char}+
 DblQuote      = ["]
-White         = (\s|\t|\n)
 
 Rules.
 
 {White}+                       : skip_token.
-{DblQuote}{DblQuote}           : make_token(string, TokenLine, string:strip(TokenChars, both, $")).
+{DblQuote}{DblQuote}           : make_token(string, TokenLine, "").
 {DblQuote}[^"]+{DblQuote}      : make_token(string, TokenLine, string:strip(TokenChars, both, $")).
 {Int}                          : make_integer(TokenChars, TokenLine).
 {Float}                        : make_float(TokenChars, TokenLine).
@@ -37,8 +37,54 @@ null                           : make_atom(null, TokenLine).
 
 Erlang code.
 
+-compile({parse_transform, lager_transform}).
+
 -include("occi_parser.hrl").
 
+-export([start/1,
+	 stop/1,
+	 parse/2]).
+
+-spec start(parser()) -> parser().
+start(Sink) ->
+    #parser{mod=?MODULE, sink=Sink}.
+
+stop(_Parser) ->
+    ok.
+
+parse(Parser, Data) when is_list(Data)->
+    case parse(Parser, [], Data) of
+	{more, Rest} ->
+	    {error, {trailing_chars, Rest}};
+	Else ->
+	    Else
+    end;
+parse(Parser, Data) when is_binary(Data) ->
+    parse(Parser, binary_to_list(Data)).
+
+parse(#parser{}=Parser, Cont, Data) ->
+    case token(Cont, Data) of
+	{more, Cont2} ->
+	    {more, Cont2};
+	{done, {ok, Token, _EndLine}, Rest} ->
+	    case occi_parser:send_event(Token, ok, Parser) of
+		{stop, {error, Err}, _} ->
+		    {error, Err};
+		ok ->
+		    parse(Parser, [], Rest);
+		{reply, {eof, Result}, _, _} ->
+		    {ok, Result}
+	    end;
+	{done, {eof, _EndLine}, _Rest} ->
+	    occi_parser:send_event(eof, ok, Parser);
+	{done, Err, _Rest} ->
+	    lager:error("Error scanning json data at line~n"),
+	    {error, Err}
+    end.
+
+%%%
+%%% Priv
+%%%
 make_atom(Atom, Line) ->
     {token, #token{name=Atom, pos=Line}}.
 
