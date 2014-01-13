@@ -31,13 +31,12 @@
 %% API
 -export([start_link/0]).
 -export([get/1,
+	 find/1,
 	 register_extension/2,
 	 register_kind/1,
 	 register_mixin/1,
 	 register_user_mixin/1,
-	 register_action/1,
-	 get_categories/0,
-	 get_actions/0]).
+	 register_action/1]).
 
 %% Supervisor callbacks
 -export([init/1]).
@@ -58,18 +57,6 @@
 %%--------------------------------------------------------------------
 start_link() ->
     supervisor:start_link({local, ?SERVER}, ?MODULE, []).
-
--spec get(occi_cid()) -> occi_category().
-get(#occi_cid{class=kind}=Cid) ->
-    case ets:match_object(?TABLE, {occi_kind, Cid, '_', '_', '_', '_', '_', '_'}) of
-	[] -> undefined;
-	[Kind] -> Kind
-    end;
-get(#occi_cid{class=mixin}=Cid) ->
-    case ets:match_object(?TABLE, {occi_mixin, Cid, '_', '_', '_', '_', '_', '_', '_'}) of
-	[] -> undefined;
-	[Mixin] -> Mixin
-    end.
 
 register_extension({xml, Path}, Mapping) ->
     case occi_parser_xml:load_extension(Path) of
@@ -114,14 +101,30 @@ register_action(Action) ->
 	       [ Id#occi_cid.scheme, Id#occi_cid.term ]),
     ets:insert(?TABLE, Action).
 
--spec get_categories() -> [occi_category()].
-get_categories() ->
-    Categories = ets:match_object(?TABLE, {occi_kind, '_', '_', '_', '_', '_', '_', '_'}),
-    Categories ++ ets:match_object(?TABLE, {occi_mixin, '_', '_', '_', '_', '_', '_', '_', '_'}).
 
--spec get_actions() -> [occi_action()].
-get_actions() ->
-    ets:match_object(?TABLE, {occi_action, '_', '_', '_', '_'}).
+-spec get(occi_cid()) -> occi_category().
+get(#occi_cid{class=kind}=Cid) ->
+    case ets:match_object(?TABLE, {occi_kind, Cid, '_', '_', '_', '_', '_', '_'}) of
+	[] -> undefined;
+	[Kind] -> Kind
+    end;
+get(#occi_cid{class=mixin}=Cid) ->
+    case ets:match_object(?TABLE, {occi_mixin, Cid, '_', '_', '_', '_', '_', '_', '_'}) of
+	[] -> undefined;
+	[Mixin] -> Mixin
+    end.
+
+-spec find(occi_cid()) -> [occi_category()].
+find(#occi_cid{class=kind}) ->
+    ets:match_object(?TABLE, {occi_kind, {occi_cid, '_', '_' , '_'}, '_', '_', '_', '_', '_', '_'});
+find(#occi_cid{class=mixin}) ->
+    ets:match_object(?TABLE, {occi_mixin, {occi_cid, '_', '_' , '_'}, '_', '_', '_', '_', '_', '_', '_'});
+find(#occi_cid{class=action}) ->
+    ets:match_object(?TABLE, {occi_action, {occi_cid, '_', '_' , '_'}, '_', '_', '_'});
+find(#occi_cid{}) ->
+    find(#occi_cid{class=kind})
+	++ find(#occi_cid{class=mixin})
+	++ find(#occi_cid{class=action}).
 
 %%%===================================================================
 %%% Supervisor callbacks

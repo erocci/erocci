@@ -29,13 +29,13 @@
 -include("occi.hrl").
 
 %% API
--export([render_capabilities/1,
+-export([render_capabilities/3,
 	 render_collection/1]).
 
 %%%===================================================================
 %%% API
 %%%===================================================================
-render_capabilities(Categories) ->
+render_capabilities(Kinds, Mixins, Actions) ->
     occi_renderer:join(
       lists:reverse(
 	lists:foldl(fun (#occi_kind{location=Uri}, Acc) ->
@@ -46,7 +46,7 @@ render_capabilities(Categories) ->
 			    Acc;
 			(#occi_action{location=Uri}, Acc) ->
 			    [Uri|Acc]
-		    end, [], Categories)),
+		    end, [], Kinds ++ Mixins ++ Actions)),
       <<"\n">>).
 
 render_collection(#occi_collection{}=Coll) ->

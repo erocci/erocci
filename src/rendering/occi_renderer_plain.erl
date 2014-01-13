@@ -33,7 +33,7 @@
 -include("occi.hrl").
 
 %% API
--export([render_capabilities/1,
+-export([render_capabilities/3,
 	 render_collection/1]).
 
 -export([parse_resource_repr/1]).
@@ -41,8 +41,9 @@
 %%%===================================================================
 %%% API
 %%%===================================================================
-render_capabilities(Categories) ->
-    lists:map(fun(Cat) -> [<<"Category: ">>, render(Cat), "\n"] end, Categories).
+render_capabilities(Kinds, Mixins, Actions) ->
+    lists:map(fun(Cat) -> [<<"Category: ">>, render(Cat), "\n"] end, 
+	      Kinds ++ Mixins ++ Actions).
 
 render_collection(Coll) ->
     Headers = lists:foldl(fun (Entity, Acc) ->

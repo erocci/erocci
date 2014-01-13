@@ -26,7 +26,7 @@
 % Some common functions
 -export([join/2, to_list/1]).
 
--callback render_capabilities(Categories :: [occi_category() | occi_mixin()]) ->
+-callback render_capabilities(Kinds :: [occi_kind()], Mixins :: [occi_mixin()], Actions :: [occi_action()]) ->
     binary() | list().
 
 -callback render_collection(Collection :: occi_collection()) ->

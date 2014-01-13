@@ -110,11 +110,13 @@ set_cors(Req) ->
 %%%
 init() ->
     ?TABLE = ets:new(?TABLE, [set, public, {keypos, 2}, named_table]),
+    Categories = occi_category_mgr:find(#occi_cid{class=kind}) 
+	++ occi_category_mgr:find(#occi_cid{class=mixin}),
     Routes = lists:map(fun (#occi_kind{location=Uri}=Kind) ->
 			       #route{path=Uri, handler=occi_http_collection, opts=Kind};
 			   (#occi_mixin{location=Uri}=Mixin) ->
 			       #route{path=Uri, handler=occi_http_collection, opts=Mixin}			   
-		       end, occi_category_mgr:get_categories()),
+		       end, Categories),
     ets:insert(?TABLE, Routes),
     get_dispatch().
 

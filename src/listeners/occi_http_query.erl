@@ -67,35 +67,39 @@ content_types_accepted(Req, State) ->
      Req, State}.
 
 to_plain(Req, Ctx) ->
-    Categories = lists:flatten(occi_category_mgr:get_categories(),
-			       occi_category_mgr:get_actions()),
-    Body = occi_renderer_plain:render_capabilities(Categories),
+    Body = occi_renderer_plain:render_capabilities(occi_category_mgr:find(#occi_cid{class=kind}),
+						   occi_category_mgr:find(#occi_cid{class=mixin}),
+						   occi_category_mgr:find(#occi_cid{class=action})),
     {Body, Req, Ctx}.
 
 to_occi(Req, Ctx) ->
-    Categories = lists:flatten(occi_category_mgr:get_categories(),
-			       occi_category_mgr:get_actions()),
     Req2 = cowboy_req:set_resp_header(<<"category">>, 
-				      occi_renderer_occi:render_capabilities(Categories), Req),
+				      occi_renderer_occi:render_capabilities(
+					occi_category_mgr:find(#occi_cid{class=kind}),
+					occi_category_mgr:find(#occi_cid{class=mixin}),
+					occi_category_mgr:find(#occi_cid{class=action})), Req),
     Body = <<"OK\n">>,
     {Body, Req2, Ctx}.
 
 to_uri_list(Req, Ctx) ->
-    Categories = lists:flatten(occi_category_mgr:get_categories(),
-			       occi_category_mgr:get_actions()),
-    Body = [occi_renderer_uri_list:render_capabilities(Categories), "\n"],
+    Body = [occi_renderer_uri_list:render_capabilities(	   
+	      occi_category_mgr:find(#occi_cid{class=kind}),
+	      occi_category_mgr:find(#occi_cid{class=mixin}),
+	      occi_category_mgr:find(#occi_cid{class=action})), "\n"],
     {Body, Req, Ctx}.
 
 to_json(Req, Ctx) ->
-    Categories = lists:flatten(occi_category_mgr:get_categories(),
-			       occi_category_mgr:get_actions()),
-    Body = [occi_renderer_json:render_capabilities(Categories), "\n"],
+    Body = [occi_renderer_json:render_capabilities(
+	      occi_category_mgr:find(#occi_cid{class=kind}),
+	      occi_category_mgr:find(#occi_cid{class=mixin}),
+	      occi_category_mgr:find(#occi_cid{class=action})), "\n"],
     {Body, Req, Ctx}.
 
 to_xml(Req, Ctx) ->
-    Categories = lists:flatten(occi_category_mgr:get_categories(),
-			       occi_category_mgr:get_actions()),
-    Body = [occi_renderer_xml:render_capabilities(Categories), "\n"],
+    Body = [occi_renderer_xml:render_capabilities(
+	      occi_category_mgr:find(#occi_cid{class=kind}),
+	      occi_category_mgr:find(#occi_cid{class=mixin}),
+	      occi_category_mgr:find(#occi_cid{class=action})), "\n"],
     {Body, Req, Ctx}.
 
 from_json(Req, State) ->

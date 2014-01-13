@@ -28,23 +28,19 @@
 -include("occi.hrl").
 -include_lib("exmpp/include/exmpp_xml.hrl").
 
--export([render_capabilities/1,
+-export([render_capabilities/3,
 	 render_collection/1]).
 
 %%%
 %%% API
 %%%
-render_capabilities(Categories) ->
+render_capabilities(Kinds, Mixins, Actions) ->
+    Children = lists:map(fun render_kind/1, Kinds)
+	++ lists:map(fun render_mixin/1, Mixins)
+	++ lists:map(fun render_action/1, Actions),
     render_xml(
       exmpp_xml:set_children(
-	exmpp_xml:element(occi, component),
-	lists:map(fun (#occi_kind{}=Kind) ->
-			  render_kind(Kind);
-		      (#occi_mixin{}=Mixin) ->
-			  render_mixin(Mixin);
-		      (#occi_action{}=Action) ->
-			  render_action(Action)
-		  end, Categories))).
+	exmpp_xml:element(occi, component), Children)).
 
 render_collection(#occi_collection{}=Coll) ->
     render_xml(

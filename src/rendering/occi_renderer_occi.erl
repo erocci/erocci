@@ -29,17 +29,17 @@
 -include("occi.hrl").
 
 %% API
--export([render_capabilities/1,
+-export([render_capabilities/3,
 	 render_collection/1]).
 
 %%%===================================================================
 %%% API
 %%%===================================================================
-render_capabilities(Categories) ->
+render_capabilities(Kinds, Mixins, Actions) ->
     occi_renderer:join(
       lists:map(fun (Cat) ->
 			occi_renderer_text:render(Cat, "")
-		end, Categories),
+		end, Kinds ++ Mixins ++ Actions),
       <<", ">>).
 
 render_collection(#occi_collection{}=Coll) ->
