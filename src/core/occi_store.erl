@@ -35,7 +35,7 @@
 	 get_collection/1,
 	 find/1,
 	 gen_id/2,
-	 get_backend/0, 
+	 get_backend/1, 
 	 is_valid_path/1]).
 
 %% supervisor callbacks
@@ -89,8 +89,9 @@ is_valid_path(Path) ->
     lager:debug("Looking up path: ~p~n", [Path]),
     false.
 
--spec get_backend() -> backend_ref().
-get_backend() ->
+-spec get_backend(uri()) -> backend_ref().
+get_backend(_) ->
+    % TODO: allow multiple backends
     [{backend, Ref}] = ets:lookup(?TABLE, backend),
     Ref.
 
@@ -100,29 +101,28 @@ gen_id(Host, Prefix) when is_binary(Prefix),
     Id = list_to_binary(uuid:to_string(uuid:uuid3(uuid:uuid4(), Host))),
     <<"http://", Host/binary, Prefix/binary, Id/binary>>.
 
--spec create(occi_object()) -> {ok, occi_object()} | {error, term()}.
-create(Obj) ->
-    Backend = get_backend(),
-    create(Backend, Obj).
+-spec create(occi_mixin()) -> {ok, occi_mixin()} | {error, term()}.
+create(#occi_mixin{id=Id, backend=undefined, location=Uri}=Mixin) ->
+    lager:debug("Create mixin: ~s~s~n", [Id#occi_cid.scheme, Id#occi_cid.term]),
+    Backend = get_backend(Uri),
+    occi_backend:save(Backend, Mixin#occi_mixin{backend=Backend}).
 
--spec create(backend_ref(), occi_object()) -> {ok, occi_resource()} 
+-spec create(backend_ref(), occi_entity()) -> {ok, occi_entity()} 
 						  | {error, term()}.
 create(Backend, #occi_resource{id=Id}=Res) ->
     lager:debug("Create resource: ~s~n", [Id]),
-    occi_backend:save(Backend, Res);
-create(Backend, #occi_mixin{id=Id}=Mixin) ->
-    lager:debug("Create mixin: ~s~s~n", [Id#occi_cid.scheme, Id#occi_cid.term]),
-    occi_backend:save(Backend, Mixin).
+    occi_backend:save(Backend, Res).
 
 get_collection(#occi_kind{id=Id, backend=Backend}) ->
-    lager:debug("Retrieve collection: ~p~n", [Id]),
+    lager:debug("Retrieve collection: ~p (backend ~p)~n", [Id, Backend]),
     occi_backend:find_all(Backend, Id);
 get_collection(#occi_mixin{id=Id, backend=Backend}) ->
-    lager:debug("Retrieve collection: ~p~n", [Id]),
+    lager:debug("Retrieve collection: ~p (backend ~p)~n", [Id, Backend]),
     occi_backend:find_all(Backend, Id).
 
 find(Request) ->
-    Backend = get_backend(),
+    % TODO: fix multiple backends
+    Backend = get_backend([]),
     find(Backend, Request).
 
 find(Backend, Request) ->
