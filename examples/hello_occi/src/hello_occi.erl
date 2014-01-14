@@ -53,7 +53,7 @@ start() ->
     %% occi:register_category({mod, occi_infra_compute}, <<"/compute/">>, Hooks),
     %% occi:register_category({mod, occi_infra_network}, <<"/network/">>, Hooks),
     %% occi:register_category({mod, occi_infra_ipnetworking}, <<"/ipnetworking/">>, Hooks),
-    occi_listener:register(occi_http, [{port, 8080}]),
+    occi_listener:register(http, occi_http, [{port, 8080}]),
     register(?MODULE, self()),
     erlang:hibernate(?MODULE, loop, []).
 

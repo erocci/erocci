@@ -93,7 +93,12 @@ register_mixin(#occi_mixin{id=Id, location=Uri}=Mixin) ->
 
 register_user_mixin(#occi_mixin{id=Id, location=Uri}=Mixin) ->
     lager:info("Registering mixin: ~s~s -> ~s~n", [Id#occi_cid.scheme, Id#occi_cid.term, Uri]),
-    occi_store:create(Mixin).
+    case occi_store:create(Mixin) of
+	{ok, _M} ->
+	    occi_listener:add_collection(Mixin, Uri);
+	{error, Err} ->
+	    {error, Err}
+    end.
 
 register_action(Action) ->
     Id = Action#occi_action.id,
@@ -104,27 +109,30 @@ register_action(Action) ->
 
 -spec get(occi_cid()) -> occi_category().
 get(#occi_cid{class=kind}=Cid) ->
-    case ets:match_object(?TABLE, {occi_kind, Cid, '_', '_', '_', '_', '_', '_'}) of
+    case ets:match_object(?TABLE, #occi_kind{id=Cid, _='_'}) of
 	[] -> undefined;
 	[Kind] -> Kind
     end;
 get(#occi_cid{class=mixin}=Cid) ->
-    case ets:match_object(?TABLE, {occi_mixin, Cid, '_', '_', '_', '_', '_', '_', '_'}) of
+    case ets:match_object(?TABLE, #occi_mixin{id=Cid, _='_'}) of
 	[] -> undefined;
 	[Mixin] -> Mixin
     end.
 
 -spec find(occi_cid()) -> [occi_category()].
-find(#occi_cid{class=kind}) ->
-    ets:match_object(?TABLE, {occi_kind, {occi_cid, '_', '_' , '_'}, '_', '_', '_', '_', '_', '_'});
-find(#occi_cid{class=mixin}) ->
-    ets:match_object(?TABLE, {occi_mixin, {occi_cid, '_', '_' , '_'}, '_', '_', '_', '_', '_', '_', '_'});
-find(#occi_cid{class=action}) ->
-    ets:match_object(?TABLE, {occi_action, {occi_cid, '_', '_' , '_'}, '_', '_', '_'});
-find(#occi_cid{}) ->
-    find(#occi_cid{class=kind})
-	++ find(#occi_cid{class=mixin})
-	++ find(#occi_cid{class=action}).
+find(#occi_cid{class=kind}=Cid) ->
+    ets:match_object(?TABLE, #occi_kind{id=Cid, _='_'});
+find(#occi_cid{class=mixin}=Cid) ->
+    Req = #occi_mixin{id=Cid, _='_'},
+    Mixins = ets:match_object(?TABLE, Req),
+    {ok, UMixins} = occi_store:find(Req),
+    lists:flatten([Mixins, UMixins]);
+find(#occi_cid{class=action}=Cid) ->
+    ets:match_object(?TABLE, #occi_action{id=Cid, _='_'});
+find(#occi_cid{}=Cid) ->
+    find(Cid#occi_cid{class=kind})
+	++ find(Cid#occi_cid{class=mixin})
+	++ find(Cid#occi_cid{class=action}).
 
 %%%===================================================================
 %%% Supervisor callbacks

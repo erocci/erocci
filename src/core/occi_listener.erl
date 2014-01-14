@@ -26,17 +26,26 @@
 
 -behaviour(supervisor).
 
+-include("occi.hrl").
+
 %% API
--export([start_link/0, register/2]).
+-export([start_link/0, 
+	 register/3,
+	 add_collection/2]).
 
 -type opts() :: [{atom(), any()}].
--callback start_link(opts()) -> ok | {error, atom()}.
--callback terminate() -> ok.
+-callback start_link(atom(), opts()) -> ok | {error, atom()}.
+-callback terminate(atom()) -> ok.
+-callback add_collection(atom(), occi_category(), uri()) -> ok | {error, atom()}.
 
 %% Supervisor callbacks
 -export([init/1]).
 
 -define(SUPERVISOR, ?MODULE).
+-define(TABLE, ?MODULE).
+
+-record(listener, {ref :: reference(), 
+		   mod ::atom()}).
 
 %%%===================================================================
 %%% API functions
@@ -52,14 +61,26 @@
 start_link() ->
     supervisor:start_link({local, ?SUPERVISOR}, ?MODULE, []).
 
-register(Module, Opts) ->
-    ChildSpec = {Module,
-		 {Module, start_link, [Opts]},
+register(Ref, Module, Opts) ->
+    lager:info("Registering listener: ~p~n", [Module]),
+    ChildSpec = {Ref,
+		 {Module, start_link, [Ref, Opts]},
 		 permanent,
 		 brutal_kill,
 		 worker,
 		 [Module]},
-    supervisor:start_child(?SUPERVISOR, ChildSpec).
+    case supervisor:start_child(?SUPERVISOR, ChildSpec) of
+	{ok, Pid} ->
+	    ets:insert(?TABLE, #listener{ref=Ref, mod=Module}),
+	    {ok, Pid};
+	{error, Err} ->
+	    {error, Err}
+    end.
+
+add_collection(Category, Uri) ->
+    lists:foreach(fun (#listener{ref=Ref, mod=Mod}) ->
+			  Mod:add_collection(Ref, Category, Uri)
+		  end, get_listeners()).
 
 %%%===================================================================
 %%% Supervisor callbacks
@@ -80,15 +101,11 @@ register(Module, Opts) ->
 %%--------------------------------------------------------------------
 init(_) ->
     lager:info("Starting OCCI listeners manager"),
-    RestartStrategy = one_for_one,
-    MaxRestarts = 1000,
-    MaxSecondsBetweenRestarts = 3600,
-
-    SupFlags = {RestartStrategy, MaxRestarts, MaxSecondsBetweenRestarts},
-    Childs = [],
-
-    {ok, {SupFlags, Childs}}.
+    ?TABLE = ets:new(?TABLE, [set, public, {keypos, 2}, named_table]),
+    {ok, {{one_for_one, 1000, 6000}, []}}.
 
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+get_listeners() ->
+    ets:match_object(?TABLE, #listener{_='_'}).

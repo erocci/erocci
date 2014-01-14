@@ -33,6 +33,7 @@
 -export([create/1,
 	 create/2,
 	 get_collection/1,
+	 find/1,
 	 gen_id/2,
 	 get_backend/0, 
 	 is_valid_path/1]).
@@ -72,9 +73,13 @@ register({Ref, Mod, Opts}) ->
     lager:info("Registering backend: ~p~n", [Ref]),
     Backend = {Ref, {occi_backend, start_link, [Ref, Mod, [{ref, Ref} | Opts]]}, 
 	       permanent, 5000, worker, [occi_backend, Mod]},
-    Pid = supervisor:start_child(occi_store, Backend),
-    ets:insert(?TABLE, {backend, Ref}),
-    Pid.
+    case supervisor:start_child(occi_store, Backend) of
+	{ok, Pid} ->
+	    ets:insert(?TABLE, {backend, Ref}),
+	    {ok, Pid};
+	{error, Err} ->
+	    {error, Err}
+    end.
 
 -spec is_valid_path(Path :: uri()) -> 
 			   false 
@@ -105,9 +110,9 @@ create(Obj) ->
 create(Backend, #occi_resource{id=Id}=Res) ->
     lager:debug("Create resource: ~s~n", [Id]),
     occi_backend:save(Backend, Res);
-create(Backend, #occi_mixin{}=Cat) ->
-    lager:debug("Create mixin: ~s~n", [Cat]),
-    occi_backend:save(Backend, Cat).
+create(Backend, #occi_mixin{id=Id}=Mixin) ->
+    lager:debug("Create mixin: ~s~s~n", [Id#occi_cid.scheme, Id#occi_cid.term]),
+    occi_backend:save(Backend, Mixin).
 
 get_collection(#occi_kind{id=Id, backend=Backend}) ->
     lager:debug("Retrieve collection: ~p~n", [Id]),
@@ -115,6 +120,14 @@ get_collection(#occi_kind{id=Id, backend=Backend}) ->
 get_collection(#occi_mixin{id=Id, backend=Backend}) ->
     lager:debug("Retrieve collection: ~p~n", [Id]),
     occi_backend:find_all(Backend, Id).
+
+find(Request) ->
+    Backend = get_backend(),
+    find(Backend, Request).
+
+find(Backend, Request) ->
+    lager:debug("Find request: ~p~n", [Request]),
+    occi_backend:find(Backend, Request).
 
 %%%===================================================================
 %%% supervisor callbacks

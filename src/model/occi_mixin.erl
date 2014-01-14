@@ -85,6 +85,8 @@ set_term(#occi_mixin{id=Id}=Mixin, Term) when is_atom(Term) ->
 get_title(#occi_mixin{title=Title}) -> 
     Title.
 
+set_title(Mixin, Title) when is_list(Title) ->
+    set_title(Mixin, list_to_binary(Title));
 set_title(#occi_mixin{}=Mixin, Title) -> 
     Mixin#occi_mixin{title=Title}.
 
@@ -123,10 +125,26 @@ get_applies(#occi_mixin{applies=Applies}) ->
     Applies.
 
 add_applies(#occi_mixin{applies=Applies}=Mixin, Scheme, Term) when is_atom(Scheme), is_atom(Term) ->
-    Mixin#occi_mixin{applies=[#occi_cid{scheme=Scheme, term=Term}|Applies]}.
+    Cid = #occi_cid{class='_', term=Term, scheme=Scheme},
+    case occi_category_mgr:find(Cid) of
+	[] ->
+	    throw({unknown_category, Cid});
+	[#occi_kind{}] ->
+	    Mixin#occi_mixin{applies=[Cid|Applies]};
+	[#occi_mixin{}] ->
+	    Mixin#occi_mixin{applies=[Cid|Applies]}
+    end.
 
 get_depends(#occi_mixin{depends=Depends}) ->
     Depends.
 
 add_depends(#occi_mixin{depends=Depends}=Mixin, Scheme, Term) when is_atom(Scheme), is_atom(Term)  ->
-    Mixin#occi_mixin{depends=[#occi_cid{scheme=Scheme, term=Term}|Depends]}.
+    Cid = #occi_cid{class='_', term=Term, scheme=Scheme},
+    case occi_category_mgr:find(Cid) of
+	[] ->
+	    throw({unknown_category, Cid});
+	[#occi_kind{}] ->
+	    Mixin#occi_mixin{depends=[Cid|Depends]};
+	[#occi_mixin{}] ->
+	    Mixin#occi_mixin{depends=[Cid|Depends]}
+    end.

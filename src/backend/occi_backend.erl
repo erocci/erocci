@@ -28,7 +28,8 @@
 %% API
 -export([start_link/3]).
 -export([save/2,
-	find_all/2]).
+	 find/2,
+	 find_all/2]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -58,6 +59,10 @@
     {{ok, occi_collection()}, term()} |
     {{error, Reason :: term()}, State :: term()}.
 
+-callback find(Request :: term(), State :: term()) ->
+    {{ok, term()}, term()} |
+    {{error, Reason :: term()}, State :: term()}.
+
 %%%
 %%% API
 %%% 
@@ -71,6 +76,9 @@ save(Ref, Entity) ->
 
 find_all(Ref, CategoryId) ->
     gen_server:call(Ref, {find_all, CategoryId}).
+
+find(Ref, Request) ->
+    gen_server:call(Ref, {find, Request}).
 
 %%--------------------------------------------------------------------
 %% @private
@@ -111,6 +119,9 @@ handle_call({save, Obj}, _From, #state{backend=Backend, state=BState}) ->
     {reply, Reply, #state{backend=Backend, state=RState}};
 handle_call({find_all, CatId}, _From, #state{backend=Backend, state=BState}) ->
     {Reply, RState} = Backend:find_all(CatId, BState),
+    {reply, Reply, #state{backend=Backend, state=RState}};
+handle_call({find, Request}, _From, #state{backend=Backend, state=BState}) ->
+    {Reply, RState} = Backend:find(Request, BState),
     {reply, Reply, #state{backend=Backend, state=RState}};
 handle_call(Req, From, State) ->
     lager:error("Unknown message from ~p: ~p~n", [From, Req]),

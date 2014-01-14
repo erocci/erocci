@@ -27,7 +27,9 @@
 
 -export([new/0,
 	add_resource/2,
-	get_resources/1]).
+	get_resources/1,
+	add_mixin/2,
+	get_mixins/1]).
 
 new() ->
     #occi_request{}.
@@ -37,3 +39,9 @@ add_resource(#occi_request{resources=Resources}=Req, Resource) ->
 
 get_resources(#occi_request{resources=Resources}) ->
     Resources.
+
+add_mixin(#occi_request{mixins=Mixins}=Req, Mixin) ->
+    Req#occi_request{mixins=[Mixin|Mixins]}.
+
+get_mixins(#occi_request{mixins=Mixins}) ->
+    Mixins.

@@ -30,6 +30,7 @@
 -export([init/1,
 	 terminate/1,
 	 save/2,
+	 find/2,
 	 find_all/2]).
 
 -record(state, {}).
@@ -41,9 +42,9 @@ init(_) ->
     mnesia:create_table(occi_resource,
 		       [{disc_copies, [node()]},
 			{attributes, record_info(fields, occi_resource)}]),
-    mnesia:create_table(occi_category,
+    mnesia:create_table(occi_mixin,
 		       [{disc_copies, [node()]},
-			{attributes, record_info(fields, occi_category)}]),
+			{attributes, record_info(fields, occi_mixin)}]),
     mnesia:wait_for_tables([occi_resource, occi_category], infinite),
     {ok, #state{}}.
 
@@ -60,6 +61,12 @@ save(#occi_mixin{}=Mixin, #state{}=State) ->
 			       mnesia:write(Mixin)
 		       end),
     {{ok, Mixin}, State}.
+
+find(#occi_mixin{}=Mixin, #state{}=State) ->
+    Res = mnesia:dirty_match_object(Mixin),
+    {{ok, Res}, State};
+find(_, #state{}=State) ->
+    {{error, not_implemented}, State}.
 
 find_all(#occi_cid{}=Id, #state{}=State) ->
     Coll = occi_collection:new(),

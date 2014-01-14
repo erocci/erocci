@@ -112,7 +112,7 @@ from_json(Req, #state{category=#occi_kind{backend=Backend}=Kind}=State) ->
 	    case occi_store:create(Backend, Res2) of
 		{ok, Res3} ->
 		    RespBody = occi_renderer_json:render_entity(Res3),
-		    {true, cowboy_req:set_resp_body(RespBody, Req4), State};
+		    {true, cowboy_req:set_resp_body([RespBody, "\n"], Req4), State};
 		{error, Reason} ->
 		    lager:debug("Error creating resource"),
 		    throw({error, Reason})

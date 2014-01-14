@@ -24,7 +24,7 @@
 %%% OCCI Category ID
 -record(occi_cid, {scheme    = undefined :: atom() | uri(),
 		   term      = undefined :: atom(),
-		   class                 :: occi_class()}).
+		   class     = undefined :: occi_class()}).
 -type(occi_cid() :: #occi_cid{}).
 
 -record(occi_category, {ref      :: reference(),

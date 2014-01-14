@@ -28,6 +28,7 @@
 -include("occi.hrl").
 
 -export([render_capabilities/3,
+	 render_mixin/1,
 	 render_collection/1,
 	 render_entity/1]).
 -export([render/1]).
@@ -46,6 +47,10 @@ render_capabilities(Kinds, Mixins, Actions) ->
 						    render_ejson(Obj) 
 					    end, Actions)},
     jiffy:encode({[KindsJson, MixinsJson, ActionsJson]}, [pretty]).
+
+render_mixin(#occi_mixin{}=Mixin) ->
+    MixinJson = render_ejson(Mixin),
+    jiffy:encode(MixinJson, [pretty]).
 
 render_collection(Coll) ->
     Content = {<<"resources">>, lists:map(fun(Obj) ->

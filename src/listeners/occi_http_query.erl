@@ -67,44 +67,35 @@ content_types_accepted(Req, State) ->
      Req, State}.
 
 to_plain(Req, Ctx) ->
-    Body = occi_renderer_plain:render_capabilities(occi_category_mgr:find(#occi_cid{class=kind}),
-						   occi_category_mgr:find(#occi_cid{class=mixin}),
-						   occi_category_mgr:find(#occi_cid{class=action})),
+    {K, M, A} = get_categories(),
+    Body = occi_renderer_plain:render_capabilities(K, M, A),
     {Body, Req, Ctx}.
 
 to_occi(Req, Ctx) ->
+    {K, M, A} = get_categories(),
     Req2 = cowboy_req:set_resp_header(<<"category">>, 
-				      occi_renderer_occi:render_capabilities(
-					occi_category_mgr:find(#occi_cid{class=kind}),
-					occi_category_mgr:find(#occi_cid{class=mixin}),
-					occi_category_mgr:find(#occi_cid{class=action})), Req),
+				      occi_renderer_occi:render_capabilities(K, M, A), Req),
     Body = <<"OK\n">>,
     {Body, Req2, Ctx}.
 
 to_uri_list(Req, Ctx) ->
-    Body = [occi_renderer_uri_list:render_capabilities(	   
-	      occi_category_mgr:find(#occi_cid{class=kind}),
-	      occi_category_mgr:find(#occi_cid{class=mixin}),
-	      occi_category_mgr:find(#occi_cid{class=action})), "\n"],
+    {K, M, A} = get_categories(),
+    Body = [occi_renderer_uri_list:render_capabilities(K, M, A), "\n"],
     {Body, Req, Ctx}.
 
 to_json(Req, Ctx) ->
-    Body = [occi_renderer_json:render_capabilities(
-	      occi_category_mgr:find(#occi_cid{class=kind}),
-	      occi_category_mgr:find(#occi_cid{class=mixin}),
-	      occi_category_mgr:find(#occi_cid{class=action})), "\n"],
+    {K, M, A} = get_categories(),
+    Body = [occi_renderer_json:render_capabilities(K, M, A), "\n"],
     {Body, Req, Ctx}.
 
 to_xml(Req, Ctx) ->
-    Body = [occi_renderer_xml:render_capabilities(
-	      occi_category_mgr:find(#occi_cid{class=kind}),
-	      occi_category_mgr:find(#occi_cid{class=mixin}),
-	      occi_category_mgr:find(#occi_cid{class=action})), "\n"],
+    {K, M, A} = get_categories(),
+    Body = [occi_renderer_xml:render_capabilities(K, M, A), "\n"],
     {Body, Req, Ctx}.
 
 from_json(Req, State) ->
     {ok, Body, Req2} = cowboy_req:body(Req),
-    case occi_parser_json:parse_mixin(Body) of
+    case occi_parser_json:parse_user_mixin(Body) of
 	{error, Reason} ->
 	    lager:debug("Error processing request: ~p~n", [Reason]),
 	    {true, cowboy_req:reply(400, Req2), State};
@@ -113,10 +104,19 @@ from_json(Req, State) ->
 	    {true, cowboy_req:reply(400, Req2), State};
 	{ok, #occi_mixin{}=Mixin} ->
 	    case occi_category_mgr:register_user_mixin(Mixin) of
-		{ok, _Res} ->
-		    {true, Req2, State};
+		ok ->
+		    RespBody = occi_renderer_json:render_mixin(Mixin),
+		    {true, cowboy_req:set_resp_body([RespBody, "\n"], Req2), State};
 		{error, Reason} ->
 		    lager:debug("Error creating resource"),
 		    throw({error, Reason})
 	    end
     end.
+
+%%%
+%%% Private
+%%%
+get_categories() ->
+    { occi_category_mgr:find(#occi_cid{scheme='_', term='_', class=kind}),
+      occi_category_mgr:find(#occi_cid{scheme='_', term='_', class=mixin}),
+      occi_category_mgr:find(#occi_cid{scheme='_', term='_', class=action}) }.

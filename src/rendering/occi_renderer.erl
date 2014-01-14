@@ -29,6 +29,9 @@
 -callback render_capabilities(Kinds :: [occi_kind()], Mixins :: [occi_mixin()], Actions :: [occi_action()]) ->
     binary() | list().
 
+-callback render_mixin(Mixin :: occi_mixin()) ->
+    binary() | list().
+
 -callback render_collection(Collection :: occi_collection()) ->
     binary() | list().
 

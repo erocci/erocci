@@ -31,8 +31,10 @@
 %% API
 -export([start/0,
 	 stop/1,
-	 parse/2]).
--export([parse_resource/2]).
+	 parse/2,
+	 parse_full/1]).
+-export([parse_resource/2,
+	 parse_user_mixin/1]).
 
 %% gen_fsm callbacks
 -export([init/1, handle_event/3, handle_sync_event/4, handle_info/3, terminate/3, code_change/4]).
@@ -51,12 +53,24 @@
 	 resource_id/3,
 	 resource_links/3,
 	 resource_link/3,
+	 mixins_req/3,
+	 mixins/3,
+	 mixin/3,
+	 mixin_term/3,
+	 mixin_scheme/3,
+	 mixin_depends/3,
+	 mixin_depend/3,
+	 mixin_applies/3,
+	 mixin_apply/3,
+	 mixin_title/3,
+	 mixin_location/3,
 	 eof/3]).
 
 -define(SERVER, ?MODULE).
 
 -record(state, {request        = #occi_request{}   :: occi_request(),
 		resource       = undefined         :: term(),
+		mixin          = undefined         :: term(),
 		link           = undefined         :: term(),
 		attrKey        = undefined         :: term()}).
 
@@ -64,16 +78,39 @@
 %%% API
 %%%===================================================================
 parse_resource(Data, #occi_kind{id=Cid}) ->
-    P = start(),
-    case parse(P, Data) of
+    case parse_full(Data) of
 	{error, Reason} ->
 	    {error, Reason};
 	{ok, #occi_request{resources=[#occi_resource{cid=Cid}=Res]}} ->
 	    {ok, Res};
-	Ret ->
-	    lager:error("### parse_resource result: ~p~n", [Ret]),
+	_ ->
 	    {error, invalid_request}
-    end.	    
+    end.
+
+parse_user_mixin(Data) ->
+    case parse_full(Data) of
+	{error, Reason} ->
+	    {error, Reason};
+	{ok, #occi_request{mixins=[#occi_mixin{}=Mixin]}} ->
+	    case {occi_mixin:get_attr_list(Mixin),
+		  occi_mixin:get_actions(Mixin)} of
+		{[], []} ->
+		    {ok, Mixin};
+		Err ->
+		    % User mixins can not set attributes or actions
+		    lager:error("Invalid request: ~p~n", [Err]),
+		    {error, invalid_request}
+	    end;
+	Err ->
+	    lager:error("Invalid request: ~p~n", [Err]),
+	    {error, invalid_request}
+    end.
+    
+parse_full(Data) ->
+    P = start(),
+    Res = parse(P, Data),
+    stop(P),
+    Res.
 
 -spec parse(parser(), binary()) -> parser_result().
 parse(#parser{src=#parser{mod=Mod}=Src}, Data) ->
@@ -215,8 +252,7 @@ request(#token{name=key, data="kinds"}, _From, Ctx) ->
     % TODO
     {stop, {error, invalid_request}, Ctx};
 request(#token{name=key, data="mixins"}, _From, Ctx) ->
-    % TODO
-    {stop, {error, invalid_request}, Ctx};
+    {reply, ok, mixins_req, Ctx};
 request(#token{name=key, data="actions"}, _From, Ctx) ->
     % TODO
     {stop, {error, invalid_request}, Ctx};
@@ -319,6 +355,99 @@ resource_link(#token{name=value, data=Val}, _From, #parser{state=#state{resource
 resource_link(Token, _From, Ctx) ->
     occi_parser:parse_error(Token, Ctx).
     
+mixins_req(#token{name=arrBegin}, _From, Ctx) ->
+    {reply, ok, mixins, Ctx};
+mixins_req(Token, _From, Ctx) ->
+    occi_parser:parse_error(Token, Ctx).
+
+mixins(#token{name=objBegin}, _From, #parser{state=State}=Ctx) ->
+    {reply, ok, mixin, 
+     ?set_state(Ctx, State#state{mixin=occi_mixin:new()})};
+mixins(#token{name=arrEnd}, _From, Ctx) ->
+    {reply, ok, request, Ctx};
+mixins(Token, _From, Ctx) ->
+    occi_parse:parse_error(Token, Ctx).
+
+mixin(#token{name=key, data="term"}, _From, Ctx) ->
+    {reply, ok, mixin_term, Ctx};
+mixin(#token{name=key, data="scheme"}, _From, Ctx) ->
+    {reply, ok, mixin_scheme, Ctx};
+mixin(#token{name=key, data="depends"}, _From, Ctx) ->
+    {reply, ok, mixin_depends, Ctx};
+mixin(#token{name=key, data="applies"}, _From, Ctx) ->
+    {reply, ok, mixin_applies, Ctx};
+mixin(#token{name=key, data="title"}, _From, Ctx) ->
+    {reply, ok, mixin_title, Ctx};
+mixin(#token{name=key, data="location"}, _From, Ctx) ->
+    {reply, ok, mixin_location, Ctx};
+mixin(#token{name=objEnd}, _From, #parser{state=#state{mixin=Mixin, request=Req}=State}=Ctx) ->
+    {reply, ok, mixins, 
+     ?set_state(Ctx, State#state{mixin=undefined, request=occi_request:add_mixin(Req, Mixin)})};
+mixin(Token, _From, Ctx) ->
+    occi_parser:parse_error(Token, Ctx).
+
+mixin_term(#token{name=value, data=Val}, _From, #parser{state=#state{mixin=Mixin}=State}=Ctx) ->
+    {reply, ok, mixin,
+     ?set_state(Ctx, State#state{mixin=occi_mixin:set_term(Mixin, Val)})};
+mixin_term(Token, _From, Ctx) ->
+    occi_parser:parse_error(Token, Ctx).
+
+mixin_scheme(#token{name=value, data=Val}, _From, #parser{state=#state{mixin=Mixin}=State}=Ctx) ->
+    {reply, ok, mixin,
+     ?set_state(Ctx, State#state{mixin=occi_mixin:set_scheme(Mixin, Val)})};
+mixin_scheme(Token, _From, Ctx) ->
+    occi_parser:parse_error(Token, Ctx).
+
+mixin_depends(#token{name=arrBegin}, _From, Ctx) ->
+    {reply, ok, mixin_depend, Ctx};
+mixin_depends(#token{name=arrEnd}, _From, Ctx) ->
+    {reply, ok, mixin, Ctx};
+mixin_depends(Token, _From, Ctx) ->
+    occi_parser:parse_error(Token, Ctx).
+
+mixin_depend(#token{name=value, data=Val}, _From, #parser{state=#state{mixin=Mixin}=State}=Ctx) ->
+    case split_cid(Val) of
+	{Scheme, Term} ->
+	    Mixin2 = occi_mixin:add_depends(Mixin, Scheme, Term),
+	    {reply, ok, mixin_depends, 
+	     ?set_state(Ctx, State#state{mixin=Mixin2})};
+	parse_error ->
+	    {reply, {error, invalid_cid}, eof, Ctx}
+    end;
+mixin_depend(Token, _From, Ctx) ->
+    occi_parser:parse_error(Token, Ctx).
+
+mixin_applies(#token{name=arrBegin}, _From, Ctx) ->
+    {reply, ok, mixin_apply, Ctx};
+mixin_applies(#token{name=arrEnd}, _From, Ctx) ->
+    {reply, ok, mixin, Ctx};
+mixin_applies(Token, _From, Ctx) ->
+    occi_parser:parse_error(Token, Ctx).
+
+mixin_apply(#token{name=value, data=Val}, _From, #parser{state=#state{mixin=Mixin}=State}=Ctx) ->
+    case split_cid(Val) of
+	{Scheme, Term} ->
+	    Mixin2 = occi_mixin:add_applies(Mixin, Scheme, Term),
+	    {reply, ok, mixin_applies, 
+	     ?set_state(Ctx, State#state{mixin=Mixin2})};
+	parse_error ->
+	    {reply, {error, invalid_cid}, eof, Ctx}
+    end;
+mixin_apply(Token, _From, Ctx) ->
+    occi_parser:parse_error(Token, Ctx).
+
+mixin_title(#token{name=value, data=Val}, _From, #parser{state=#state{mixin=Mixin}=State}=Ctx) ->
+    {reply, ok, mixin, 
+     ?set_state(Ctx, State#state{mixin=occi_mixin:set_title(Mixin, Val)})};
+mixin_title(Token, _From, Ctx) ->
+    occi_parser:parse_error(Token, Ctx).
+
+mixin_location(#token{name=value, data=Val}, _From, #parser{state=#state{mixin=Mixin}=State}=Ctx) ->
+    {reply, ok, mixin, 
+     ?set_state(Ctx, State#state{mixin=occi_mixin:set_location(Mixin, Val)})};
+mixin_location(Token, _From, Ctx) ->
+    occi_parser:parse_error(Token, Ctx).
+
 eof(_E, _F, Ctx) ->
     {stop, eof, Ctx}.
 
