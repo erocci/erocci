@@ -24,32 +24,17 @@
 
 -include("occi.hrl").
 
--export([new/0,
-	 get_resources/1,
-	 set_resources/2,
-	 add_resource/2,
-	 get_links/1,
-	 set_links/2,
-	 add_link/2]).
+-export([new/1,
+	 add_entity/2,
+	 get_entities/1]).
 
-new() ->
-    #occi_collection{resources=[],
-		     links=[]}.
+new(#occi_cid{}=Cid) ->
+    #occi_collection{cid=Cid, entities=[]}.
 
-get_resources(#occi_collection{resources=R}) ->
-    R.
+add_entity(#occi_collection{entities=E}=C, #occi_link{id=Id}) ->
+    C#occi_collection{entities=[Id|E]};
+add_entity(#occi_collection{entities=E}=C, #occi_resource{id=Id}) ->
+    C#occi_collection{entities=[Id|E]}.
 
-set_resources(#occi_collection{}=C, Resources) ->
-    C#occi_collection{resources=Resources}.
-
-add_resource(#occi_collection{resources=R}=C, Res) ->
-    C#occi_collection{resources=[Res|R]}.
-
-get_links(#occi_collection{links=L}) ->
-    L.
-
-set_links(#occi_collection{}=C, Links) ->
-    C#occi_collection{links=Links}.
-
-add_link(#occi_collection{links=L}=C, Link) ->
-    C#occi_collection{links=[Link|L]}.
+get_entities(#occi_collection{entities=E}) ->
+    E.

@@ -43,7 +43,4 @@ render_capabilities(Kinds, Mixins, Actions) ->
       <<", ">>).
 
 render_collection(#occi_collection{}=Coll) ->
-    occi_renderer:join(lists:map(fun (Entity) ->
-					 occi_resource:get_id(Entity)
-				 end, occi_collection:get_resources(Coll)),
-		       <<", ">>).
+    occi_renderer:join([ Id || Id <- occi_collection:get_entities(Coll) ], <<", ">>).

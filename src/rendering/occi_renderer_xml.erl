@@ -46,10 +46,8 @@ render_collection(#occi_collection{}=Coll) ->
     render_xml(
       exmpp_xml:set_children(
        exmpp_xml:element(occi, collection),
-       lists:map(fun (#occi_resource{}=Res) ->
-			 E = exmpp_xml:element(resource),
-			 exmpp_xml:set_attribute(E, <<"id">>, occi_resource:get_id(Res))
-		 end, occi_collection:get_resources(Coll)))).
+	[ exmpp_xml:set_attribute(exmpp_xml:element(resource), <<"id">>, Id) || 
+	    Id <- occi_collection:get_entities(Coll) ])).
 
 %%%
 %%% Private

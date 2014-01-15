@@ -46,9 +46,9 @@ render_capabilities(Kinds, Mixins, Actions) ->
 	      Kinds ++ Mixins ++ Actions).
 
 render_collection(Coll) ->
-    Headers = lists:foldl(fun (Entity, Acc) ->
-				  orddict:append(<<"x-occi-location">>, occi_resource:get_id(Entity), Acc)
-			  end, orddict:new(), occi_collection:get_resources(Coll)),
+    Headers = lists:foldl(fun (EntityId, Acc) ->
+				  orddict:append(<<"x-occi-location">>, EntityId, Acc)
+			  end, orddict:new(), occi_collection:get_entities(Coll)),
     render_headers(Headers).
 
 render(Category) when is_record(Category, occi_kind); 

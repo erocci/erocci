@@ -111,14 +111,27 @@ create(#occi_mixin{id=Id, backend=undefined, location=Uri}=Mixin) ->
 						  | {error, term()}.
 create(Backend, #occi_resource{id=Id}=Res) ->
     lager:debug("Create resource: ~s~n", [Id]),
-    occi_backend:save(Backend, Res).
+    occi_backend:save(Backend, Res);
+create(Backend, #occi_collection{cid=Id}=Coll) ->
+    lager:debug("Create collection: ~p~n", [Id]),
+    occi_backend:save(Backend, Coll).
 
 get_collection(#occi_kind{id=Id, backend=Backend}) ->
     lager:debug("Retrieve collection: ~p (backend ~p)~n", [Id, Backend]),
-    occi_backend:find_all(Backend, Id);
+    case occi_backend:find(Backend, #occi_collection{cid=Id, _='_'}) of
+	{ok, [Coll]} ->
+	    {ok, Coll};
+	_ ->
+	    {ok, #occi_collection{cid=Id}}
+    end;
 get_collection(#occi_mixin{id=Id, backend=Backend}) ->
     lager:debug("Retrieve collection: ~p (backend ~p)~n", [Id, Backend]),
-    occi_backend:find_all(Backend, Id).
+    case occi_backend:find(Backend, #occi_collection{cid=Id, _='_'}) of
+	{ok, [Coll]} ->
+	    {ok, Coll};
+	_ ->
+	    {ok, #occi_collection{cid=Id}}
+    end.
 
 find(Request) ->
     % TODO: fix multiple backends

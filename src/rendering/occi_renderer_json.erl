@@ -53,9 +53,7 @@ render_mixin(#occi_mixin{}=Mixin) ->
     jiffy:encode(MixinJson, [pretty]).
 
 render_collection(Coll) ->
-    Content = {<<"resources">>, lists:map(fun(Obj) ->
-						  render_ejson(Obj)
-					  end, occi_collection:get_resources(Coll))},
+    Content = {<<"resources">>, [ Id || Id <- occi_collection:get_entities(Coll) ]},
     jiffy:encode({[Content]}, [pretty]).
 
 render_entity(#occi_resource{}=Res) ->

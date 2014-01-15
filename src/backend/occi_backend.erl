@@ -28,8 +28,7 @@
 %% API
 -export([start_link/3]).
 -export([save/2,
-	 find/2,
-	 find_all/2]).
+	 find/2]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -55,10 +54,6 @@
     {{ok, Obj :: occi_object()}, State :: term()} |
     {{error, Reason :: term()}, State :: term()}.
 
--callback find_all(CatId :: occi_cid(), State :: term()) ->
-    {{ok, occi_collection()}, term()} |
-    {{error, Reason :: term()}, State :: term()}.
-
 -callback find(Request :: term(), State :: term()) ->
     {{ok, term()}, term()} |
     {{error, Reason :: term()}, State :: term()}.
@@ -71,11 +66,8 @@ start_link(Ref, Backend, Opts) ->
     lager:info("Starting storage backend ~p (~p)~n", [Ref, Backend]),
     gen_server:start_link({local, Ref}, ?MODULE, {Backend, Opts}, []).
 
-save(Ref, Entity) ->
-    gen_server:call(Ref, {save, Entity}).
-
-find_all(Ref, CategoryId) ->
-    gen_server:call(Ref, {find_all, CategoryId}).
+save(Ref, Obj) ->
+    gen_server:call(Ref, {save, Obj}).
 
 find(Ref, Request) ->
     gen_server:call(Ref, {find, Request}).

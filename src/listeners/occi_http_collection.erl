@@ -106,17 +106,29 @@ from_json(Req, #state{category=#occi_kind{backend=Backend}=Kind}=State) ->
 	    lager:debug("Error processing request: ~p~n", [Reason]),
 	    {true, cowboy_req:reply(400, Req2), State};
 	{ok, #occi_resource{}=Res} ->
-	    {Host, Req3} = cowboy_req:host(Req2),
-	    {Prefix, Req4} = cowboy_req:path(Req3),
-	    Res2 = occi_resource:set_id(Res, occi_store:gen_id(Host, Prefix)),
+	    {Prefix, Req3} = cowboy_req:path(Req2),
+	    Res2 = occi_resource:set_id(Res, occi_store:gen_id(get_host(Req3), Prefix)),
 	    case occi_store:create(Backend, Res2) of
 		{ok, Res3} ->
 		    RespBody = occi_renderer_json:render_entity(Res3),
-		    {true, cowboy_req:set_resp_body([RespBody, "\n"], Req4), State};
+		    {true, cowboy_req:set_resp_body([RespBody, "\n"], Req3), State};
 		{error, Reason} ->
 		    lager:debug("Error creating resource"),
 		    throw({error, Reason})
 	    end
     end;
-from_json(Req, #state{category=#occi_mixin{}=_Mixin}=State) ->
+from_json(Req, #state{category=#occi_mixin{}=Mixin}=State) ->
     {ok, Req, State}.
+
+%%%
+%%% Private
+%%%
+get_host(Req) ->
+    {Host, Req2} = cowboy_req:host(Req),
+    case cowboy_req:port(Req2) of
+	{80, _} ->
+	    Host;
+	{Port, _} ->
+	    PB = integer_to_binary(Port),
+	    << Host/binary, ":", PB/binary >>
+    end.

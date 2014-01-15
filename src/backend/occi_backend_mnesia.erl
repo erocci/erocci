@@ -30,8 +30,7 @@
 -export([init/1,
 	 terminate/1,
 	 save/2,
-	 find/2,
-	 find_all/2]).
+	 find/2]).
 
 -record(state, {}).
 
@@ -39,6 +38,9 @@
 %%% occi_backend callbacks
 %%%===================================================================
 init(_) ->
+    mnesia:create_table(occi_collection,
+			[{disc_copies, [node()]},
+			 {attributes, record_info(fields, occi_collection)}]),
     mnesia:create_table(occi_resource,
 		       [{disc_copies, [node()]},
 			{attributes, record_info(fields, occi_resource)}]),
@@ -51,28 +53,54 @@ init(_) ->
 terminate(#state{}) ->
     ok.
 
-save(#occi_resource{}=Res, #state{}=State) ->
-    mnesia:transaction(fun() ->
-			       mnesia:write(Res)
-		       end),
-    {{ok, Res}, State};
-save(#occi_mixin{}=Mixin, #state{}=State) ->
-    mnesia:transaction(fun() ->
-			       mnesia:write(Mixin)
-		       end),
-    {{ok, Mixin}, State}.
+save(Obj, State) ->
+    mnesia:transaction(save_t(Obj)),
+    {{ok, Obj}, State}.
 
 find(#occi_mixin{}=Mixin, #state{}=State) ->
     Res = mnesia:dirty_match_object(Mixin),
     {{ok, Res}, State};
+find(#occi_collection{}=Coll, #state{}=State) ->
+    Res = mnesia:dirty_match_object(Coll),
+    {{ok, Res}, State};
 find(_, #state{}=State) ->
     {{error, not_implemented}, State}.
-
-find_all(#occi_cid{}=Id, #state{}=State) ->
-    Coll = occi_collection:new(),
-    Resources = mnesia:dirty_match_object(#occi_resource{cid=Id, _='_'}),
-    {{ok, occi_collection:set_resources(Coll, Resources)}, State}.
 
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+save_t(#occi_resource{}=Res) ->
+    fun() ->
+	    mnesia:write(Res),
+	    KindId = occi_resource:get_cid(Res),
+	    Uri = occi_resource:get_id(Res),
+	    case mnesia:wread({occi_collection, KindId}) of
+		[#occi_collection{entities=E}=C] ->
+		    lager:debug("Update collection: ~p~n", [KindId]),
+		    C2 = C#occi_collection{entities=[Uri|E]},
+		    mnesia:write(C2);
+		_ ->
+		    % Create collection on the fly
+		    lager:debug("Create collection: ~p~n", [KindId]),
+		    mnesia:write(#occi_collection{cid=KindId, entities=[Uri]})
+	    end,
+	    lists:foreach(fun (#occi_mixin{id=Id}) ->
+				  case mnesia:wread({occi_collection, Id}) of
+				      [#occi_collection{entities=E2}=C3] ->
+					  lager:debug("Update collection: ~p~n", [Id]),
+					  C4 = C3#occi_collection{entities=[Uri|E2]},
+					  mnesia:write(C4);
+				      _ ->
+					  lager:debug("Create collection: ~p~n", [Id]),
+					  mnesia:write(#occi_collection{cid=Id, entities=[Uri]})
+				  end
+			  end, occi_resource:get_mixins(Res))
+    end;
+save_t(#occi_mixin{}=Mixin) ->
+    fun () ->
+	    mnesia:write(Mixin)
+    end;
+save_t(#occi_collection{}=Coll) ->
+    fun() ->
+	    mnesia:write(Coll)
+    end.

@@ -17,8 +17,8 @@
 			}).
 -type(occi_extension() :: #occi_extension{}).
 
--record(occi_collection, {resources       :: term(), 
-			  links           :: term()}).
+-record(occi_collection, {cid             :: occi_cid(),
+			  entities  = []  :: [uri()]}).
 -type(occi_collection() :: #occi_collection{}).
 
 %%% OCCI Category ID
@@ -114,7 +114,7 @@
 -type(hook_name() :: on_save | on_update | on_delete | on_action).
 -type(hook_fun() :: {atom(), atom()} | fun()).
 
--type(occi_object() :: occi_entity() | occi_category()).
+-type(occi_object() :: occi_entity() | occi_category() | occi_collection()).
 
 -record(occi_request, {kinds      = []     :: [occi_kind()],
 		       mixins     = []     :: [occi_mixin()],
