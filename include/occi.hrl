@@ -116,7 +116,8 @@
 
 -type(occi_object() :: occi_entity() | occi_category() | occi_collection()).
 
--record(occi_request, {kinds      = []     :: [occi_kind()],
+-record(occi_request, {collection          :: occi_collection(),
+		       kinds      = []     :: [occi_kind()],
 		       mixins     = []     :: [occi_mixin()],
 		       actions    = []     :: [occi_action()],
 		       resources  = []     :: [occi_resource()],

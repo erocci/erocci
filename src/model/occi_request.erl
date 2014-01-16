@@ -29,7 +29,9 @@
 	add_resource/2,
 	get_resources/1,
 	add_mixin/2,
-	get_mixins/1]).
+	get_mixins/1,
+	set_collection/2,
+	get_collection/1]).
 
 new() ->
     #occi_request{}.
@@ -45,3 +47,9 @@ add_mixin(#occi_request{mixins=Mixins}=Req, Mixin) ->
 
 get_mixins(#occi_request{mixins=Mixins}) ->
     Mixins.
+
+set_collection(#occi_request{}=Req, #occi_collection{}=Col) ->
+    Req#occi_request{collection=Col}.
+
+get_collection(#occi_request{collection=Col}) ->
+    Col.

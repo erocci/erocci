@@ -33,6 +33,7 @@
 -export([create/1,
 	 create/2,
 	 get_collection/1,
+	 add_collection/3,
 	 find/1,
 	 gen_id/2,
 	 get_backend/1, 
@@ -132,6 +133,10 @@ get_collection(#occi_mixin{id=Id, backend=Backend}) ->
 	_ ->
 	    {ok, #occi_collection{cid=Id}}
     end.
+
+add_collection(Backend, #occi_collection{cid=Cid}=Col, Uris) ->
+    lager:debug("Update collection: ~p~n", [Cid]),
+    occi_backend:add_collection(Backend, Col, Uris).
 
 find(Request) ->
     % TODO: fix multiple backends

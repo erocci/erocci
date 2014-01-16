@@ -113,12 +113,30 @@ from_json(Req, #state{category=#occi_kind{backend=Backend}=Kind}=State) ->
 		    RespBody = occi_renderer_json:render_entity(Res3),
 		    {true, cowboy_req:set_resp_body([RespBody, "\n"], Req3), State};
 		{error, Reason} ->
-		    lager:debug("Error creating resource"),
-		    throw({error, Reason})
+		    lager:debug("Error creating resource: ~p~n", [Reason]),
+		    cowboy_req:reply(500, Req3)
 	    end
     end;
-from_json(Req, #state{category=#occi_mixin{}=Mixin}=State) ->
-    {ok, Req, State}.
+from_json(Req, #state{category=#occi_mixin{id=Id, backend=Backend}}=State) ->
+    case cowboy_req:method(Req) of
+	{<<"PUT">>, Req2} ->
+	    {ok, Body, Req3} = cowboy_req:body(Req2),
+	    case occi_parser_json:parse_collection(Body) of
+		{error, Reason} ->
+		    lager:debug("Error processing request: ~p~n", [Reason]),
+		    {true, cowboy_req:reply(400, Req3), State};
+		{ok, #occi_collection{entities=E}=Col} ->
+		    case occi_store:add_collection(Backend, Col#occi_collection{cid=Id}, E) of
+			ok ->
+			    {true, cowboy_req:set_resp_body("OK", Req3), State};
+			{error, Reason} ->
+			    lager:debug("Error updating collection: ~p~n", [Reason]),
+			    cowboy_req:reply(500, Req3)
+		    end
+	    end;
+	{_, Req2} ->
+	    cowboy_req:reply(405, Req2)
+    end.
 
 %%%
 %%% Private

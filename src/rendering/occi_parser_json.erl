@@ -34,7 +34,8 @@
 	 parse/2,
 	 parse_full/1]).
 -export([parse_resource/2,
-	 parse_user_mixin/1]).
+	 parse_user_mixin/1,
+	 parse_collection/1]).
 
 %% gen_fsm callbacks
 -export([init/1, handle_event/3, handle_sync_event/4, handle_info/3, terminate/3, code_change/4]).
@@ -64,15 +65,18 @@
 	 mixin_apply/3,
 	 mixin_title/3,
 	 mixin_location/3,
+	 collection_req/3,
+	 collection/3,
 	 eof/3]).
 
 -define(SERVER, ?MODULE).
 
--record(state, {request        = #occi_request{}   :: occi_request(),
-		resource       = undefined         :: term(),
-		mixin          = undefined         :: term(),
-		link           = undefined         :: term(),
-		attrKey        = undefined         :: term()}).
+-record(state, {request        = #occi_request{}    :: occi_request(),
+		collection                          :: occi_collection(),
+		resource       = undefined          :: term(),
+		mixin          = undefined          :: term(),
+		link           = undefined          :: term(),
+		attrKey        = undefined          :: term()}).
 
 %%%===================================================================
 %%% API
@@ -105,7 +109,15 @@ parse_user_mixin(Data) ->
 	    lager:error("Invalid request: ~p~n", [Err]),
 	    {error, invalid_request}
     end.
-    
+
+parse_collection(Data) ->
+    case parse_full(Data) of
+	{error, Reason} ->
+	    {error, Reason};
+	{ok, #occi_request{collection=Coll}} ->
+	    {ok, Coll}
+    end.
+
 parse_full(Data) ->
     P = start(),
     Res = parse(P, Data),
@@ -242,6 +254,8 @@ init(Token, _From, Ctx) ->
 
 request(#token{name=key, data="resources"}, _From, Ctx) ->
     {reply, ok, resources_req, Ctx};
+request(#token{name=key, data="collection"}, _From, Ctx) ->
+    {reply, ok, collection_req, Ctx};
 request(#token{name=key, data="links"}, _From, Ctx) ->
     % TODO
     {stop, {error, invalid_request}, Ctx};
@@ -446,6 +460,21 @@ mixin_location(#token{name=value, data=Val}, _From, #parser{state=#state{mixin=M
     {reply, ok, mixin, 
      ?set_state(Ctx, State#state{mixin=occi_mixin:set_location(Mixin, Val)})};
 mixin_location(Token, _From, Ctx) ->
+    occi_parser:parse_error(Token, Ctx).
+
+collection_req(#token{name=arrBegin}, _From, #parser{state=State}=Ctx) ->
+    {reply, ok, collection, 
+     ?set_state(Ctx, State#state{collection=#occi_collection{}})};
+collection_req(Token, _From, Ctx) ->
+    occi_parser:parse_error(Token, Ctx).
+
+collection(#token{name=value, data=Val}, _From, #parser{state=#state{collection=Coll}=State}=Ctx) ->
+    {reply, ok, collection, 
+     ?set_state(Ctx, State#state{collection=occi_collection:add_entity(Coll, Val)})};
+collection(#token{name=arrEnd}, _From, #parser{state=#state{request=Req, collection=Coll}=State}=Ctx) ->
+    {reply, ok, request,
+     ?set_state(Ctx, State#state{request=occi_request:set_collection(Req, Coll)})};
+collection(Token, _From, Ctx) ->
     occi_parser:parse_error(Token, Ctx).
 
 eof(_E, _F, Ctx) ->

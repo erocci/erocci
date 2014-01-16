@@ -34,7 +34,9 @@ new(#occi_cid{}=Cid) ->
 add_entity(#occi_collection{entities=E}=C, #occi_link{id=Id}) ->
     C#occi_collection{entities=[Id|E]};
 add_entity(#occi_collection{entities=E}=C, #occi_resource{id=Id}) ->
-    C#occi_collection{entities=[Id|E]}.
+    C#occi_collection{entities=[Id|E]};
+add_entity(#occi_collection{entities=E}=C, Id) when is_list(Id) ->
+    C#occi_collection{entities=[list_to_binary(Id)|E]}.
 
 get_entities(#occi_collection{entities=E}) ->
     E.
