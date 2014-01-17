@@ -33,6 +33,14 @@
 	 render_entity/1]).
 -export([render/1]).
 
+-type ejson()        :: ejson_arr() | ejson_obj().
+-type ejson_arr()    :: [ ejson_elem() ].
+-type ejson_elem()   :: ejson_obj() | ejson_arr() | ejson_val().
+-type ejson_obj()    :: {[ ejson_member() ]}.
+-type ejson_member() :: {ejson_key(), ejson_obj() | ejson_arr() | ejson_val()}.
+-type ejson_key()    :: binary() | atom().
+-type ejson_val()    :: atom() | binary() | string().
+
 %%%
 %%% API
 %%%
@@ -77,72 +85,55 @@ render(List) when is_list(List) ->
 %%% Private
 %%%
 render_ejson(#occi_kind{location=Uri}=Kind) ->
-    render_list([{term, occi_kind:get_term(Kind)}
-		 ,{scheme, occi_kind:get_scheme(Kind)}
-		 ,{class, kind}
-		 ,{title, occi_kind:get_title(Kind)}
-		 ,{parent, render_cid_uri(occi_kind:get_parent(Kind))}
-		 ,{attributes, render_attribute_specs(occi_kind:get_attr_list(Kind))}
-		 ,{actions, lists:map(fun(Action) -> 
-					      render_cid_uri(occi_action:get_id(Action)) 
-				      end, occi_kind:get_actions(Kind))}
-		 ,{location, Uri}
-		]);
+    strip_list([{term, occi_kind:get_term(Kind)}
+		,{scheme, occi_kind:get_scheme(Kind)}
+		,{class, kind}
+		,{title, occi_kind:get_title(Kind)}
+		,{parent, render_cid_uri(occi_kind:get_parent(Kind))}
+		,{attributes, render_attribute_specs(occi_kind:get_attr_list(Kind))}
+		,{actions, lists:map(fun(Action) -> 
+					     render_cid_uri(occi_action:get_id(Action)) 
+				     end, occi_kind:get_actions(Kind))}
+		,{location, Uri}
+	       ]);
 
 render_ejson(#occi_mixin{location=Uri}=Mixin) ->
-    render_list([{term, occi_mixin:get_term(Mixin)}
-		 ,{scheme, occi_mixin:get_scheme(Mixin)}
-		 ,{class, mixin}
-		 ,{depends, lists:map(fun(Cid) -> render_cid_uri(Cid) end, 
-				      occi_mixin:get_depends(Mixin))}
-		 ,{applies, lists:map(fun(Cid) -> render_cid_uri(Cid) end, 
-				      occi_mixin:get_applies(Mixin))}
-		 ,{title, occi_mixin:get_title(Mixin)}
-		 ,{attributes, render_attribute_specs(occi_mixin:get_attr_list(Mixin))}
-		 ,{actions, lists:map(fun(Action) -> 
-					      render_cid_uri(occi_action:get_id(Action))
-				      end, occi_mixin:get_actions(Mixin))}
-		 ,{location, Uri}]);
+    strip_list([{term, occi_mixin:get_term(Mixin)}
+		,{scheme, occi_mixin:get_scheme(Mixin)}
+		,{class, mixin}
+		,{depends, lists:map(fun(Cid) -> render_cid_uri(Cid) end, 
+				     occi_mixin:get_depends(Mixin))}
+		,{applies, lists:map(fun(Cid) -> render_cid_uri(Cid) end, 
+				     occi_mixin:get_applies(Mixin))}
+		,{title, occi_mixin:get_title(Mixin)}
+		,{attributes, render_attribute_specs(occi_mixin:get_attr_list(Mixin))}
+		,{actions, lists:map(fun(Action) -> 
+					     render_cid_uri(occi_action:get_id(Action))
+				     end, occi_mixin:get_actions(Mixin))}
+		,{location, Uri}]);
 
 render_ejson(#occi_action{}=Action) ->
-    render_list([{term, occi_action:get_term(Action)}
-		 ,{scheme, occi_action:get_scheme(Action)}
-		 ,{class, action}
-		 ,{title, occi_action:get_title(Action)}
-		 ,{attributes, render_attribute_specs(occi_action:get_attr_list(Action))}
-		]);
+    strip_list([{term, occi_action:get_term(Action)}
+		,{scheme, occi_action:get_scheme(Action)}
+		,{class, action}
+		,{title, occi_action:get_title(Action)}
+		,{attributes, render_attribute_specs(occi_action:get_attr_list(Action))}
+	       ]);
 
 render_ejson(#occi_resource{}=Res) ->
-    render_list([{kind, render_cid_uri(occi_resource:get_cid(Res))}
-		 ,{mixins, lists:map(fun render_cid_uri/1, occi_resource:get_mixins(Res))}
-		 ,{attributes, render_list(lists:map(
-					     fun render_attribute_kv/1, occi_resource:get_attributes(Res)))}
-		 ,{id, occi_resource:get_id(Res)}
-		]);
+    strip_list([{kind, render_cid_uri(occi_resource:get_cid(Res))}
+		,{mixins, lists:map(fun render_cid_uri/1, occi_resource:get_mixins(Res))}
+		,{attributes, render_attribute_values(occi_resource:get_attributes(Res))}
+		,{id, occi_resource:get_id(Res)}
+	       ]);
 
 render_ejson(#occi_link{}=_Link) ->
-    render_list([]);
+    strip_list([]);
 
 render_ejson(#occi_cid{}=Cid) ->
-    render_list([{scheme, list_to_binary(atom_to_list(Cid#occi_cid.scheme))}, 
-		 {term, Cid#occi_cid.term}, 
-		 {class, Cid#occi_cid.class}]).
-
-render_list(L) ->
-    {render_list(L, [])}.
-
-render_list([], Acc) ->
-    lists:reverse(Acc);
-render_list([{_Key, undefined}|Tail], Acc) ->
-    render_list(Tail, Acc);
-render_list([{_Key, <<>>}|Tail], Acc) ->
-    render_list(Tail, Acc);
-render_list([{_Key, []}|Tail], Acc) ->
-    render_list(Tail, Acc);
-render_list([{_Key, {[]}}|Tail], Acc) ->
-    render_list(Tail, Acc);
-render_list([{Key, Val}|Tail], Acc) ->
-    render_list(Tail, [{Key, Val}|Acc]).
+    strip_list([{scheme, list_to_binary(atom_to_list(Cid#occi_cid.scheme))}, 
+		{term, Cid#occi_cid.term}, 
+		{class, Cid#occi_cid.class}]).
 
 render_cid_uri(undefined) ->
     undefined;
@@ -152,10 +143,10 @@ render_cid_uri(#occi_cid{}=Cid) ->
     << BScheme/binary, BTerm/binary >>.
 
 render_attribute_specs(Attrs) ->
-    render_attribute_specs(Attrs, []).
+    render_attribute_specs(Attrs, {[]}).
 
 render_attribute_specs([], Acc) ->
-    {Acc};
+    Acc;
 render_attribute_specs([#occi_attr{}=Attr|Tail], Acc) ->
     L = [
 	 {mutable, not occi_attribute:is_immutable(Attr)},
@@ -164,7 +155,52 @@ render_attribute_specs([#occi_attr{}=Attr|Tail], Acc) ->
 	 {type, occi_attribute:get_type_id(Attr)},
 	 {default, occi_attribute:get_default(Attr)}
 	],
-    render_attribute_specs(Tail, [{occi_attribute:get_id(Attr), render_list(L)}|Acc]).
+    Id = split_attr_id(occi_attribute:get_id(Attr)),
+    render_attribute_specs(Tail, insert_attr(Id, strip_list(L), Acc)).
 
-render_attribute_kv(Attr) ->
-    {occi_attribute:get_id(Attr), occi_attribute:get_value(Attr)}.
+render_attribute_values(Attr) ->
+    render_attribute_values(Attr, {[]}).
+
+render_attribute_values([], Acc) ->
+    Acc;
+render_attribute_values([#occi_attr{}=Attr|Tail], Acc) ->
+    Id = split_attr_id(occi_attribute:get_id(Attr)),
+    case occi_attribute:get_value(Attr) of
+	undefined ->
+	    render_attribute_values(Tail, Acc);
+	Value ->
+	    render_attribute_values(Tail, insert_attr(Id, Value, Acc))
+    end.
+
+%
+% insert attribute name/value into ejson tree.
+% Name is a list of binary
+%
+-spec insert_attr(Name :: [binary()], Value :: term(), ejson()) -> ejson().
+insert_attr([ Name ], Value, {Tree}) ->
+    { [{Name, Value} | Tree ]};
+insert_attr([ Name | Tail ], Value, {[ {Name, Children} | OtherNS ]}) ->
+    { [{Name, insert_attr(Tail, Value, Children) } | OtherNS] };
+insert_attr([ Name | Tail ], Value, {Tree}) ->
+    { [{Name, insert_attr(Tail, Value, {[]}) } | Tree] }.
+
+split_attr_id(Name) when is_atom(Name) ->
+    lists:map(fun (T) ->
+		      list_to_binary(T)
+	      end, string:tokens(atom_to_list(Name), ".")).
+
+strip_list(L) ->
+    {strip_list(L, [])}.
+
+strip_list([], Acc) ->
+    lists:reverse(Acc);
+strip_list([{_Key, undefined}|Tail], Acc) ->
+    strip_list(Tail, Acc);
+strip_list([{_Key, <<>>}|Tail], Acc) ->
+    strip_list(Tail, Acc);
+strip_list([{_Key, []}|Tail], Acc) ->
+    strip_list(Tail, Acc);
+strip_list([{_Key, {[]}}|Tail], Acc) ->
+    strip_list(Tail, Acc);
+strip_list([{Key, Val}|Tail], Acc) ->
+    strip_list(Tail, [{Key, Val}|Acc]).
