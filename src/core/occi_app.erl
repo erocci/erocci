@@ -56,6 +56,7 @@ start(normal, _Args) ->
     ensure_started(inets),
     db_init(),
     Ret = occi_sup:start_link(),
+    occi_config:start(),
     start(),
     Ret;
 start(_StartType, _StartArgs) ->

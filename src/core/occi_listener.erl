@@ -30,7 +30,7 @@
 
 %% API
 -export([start_link/0, 
-	 register/3,
+	 register/1,
 	 add_collection/2]).
 
 -type opts() :: [{atom(), any()}].
@@ -61,7 +61,7 @@
 start_link() ->
     supervisor:start_link({local, ?SUPERVISOR}, ?MODULE, []).
 
-register(Ref, Module, Opts) ->
+register({Ref, Module, Opts}) ->
     lager:info("Registering listener: ~p~n", [Module]),
     ChildSpec = {Ref,
 		 {Module, start_link, [Ref, Opts]},
