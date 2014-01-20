@@ -76,7 +76,7 @@
 		resource       = undefined          :: term(),
 		mixin          = undefined          :: term(),
 		link           = undefined          :: term(),
-		attrKey        = undefined          :: term()}).
+		attrNS         = []                 :: [string()]}).
 
 %%%===================================================================
 %%% API
@@ -334,19 +334,30 @@ resource_mixin(#token{name=value, data=Val}, _From, #parser{state=#state{resourc
 resource_mixin(Token, _From, Ctx) ->
     occi_parser:parse_error(Token, Ctx).
 
-resource_attributes(#token{name=objBegin}, _From, Ctx) ->
-    occi_parser:push(resource_attribute, Ctx);
+resource_attributes(#token{name=objBegin}, _From, #parser{state=#state{}=State}=Ctx) ->
+    {reply, ok, resource_attribute,
+    ?set_state(Ctx, State#state{attrNS=[]})};
+resource_attributes(#token{name=objEnd}, _From, Ctx) ->
+    {reply, ok, resource, Ctx};
 resource_attributes(Token, _From, Ctx) ->
     occi_parser:parse_error(Token, Ctx).
 
-resource_attribute(#token{name=key, data=Val}, _From, #parser{state=State}=Ctx) ->
-    {reply, ok, resource_attribute, ?set_state(Ctx, State#state{attrKey=Val})};
-resource_attribute(#token{name=value, data=Val}, _From, 
-		   #parser{state=#state{attrKey=A, resource=Res}=State}=Ctx) ->
+resource_attribute(#token{name=key, data=Val}, _From, #parser{state=#state{attrNS=NS}=State}=Ctx) ->
     {reply, ok, resource_attribute, 
-     ?set_state(Ctx, State#state{attrKey=undefined, resource=occi_resource:set_attr_value(Res, A, Val)})};
-resource_attribute(#token{name=objEnd}, _From, Ctx) ->
-    {reply, ok, resource, Ctx};
+     ?set_state(Ctx, State#state{attrNS=[Val|NS]})};
+resource_attribute(#token{name=objBegin}, _From, Ctx) ->
+    {reply, ok, resource_attribute, Ctx};
+resource_attribute(#token{name=value, data=Val}, _From, 
+		   #parser{state=#state{attrNS=[H|T], resource=Res}=State}=Ctx) ->
+    Name = build_attr_name([H|T]),
+    {reply, ok, resource_attribute, 
+     ?set_state(Ctx, State#state{attrNS=T, resource=occi_resource:set_attr_value(Res, Name, Val)})};
+resource_attribute(#token{name=objEnd}, _From, #parser{state=#state{attrNS=[_H|T]}=State}=Ctx) ->
+    {reply, ok, resource_attribute, 
+     ?set_state(Ctx, State#state{attrNS=T})};
+resource_attribute(#token{name=objEnd}, _From, #parser{state=#state{attrNS=[]}=State}=Ctx) ->
+    {reply, ok, resource,
+     ?set_state(Ctx, State#state{attrNS=[]})};
 resource_attribute(Token, _From, Ctx) ->
     occi_parser:parse_error(Token, Ctx).
 
@@ -489,4 +500,7 @@ split_cid(Str) ->
 	    {list_to_atom(Scheme++"#"), list_to_atom(Term)};
 	_ ->
 	    parse_error
-    end.		
+    end.
+
+build_attr_name(NS) ->
+    list_to_atom(string:join(lists:reverse(NS), ".")).
