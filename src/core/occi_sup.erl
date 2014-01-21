@@ -41,13 +41,6 @@ start_link() ->
 %% @spec init([]) -> SupervisorTree
 %% @doc supervisor callback.
 init(_) ->
-    Xml = {xml,
-	   {exmpp_xml, start_link, []},
-	   transient,
-	   2000,
-	   worker,
-	   [exmpp_xml]
-	  },
     Store = {occi_store,
 	     {occi_store, start_link, []},
 	     permanent,
@@ -72,5 +65,5 @@ init(_) ->
 	    infinity,
 	    supervisor,
 	    [occi_hook]},
-    Children = [Xml, Store, Listener, CategoryMgr, Hook],
+    Children = [Store, Listener, CategoryMgr, Hook],
     {ok, {{one_for_one, 10, 10}, Children}}.

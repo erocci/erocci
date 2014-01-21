@@ -54,6 +54,7 @@
 start(normal, _Args) ->
     ensure_started(lager),
     ensure_started(inets),
+    ensure_started(exmpp),
     db_init(),
     Ret = occi_sup:start_link(),
     occi_config:start(),
