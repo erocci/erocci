@@ -45,6 +45,9 @@ init(_) ->
     mnesia:create_table(occi_resource,
 		       [{disc_copies, [node()]},
 			{attributes, record_info(fields, occi_resource)}]),
+    mnesia:create_table(occi_link,
+		       [{disc_copies, [node()]},
+			{attributes, record_info(fields, occi_link)}]),
     mnesia:create_table(occi_mixin,
 		       [{disc_copies, [node()]},
 			{attributes, record_info(fields, occi_mixin)}]),
@@ -80,12 +83,15 @@ find(#occi_collection{}=Req, #state{}=State) ->
     {{ok, Res}, State};
 find(#occi_entity{id=Uri, cid=Cid, mixins=Mixins}, State) ->
     case find(#occi_resource{id=Uri, cid=Cid, mixins=Mixins, _='_'}, State) of
-	{ok, []} ->
-	    find(#occi_link{id=Uri, cid=Cid, mixins=Mixins, _='_'}, State);
-	{ok, Res} ->
-	    {{ok, Res}, State}
+	{{ok, []}, State2} ->
+	    find(#occi_link{id=Uri, cid=Cid, mixins=Mixins, _='_'}, State2);
+	{{ok, Res}, State2} ->
+	    {{ok, Res}, State2}
     end;
 find(#occi_resource{}=Req, #state{}=State) ->
+    Res = mnesia:dirty_match_object(Req),
+    {{ok, Res}, State};
+find(#occi_link{}=Req, #state{}=State) ->
     Res = mnesia:dirty_match_object(Req),
     {{ok, Res}, State};
 find(_, #state{}=State) ->

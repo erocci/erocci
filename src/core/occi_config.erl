@@ -37,6 +37,8 @@ get(Name, Default) ->
 %
 % Transform relative uri in url, if necessary 
 %
+get_url(Uri) when is_binary(Uri) ->
+    get_url(binary_to_list(Uri));
 get_url([$/|Uri]) ->
     Name = get(name, undefined),
     #uri{scheme=Name#uri.scheme, host=Name#uri.host, port=Name#uri.port, path=[$/|Uri]};
@@ -48,7 +50,7 @@ gen_id(Prefix) when is_binary(Prefix) ->
     gen_id(binary_to_list(Prefix));
 gen_id(Prefix) when is_list(Prefix) ->
     #uri{host=Host}=Server = get(name, undefined),
-    Id = list_to_binary(uuid:to_string(uuid:uuid3(uuid:uuid4(), Host))),
+    Id = uuid:to_string(uuid:uuid3(uuid:uuid4(), Host)),
     Server#uri{path=Prefix++Id}.
 
 %%%

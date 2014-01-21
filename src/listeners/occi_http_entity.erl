@@ -24,18 +24,14 @@
 -export([init/3, 
 	 rest_init/2,
 	 resource_exists/2,
-	 allow_missing_post/2,
-	 allowed_methods/2,
-	 content_types_provided/2,
-	 content_types_accepted/2]).
+	 content_types_provided/2]).
 
 %% Callback callbacks
--export([to_plain/2, to_occi/2, to_uri_list/2, to_json/2,
-	 from_plain/2]).
+-export([to_json/2]).
 
 -include("occi.hrl").
 
--record(state, {resource = undefined :: any()}).
+-record(state, {entity = undefined :: any()}).
 
 init(_Transport, _Req, []) -> 
     {upgrade, protocol, cowboy_rest}.
@@ -44,56 +40,29 @@ rest_init(Req, _Opts) ->
     Req1 = occi_http:set_cors(Req),
     {ok, Req1, #state{}}.
 
-allow_missing_post(_Req, _State) ->
-    false.
-
-allowed_methods(Req, State) ->
-    {[<<"HEAD">>, <<"GET">>, <<"PUT">>, <<"DELETE">>, <<"POST">>], Req, State}.
-
 content_types_provided(Req, State) ->
     {[
-      {{<<"text">>,          <<"plain">>,     []}, to_plain}
-     ],
-     Req, State}.
-
-content_types_accepted(Req, State) ->
-    {[
-      {{<<"text">>,          <<"plain">>,      []}, from_plain}
+      {{<<"application">>,       <<"json">>,     []}, to_json}
      ],
      Req, State}.
 
 resource_exists(Req, State) ->
-    {Path, Req1} = cowboy_req:path_info(Req),
-    case occi_store:is_valid_path(Path) of
-	false ->
-	    {false, Req1, State};
-	{collection, Mod} ->
-	    {true, Req1, State#state{resource={collection, Mod}}};
-	{entity, Backend, ObjId} ->
-	    {true, Req1, State#state{resource={entity, Backend, ObjId}}}
+    {Path, _} = cowboy_req:path(Req),
+    Uri = occi_config:get_url(Path),
+    lager:debug("Check path: ~p~n", [occi_uri:to_string(Uri)]),
+    case occi_store:find(#occi_entity{id=Uri, _='_'}) of
+	{ok, []} ->
+	    {false, Req, State};
+	{ok, [Entity]} ->
+	    {true, Req, State#state{entity=Entity}};
+	{ok, _} ->
+	    {false, cowboy_req:reply(500, Req), State}
     end.
 
-to_plain(Req, State) ->
-    Body = case State#state.resource of
-	       {collection, _Mod} ->
-		   [];
-	       {entity, _Backend, _ObjId} ->
-		   <<"OK">>
-	   end,
-    {Body, Req, State}.
+to_json(Req, #state{entity=Entity}=State) ->
+    Body = occi_renderer_json:render_entity(Entity),
+    {[Body, "\n"], Req, State}.
 
-to_occi(Req, State) ->
-    {<<"OK\n">>, Req, State}.
-
-to_uri_list(Req, State) ->
-    Body = <<"">>,
-    {Body, Req, State}.
-
-to_json(Req, State) ->
-    {<<"\n">>, Req, State}.
-
-from_plain(Req, State) ->
-    {Body, Req2} = cowboy_req:body(Req),
-    Res = occi_renderer_plain:parse(Body),
-    Req3 = cowboy_req:set_resp_header(<<"location">>, Res#occi_resource.id, Req2),
-    {true, Req3, State}.
+%%%
+%%% Private
+%%%
