@@ -95,7 +95,8 @@ register_mixin(#occi_mixin{id=Id, location=Uri}=Mixin) ->
 
 register_user_mixin(#occi_mixin{id=Id, location=Uri}=Mixin) ->
     lager:info("Registering mixin: ~s~s -> ~s~n", [Id#occi_cid.scheme, Id#occi_cid.term, Uri#uri.path]),
-    case occi_store:create(Mixin) of
+    Backend = occi_store:get_backend(Uri),
+    case occi_store:save(Mixin#occi_mixin{backend=Backend}) of
 	{ok, Mixin2} ->
 	    occi_listener:add_collection(Mixin2, Uri);
 	{error, Err} ->

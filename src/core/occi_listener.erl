@@ -31,6 +31,7 @@
 %% API
 -export([start_link/0, 
 	 register/1,
+	 notify/1,
 	 add_collection/2]).
 
 -type opts() :: [{atom(), any()}].
@@ -61,6 +62,12 @@
 start_link() ->
     supervisor:start_link({local, ?SUPERVISOR}, ?MODULE, []).
 
+notify({add_backend, Backend}) ->
+    {ok, Mixins} = occi_store:find(Backend, #occi_mixin{_='_'}),
+    lists:foreach(fun (#occi_mixin{location=Uri}=Mixin) ->
+			  add_collection(Mixin, Uri)
+		  end, Mixins).
+
 -spec register({Ref :: atom(), Module :: atom(), Opts :: term()}) -> {ok, pid()} | {error, term()}.
 register({Ref, Module, Opts}) ->
     lager:info("Registering listener: ~p~n", [Module]),
@@ -80,6 +87,7 @@ register({Ref, Module, Opts}) ->
 
 -spec add_collection(occi_category(), uri()) -> ok.
 add_collection(Category, #uri{}=Uri) ->
+    lager:debug("Add collection path: ~p -> ~p~n", [element(2, Category), occi_uri:to_string(Uri)]),
     lists:foreach(fun (#listener{ref=Ref, mod=Mod}) ->
 			  Mod:add_collection(Ref, Category, Uri)
 		  end, get_listeners()).

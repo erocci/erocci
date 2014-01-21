@@ -24,11 +24,15 @@
 
 -include("occi.hrl").
 
--export([new/1,
+-export([new/0,
+	 new/1,
 	 new/2,
 	 add_entity/2,
 	 add_entities/2,
 	 get_entities/1]).
+
+new() ->
+    #occi_collection{entities=ordsets:new()}.
 
 new(#occi_cid{}=Cid) ->
     #occi_collection{cid=Cid, entities=ordsets:new()}.

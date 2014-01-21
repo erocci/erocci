@@ -30,11 +30,11 @@
 
 %% API
 -export([start_link/0, register/1]).
--export([create/1,
-	 create/2,
+-export([save/1,
+	 save/2,
 	 get_collection/1,
-	 add_collection/3,
 	 find/1,
+	 find/2,
 	 get_backend/1, 
 	 is_valid_path/1]).
 
@@ -76,6 +76,7 @@ register({Ref, Mod, Opts}) ->
     case supervisor:start_child(occi_store, Backend) of
 	{ok, Pid} ->
 	    ets:insert(?TABLE, {backend, Ref}),
+	    occi_listener:notify({add_backend, Ref}),
 	    {ok, Pid};
 	{error, Err} ->
 	    {error, Err}
@@ -99,32 +100,19 @@ get_backend(_) ->
 	    Ref
     end.
 
--spec create(occi_object()) -> {ok, occi_object()} | {error, term()}.
-create(#occi_resource{id=Id}=Res) ->
-    lager:debug("Create resource: ~s~n", [occi_uri:to_binary(Id)]),
-    case get_backend(Id) of
+-spec save(occi_object()) -> {ok, occi_object()} | {error, term()}.
+save(Object) ->
+    case get_backend([]) of
 	undefined ->
 	    {error, undefined_backend};
 	Backend ->
-	    occi_backend:save(Backend, Res)
-    end;
-create(#occi_mixin{id=Id, backend=undefined, location=Uri}=Mixin) ->
-    lager:debug("Create mixin: ~s~s~n", [Id#occi_cid.scheme, Id#occi_cid.term]),
-    case get_backend(Uri) of
-	undefined ->
-	    {error, undefined_backend};
-	Backend ->
-	    occi_backend:save(Backend, Mixin#occi_mixin{backend=Backend})
+	    occi_backend:save(Backend, Object)
     end.
 
--spec create(backend_ref(), occi_entity()) -> {ok, occi_entity()} 
-						  | {error, term()}.
-create(Backend, #occi_resource{id=Id}=Res) ->
-    lager:debug("Create resource: ~s~n", [Id]),
-    occi_backend:save(Backend, Res);
-create(Backend, #occi_collection{cid=Id}=Coll) ->
-    lager:debug("Create collection: ~p~n", [Id]),
-    occi_backend:save(Backend, Coll).
+-spec save(backend_ref(), occi_object()) -> {ok, occi_object()} 
+						| {error, term()}.
+save(Backend, Object) ->
+    occi_backend:save(Backend, Object).
 
 get_collection(#occi_kind{id=Id, backend=Backend}) ->
     lager:debug("Retrieve collection: ~p (backend ~p)~n", [Id, Backend]),
@@ -142,10 +130,6 @@ get_collection(#occi_mixin{id=Id, backend=Backend}) ->
 	_ ->
 	    {ok, occi_collection:new(Id)}
     end.
-
-add_collection(Backend, #occi_collection{cid=Cid}=Col, Uris) ->
-    lager:debug("Update collection: ~p~n", [Cid]),
-    occi_backend:add_collection(Backend, Col, Uris).
 
 find(Request) ->
     % TODO: fix multiple backends

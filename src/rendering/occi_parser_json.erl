@@ -66,7 +66,6 @@
 	 mixin_apply/3,
 	 mixin_title/3,
 	 mixin_location/3,
-	 collection_req/3,
 	 collection/3,
 	 eof/3]).
 
@@ -260,6 +259,9 @@ code_change(_OldVsn, StateName, State, _Extra) ->
 %% OCCI parsing states
 init(#token{name=objBegin}, _From, Ctx) ->
     {reply, ok, request, Ctx};
+init(#token{name=arrBegin}, _From, #parser{state=State}=Ctx) ->
+    {reply, ok, collection, 
+     ?set_state(Ctx, State#state{collection=occi_collection:new()})};
 init(Token, _From, Ctx) ->
     occi_parser:parse_error(Token, Ctx).
 
@@ -485,18 +487,13 @@ mixin_location(#token{name=value, data=Val}, _From, #parser{state=#state{mixin=M
 mixin_location(Token, _From, Ctx) ->
     occi_parser:parse_error(Token, Ctx).
 
-collection_req(#token{name=arrBegin}, _From, #parser{state=State}=Ctx) ->
-    {reply, ok, collection, 
-     ?set_state(Ctx, State#state{collection=#occi_collection{}})};
-collection_req(Token, _From, Ctx) ->
-    occi_parser:parse_error(Token, Ctx).
-
 collection(#token{name=value, data=Val}, _From, #parser{state=#state{collection=Coll}=State}=Ctx) ->
     {reply, ok, collection, 
-     ?set_state(Ctx, State#state{collection=occi_collection:add_entity(Coll, Val)})};
+     ?set_state(Ctx, State#state{collection=occi_collection:add_entity(Coll, occi_config:get_url(Val))})};
 collection(#token{name=arrEnd}, _From, #parser{state=#state{request=Req, collection=Coll}=State}=Ctx) ->
-    {reply, ok, request,
-     ?set_state(Ctx, State#state{request=occi_request:set_collection(Req, Coll)})};
+    Req2 = occi_request:set_collection(Req, Coll),
+    Ctx2 = ?set_state(Ctx, State#state{request=Req}),
+    {reply, {eof, Req2}, eof, Ctx2};
 collection(Token, _From, Ctx) ->
     occi_parser:parse_error(Token, Ctx).
 

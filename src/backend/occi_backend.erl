@@ -27,8 +27,7 @@
 -include("occi.hrl").
 %% API
 -export([start_link/3]).
--export([add_collection/3,
-	 save/2,
+-export([save/2,
 	 find/2]).
 
 %% gen_server callbacks
@@ -55,10 +54,6 @@
     {{ok, Obj :: occi_object()}, State :: term()} |
     {{error, Reason :: term()}, State :: term()}.
 
--callback add_collection(Col :: occi_collection(), Entities :: [uri()], State :: term()) ->
-    {ok, State :: term()} |
-    {{error, Reason :: term()}, State :: term()}.
-
 -callback find(Request :: term(), State :: term()) ->
     {{ok, term()}, term()} |
     {{error, Reason :: term()}, State :: term()}.
@@ -70,9 +65,6 @@
 start_link(Ref, Backend, Opts) ->
     lager:info("Starting storage backend ~p (~p)~n", [Ref, Backend]),
     gen_server:start_link({local, Ref}, ?MODULE, {Backend, Opts}, []).
-
-add_collection(Ref, Col, Uris) ->
-    gen_server:call(Ref, {add_collection, Col, Uris}).
 
 save(Ref, Obj) ->
     gen_server:call(Ref, {save, Obj}).

@@ -45,7 +45,7 @@ rest_init(Req, _Opts) ->
     {ok, Req1, #state{}}.
 
 allowed_methods(Req, Ctx) ->
-    {[<<"HEAD">>, <<"GET">>, <<"PUT">>, <<"DELETE">>, <<"POST">>, <<"OPTIONS">>], Req, Ctx}.
+    {[<<"HEAD">>, <<"GET">>, <<"DELETE">>, <<"POST">>, <<"OPTIONS">>], Req, Ctx}.
 
 content_types_provided(Req, Ctx) ->
     {[

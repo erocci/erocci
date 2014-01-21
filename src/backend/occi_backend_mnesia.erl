@@ -29,7 +29,6 @@
 %% occi_backend callbacks
 -export([init/1,
 	 terminate/1,
-	 add_collection/3,
 	 save/2,
 	 find/2]).
 
@@ -56,19 +55,6 @@ init(_) ->
 
 terminate(#state{}) ->
     ok.
-
-add_collection(#occi_collection{cid=Id}, Uris, State) ->
-    mnesia:transaction(fun () ->
-			       case mnesia:wread({occi_collection, Id}) of
-				   [#occi_collection{}=C] ->
-				       lager:debug("Update collection: ~p~n", [Id]),
-				       mnesia:write(occi_collection:add_entities(C, Uris));
-				   _ ->
-				       lager:debug("Creates collection: ~p~n", [Id]),
-				       mnesia:write(#occi_collection{cid=Id, entities=Uris})
-			       end
-		       end),
-    {ok, State}.
 
 save(Obj, State) ->
     mnesia:transaction(save_t(Obj)),

@@ -89,7 +89,7 @@ from_json(Req, State) ->
 	{ok, #occi_resource{}=Res} ->
 	    {Path, _} = cowboy_req:path(Req2),
 	    Res2 = occi_resource:set_id(Res, occi_config:get_url(Path)),
-	    case occi_store:create(Res2) of
+	    case occi_store:save(Res2) of
 		{ok, Res3} ->
 		    RespBody = occi_renderer_json:render_entity(Res3),
 		    {true, cowboy_req:set_resp_body([RespBody, "\n"], Req2), State};
