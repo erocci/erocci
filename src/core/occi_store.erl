@@ -99,7 +99,15 @@ get_backend(_) ->
 	    Ref
     end.
 
--spec create(occi_mixin()) -> {ok, occi_mixin()} | {error, term()}.
+-spec create(occi_object()) -> {ok, occi_object()} | {error, term()}.
+create(#occi_resource{id=Id}=Res) ->
+    lager:debug("Create resource: ~s~n", [Id]),
+    case get_backend(Id) of
+	undefined ->
+	    {error, undefined_backend};
+	Backend ->
+	    occi_backend:save(Backend, Res)
+    end;
 create(#occi_mixin{id=Id, backend=undefined, location=Uri}=Mixin) ->
     lager:debug("Create mixin: ~s~s~n", [Id#occi_cid.scheme, Id#occi_cid.term]),
     case get_backend(Uri) of

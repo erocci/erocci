@@ -33,7 +33,8 @@
 	 stop/1,
 	 parse/2,
 	 parse_full/1]).
--export([parse_resource/2,
+-export([parse_resource/1,
+	 parse_resource/2,
 	 parse_user_mixin/1,
 	 parse_collection/1]).
 
@@ -81,14 +82,24 @@
 %%%===================================================================
 %%% API
 %%%===================================================================
-parse_resource(Data, #occi_kind{id=Cid}) ->
+parse_resource(Data) ->
     case parse_full(Data) of
 	{error, Reason} ->
 	    {error, Reason};
-	{ok, #occi_request{resources=[#occi_resource{cid=Cid}=Res]}} ->
+	{ok, #occi_request{resources=[#occi_resource{}=Res]}} ->
 	    {ok, Res};
 	_ ->
 	    {error, invalid_request}
+    end.
+
+parse_resource(Data, #occi_kind{id=Cid}) ->
+    case parse_resource(Data) of
+	{error, Reason} ->
+	    {error, Reason};
+	{ok, #occi_resource{cid=Cid}=Res} ->
+	    {ok, Res};
+	{ok, #occi_resource{}} ->
+	    {error, invalid_requesst}
     end.
 
 parse_user_mixin(Data) ->

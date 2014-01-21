@@ -23,11 +23,15 @@
 %% REST Callbacks
 -export([init/3, 
 	 rest_init/2,
+	 allowed_methods/2,
+	 allow_missing_post/2,
 	 resource_exists/2,
-	 content_types_provided/2]).
+	 content_types_provided/2,
+	 content_types_accepted/2]).
 
 %% Callback callbacks
--export([to_json/2]).
+-export([to_json/2,
+	 from_json/2]).
 
 -include("occi.hrl").
 
@@ -40,11 +44,24 @@ rest_init(Req, _Opts) ->
     Req1 = occi_http:set_cors(Req),
     {ok, Req1, #state{}}.
 
+allowed_methods(Req, State) ->
+    {[<<"HEAD">>, <<"GET">>, <<"PUT">>, <<"DELETE">>, <<"POST">>, <<"OPTIONS">>], Req, State}.
+
 content_types_provided(Req, State) ->
     {[
       {{<<"application">>,       <<"json">>,     []}, to_json}
      ],
      Req, State}.
+
+content_types_accepted(Req, State) ->
+    {[
+      {{<<"application">>,     <<"json">>,      []}, from_json},
+      {{<<"application">>,     <<"occi+json">>, []}, from_json}
+     ],
+     Req, State}.
+
+allow_missing_post(Req, State) ->
+    {true, Req, State}.
 
 resource_exists(Req, State) ->
     {Path, _} = cowboy_req:path(Req),
@@ -62,6 +79,25 @@ resource_exists(Req, State) ->
 to_json(Req, #state{entity=Entity}=State) ->
     Body = occi_renderer_json:render_entity(Entity),
     {[Body, "\n"], Req, State}.
+
+from_json(Req, State) ->
+    {ok, Body, Req2} = cowboy_req:body(Req),
+    case occi_parser_json:parse_resource(Body) of
+	{error, Reason} ->
+	    lager:debug("Error processing request: ~p~n", [Reason]),
+	    {true, cowboy_req:reply(400, Req2), State};
+	{ok, #occi_resource{}=Res} ->
+	    {Path, _} = cowboy_req:path(Req2),
+	    Res2 = occi_resource:set_id(Res, occi_config:get_url(Path)),
+	    case occi_store:create(Res2) of
+		{ok, Res3} ->
+		    RespBody = occi_renderer_json:render_entity(Res3),
+		    {true, cowboy_req:set_resp_body([RespBody, "\n"], Req2), State};
+		{error, Reason} ->
+		    lager:debug("Error creating resource: ~p~n", [Reason]),
+		    cowboy_req:reply(500, Req2)
+	    end
+    end.
 
 %%%
 %%% Private
