@@ -101,7 +101,7 @@ get_backend(_) ->
 
 -spec create(occi_object()) -> {ok, occi_object()} | {error, term()}.
 create(#occi_resource{id=Id}=Res) ->
-    lager:debug("Create resource: ~s~n", [Id]),
+    lager:debug("Create resource: ~s~n", [occi_uri:to_binary(Id)]),
     case get_backend(Id) of
 	undefined ->
 	    {error, undefined_backend};
@@ -132,7 +132,7 @@ get_collection(#occi_kind{id=Id, backend=Backend}) ->
 	{ok, [Coll]} ->
 	    {ok, Coll};
 	_ ->
-	    {ok, #occi_collection{cid=Id}}
+	    {ok, occi_collection:new(Id)}
     end;
 get_collection(#occi_mixin{id=Id, backend=Backend}) ->
     lager:debug("Retrieve collection: ~p (backend ~p)~n", [Id, Backend]),
@@ -140,7 +140,7 @@ get_collection(#occi_mixin{id=Id, backend=Backend}) ->
 	{ok, [Coll]} ->
 	    {ok, Coll};
 	_ ->
-	    {ok, #occi_collection{cid=Id}}
+	    {ok, occi_collection:new(Id)}
     end.
 
 add_collection(Backend, #occi_collection{cid=Cid}=Col, Uris) ->

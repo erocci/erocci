@@ -25,18 +25,26 @@
 -include("occi.hrl").
 
 -export([new/1,
+	 new/2,
 	 add_entity/2,
+	 add_entities/2,
 	 get_entities/1]).
 
 new(#occi_cid{}=Cid) ->
-    #occi_collection{cid=Cid, entities=[]}.
+    #occi_collection{cid=Cid, entities=ordsets:new()}.
+
+new(#occi_cid{}=Cid, Elements) when is_list(Elements) ->
+    #occi_collection{cid=Cid, entities=ordsets:from_list(Elements)}.
 
 add_entity(#occi_collection{entities=E}=C, #occi_link{id=Id}) ->
-    C#occi_collection{entities=[Id|E]};
+    C#occi_collection{entities=ordsets:add_element(Id, E)};
 add_entity(#occi_collection{entities=E}=C, #occi_resource{id=Id}) ->
-    C#occi_collection{entities=[Id|E]};
-add_entity(#occi_collection{entities=E}=C, Id) when is_list(Id) ->
-    C#occi_collection{entities=[list_to_binary(Id)|E]}.
+    C#occi_collection{entities=ordsets:add_element(Id, E)};
+add_entity(#occi_collection{entities=E}=C, #uri{}=Uri) ->
+    C#occi_collection{entities=ordsets:add_element(Uri, E)}.
+
+add_entities(#occi_collection{entities=E}=C, E2) when is_list(E2) ->
+    C#occi_collection{entities=ordsets:union(ordsets:from_list(E2), E)}.
 
 get_entities(#occi_collection{entities=E}) ->
-    E.
+    ordsets:to_list(E).

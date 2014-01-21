@@ -60,7 +60,7 @@ render_mixin(#occi_mixin{}=Mixin) ->
     MixinJson = render_ejson(Mixin),
     jiffy:encode(MixinJson, [pretty]).
 
-render_collection(Coll) ->
+render_collection(#occi_collection{}=Coll) ->
     jiffy:encode([ occi_uri:to_binary(Id) || Id <- occi_collection:get_entities(Coll) ], [pretty]).
 
 render_entity(#occi_resource{}=Res) ->

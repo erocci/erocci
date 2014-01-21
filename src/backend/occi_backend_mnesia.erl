@@ -60,10 +60,9 @@ terminate(#state{}) ->
 add_collection(#occi_collection{cid=Id}, Uris, State) ->
     mnesia:transaction(fun () ->
 			       case mnesia:wread({occi_collection, Id}) of
-				   [#occi_collection{entities=E}=C] ->
+				   [#occi_collection{}=C] ->
 				       lager:debug("Update collection: ~p~n", [Id]),
-				       C2 = C#occi_collection{entities=Uris++E},
-				       mnesia:write(C2);
+				       mnesia:write(occi_collection:add_entities(C, Uris));
 				   _ ->
 				       lager:debug("Creates collection: ~p~n", [Id]),
 				       mnesia:write(#occi_collection{cid=Id, entities=Uris})
@@ -106,21 +105,19 @@ save_t(#occi_resource{}=Res) ->
 	    KindId = occi_resource:get_cid(Res),
 	    Uri = occi_resource:get_id(Res),
 	    case mnesia:wread({occi_collection, KindId}) of
-		[#occi_collection{entities=E}=C] ->
+		[#occi_collection{}=C] ->
 		    lager:debug("Update collection: ~p~n", [KindId]),
-		    C2 = C#occi_collection{entities=[Uri|E]},
-		    mnesia:write(C2);
+		    mnesia:write(occi_collection:add_entity(C, Uri));
 		_ ->
 		    % Create collection on the fly
 		    lager:debug("Create collection: ~p~n", [KindId]),
-		    mnesia:write(#occi_collection{cid=KindId, entities=[Uri]})
+		    mnesia:write(occi_collection:new(KindId, [Uri]))
 	    end,
 	    lists:foreach(fun (#occi_mixin{id=Id}) ->
 				  case mnesia:wread({occi_collection, Id}) of
-				      [#occi_collection{entities=E2}=C3] ->
+				      [#occi_collection{}=C1] ->
 					  lager:debug("Update collection: ~p~n", [Id]),
-					  C4 = C3#occi_collection{entities=[Uri|E2]},
-					  mnesia:write(C4);
+					  mnesia:write(occi_collection:add_entity(C1, Uri));
 				      _ ->
 					  lager:debug("Create collection: ~p~n", [Id]),
 					  mnesia:write(#occi_collection{cid=Id, entities=[Uri]})

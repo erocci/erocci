@@ -25,8 +25,8 @@
 			}).
 -type(occi_extension() :: #occi_extension{}).
 
--record(occi_collection, {cid             :: occi_cid(),
-			  entities  = []  :: [uri()]}).
+-record(occi_collection, {cid                    :: occi_cid(),
+			  entities  = undefined  :: term()}).    % ordset
 -type(occi_collection() :: #occi_collection{}).
 
 %%% OCCI Category ID
