@@ -107,7 +107,7 @@ from_json(Req, #state{category=#occi_kind{backend=Backend}=Kind}=State) ->
 	    {true, cowboy_req:reply(400, Req2), State};
 	{ok, #occi_resource{}=Res} ->
 	    {Prefix, Req3} = cowboy_req:path(Req2),
-	    Res2 = occi_resource:set_id(Res, occi_store:gen_id(get_host(Req3), Prefix)),
+	    Res2 = occi_resource:set_id(Res, occi_config:gen_id(Prefix)),
 	    case occi_store:create(Backend, Res2) of
 		{ok, Res3} ->
 		    RespBody = occi_renderer_json:render_entity(Res3),
@@ -136,17 +136,4 @@ from_json(Req, #state{category=#occi_mixin{id=Id, backend=Backend}}=State) ->
 	    end;
 	{_, Req2} ->
 	    cowboy_req:reply(405, Req2)
-    end.
-
-%%%
-%%% Private
-%%%
-get_host(Req) ->
-    {Host, Req2} = cowboy_req:host(Req),
-    case cowboy_req:port(Req2) of
-	{80, _} ->
-	    Host;
-	{Port, _} ->
-	    PB = integer_to_binary(Port),
-	    << Host/binary, ":", PB/binary >>
     end.

@@ -4,8 +4,16 @@
 %%%
 %%% @end
 %%% Created : 14 Mar 2013 by Jean Parpaillon <jean.parpaillon@free.fr>
--type(uri() :: [binary()]).
 -type(occi_class() :: kind | mixin | action).
+
+%%%% URI and al.
+-record(uri, {scheme   = undefined    :: atom(),
+	      userinfo = ""           :: string(),
+	      host     = ""           :: string(),
+	      port                    :: integer(),
+	      path     = ""           :: string(),
+	      query    = ""           :: string()}).
+-type(uri() :: #uri{}).
 
 %%% OCCI Extension
 -record(occi_extension, {name           :: atom(),
@@ -55,10 +63,10 @@
 
 -type(occi_category() :: occi_kind() | occi_mixin()).
 
--record(occi_action, {id                 :: #occi_cid{},
-		      title              :: binary(),
-		      location           :: uri(),
-		      attributes         :: term()             % orddict
+-record(occi_action, {id                        :: #occi_cid{},
+		      title                     :: binary(),
+		      location    = undefined   :: uri(),
+		      attributes                :: term()             % orddict
 		     }).
 -type(occi_action() :: #occi_action{}).
 
@@ -100,7 +108,10 @@
 -type(occi_link() :: #occi_link{}).
 
 %%% OCCI Entity
--type(occi_entity() :: #occi_resource{} | #occi_link{}).
+-record(occi_entity, {id                :: uri(),
+		      cid               :: occi_cid(),
+		      mixins            :: [occi_cid()]}).
+-type(occi_entity() :: #occi_entity{}).
 
 %%% OCCI Filter
 -type(occi_filter() :: any()).

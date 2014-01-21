@@ -38,16 +38,16 @@
 render_capabilities(Kinds, Mixins, Actions) ->
     occi_renderer:join(
       lists:reverse(
-	lists:foldl(fun (#occi_kind{location=Uri}, Acc) ->
-			    [Uri|Acc];
-			(#occi_mixin{location=Uri}, Acc) ->
-			    [Uri|Acc];
+	lists:foldl(fun (#occi_kind{location=#uri{}=Uri}, Acc) ->
+			    [occi_uri:to_iolist(Uri)|Acc];
+			(#occi_mixin{location=#uri{}=Uri}, Acc) ->
+			    [occi_uri:to_iolist(Uri)|Acc];
 			(#occi_action{location=undefined}, Acc) ->
 			    Acc;
-			(#occi_action{location=Uri}, Acc) ->
-			    [Uri|Acc]
+			(#occi_action{location=#uri{}=Uri}, Acc) ->
+			    [occi_uri:to_iolist(Uri)|Acc]
 		    end, [], Kinds ++ Mixins ++ Actions)),
       <<"\n">>).
 
 render_collection(#occi_collection{}=Coll) ->
-    occi_renderer:join([ Id || Id <- occi_collection:get_entities(Coll) ], <<"\n">>).
+    occi_renderer:join([ occi_uri:to_iolist(Id) || Id <- occi_collection:get_entities(Coll) ], <<"\n">>).

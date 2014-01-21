@@ -32,7 +32,7 @@
 %%%===================================================================
 %%% API
 %%%===================================================================
-render(#occi_kind{id=Id, location=Uri}=Kind, Sep) ->
+render(#occi_kind{id=Id, location=#uri{}=Uri}=Kind, Sep) ->
     occi_renderer:join(
       occi_renderer:join([render_cid(Id, Sep),
 			  render_kv(<<"title">>, [occi_kind:get_title(Kind)]),
@@ -42,11 +42,11 @@ render(#occi_kind{id=Id, location=Uri}=Kind, Sep) ->
 								     render_action_spec(X) 
 							     end,
 							     occi_kind:get_actions(Kind))),
-			  render_kv(<<"location">>, Uri)],
+			  render_kv(<<"location">>, [occi_uri:to_iolist(Uri)])],
 			 <<"; ">>),
       Sep);
 
-render(#occi_mixin{id=Id, location=Uri}=Mixin, Sep) ->
+render(#occi_mixin{id=Id, location=#uri{}=Uri}=Mixin, Sep) ->
     occi_renderer:join(
       occi_renderer:join([render_cid(Id, Sep),
 			  render_kv(<<"title">>, [occi_mixin:get_title(Mixin)]),
@@ -55,7 +55,7 @@ render(#occi_mixin{id=Id, location=Uri}=Mixin, Sep) ->
 								     render_action_spec(X)
 							     end,
 							     occi_mixin:get_actions(Mixin))),
-			  render_kv(<<"location">>, Uri)], 
+			  render_kv(<<"location">>, [occi_uri:to_iolist(Uri)])], 
 			 <<"; ">>),
       Sep);
 

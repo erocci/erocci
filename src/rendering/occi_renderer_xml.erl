@@ -63,18 +63,18 @@ render_mixin(#occi_mixin{}=Mixin) ->
     E3 = render_applies(E2, occi_mixin:get_applies(Mixin)),
     render_attr_specs(E3, occi_mixin:get_attr_list(Mixin)).
 
-render_category(#xmlel{}=E, #occi_kind{location=Uri}=Kind) ->
+render_category(#xmlel{}=E, #occi_kind{location=#uri{}=Uri}=Kind) ->
     render_category(E, 
 		    occi_kind:get_scheme(Kind),
 		    occi_kind:get_term(Kind),
 		    occi_kind:get_title(Kind),
-		    Uri);
-render_category(#xmlel{}=E, #occi_mixin{location=Uri}=Mixin) ->
+		    occi_uri:to_binary(Uri));
+render_category(#xmlel{}=E, #occi_mixin{location=#uri{}=Uri}=Mixin) ->
     render_category(E, 
 		    occi_mixin:get_scheme(Mixin),
 		    occi_mixin:get_term(Mixin),
 		    occi_mixin:get_title(Mixin),
-		    Uri).
+		    occi_uri:to_binary(Uri)).
 
 render_category(E, Scheme, Term, Title, Uri) ->
     set_attributes(E, [{<<"scheme">>, Scheme}, {<<"term">>, Term}, {<<"title">>, Title}, {<<"location">>, Uri}]).
@@ -83,7 +83,7 @@ render_action(#occi_action{location=Uri}=Action) ->
     Attrs = [{<<"scheme">>, occi_action:get_scheme(Action)},
 	     {<<"term">>, occi_action:get_term(Action)},	     
 	     {<<"title">>, occi_action:get_title(Action)},
-	     {<<"location">>, Uri}],
+	     {<<"location">>, occi_uri:to_binary(Uri)}],
     E = set_attributes(exmpp_xml:element(action), Attrs),
     render_attr_specs(E, occi_action:get_attr_list(Action)).
 

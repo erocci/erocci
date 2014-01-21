@@ -39,7 +39,7 @@
 
 new(Scheme, Term) ->
     #occi_action{id=#occi_cid{scheme=Scheme, term=Term, class=action},
-		 attributes=orddict:new()}.
+		 attributes=orddict:new(), location=undefined}.
 
 get_id(#occi_action{id=Id}) -> 
     Id.

@@ -47,7 +47,7 @@ render_capabilities(Kinds, Mixins, Actions) ->
 
 render_collection(Coll) ->
     Headers = lists:foldl(fun (EntityId, Acc) ->
-				  orddict:append(<<"x-occi-location">>, EntityId, Acc)
+				  orddict:append(<<"x-occi-location">>, [occi_uri:to_iolist(EntityId)], Acc)
 			  end, orddict:new(), occi_collection:get_entities(Coll)),
     render_headers(Headers).
 

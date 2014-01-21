@@ -35,7 +35,6 @@
 	 get_collection/1,
 	 add_collection/3,
 	 find/1,
-	 gen_id/2,
 	 get_backend/1, 
 	 is_valid_path/1]).
 
@@ -93,20 +92,22 @@ is_valid_path(Path) ->
 -spec get_backend(uri()) -> backend_ref().
 get_backend(_) ->
     % TODO: allow multiple backends
-    [{backend, Ref}] = ets:lookup(?TABLE, backend),
-    Ref.
-
--spec gen_id(binary(), binary()) -> binary().
-gen_id(Host, Prefix) when is_binary(Prefix), 
-			  is_binary(Host) ->
-    Id = list_to_binary(uuid:to_string(uuid:uuid3(uuid:uuid4(), Host))),
-    <<"http://", Host/binary, Prefix/binary, Id/binary>>.
+    case ets:lookup(?TABLE, backend) of
+	[] ->
+	    undefined;
+	[{backend, Ref}] ->
+	    Ref
+    end.
 
 -spec create(occi_mixin()) -> {ok, occi_mixin()} | {error, term()}.
 create(#occi_mixin{id=Id, backend=undefined, location=Uri}=Mixin) ->
     lager:debug("Create mixin: ~s~s~n", [Id#occi_cid.scheme, Id#occi_cid.term]),
-    Backend = get_backend(Uri),
-    occi_backend:save(Backend, Mixin#occi_mixin{backend=Backend}).
+    case get_backend(Uri) of
+	undefined ->
+	    {error, undefined_backend};
+	Backend ->
+	    occi_backend:save(Backend, Mixin#occi_mixin{backend=Backend})
+    end.
 
 -spec create(backend_ref(), occi_entity()) -> {ok, occi_entity()} 
 						  | {error, term()}.
@@ -140,8 +141,12 @@ add_collection(Backend, #occi_collection{cid=Cid}=Col, Uris) ->
 
 find(Request) ->
     % TODO: fix multiple backends
-    Backend = get_backend([]),
-    find(Backend, Request).
+    case get_backend([]) of
+	undefined ->
+	    {ok, []};
+	Backend ->
+	    find(Backend, Request)
+    end.
 
 find(Backend, Request) ->
     lager:debug("Find request: ~p~n", [Request]),

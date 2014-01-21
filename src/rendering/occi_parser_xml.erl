@@ -411,7 +411,7 @@ code_change(_OldVsn, StateName, State, _Extra) ->
 send_events(_Ref, []) ->
     throw({error, {parse_error, incomplete}});
 send_events(Ref, [H|T]) ->
-    lager:debug("Event: ~p~n", [H]),
+    %lager:debug("Event: ~p~n", [H]),
     case catch gen_fsm:sync_send_event(Ref, H) of
 	{'EXIT', Reason} ->
 	    gen_fsm:send_all_state_event(Ref, reset),

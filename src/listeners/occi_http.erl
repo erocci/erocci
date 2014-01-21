@@ -63,8 +63,8 @@ onresponse_debug(Code, Headers, Body, Req) ->
     Req.
 
 -spec add_collection(reference(), occi_category(), uri()) -> ok.
-add_collection(Ref, Category, Uri) ->
-    ets:insert(?TABLE, #route{path=Uri, handler=occi_http_collection, opts=Category}),
+add_collection(Ref, Category, #uri{path=Path}) ->
+    ets:insert(?TABLE, #route{path=Path, handler=occi_http_collection, opts=Category}),
     cowboy:set_env(Ref, dispatch, get_dispatch()).
 
 validate_cfg(Opts) ->
@@ -109,10 +109,10 @@ init() ->
     ?TABLE = ets:new(?TABLE, [set, public, {keypos, 2}, named_table]),
     Categories = occi_category_mgr:find(#occi_cid{class=kind, _='_'}) 
 	++ occi_category_mgr:find(#occi_cid{class=mixin, _='_'}),
-    Routes = lists:map(fun (#occi_kind{location=Uri}=Kind) ->
-			       #route{path=Uri, handler=occi_http_collection, opts=Kind};
-			   (#occi_mixin{location=Uri}=Mixin) ->
-			       #route{path=Uri, handler=occi_http_collection, opts=Mixin}			   
+    Routes = lists:map(fun (#occi_kind{location=#uri{path=Path}}=Kind) ->
+			       #route{path=list_to_binary(Path), handler=occi_http_collection, opts=Kind};
+			   (#occi_mixin{location=#uri{path=Path}}=Mixin) ->
+			       #route{path=list_to_binary(Path), handler=occi_http_collection, opts=Mixin}
 		       end, Categories),
     ets:insert(?TABLE, Routes),
     get_dispatch().
@@ -122,5 +122,4 @@ get_dispatch() ->
     Routes = lists:flatten([?QUERY_ROUTES([]),
      			    [ {R#route.path, R#route.handler, R#route.opts} || R <- CollectionRoutes ],
      			    ?ENTITY_ROUTE]),
-    %lager:debug("HTTP routes: ~p~n", [[R#route.path || R <- Routes]]),
     cowboy_router:compile([{'_', Routes}]).

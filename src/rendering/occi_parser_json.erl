@@ -468,8 +468,9 @@ mixin_title(Token, _From, Ctx) ->
     occi_parser:parse_error(Token, Ctx).
 
 mixin_location(#token{name=value, data=Val}, _From, #parser{state=#state{mixin=Mixin}=State}=Ctx) ->
+    Url = occi_config:get_url(Val),
     {reply, ok, mixin, 
-     ?set_state(Ctx, State#state{mixin=occi_mixin:set_location(Mixin, Val)})};
+     ?set_state(Ctx, State#state{mixin=occi_mixin:set_location(Mixin, Url)})};
 mixin_location(Token, _From, Ctx) ->
     occi_parser:parse_error(Token, Ctx).
 

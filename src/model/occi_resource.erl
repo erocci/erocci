@@ -55,8 +55,10 @@ new(#occi_kind{}=Kind) ->
 get_id(#occi_resource{id=Id}) ->
     Id.
 
--spec set_id(occi_resource(), uri()) -> occi_resource().
-set_id(#occi_resource{}=Res, Id) ->
+-spec set_id(occi_resource(), uri() | string()) -> occi_resource().
+set_id(#occi_resource{}=Res, Id) when is_list(Id) ->
+    set_id(Res, occi_config:get_url(Id));
+set_id(#occi_resource{}=Res, #uri{}=Id) ->
     Res#occi_resource{id=Id}.
 
 -spec get_cid(occi_resource()) -> occi_cid().

@@ -65,18 +65,19 @@ register_extension({xml, Path}, Mapping) ->
 	Ext ->
 	    lists:foreach(fun(#occi_kind{id=Id}=Kind) ->
 				  {Uri, Backend} = get_mapping(Id, Mapping),
-				  register_kind(Kind#occi_kind{location=Uri, backend=Backend});
+				  register_kind(Kind#occi_kind{location=occi_config:get_url(Uri), backend=Backend});
 			     (#occi_mixin{id=Id}=Mixin) ->
 				  {Uri, Backend} = get_mapping(Id, Mapping),
-				  register_mixin(Mixin#occi_mixin{location=Uri, backend=Backend})
+				  register_mixin(Mixin#occi_mixin{location=occi_config:get_url(Uri), backend=Backend})
 			  end,
 			  occi_extension:get_categories(Ext))
     end.
 
-register_kind(#occi_kind{id=Id, location=Uri}=Kind) ->
+register_kind(#occi_kind{id=Id, location=#uri{}=Uri}=Kind) ->
     lager:info("Registering kind: ~s~s -> ~s~n", 
-	       [ Id#occi_cid.scheme, Id#occi_cid.term, Uri ]),
+	       [ Id#occi_cid.scheme, Id#occi_cid.term, Uri#uri.path]),
     ets:insert(?TABLE, Kind),
+    occi_listener:add_collection(Kind, Uri),
     lists:foreach(fun(Action) ->
 			  register_action(Action)
 		  end,
@@ -84,15 +85,16 @@ register_kind(#occi_kind{id=Id, location=Uri}=Kind) ->
 
 register_mixin(#occi_mixin{id=Id, location=Uri}=Mixin) ->
     lager:info("Registering mixin: ~s~s -> ~s~n", 
-	       [ Id#occi_cid.scheme, Id#occi_cid.term, Uri ]),
+	       [ Id#occi_cid.scheme, Id#occi_cid.term, Uri#uri.path ]),
     ets:insert(?TABLE, Mixin),
+    occi_listener:add_collection(Mixin, Uri),
     lists:foreach(fun(Action) ->
 			  register_action(Action)
 		  end,
 		  occi_mixin:get_actions(Mixin)).
 
 register_user_mixin(#occi_mixin{id=Id, location=Uri}=Mixin) ->
-    lager:info("Registering mixin: ~s~s -> ~s~n", [Id#occi_cid.scheme, Id#occi_cid.term, Uri]),
+    lager:info("Registering mixin: ~s~s -> ~s~n", [Id#occi_cid.scheme, Id#occi_cid.term, Uri#uri.path]),
     case occi_store:create(Mixin) of
 	{ok, Mixin2} ->
 	    occi_listener:add_collection(Mixin2, Uri);
@@ -160,12 +162,11 @@ init([]) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
-get_mapping(Id, Mapping) ->
-    case catch dict:find(Id, Mapping) of
-	error ->
-	    lager:error("Unmapped category: ~s~s~n", [Id#occi_cid.scheme, 
-						      Id#occi_cid.term]),
-	    throw({unmapped_category, Id});
-	{ok, {Uri, Backend}} ->
-	    {Uri, Backend}
-    end.
+get_mapping(Id, []) ->
+    lager:error("Unmapped category: ~s~s~n", [Id#occi_cid.scheme, 
+					      Id#occi_cid.term]),
+    throw({unmapped_category, Id});
+get_mapping(Id, [{Id, {Uri, Backend}}|_Tail]) ->
+    {Uri, Backend};
+get_mapping(Id, [_H|Tail]) ->
+    get_mapping(Id, Tail).

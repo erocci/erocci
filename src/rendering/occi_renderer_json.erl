@@ -61,8 +61,7 @@ render_mixin(#occi_mixin{}=Mixin) ->
     jiffy:encode(MixinJson, [pretty]).
 
 render_collection(Coll) ->
-    Content = {<<"resources">>, [ Id || Id <- occi_collection:get_entities(Coll) ]},
-    jiffy:encode({[Content]}, [pretty]).
+    jiffy:encode([ occi_uri:to_binary(Id) || Id <- occi_collection:get_entities(Coll) ], [pretty]).
 
 render_entity(#occi_resource{}=Res) ->
     Content = {<<"resources">>, [render_ejson(Res)]},
@@ -94,7 +93,7 @@ render_ejson(#occi_kind{location=Uri}=Kind) ->
 		,{actions, lists:map(fun(Action) -> 
 					     render_cid_uri(occi_action:get_id(Action)) 
 				     end, occi_kind:get_actions(Kind))}
-		,{location, Uri}
+		,{location, occi_uri:to_binary(Uri)}
 	       ]);
 
 render_ejson(#occi_mixin{location=Uri}=Mixin) ->
@@ -110,7 +109,7 @@ render_ejson(#occi_mixin{location=Uri}=Mixin) ->
 		,{actions, lists:map(fun(Action) -> 
 					     render_cid_uri(occi_action:get_id(Action))
 				     end, occi_mixin:get_actions(Mixin))}
-		,{location, Uri}]);
+		,{location, occi_uri:to_binary(Uri)}]);
 
 render_ejson(#occi_action{}=Action) ->
     strip_list([{term, occi_action:get_term(Action)}
@@ -124,7 +123,7 @@ render_ejson(#occi_resource{}=Res) ->
     strip_list([{kind, render_cid_uri(occi_resource:get_cid(Res))}
 		,{mixins, lists:map(fun render_cid_uri/1, occi_resource:get_mixins(Res))}
 		,{attributes, render_attribute_values(occi_resource:get_attributes(Res))}
-		,{id, occi_resource:get_id(Res)}
+		,{id, occi_uri:to_binary(occi_resource:get_id(Res))}
 	       ]);
 
 render_ejson(#occi_link{}=_Link) ->

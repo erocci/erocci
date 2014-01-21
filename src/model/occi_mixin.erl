@@ -94,8 +94,8 @@ get_location(#occi_mixin{location=Uri}) ->
     Uri.
 
 set_location(Mixin, Uri) when is_list(Uri)->
-    set_location(Mixin, list_to_binary(Uri));
-set_location(#occi_mixin{}=Mixin, Uri) when is_binary(Uri)-> 
+    set_location(Mixin, occi_config:get_url(Uri));
+set_location(#occi_mixin{}=Mixin, #uri{}=Uri) -> 
     Mixin#occi_mixin{location=Uri}.
 
 add_attribute(#occi_mixin{attributes=Attrs}=Mixin, A) -> 

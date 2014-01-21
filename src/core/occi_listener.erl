@@ -61,6 +61,7 @@
 start_link() ->
     supervisor:start_link({local, ?SUPERVISOR}, ?MODULE, []).
 
+-spec register({Ref :: atom(), Module :: atom(), Opts :: term()}) -> {ok, pid()} | {error, term()}.
 register({Ref, Module, Opts}) ->
     lager:info("Registering listener: ~p~n", [Module]),
     ChildSpec = {Ref,
@@ -74,10 +75,11 @@ register({Ref, Module, Opts}) ->
 	    ets:insert(?TABLE, #listener{ref=Ref, mod=Module}),
 	    {ok, Pid};
 	{error, Err} ->
-	    {error, Err}
+	    throw({error, Err})
     end.
 
-add_collection(Category, Uri) ->
+-spec add_collection(occi_category(), uri()) -> ok.
+add_collection(Category, #uri{}=Uri) ->
     lists:foreach(fun (#listener{ref=Ref, mod=Mod}) ->
 			  Mod:add_collection(Ref, Category, Uri)
 		  end, get_listeners()).

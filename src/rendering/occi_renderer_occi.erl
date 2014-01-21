@@ -43,4 +43,4 @@ render_capabilities(Kinds, Mixins, Actions) ->
       <<", ">>).
 
 render_collection(#occi_collection{}=Coll) ->
-    occi_renderer:join([ Id || Id <- occi_collection:get_entities(Coll) ], <<", ">>).
+    occi_renderer:join([ occi_uri:to_iolist(Id) || Id <- occi_collection:get_entities(Coll) ], <<", ">>).

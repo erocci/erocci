@@ -8,9 +8,13 @@
 -module(occi_config).
 -compile([{parse_transform, lager_transform}]).
 
+-include("occi.hrl").
+
 -export([start/0,
 	 load/1,
-	 get/2]).
+	 get/2,
+	 get_url/1,
+	 gen_id/1]).
 
 -define(TABLE, ?MODULE).
 
@@ -19,20 +23,8 @@ start() ->
     ?TABLE = ets:new(?TABLE, [set, public, {keypos, 1}, named_table]),
     ok.
 
-load([]) ->
-    ok;
-load([{extensions, Extensions, Mapping}|Configs]) ->
-    load_extensions(Extensions, Mapping),
-    load(Configs);
-load([{backends, Backends}|Configs]) ->
-    load_backends(Backends),
-    load(Configs);
-load([{listeners, Listeners}|Configs]) ->
-    load_listeners(Listeners),
-    load(Configs);
-load([{name, Name}|Configs]) ->
-    ets:insert(?TABLE, {name, Name}),
-    load(Configs).
+load(Config) ->
+    load1(Config, []).
 
 get(Name, Default) ->
     case ets:match_object(?TABLE, {Name, '_'}) of
@@ -42,9 +34,50 @@ get(Name, Default) ->
 	    Value
     end.
 
+%
+% Transform relative uri in url, if necessary 
+%
+get_url([$/|Uri]) ->
+    Name = get(name, undefined),
+    #uri{scheme=Name#uri.scheme, host=Name#uri.host, port=Name#uri.port, path=[$/|Uri]};
+get_url(Uri) ->
+    occi_uri:parse(Uri).
+
+-spec gen_id(string() | binary()) -> binary().
+gen_id(Prefix) when is_binary(Prefix) ->
+    gen_id(binary_to_list(Prefix));
+gen_id(Prefix) when is_list(Prefix) ->
+    #uri{host=Host}=Server = get(name, undefined),
+    Id = list_to_binary(uuid:to_string(uuid:uuid3(uuid:uuid4(), Host))),
+    Server#uri{path=Prefix++Id}.
+
 %%%
 %%% Private
 %%%
+
+% First pass: some options must be parsed first
+load1([], Acc) ->
+    % 2nd pass
+    load2(Acc);
+load1([{name, Name}|Configs], Acc) ->
+    load_name(Name),
+    load1(Configs, Acc);
+load1([H|T], Acc) ->
+    load1(T, [H|Acc]).
+
+% Second pass
+load2([]) ->
+    ok;
+load2([{extensions, Extensions, Mapping}|Configs]) ->
+    load_extensions(Extensions, Mapping),
+    load2(Configs);
+load2([{backends, Backends}|Configs]) ->
+    load_backends(Backends),
+    load2(Configs);
+load2([{listeners, Listeners}|Configs]) ->
+    load_listeners(Listeners),
+    load2(Configs).
+
 load_extensions([], _) ->
     ok;
 load_extensions([E|Extensions], Mapping) ->
@@ -75,3 +108,5 @@ load_listeners([L|Listeners]) ->
 	    {error, Err}
     end.
 
+load_name(Name) ->
+    ets:insert(?TABLE, {name, occi_uri:parse(Name)}).

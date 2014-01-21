@@ -72,11 +72,21 @@ save(Obj, State) ->
     mnesia:transaction(save_t(Obj)),
     {{ok, Obj}, State}.
 
-find(#occi_mixin{}=Mixin, #state{}=State) ->
-    Res = mnesia:dirty_match_object(Mixin),
+find(#occi_mixin{}=Req, #state{}=State) ->
+    Res = mnesia:dirty_match_object(Req),
     {{ok, Res}, State};
-find(#occi_collection{}=Coll, #state{}=State) ->
-    Res = mnesia:dirty_match_object(Coll),
+find(#occi_collection{}=Req, #state{}=State) ->
+    Res = mnesia:dirty_match_object(Req),
+    {{ok, Res}, State};
+find(#occi_entity{id=Uri, cid=Cid, mixins=Mixins}, State) ->
+    case find(#occi_resource{id=Uri, cid=Cid, mixins=Mixins, _='_'}, State) of
+	{ok, []} ->
+	    find(#occi_link{id=Uri, cid=Cid, mixins=Mixins, _='_'}, State);
+	{ok, Res} ->
+	    {{ok, Res}, State}
+    end;
+find(#occi_resource{}=Req, #state{}=State) ->
+    Res = mnesia:dirty_match_object(Req),
     {{ok, Res}, State};
 find(_, #state{}=State) ->
     {{error, not_implemented}, State}.
