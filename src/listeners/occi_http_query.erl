@@ -98,18 +98,18 @@ from_json(Req, State) ->
     case occi_parser_json:parse_user_mixin(Body) of
 	{error, Reason} ->
 	    lager:debug("Error processing request: ~p~n", [Reason]),
-	    {true, cowboy_req:reply(400, Req2), State};
+	    {false, Req2, State};
 	{ok, undefined} ->
 	    lager:debug("Empty request~n"),
-	    {true, cowboy_req:reply(400, Req2), State};
+	    {false, Req2, State};
 	{ok, #occi_mixin{}=Mixin} ->
 	    case occi_category_mgr:register_user_mixin(Mixin) of
 		ok ->
 		    RespBody = occi_renderer_json:render_mixin(Mixin),
 		    {true, cowboy_req:set_resp_body([RespBody, "\n"], Req2), State};
 		{error, Reason} ->
-		    lager:debug("Error creating resource"),
-		    throw({error, Reason})
+		    lager:debug("Error creating resource: ~p~n", [Reason]),
+		    {halt, Req2, State}
 	    end
     end.
 

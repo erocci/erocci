@@ -100,7 +100,7 @@ get_backend(_) ->
 	    Ref
     end.
 
--spec save(occi_object()) -> {ok, occi_object()} | {error, term()}.
+-spec save(occi_object()) -> ok | {error, term()}.
 save(Object) ->
     case get_backend([]) of
 	undefined ->

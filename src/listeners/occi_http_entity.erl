@@ -85,17 +85,17 @@ from_json(Req, State) ->
     case occi_parser_json:parse_resource(Body) of
 	{error, Reason} ->
 	    lager:debug("Error processing request: ~p~n", [Reason]),
-	    {true, cowboy_req:reply(400, Req2), State};
+	    {false, Req2, State};
 	{ok, #occi_resource{}=Res} ->
 	    {Path, _} = cowboy_req:path(Req2),
 	    Res2 = occi_resource:set_id(Res, occi_config:get_url(Path)),
 	    case occi_store:save(Res2) of
-		{ok, Res3} ->
-		    RespBody = occi_renderer_json:render_entity(Res3),
+		ok ->
+		    RespBody = occi_renderer_json:render_entity(Res2),
 		    {true, cowboy_req:set_resp_body([RespBody, "\n"], Req2), State};
 		{error, Reason} ->
 		    lager:debug("Error creating resource: ~p~n", [Reason]),
-		    cowboy_req:reply(500, Req2)
+		    {halt, Req2, State}
 	    end
     end.
 

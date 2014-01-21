@@ -38,7 +38,8 @@
 
 -include("occi.hrl").
 
--record(state, {category     :: occi_category()}).
+-record(state, {category     :: occi_category(),
+		parse_status :: term()}).
 
 init(_Transport, _Req, _) -> 
     {upgrade, protocol, cowboy_rest}.
@@ -106,19 +107,17 @@ from_json(Req, #state{category=#occi_kind{backend=Backend}=Kind}=State) ->
     case occi_parser_json:parse_resource(Body, Kind) of
 	{error, Reason} ->
 	    lager:debug("Error processing request: ~p~n", [Reason]),
-	    {ok, Req3} = cowboy_req:reply(400, Req2),
-	    {true, Req3, State};
+	    {false, Req2, State};
 	{ok, #occi_resource{}=Res} ->
 	    {Prefix, Req3} = cowboy_req:path(Req2),
 	    Res2 = occi_resource:set_id(Res, occi_config:gen_id(Prefix)),
 	    case occi_store:save(Backend, Res2) of
-		{ok, Res3} ->
-		    RespBody = occi_renderer_json:render_entity(Res3),
+		ok ->
+		    RespBody = occi_renderer_json:render_entity(Res2),
 		    {true, cowboy_req:set_resp_body([RespBody, "\n"], Req3), State};
 		{error, Reason} ->
 		    lager:debug("Error creating resource: ~p~n", [Reason]),
-		    {ok, Req4} = cowboy_req:reply(500, Req3),
-		    {true, Req4, State}
+		    {halt, Req3, State}
 	    end
     end;
 from_json(Req, #state{category=#occi_mixin{id=Id, backend=Backend}=Mixin}=State) ->
@@ -126,21 +125,24 @@ from_json(Req, #state{category=#occi_mixin{id=Id, backend=Backend}=Mixin}=State)
     case occi_parser_json:parse_collection(Body) of
 	{error, Reason} ->
 	    lager:debug("Error processing request: ~p~n", [Reason]),
-	    {true, cowboy_req:reply(400, Req2), State};
-	{ok, #occi_collection{entities=E}} ->
+	    {false, Req2, State};
+	{ok, #occi_collection{}=C} ->
+	    Entities = occi_collection:get_entities(C),
 	    Coll = case cowboy_req:method(Req2) of
 		       {<<"PUT">>, _} ->
-			   occi_collection:new(cid=Id, entities=E);
+			   occi_collection:new(Id, Entities);
 		       {<<"POST">>, _} ->
 			   {ok, Orig} = occi_store:get_collection(Mixin),
-			   occi_collection:add_entities(Orig, E)
+			   occi_collection:add_entities(Orig, Entities)
 		   end,
 	    case occi_store:save(Backend, Coll) of
-		{ok, _} ->
+		ok ->
 		    {true, Req2, State};
+		{error, {no_such_entity, Uri}} ->
+		    lager:debug("Invalid entity: ~p~n", [occi_uri:to_string(Uri)]),
+		    {false, Req2, State};
 		{error, Reason} ->
 		    lager:debug("Error updating collection: ~p~n", [Reason]),
-		    {ok, Req5} = cowboy_req:reply(500, Req2),
-		    {true, Req5, State}
+		    {halt, Req2, State}
 	    end
     end.

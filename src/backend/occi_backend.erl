@@ -51,7 +51,7 @@
     term().
 
 -callback save(Obj :: occi_object(), State :: term()) ->
-    {{ok, Obj :: occi_object()}, State :: term()} |
+    {ok, State :: term()} |
     {{error, Reason :: term()}, State :: term()}.
 
 -callback find(Request :: term(), State :: term()) ->
@@ -108,12 +108,6 @@ init({Backend, Args}) ->
 %%--------------------------------------------------------------------
 handle_call({save, Obj}, _From, #state{backend=Backend, state=BState}) ->
     {Reply, RState} = Backend:save(Obj, BState),
-    {reply, Reply, #state{backend=Backend, state=RState}};
-handle_call({add_collection, Col, Uris}, _From, #state{backend=Backend, state=BState}) ->
-    {Reply, RState} = Backend:add_collection(Col, Uris, BState),
-    {reply, Reply, #state{backend=Backend, state=RState}};
-handle_call({find_all, CatId}, _From, #state{backend=Backend, state=BState}) ->
-    {Reply, RState} = Backend:find_all(CatId, BState),
     {reply, Reply, #state{backend=Backend, state=RState}};
 handle_call({find, Request}, _From, #state{backend=Backend, state=BState}) ->
     {Reply, RState} = Backend:find(Request, BState),

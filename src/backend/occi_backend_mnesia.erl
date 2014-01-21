@@ -57,8 +57,12 @@ terminate(#state{}) ->
     ok.
 
 save(Obj, State) ->
-    mnesia:transaction(save_t(Obj)),
-    {{ok, Obj}, State}.
+    case mnesia:transaction(save_t(Obj)) of
+	{atomic, ok} ->
+	    {ok, State};
+	{aborted, Reason} ->
+	    {{error, Reason}, State}
+    end.
 
 find(#occi_mixin{}=Req, #state{}=State) ->
     Res = mnesia:dirty_match_object(Req),
@@ -116,5 +120,15 @@ save_t(#occi_mixin{}=Mixin) ->
     end;
 save_t(#occi_collection{}=Coll) ->
     fun() ->
+	    lists:foreach(fun (#uri{}=Id) ->
+				  case mnesia:wread({occi_resource, Id}) of
+				      [] ->
+					  case mnesia:wread({occi_link, Id}) of
+					      [] -> mnesia:abort({no_such_entity, Id});
+					      _ -> ok
+					  end;
+				      _ -> ok
+				  end
+			  end, occi_collection:get_entities(Coll)),
 	    mnesia:write(Coll)
     end.
