@@ -30,8 +30,8 @@
 
 %% API
 -export([start_link/0]).
--export([get/1,
-	 find/1,
+-export([find/1,
+	 get/1,
 	 register_extension/2,
 	 register_kind/1,
 	 register_mixin/1,
@@ -110,26 +110,13 @@ register_action(Action) ->
 	       [ Id#occi_cid.scheme, Id#occi_cid.term ]),
     ets:insert(?TABLE, Action).
 
-
--spec get(occi_cid()) -> occi_category().
-get(#occi_cid{class=kind}=Cid) ->
-    case ets:match_object(?TABLE, #occi_kind{id=Cid, _='_'}) of
-	[] -> undefined;
-	[Kind] -> Kind
-    end;
-get(#occi_cid{class=mixin}=Cid) ->
-    case ets:match_object(?TABLE, #occi_mixin{id=Cid, _='_'}) of
-	[] -> undefined;
-	[Mixin] -> Mixin
-    end.
-
 -spec find(occi_cid()) -> [occi_category()].
 find(#occi_cid{class=kind}=Cid) ->
     ets:match_object(?TABLE, #occi_kind{id=Cid, _='_'});
 find(#occi_cid{class=mixin}=Cid) ->
-    Req = #occi_mixin{id=Cid, _='_'},
-    Mixins = ets:match_object(?TABLE, Req),
-    {ok, UMixins} = occi_store:find(Req),
+    Mixin = #occi_mixin{id=Cid, _='_'},
+    Mixins = ets:match_object(?TABLE, Mixin),
+    {ok, UMixins} = occi_store:find(Mixin),
     lists:flatten([Mixins, UMixins]);
 find(#occi_cid{class=action}=Cid) ->
     ets:match_object(?TABLE, #occi_action{id=Cid, _='_'});
@@ -137,6 +124,16 @@ find(#occi_cid{}=Cid) ->
     find(Cid#occi_cid{class=kind})
 	++ find(Cid#occi_cid{class=mixin})
 	++ find(Cid#occi_cid{class=action}).
+
+% This function does not use occi_store (no transaction needed)
+-spec get(occi_cid()) -> occi_mixin().
+get(#occi_cid{class=mixin}=Cid) ->
+    case ets:match_object(?TABLE, #occi_mixin{id=Cid, _='_'}) of
+	[Mixin] ->
+	    Mixin;
+	_ ->
+	    throw({error, unknown_mixin})
+    end.
 
 %%%===================================================================
 %%% Supervisor callbacks

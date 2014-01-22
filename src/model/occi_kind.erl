@@ -69,9 +69,9 @@ get_attributes(#occi_kind{attributes=Attrs}) ->
     Attrs.
 
 get_attr_list(#occi_kind{attributes=Attrs}) ->
-    lists:map(fun ({_Key, Val}) ->
-		      Val
-	      end, orddict:to_list(Attrs)).
+    orddict:fold(fun (_Key, Value, Acc) ->
+			 [Value|Acc]
+		 end, [], Attrs).
 
 set_types_check(#occi_kind{attributes=Attrs}=Kind, Types) -> 
     Attrs2 = orddict:map(fun (_Id, Attr) ->

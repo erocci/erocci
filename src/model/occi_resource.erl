@@ -32,6 +32,7 @@
 	 set_cid/2,
 	 get_mixins/1,
 	 add_mixin/2,
+	 del_mixin/2,
 	 set_attr_value/3,
 	 add_attr_value/3,
 	 get_attr/2,
@@ -65,29 +66,32 @@ set_id(#occi_resource{}=Res, #uri{}=Id) ->
 get_cid(#occi_resource{cid=Cid}) ->
     Cid.
 
--spec set_cid(occi_resource(), occi_cid()) -> occi_resource().
-set_cid(#occi_resource{attributes=Attrs}=Res, #occi_cid{class=kind}=Cid) ->
-    case occi_category_mgr:get(Cid) of
-	undefined ->
-	    throw({unknown_category, Cid});
-	Kind ->
-	    Attrs2 = orddict:merge(fun (_Key, _Val1, Val2) ->
-					   Val2
-				   end, Attrs, occi_kind:get_attributes(Kind)),
-	    Res#occi_resource{cid=Cid, attributes=Attrs2}
-    end.
+-spec set_cid(occi_resource(), occi_kind()) -> occi_resource().
+set_cid(#occi_resource{attributes=Attrs}=Res, #occi_kind{id=Cid}=Kind) ->
+    Attrs2 = orddict:merge(fun (_Key, _Val1, Val2) ->
+				   Val2
+			   end, Attrs, occi_kind:get_attributes(Kind)),
+    Res#occi_resource{cid=Cid, attributes=Attrs2}.
 
 -spec get_mixins(occi_resource()) -> [occi_cid()].
 get_mixins(#occi_resource{mixins=Mixins}) ->
     Mixins.
 
--spec add_mixin(occi_resource(), occi_cid()) -> occi_resource().
-add_mixin(#occi_resource{mixins=Mixins, attributes=Attrs}=Res, #occi_cid{class=mixin}=Cid) ->
-    Mixin = occi_category_mgr:get(Cid),
+-spec add_mixin(occi_resource(), occi_mixin()) -> occi_resource().
+add_mixin(#occi_resource{mixins=Mixins, attributes=Attrs}=Res, #occi_mixin{id=Cid}=Mixin) ->
     Attrs2 = orddict:merge(fun (_Key, _Val1, Val2) ->
 				   Val2
 			   end, Attrs, occi_mixin:get_attributes(Mixin)),
     Res#occi_resource{mixins=[Cid|Mixins], attributes=Attrs2}.
+
+-spec del_mixin(occi_resource(), occi_mixin()) -> occi_resource().
+del_mixin(#occi_resource{mixins=Mixins, attributes=Attrs}=Res, 
+	  #occi_mixin{id=Cid, attributes=MixinAttrs}) ->
+    Attrs2 = lists:foldl(fun (Key, Acc) ->
+				 orddict:erase(Key, Acc)
+			 end, Attrs, orddict:fetch_keys(MixinAttrs)),
+    Mixins2 = lists:delete(Cid, Mixins),
+    Res#occi_resource{mixins=Mixins2, attributes=Attrs2}.
 
 -spec set_attr_value(occi_resource(), occi_attr_key(), any()) -> occi_resource().
 set_attr_value(#occi_resource{}=Res, Key, Val) when is_list(Key) ->

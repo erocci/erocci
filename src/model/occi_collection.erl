@@ -30,6 +30,7 @@
 	 add_entity/2,
 	 add_entities/2,
 	 del_entity/2,
+	 del_entities/2,
 	 get_entities/1]).
 
 new() ->
@@ -51,8 +52,11 @@ add_entity(#occi_collection{entities=E}=C, #uri{}=Uri) ->
 add_entities(#occi_collection{entities=E}=C, E2) when is_list(E2) ->
     C#occi_collection{entities=ordsets:union(ordsets:from_list(E2), E)}.
 
-del_entity(#occi_collection{entities=E}=C, Id) ->
-    C#occi_collection{entities=ordsets:del_element(Id, E)}.
+del_entity(#occi_collection{entities=E}=C, Uri) ->
+    C#occi_collection{entities=ordsets:del_element(Uri, E)}.
+
+del_entities(#occi_collection{entities=E}=C, Uris) ->
+    C#occi_collection{entities=ordsets:subtract(E, ordsets:from_list(Uris))}.
 
 get_entities(#occi_collection{entities=E}) ->
     ordsets:to_list(E).

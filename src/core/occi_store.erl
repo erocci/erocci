@@ -32,6 +32,7 @@
 -export([start_link/0, register/1]).
 -export([save/1,
 	 save/2,
+	 associate_mixin/3,
 	 delete/1,
 	 get_collection/1,
 	 find/1,
@@ -121,7 +122,11 @@ delete(Object) ->
 	    {error, undefined_backend};
 	Backend ->
 	    occi_backend:delete(Backend, Object)
-    end.			        
+    end.
+
+-spec associate_mixin(backend_ref(), occi_cid(), [uri()]) -> ok | {error, term()}.
+associate_mixin(Backend, Cid, Uris) ->
+    occi_backend:associate_mixin(Backend, Cid, Uris).
 
 get_collection(#occi_kind{id=Id, backend=Backend}) ->
     lager:debug("Retrieve collection: ~p (backend ~p)~n", [Id, Backend]),

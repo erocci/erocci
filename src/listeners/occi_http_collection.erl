@@ -25,6 +25,7 @@
 	 rest_init/2,
 	 allow_missing_post/2,
 	 allowed_methods/2,
+	 delete_resource/2,
 	 content_types_provided/2,
 	 content_types_accepted/2]).
 
@@ -75,6 +76,19 @@ content_types_accepted(Req, State) ->
      ],
      Req, State}.
 
+delete_resource(Req, #state{category=Cat}=State) ->
+    {ok, Coll} = occi_store:get_collection(Cat),
+    case occi_store:delete(Coll) of
+	{error, undefined_backend} ->
+	    lager:debug("Internal error deleting entities~n"),
+	    {halt, Req, State};
+	{error, Reason} ->
+	    lager:debug("Error deleting entities: ~p~n", [Reason]),
+	    {false, Req, State};
+	ok ->
+	    {true, Req, State}
+    end.
+
 to_plain(Req, #state{category=Cat}=State) ->
     {ok, Coll} = occi_store:get_collection(Cat),
     Body = [occi_renderer_plain:render_collection(Coll), "\n"],
@@ -117,10 +131,10 @@ from_json(Req, #state{category=#occi_kind{backend=Backend}=Kind}=State) ->
 		    {true, cowboy_req:set_resp_body([RespBody, "\n"], Req3), State};
 		{error, Reason} ->
 		    lager:debug("Error creating resource: ~p~n", [Reason]),
-		    {halt, Req3, State}
+		    throw({error, Reason})
 	    end
     end;
-from_json(Req, #state{category=#occi_mixin{id=Id, backend=Backend}=Mixin}=State) ->
+from_json(Req, #state{category=#occi_mixin{id=Id, backend=Backend}}=State) ->
     {ok, Body, Req2} = cowboy_req:body(Req),
     case occi_parser_json:parse_collection(Body) of
 	{error, Reason} ->
@@ -128,21 +142,28 @@ from_json(Req, #state{category=#occi_mixin{id=Id, backend=Backend}=Mixin}=State)
 	    {false, Req2, State};
 	{ok, #occi_collection{}=C} ->
 	    Entities = occi_collection:get_entities(C),
-	    Coll = case cowboy_req:method(Req2) of
-		       {<<"PUT">>, _} ->
-			   occi_collection:new(Id, Entities);
-		       {<<"POST">>, _} ->
-			   {ok, Orig} = occi_store:get_collection(Mixin),
-			   occi_collection:add_entities(Orig, Entities)
-		   end,
-	    case occi_store:save(Backend, Coll) of
-		ok ->
-		    {true, Req2, State};
-		{error, {no_such_entity, Uri}} ->
-		    lager:debug("Invalid entity: ~p~n", [occi_uri:to_string(Uri)]),
-		    {false, Req2, State};
-		{error, Reason} ->
-		    lager:debug("Error updating collection: ~p~n", [Reason]),
-		    {halt, Req2, State}
+	    case cowboy_req:method(Req2) of
+		{<<"PUT">>, _} ->
+		    case occi_store:associate_mixin(Backend, Id, Entities) of
+			ok ->
+			    {true, Req, State};
+			{error, {no_such_entity, Uri}} ->
+			    lager:debug("Invalid entity: ~p~n", [occi_uri:to_string(Uri)]),
+			    {false, Req2, State};
+			{error, Reason} ->
+			    lager:debug("Error saving collection: ~p~n", [Reason]),
+			    throw({error, Reason})
+		    end;			   
+		{<<"POST">>, _} ->
+		    case occi_store:associate_mixin(Backend, Id, Entities) of
+			ok ->
+			    {true, Req, State};
+			{error, {no_such_entity, Uri}} ->
+			    lager:debug("Invalid entity: ~p~n", [occi_uri:to_string(Uri)]),
+			    {false, Req2, State};
+			{error, Reason} ->
+			    lager:debug("Error updating collection: ~p~n", [Reason]),
+			    throw({error, Reason})
+		    end
 	    end
     end.

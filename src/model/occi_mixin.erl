@@ -44,9 +44,9 @@
 	 get_actions/1,
 	 add_action/2,	 
 	 get_applies/1,
-	 add_applies/3,
+	 add_applies/2,
 	 get_depends/1,
-	 add_depends/3]).
+	 add_depends/2]).
 
 new() ->
     #occi_mixin{id=#occi_cid{class=mixin},
@@ -105,9 +105,9 @@ get_attributes(#occi_mixin{attributes=Attrs}) ->
     Attrs.
 
 get_attr_list(#occi_mixin{attributes=Attrs}) ->
-    lists:map(fun ({_Key, Val}) ->
-		      Val
-	      end, orddict:to_list(Attrs)).
+    orddict:fold(fun (_Key, Value, Acc) ->
+			 [Value|Acc]
+		 end, [], Attrs).
 
 set_types_check(#occi_mixin{attributes=Attrs}=Mixin, Types) -> 
     Attrs2 = orddict:map(fun (_Id, Attr) ->
@@ -124,27 +124,11 @@ add_action(#occi_mixin{actions=Actions}=Mixin, Action) ->
 get_applies(#occi_mixin{applies=Applies}) ->
     Applies.
 
-add_applies(#occi_mixin{applies=Applies}=Mixin, Scheme, Term) when is_atom(Scheme), is_atom(Term) ->
-    Cid = #occi_cid{class='_', term=Term, scheme=Scheme},
-    case occi_category_mgr:find(Cid) of
-	[] ->
-	    throw({unknown_category, Cid});
-	[#occi_kind{}] ->
-	    Mixin#occi_mixin{applies=[Cid|Applies]};
-	[#occi_mixin{}] ->
-	    Mixin#occi_mixin{applies=[Cid|Applies]}
-    end.
+add_applies(#occi_mixin{applies=Applies}=Mixin, #occi_cid{}=Cid) ->
+    Mixin#occi_mixin{applies=[Cid|Applies]}.
 
 get_depends(#occi_mixin{depends=Depends}) ->
     Depends.
 
-add_depends(#occi_mixin{depends=Depends}=Mixin, Scheme, Term) when is_atom(Scheme), is_atom(Term)  ->
-    Cid = #occi_cid{class='_', term=Term, scheme=Scheme},
-    case occi_category_mgr:find(Cid) of
-	[] ->
-	    throw({unknown_category, Cid});
-	[#occi_kind{}] ->
-	    Mixin#occi_mixin{depends=[Cid|Depends]};
-	[#occi_mixin{}] ->
-	    Mixin#occi_mixin{depends=[Cid|Depends]}
-    end.
+add_depends(#occi_mixin{depends=Depends}=Mixin, #occi_cid{}=Cid) ->
+    Mixin#occi_mixin{depends=[Cid|Depends]}.

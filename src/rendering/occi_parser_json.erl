@@ -317,11 +317,16 @@ resource(Token, _From, Ctx) ->
     occi_parser:parse_error(Token, Ctx).
 
 resource_kind(#token{name=value, data=Val}, _From, #parser{state=#state{resource=Res}=State}=Ctx) ->
-    case split_cid(Val) of
+    case parse_cid(Val) of
 	{Scheme, Term} ->
-	    Res2 = occi_resource:set_cid(Res, #occi_cid{class=kind, scheme=Scheme, term=Term}),
-	    {reply, ok, resource, 
-	     ?set_state(Ctx, State#state{resource=Res2})};
+	    case occi_category_mgr:find(#occi_cid{class=kind, scheme=Scheme, term=Term}) of
+		[] ->
+		    {reply, {error, invalid_cid}, eof, Ctx};
+		[Kind] ->
+		    Res2 = occi_resource:set_cid(Res, Kind),
+		    {reply, ok, resource, 
+		     ?set_state(Ctx, State#state{resource=Res2})}
+	    end;
 	parse_error ->
 	    {reply, {error, invalid_cid}, eof, Ctx}
     end;
@@ -336,11 +341,16 @@ resource_mixins(Token, _From, Ctx) ->
     occi_parser:parse_error(Token, Ctx).
 
 resource_mixin(#token{name=value, data=Val}, _From, #parser{state=#state{resource=Res}=State}=Ctx) ->
-    case split_cid(Val) of
+    case parse_cid(Val) of
 	{Scheme, Term} ->
-	    Res2 = occi_resource:add_mixin(Res, #occi_cid{class=mixin, scheme=Scheme, term=Term}),
-	    {reply, ok, resource_mixins, 
-	     ?set_state(Ctx, State#state{resource=Res2})};
+	    case occi_category_mgr:find(#occi_cid{class=mixin, scheme=Scheme, term=Term}) of
+		[] ->
+		    {reply, {error, invalid_cid}, eof, Ctx};
+		[#occi_mixin{}=Mixin] ->
+		    Res2 = occi_resource:add_mixin(Res, Mixin),
+		    {reply, ok, resource_mixins, 
+		     ?set_state(Ctx, State#state{resource=Res2})}
+	    end;
 	parse_error ->
 	    {reply, {error, invalid_cid}, eof, Ctx}
     end;
@@ -444,11 +454,16 @@ mixin_depends(Token, _From, Ctx) ->
     occi_parser:parse_error(Token, Ctx).
 
 mixin_depend(#token{name=value, data=Val}, _From, #parser{state=#state{mixin=Mixin}=State}=Ctx) ->
-    case split_cid(Val) of
+    case parse_cid(Val) of
 	{Scheme, Term} ->
-	    Mixin2 = occi_mixin:add_depends(Mixin, Scheme, Term),
-	    {reply, ok, mixin_depends, 
-	     ?set_state(Ctx, State#state{mixin=Mixin2})};
+	    case check_cid(Scheme, Term) of
+		#occi_cid{}=Cid ->
+		    Mixin2 = occi_mixin:add_depends(Mixin, Cid),
+		    {reply, ok, mixin_depends, 
+		     ?set_state(Ctx, State#state{mixin=Mixin2})};
+		error ->
+		    {reply, {error, invalid_cid}, eof, Ctx}
+	    end;
 	parse_error ->
 	    {reply, {error, invalid_cid}, eof, Ctx}
     end;
@@ -463,11 +478,16 @@ mixin_applies(Token, _From, Ctx) ->
     occi_parser:parse_error(Token, Ctx).
 
 mixin_apply(#token{name=value, data=Val}, _From, #parser{state=#state{mixin=Mixin}=State}=Ctx) ->
-    case split_cid(Val) of
+    case parse_cid(Val) of
 	{Scheme, Term} ->
-	    Mixin2 = occi_mixin:add_applies(Mixin, Scheme, Term),
-	    {reply, ok, mixin_applies, 
-	     ?set_state(Ctx, State#state{mixin=Mixin2})};
+	    case check_cid(Scheme, Term) of
+		#occi_cid{}=Cid ->
+		    Mixin2 = occi_mixin:add_applies(Mixin, Cid),
+		    {reply, ok, mixin_applies, 
+		     ?set_state(Ctx, State#state{mixin=Mixin2})};
+		error ->
+		    {reply, {error, invalid_cid}, eof, Ctx}
+	    end;
 	parse_error ->
 	    {reply, {error, invalid_cid}, eof, Ctx}
     end;
@@ -503,7 +523,7 @@ eof(_E, _F, Ctx) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
-split_cid(Str) ->
+parse_cid(Str) ->
     case string:tokens(Str, "#") of
 	[Scheme, Term] ->
 	    {list_to_atom(Scheme++"#"), list_to_atom(Term)};
@@ -513,3 +533,13 @@ split_cid(Str) ->
 
 build_attr_name(NS) ->
     list_to_atom(string:join(lists:reverse(NS), ".")).
+
+check_cid(Scheme, Term) ->
+    case occi_category_mgr:find(#occi_cid{scheme=Scheme, term=Term, _='_'}) of
+	[#occi_kind{id=Cid}] ->
+	    Cid;
+	[#occi_mixin{id=Cid}] ->
+	    Cid;
+	[] ->
+	    parse_error
+    end.

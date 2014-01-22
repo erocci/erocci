@@ -117,6 +117,6 @@ from_json(Req, State) ->
 %%% Private
 %%%
 get_categories() ->
-    { occi_category_mgr:find(#occi_cid{scheme='_', term='_', class=kind}),
-      occi_category_mgr:find(#occi_cid{scheme='_', term='_', class=mixin}),
-      occi_category_mgr:find(#occi_cid{scheme='_', term='_', class=action}) }.
+    { occi_category_mgr:find(#occi_cid{class=kind, _='_'}),
+      occi_category_mgr:find(#occi_cid{class=mixin, _='_'}),
+      occi_category_mgr:find(#occi_cid{class=action, _='_'}) }.

@@ -74,16 +74,16 @@ resource_exists(Req, State) ->
 	{ok, [Entity]} ->
 	    {true, Req, State#state{entity=Entity}};
 	{ok, _} ->
-	    {false, cowboy_req:reply(500, Req), State}
+	    {halt, Req, State}
     end.
 
 delete_resource(Req, #state{entity=Entity}=State) ->
     case occi_store:delete(Entity) of
 	{error, undefined_backend} ->
-	    lager:debug("Internal error deleting resource~n"),
+	    lager:debug("Internal error deleting entity~n"),
 	    {halt, Req, State};
 	{error, Reason} ->
-	    lager:debug("Error deleting resource: ~p~n", [Reason]),
+	    lager:debug("Error deleting entity: ~p~n", [Reason]),
 	    {false, Req, State};
 	ok ->
 	    {true, Req, State}
