@@ -30,6 +30,7 @@
 -export([init/1,
 	 terminate/1,
 	 save/2,
+	 delete/2,
 	 find/2]).
 
 -record(state, {}).
@@ -58,6 +59,31 @@ terminate(#state{}) ->
 
 save(Obj, State) ->
     case mnesia:transaction(save_t(Obj)) of
+	{atomic, ok} ->
+	    {ok, State};
+	{aborted, Reason} ->
+	    {{error, Reason}, State}
+    end.
+
+delete(#occi_resource{id=Id, cid=Cid}=Res, State) ->
+    F = fun() ->
+		case mnesia:wread({occi_collection, Cid}) of
+		    [#occi_collection{}=C] ->
+			mnesia:write(occi_collection:del_entity(C, Id));
+		    [] ->
+			mnesia:abort({error, unknown_collection})
+		end,
+		lists:foreach(fun (#occi_mixin{id=MixinId}) ->
+				      case mnesia:wread({occi_collection, MixinId}) of
+					  [#occi_collection{}=C1] ->
+					      mnesia:write(occi_collection:del_entity(C1, Id));
+					  [] ->
+					      mnesia:abort({error, unknown_collection})
+				      end
+			      end, occi_resource:get_mixins(Res)),
+		mnesia:delete_object(Res)
+	end,
+    case mnesia:transaction(F) of
 	{atomic, ok} ->
 	    {ok, State};
 	{aborted, Reason} ->

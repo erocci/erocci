@@ -32,6 +32,7 @@
 -export([start_link/0, register/1]).
 -export([save/1,
 	 save/2,
+	 delete/1,
 	 get_collection/1,
 	 find/1,
 	 find/2,
@@ -109,10 +110,18 @@ save(Object) ->
 	    occi_backend:save(Backend, Object)
     end.
 
--spec save(backend_ref(), occi_object()) -> {ok, occi_object()} 
-						| {error, term()}.
+-spec save(backend_ref(), occi_object()) -> ok | {error, term()}.
 save(Backend, Object) ->
     occi_backend:save(Backend, Object).
+
+-spec delete(occi_object()) -> ok | {error, term()}.
+delete(Object) ->
+    case get_backend([]) of
+	undefined ->
+	    {error, undefined_backend};
+	Backend ->
+	    occi_backend:delete(Backend, Object)
+    end.			        
 
 get_collection(#occi_kind{id=Id, backend=Backend}) ->
     lager:debug("Retrieve collection: ~p (backend ~p)~n", [Id, Backend]),

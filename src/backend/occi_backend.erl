@@ -28,6 +28,7 @@
 %% API
 -export([start_link/3]).
 -export([save/2,
+	 delete/2,
 	 find/2]).
 
 %% gen_server callbacks
@@ -54,6 +55,10 @@
     {ok, State :: term()} |
     {{error, Reason :: term()}, State :: term()}.
 
+-callback delete(Obj :: occi_object(), State :: term()) ->
+    {ok, State :: term()} |
+    {{error, Reason :: term()}, State :: term()}.
+
 -callback find(Request :: term(), State :: term()) ->
     {{ok, term()}, term()} |
     {{error, Reason :: term()}, State :: term()}.
@@ -68,6 +73,9 @@ start_link(Ref, Backend, Opts) ->
 
 save(Ref, Obj) ->
     gen_server:call(Ref, {save, Obj}).
+
+delete(Ref, Obj) ->
+    gen_server:call(Ref, {delete, Obj}).
 
 find(Ref, Request) ->
     gen_server:call(Ref, {find, Request}).
@@ -109,6 +117,9 @@ init({Backend, Args}) ->
 handle_call({save, Obj}, _From, #state{backend=Backend, state=BState}) ->
     {Reply, RState} = Backend:save(Obj, BState),
     {reply, Reply, #state{backend=Backend, state=RState}};
+handle_call({delete, Obj}, _From, #state{backend=Backend, state=BState}) ->
+    {Reply, RState} = Backend:delete(Obj, BState),
+    {reply, Reply, #state{backend=Backend, state=RState}};    
 handle_call({find, Request}, _From, #state{backend=Backend, state=BState}) ->
     {Reply, RState} = Backend:find(Request, BState),
     {reply, Reply, #state{backend=Backend, state=RState}};

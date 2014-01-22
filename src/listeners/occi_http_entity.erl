@@ -26,6 +26,7 @@
 	 allowed_methods/2,
 	 allow_missing_post/2,
 	 resource_exists/2,
+	 delete_resource/2,
 	 content_types_provided/2,
 	 content_types_accepted/2]).
 
@@ -76,6 +77,18 @@ resource_exists(Req, State) ->
 	    {false, cowboy_req:reply(500, Req), State}
     end.
 
+delete_resource(Req, #state{entity=Entity}=State) ->
+    case occi_store:delete(Entity) of
+	{error, undefined_backend} ->
+	    lager:debug("Internal error deleting resource~n"),
+	    {halt, Req, State};
+	{error, Reason} ->
+	    lager:debug("Error deleting resource: ~p~n", [Reason]),
+	    {false, Req, State};
+	ok ->
+	    {true, Req, State}
+    end.
+    
 to_json(Req, #state{entity=Entity}=State) ->
     Body = occi_renderer_json:render_entity(Entity),
     {[Body, "\n"], Req, State}.
