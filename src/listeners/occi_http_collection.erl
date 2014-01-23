@@ -47,7 +47,7 @@ init(_Transport, _Req, _) ->
 
 rest_init(Req, Cat) ->
     Req1 = occi_http:set_cors(Req),
-    {ok, Req1, #state{category=Cat}}.
+    {ok, cowboy_req:set_resp_header(<<"server">>, ?HTTP_SERVER_ID, Req1), #state{category=Cat}}.
 
 allow_missing_post(_Req, _State) ->
     false.

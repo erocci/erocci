@@ -43,7 +43,7 @@ init(_Transport, _Req, []) ->
 
 rest_init(Req, _Opts) ->
     Req1 = occi_http:set_cors(Req),
-    {ok, Req1, #state{}}.
+    {ok, cowboy_req:set_resp_header(<<"server">>, ?HTTP_SERVER_ID, Req1), #state{}}.
 
 allowed_methods(Req, State) ->
     {[<<"HEAD">>, <<"GET">>, <<"PUT">>, <<"DELETE">>, <<"POST">>, <<"OPTIONS">>], Req, State}.
