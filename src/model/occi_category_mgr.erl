@@ -32,6 +32,7 @@
 -export([start_link/0]).
 -export([find/1,
 	 get/1,
+	 get_user_mixin/1,
 	 register_extension/2,
 	 register_kind/1,
 	 register_mixin/1,
@@ -125,7 +126,6 @@ find(#occi_cid{}=Cid) ->
 	++ find(Cid#occi_cid{class=mixin})
 	++ find(Cid#occi_cid{class=action}).
 
-% This function does not use occi_store (no transaction needed)
 -spec get(occi_cid()) -> occi_mixin().
 get(#occi_cid{class=mixin}=Cid) ->
     case ets:match_object(?TABLE, #occi_mixin{id=Cid, _='_'}) of
@@ -133,6 +133,15 @@ get(#occi_cid{class=mixin}=Cid) ->
 	    Mixin;
 	_ ->
 	    throw({error, unknown_mixin})
+    end.
+
+-spec get_user_mixin(occi_cid()) -> occi_mixin().
+get_user_mixin(#occi_cid{class=mixin}=Cid) ->
+    case occi_store:find(#occi_mixin{id=Cid, _='_'}) of
+	{ok, [Mixin]} ->
+	    Mixin;
+	_ ->
+	    throw({error, unknown_user_mixin})
     end.
 
 %%%===================================================================

@@ -128,6 +128,8 @@ parse_collection(Data) ->
 	    {ok, Coll}
     end.
 
+parse_full(<<>>) ->
+    {error, invalid_request};
 parse_full(Data) ->
     P = start(),
     Res = parse(P, Data),

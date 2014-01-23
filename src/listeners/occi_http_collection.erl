@@ -81,7 +81,8 @@ delete_resource(Req, #state{category=Cat}=State) ->
     case occi_store:delete(Coll) of
 	{error, undefined_backend} ->
 	    lager:debug("Internal error deleting entities~n"),
-	    {halt, Req, State};
+	    {ok, Req2} = cowboy_req:reply(500, Req),
+	    {halt, Req2, State};
 	{error, Reason} ->
 	    lager:debug("Error deleting entities: ~p~n", [Reason]),
 	    {false, Req, State};

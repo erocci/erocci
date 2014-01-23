@@ -22,6 +22,7 @@
 
 -export([init/3, 
 	 rest_init/2,
+	 delete_resource/2,
 	 allowed_methods/2,
 	 content_types_provided/2,
 	 content_types_accepted/2
@@ -35,7 +36,7 @@
 
 -include("occi.hrl").
 
--record(state, {}).
+-record(state, {mixin = undefined :: occi_mixin()}).
 
 init(_Transport, _Req, []) -> 
     {upgrade, protocol, cowboy_rest}.
@@ -65,6 +66,15 @@ content_types_accepted(Req, State) ->
       {{<<"application">>,     <<"occi+json">>, []}, from_json}
      ],
      Req, State}.
+
+delete_resource(Req, Ctx) ->
+    case get_cta(Req, Ctx) of
+	undefined ->
+	    {ok, Req2} = cowboy_req:reply(415, Req),
+	    {halt, Req2, Ctx};
+	Fun ->
+	    ?MODULE:Fun(Req, Ctx)
+    end.
 
 to_plain(Req, Ctx) ->
     {K, M, A} = get_categories(),
@@ -96,20 +106,45 @@ to_xml(Req, Ctx) ->
 from_json(Req, State) ->
     {ok, Body, Req2} = cowboy_req:body(Req),
     case occi_parser_json:parse_user_mixin(Body) of
+	{error, invalid_request} ->
+	    {ok, Req3} = cowboy_req:reply(400, Req2),
+	    {halt, Req3, State};
 	{error, Reason} ->
 	    lager:debug("Error processing request: ~p~n", [Reason]),
 	    {false, Req2, State};
 	{ok, undefined} ->
 	    lager:debug("Empty request~n"),
 	    {false, Req2, State};
-	{ok, #occi_mixin{}=Mixin} ->
-	    case occi_category_mgr:register_user_mixin(Mixin) of
-		ok ->
-		    RespBody = occi_renderer_json:render_mixin(Mixin),
-		    {true, cowboy_req:set_resp_body([RespBody, "\n"], Req2), State};
-		{error, Reason} ->
-		    lager:debug("Error creating resource: ~p~n", [Reason]),
-		    {halt, Req2, State}
+	{ok, #occi_mixin{id=Cid}=Mixin} ->
+	    case cowboy_req:method(Req2) of
+		{<<"DELETE">>, _} ->
+		    case catch occi_category_mgr:get_user_mixin(Cid) of
+			{error, unknown_user_mixin} ->
+			    {ok, Req3} = cowboy_req:reply(403, Req2),
+			    {halt, Req3, State};
+			Mixin2 ->
+			    case occi_store:delete(Mixin2) of
+				{error, undefined_backend} ->
+				    lager:debug("Internal error deleting user mixin~n"),
+				    {ok, Req2} = cowboy_req:reply(500, Req),
+				    {halt, Req2, State};
+				{error, Reason} ->
+				    lager:debug("Error deleting user mixin: ~p~n", [Reason]),
+				    {false, Req, State};
+				ok ->
+				    {true, Req, State}
+			    end
+		    end;
+		{<<"POST">>, _} ->
+		    case occi_category_mgr:register_user_mixin(Mixin) of
+			ok ->
+			    RespBody = occi_renderer_json:render_mixin(Mixin),
+			    {true, cowboy_req:set_resp_body([RespBody, "\n"], Req2), State};
+			{error, Reason} ->
+			    lager:debug("Error creating resource: ~p~n", [Reason]),
+			    {ok, Req3} = cowboy_req:reply(500, Req2),
+			    {halt, Req3, State}
+		    end
 	    end
     end.
 
@@ -120,3 +155,26 @@ get_categories() ->
     { occi_category_mgr:find(#occi_cid{class=kind, _='_'}),
       occi_category_mgr:find(#occi_cid{class=mixin, _='_'}),
       occi_category_mgr:find(#occi_cid{class=action, _='_'}) }.
+
+get_cta(Req, Ctx) ->
+    case cowboy_req:parse_header(<<"content-type">>, Req) of
+	{error, badarg} ->
+	    undefined;
+	{ok, undefined, Req2} ->
+	    {[{_Type, Fun}|_CTA], _, _} = content_types_accepted(Req2, Ctx),
+	    Fun;
+	{ok, ContentType, Req2} ->
+	    {CTA, _, _} = content_types_accepted(Req2, Ctx),
+	    choose_cta(ContentType, CTA)
+    end.
+
+choose_cta(_ContentType, []) ->
+    undefined;
+choose_cta(ContentType, [{Accepted, Fun}|_Tail]) 
+  when Accepted =:= '*'; Accepted =:= ContentType ->
+    Fun;
+choose_cta({Type, SubType, Param}, [{{Type, SubType, AcceptedParam}, Fun}|_Tail]) 
+  when AcceptedParam =:= '*'; AcceptedParam =:= Param ->
+    Fun;
+choose_cta(ContentType, [_Any|Tail]) ->
+    choose_cta(ContentType, Tail).

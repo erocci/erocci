@@ -80,6 +80,14 @@ delete(#occi_collection{}=Coll, State) ->
 	    {ok, State};
 	{aborted, Reason} ->
 	    {{error, Reason}, State}
+    end;
+
+delete(#occi_mixin{}=Mixin, State) ->
+    case mnesia:transaction(fun () -> del_mixin_t(Mixin) end) of
+	{atomic, ok} ->
+	    {ok, State};
+	{aborted, Reason} ->
+	    {{error, Reason}, State}
     end.
 
 associate_mixin(#occi_cid{}=Cid, Uris, State) ->
@@ -179,14 +187,14 @@ del_resource_t(#occi_resource{id=Id, cid=Cid}=Res) ->
     lists:foreach(fun (MixinId) ->
 			  del_from_collection_t(MixinId, [Id])
 		  end, occi_resource:get_mixins(Res)),
-    mnesia:delete_object(Res);
+    mnesia:delete({occi_resource, Id});
 
 del_resource_t(#occi_link{id=Id, cid=Cid}=Link) ->
     del_from_collection_t(Cid, [Id]),
     lists:foreach(fun (MixinId) ->
 			  del_from_collection_t(MixinId, [Id])
 		  end, occi_resource:get_mixins(Link)),
-    mnesia:delete_object(Link).
+    mnesia:delete({occi_link, Id}).
 
 del_from_collection_t(#occi_cid{}=Cid, Uris) ->
     lager:debug("Remove from collection ~p: ~p~n", [Cid, Uris]),
@@ -224,17 +232,41 @@ del_collection_t(#occi_collection{cid=#occi_cid{class=kind}=Cid}=Coll) ->
     ok;
 
 del_collection_t(#occi_collection{cid=#occi_cid{class=mixin}=Cid}=Coll) ->
-    Entities = occi_collection:get_entities(Coll),
     Mixin = get_mixin_t(Cid),
+    del_collection_t(Coll, Mixin).
+
+del_collection_t(#occi_collection{cid=#occi_cid{class=mixin}=Cid}=Coll, #occi_mixin{}=Mixin) ->
+    Entities = occi_collection:get_entities(Coll),
     lists:foreach(fun (Uri) ->
 			  case mnesia:wread({occi_resource, Uri}) of
 			      [#occi_resource{}=Res] ->
 				  mnesia:write(occi_resource:del_mixin(Res, Mixin));
 			      [] ->
-					  mnesia:abort({error, unknown_object})
+				  mnesia:abort({error, unknown_object})
 			  end
 		  end, Entities),
     del_from_collection_t(Cid, Entities).
+
+del_full_collection_t(#occi_collection{cid=#occi_cid{class=mixin}=Cid}=Coll, #occi_mixin{}=Mixin) ->
+    Entities = occi_collection:get_entities(Coll),
+    lists:foreach(fun (Uri) ->
+			  case mnesia:wread({occi_resource, Uri}) of
+			      [#occi_resource{}=Res] ->
+				  mnesia:write(occi_resource:del_mixin(Res, Mixin));
+			      [] ->
+				  mnesia:abort({error, unknown_object})
+			  end
+		  end, Entities),
+    mnesia:delete({occi_collection, Cid}).
+
+del_mixin_t(#occi_mixin{id=Cid}=Mixin) ->
+    case mnesia:wread({occi_collection, Cid}) of
+	[#occi_collection{}=Coll] ->
+	    del_full_collection_t(Coll, Mixin);
+	[] ->
+	    ok
+    end,
+    mnesia:delete({occi_mixin, Cid}).
 
 get_mixin_t(#occi_cid{class=mixin}=Cid) ->
     case mnesia:wread({occi_mixin, Cid}) of
