@@ -94,6 +94,10 @@ del_mixin(#occi_resource{mixins=Mixins, attributes=Attrs}=Res,
     Res#occi_resource{mixins=Mixins2, attributes=Attrs2}.
 
 -spec set_attr_value(occi_resource(), occi_attr_key(), any()) -> occi_resource().
+set_attr_value(#occi_resource{}=Res, 'occi.core.title', Val) ->
+    Res#occi_resource{title=Val};
+set_attr_value(#occi_resource{}=Res, 'occi.core.id', Val) ->
+    Res#occi_resource{id=Val};
 set_attr_value(#occi_resource{}=Res, Key, Val) when is_list(Key) ->
     set_attr_value(Res, list_to_atom(Key), Val);
 set_attr_value(#occi_resource{attributes=Attrs}=Res, Key, Val) when is_atom(Key) ->

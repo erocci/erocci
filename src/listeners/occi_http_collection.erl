@@ -120,9 +120,14 @@ to_xml(Req, #state{category=Cat}=State) ->
 from_json(Req, #state{category=#occi_kind{backend=Backend}=Kind}=State) ->
     {ok, Body, Req2} = cowboy_req:body(Req),
     case occi_parser_json:parse_resource(Body, Kind) of
-	{error, Reason} ->
-	    lager:debug("Error processing request: ~p~n", [Reason]),
-	    {false, Req2, State};
+	{error, {parse_error, Err}} ->
+	    lager:debug("Error processing request: ~p~n", [Err]),
+	    {ok, Req3} = cowboy_req:reply(400, Req2),
+	    {false, Req3, State};
+	{error, Err} ->
+	    lager:debug("Internal error: ~p~n", [Err]),
+	    {ok, Req3} = cowboy_req:reply(500, Req2),
+	    {false, Req3, State};	    
 	{ok, #occi_resource{}=Res} ->
 	    {Prefix, Req3} = cowboy_req:path(Req2),
 	    Res2 = occi_resource:set_id(Res, occi_config:gen_id(Prefix)),
@@ -138,9 +143,14 @@ from_json(Req, #state{category=#occi_kind{backend=Backend}=Kind}=State) ->
 from_json(Req, #state{category=#occi_mixin{id=Id, backend=Backend}}=State) ->
     {ok, Body, Req2} = cowboy_req:body(Req),
     case occi_parser_json:parse_collection(Body) of
-	{error, Reason} ->
-	    lager:debug("Error processing request: ~p~n", [Reason]),
-	    {false, Req2, State};
+	{error, {parse_error, Err}} ->
+	    lager:debug("Error processing request: ~p~n", [Err]),
+	    {ok, Req3} = cowboy_req:reply(400, Req2),
+	    {halt, Req3, State};
+	{error, Err} ->
+	    lager:debug("Internal error: ~p~n", [Err]),
+	    {ok, Req3} = cowboy_req:reply(500, Req2),
+	    {halt, Req3, State};	    
 	{ok, #occi_collection{}=C} ->
 	    Entities = occi_collection:get_entities(C),
 	    case cowboy_req:method(Req2) of
@@ -153,7 +163,8 @@ from_json(Req, #state{category=#occi_mixin{id=Id, backend=Backend}}=State) ->
 			    {false, Req2, State};
 			{error, Reason} ->
 			    lager:debug("Error saving collection: ~p~n", [Reason]),
-			    throw({error, Reason})
+			    {ok, Req3} = cowboy_req:reply(500, Req2),
+			    {halt, Req3, State}
 		    end;			   
 		{<<"POST">>, _} ->
 		    case occi_store:associate_mixin(Backend, Id, Entities) of
@@ -164,7 +175,8 @@ from_json(Req, #state{category=#occi_mixin{id=Id, backend=Backend}}=State) ->
 			    {false, Req2, State};
 			{error, Reason} ->
 			    lager:debug("Error updating collection: ~p~n", [Reason]),
-			    throw({error, Reason})
+			    {ok, Req3} = cowboy_req:reply(500, Req2),
+			    {halt, Req3, State}
 		    end
 	    end
     end.

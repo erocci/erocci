@@ -84,27 +84,27 @@
 parse_resource(Data) ->
     case parse_full(Data) of
 	{error, Reason} ->
-	    {error, Reason};
+	    {error, {parse_error, Reason}};
 	{ok, #occi_request{resources=[#occi_resource{}=Res]}} ->
 	    {ok, Res};
 	_ ->
-	    {error, invalid_request}
+	    {error, {parse_error, not_a_resource}}
     end.
 
 parse_resource(Data, #occi_kind{id=Cid}) ->
     case parse_resource(Data) of
 	{error, Reason} ->
-	    {error, Reason};
+	    {error, {parse_error, Reason}};
 	{ok, #occi_resource{cid=Cid}=Res} ->
 	    {ok, Res};
 	{ok, #occi_resource{}} ->
-	    {error, invalid_requesst}
+	    {error, {parse_error, bad_category}}
     end.
 
 parse_user_mixin(Data) ->
     case parse_full(Data) of
 	{error, Reason} ->
-	    {error, Reason};
+	    {error, {parse_error, Reason}};
 	{ok, #occi_request{mixins=[#occi_mixin{}=Mixin]}} ->
 	    case {occi_mixin:get_attr_list(Mixin),
 		  occi_mixin:get_actions(Mixin)} of
@@ -113,17 +113,17 @@ parse_user_mixin(Data) ->
 		Err ->
 		    % User mixins can not set attributes or actions
 		    lager:error("Invalid request: ~p~n", [Err]),
-		    {error, invalid_request}
+		    {error, {parse_error, Err}}
 	    end;
 	Err ->
 	    lager:error("Invalid request: ~p~n", [Err]),
-	    {error, invalid_request}
+	    {error, {parse_error, Err}}
     end.
 
 parse_collection(Data) ->
     case parse_full(Data) of
 	{error, Reason} ->
-	    {error, Reason};
+	    {error, {parse_error, Reason}};
 	{ok, #occi_request{collection=Coll}} ->
 	    {ok, Coll}
     end.
@@ -188,8 +188,6 @@ init(#parser{}=Parser) ->
 %%                   {stop, Reason, NewState}
 %% @end
 %%--------------------------------------------------------------------
-handle_event(reset, _, State) ->
-    {next_state, init, State};
 handle_event(stop, _, State) ->
     {stop, normal, State};
 handle_event(_Event, StateName, State) ->
@@ -211,8 +209,6 @@ handle_event(_Event, StateName, State) ->
 %%                   {stop, Reason, Reply, NewState}
 %% @end
 %%--------------------------------------------------------------------
-handle_sync_event(eof, _From, _StateName, State) ->
-    {stop, eof, State};
 handle_sync_event(Event, _From, _StateName, State) ->
     occi_parser:parse_error(Event, State).
 
@@ -243,8 +239,8 @@ handle_info(_Info, StateName, State) ->
 %% @spec terminate(Reason, StateName, State) -> void()
 %% @end
 %%--------------------------------------------------------------------
-terminate(Reason, StateName, State) ->
-    lager:debug("Terminate with reason ~p in state ~s [~p]", [Reason, StateName, State]).
+terminate(_Reason, _StateName, _State) ->
+    ok.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -273,18 +269,18 @@ request(#token{name=key, data="collection"}, _From, Ctx) ->
     {reply, ok, collection_req, Ctx};
 request(#token{name=key, data="links"}, _From, Ctx) ->
     % TODO
-    {stop, {error, invalid_request}, Ctx};
+    {reply, {error, invalid_request}, eof, Ctx};
 request(#token{name=key, data="action"}, _From, Ctx) ->
     % TODO
-    {stop, {error, invalid_request}, _From, Ctx};
+    {reply, {error, invalid_request}, eof, Ctx};
 request(#token{name=key, data="kinds"}, _From, Ctx) ->
     % TODO
-    {stop, {error, invalid_request}, Ctx};
+    {reply, {error, invalid_request}, eof, Ctx};
 request(#token{name=key, data="mixins"}, _From, Ctx) ->
     {reply, ok, mixins_req, Ctx};
 request(#token{name=key, data="actions"}, _From, Ctx) ->
     % TODO
-    {stop, {error, invalid_request}, Ctx};
+    {reply, {error, invalid_request}, eof, Ctx};
 request(#token{name=objEnd}, _From, #parser{state=#state{request=Req}}=Ctx) ->
     {reply, {eof, Req}, eof, Ctx};
 request(Token, _From, Ctx) ->

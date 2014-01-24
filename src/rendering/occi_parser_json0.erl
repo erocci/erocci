@@ -106,6 +106,7 @@ init(#parser{}=Ctx) ->
 %% @end
 %%--------------------------------------------------------------------
 handle_event(stop, _, State) ->
+    occi_parser:send_event(eof, ok, State),
     {stop, normal, State};
 handle_event(_Event, StateName, State) ->
     {next_state, StateName, State}.
@@ -126,8 +127,6 @@ handle_event(_Event, StateName, State) ->
 %%                   {stop, Reason, Reply, NewState}
 %% @end
 %%--------------------------------------------------------------------
-handle_sync_event(eof, _From, _StateName, State) ->
-    {stop, eof, State};
 handle_sync_event(Event, _From, _StateName, State) ->
     occi_parser:parse_error(Event, State).
 

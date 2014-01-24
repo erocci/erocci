@@ -68,7 +68,7 @@ parse(#parser{}=Parser, Cont, Data) ->
 	    {more, Cont2};
 	{done, {ok, Token, _EndLine}, Rest} ->
 	    case occi_parser:send_event(Token, ok, Parser) of
-		{stop, {error, Err}, _} ->
+		{reply, {error, Err}, _, _} ->
 		    {error, Err};
 		ok ->
 		    parse(Parser, [], Rest);

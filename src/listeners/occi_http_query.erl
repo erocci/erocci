@@ -106,12 +106,14 @@ to_xml(Req, Ctx) ->
 from_json(Req, State) ->
     {ok, Body, Req2} = cowboy_req:body(Req),
     case occi_parser_json:parse_user_mixin(Body) of
-	{error, invalid_request} ->
+	{error, {parse_error, Err}} ->
+	    lager:debug("Error processing request: ~p~n", [Err]),
 	    {ok, Req3} = cowboy_req:reply(400, Req2),
 	    {halt, Req3, State};
-	{error, Reason} ->
-	    lager:debug("Error processing request: ~p~n", [Reason]),
-	    {false, Req2, State};
+	{error, Err} ->
+	    lager:debug("Internal error: ~p~n", [Err]),
+	    {ok, Req3} = cowboy_req:reply(500, Req2),
+	    {halt, Req3, State};	    
 	{ok, undefined} ->
 	    lager:debug("Empty request~n"),
 	    {false, Req2, State};

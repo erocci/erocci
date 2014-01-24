@@ -96,9 +96,14 @@ to_json(Req, #state{entity=Entity}=State) ->
 from_json(Req, State) ->
     {ok, Body, Req2} = cowboy_req:body(Req),
     case occi_parser_json:parse_resource(Body) of
-	{error, Reason} ->
-	    lager:debug("Error processing request: ~p~n", [Reason]),
-	    {false, Req2, State};
+	{error, {parse_error, Err}} ->
+	    lager:debug("Error processing request: ~p~n", [Err]),
+	    {ok, Req3} = cowboy_req:reply(400, Req2),
+	    {halt, Req3, State};
+	{error, Err} ->
+	    lager:debug("Internal error: ~p~n", [Err]),
+	    {ok, Req3} = cowboy_req:reply(500, Req2),
+	    {halt, Req3, State};	    
 	{ok, #occi_resource{}=Res} ->
 	    {Path, _} = cowboy_req:path(Req2),
 	    Res2 = occi_resource:set_id(Res, occi_config:get_url(Path)),
@@ -108,7 +113,8 @@ from_json(Req, State) ->
 		    {true, cowboy_req:set_resp_body([RespBody, "\n"], Req2), State};
 		{error, Reason} ->
 		    lager:debug("Error creating resource: ~p~n", [Reason]),
-		    {halt, Req2, State}
+		    {ok, Req3} = cowboy_req:reply(500, Req2),
+		    {halt, Req3, State}
 	    end
     end.
 
