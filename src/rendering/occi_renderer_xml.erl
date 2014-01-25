@@ -46,7 +46,7 @@ render_collection(#occi_collection{}=Coll) ->
     render_xml(
       exmpp_xml:set_children(
        exmpp_xml:element(occi, collection),
-	[ exmpp_xml:set_attribute(exmpp_xml:element(resource), <<"id">>, Id) || 
+	[ exmpp_xml:set_attribute(exmpp_xml:element(resource), <<"id">>, occi_uri:to_binary(Id)) || 
 	    Id <- occi_collection:get_entities(Coll) ])).
 
 %%%
