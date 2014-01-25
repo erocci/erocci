@@ -38,7 +38,9 @@
 	 get_attr/2,
 	 get_attributes/1,
 	 add_link/2,
-	 get_links/1]).
+	 get_links/1,
+	 set_title/2,
+	 get_title/1]).
 
 %%%
 %%% API
@@ -72,6 +74,14 @@ set_cid(#occi_resource{attributes=Attrs}=Res, #occi_kind{id=Cid}=Kind) ->
 				   Val2
 			   end, Attrs, occi_kind:get_attributes(Kind)),
     Res#occi_resource{cid=Cid, attributes=Attrs2}.
+
+-spec get_title(occi_resource()) -> binary().
+get_title(#occi_resource{title=Title}) ->
+    Title.
+
+-spec set_title(occi_resource(), binary()) -> occi_resource().
+set_title(#occi_resource{}=Res, Title) when is_binary(Title) ->
+    Res#occi_resource{title=Title}.
 
 -spec get_mixins(occi_resource()) -> [occi_cid()].
 get_mixins(#occi_resource{mixins=Mixins}) ->
@@ -138,3 +148,4 @@ add_link(#occi_resource{links=Links}=Res, Link) ->
 -spec get_links(occi_resource()) -> [uri()].
 get_links(#occi_resource{links=Links}) ->
     Links.
+

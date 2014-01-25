@@ -29,7 +29,8 @@
 -include_lib("exmpp/include/exmpp_xml.hrl").
 
 -export([render_capabilities/3,
-	 render_collection/1]).
+	 render_collection/1,
+	 render_entity/1]).
 
 %%%
 %%% API
@@ -48,6 +49,19 @@ render_collection(#occi_collection{}=Coll) ->
        exmpp_xml:element(occi, collection),
 	[ exmpp_xml:set_attribute(exmpp_xml:element(resource), <<"id">>, occi_uri:to_binary(Id)) || 
 	    Id <- occi_collection:get_entities(Coll) ])).
+
+render_entity(#occi_resource{}=Res) ->
+    E = render_related(exmpp_xml:element(occi, resource), kind, occi_resource:get_cid(Res)),
+    E2 = lists:foldl(fun (Mixin, Acc) ->
+			     render_related(Acc, mixin, Mixin)
+		     end, E, occi_resource:get_mixins(Res)),
+    E3 = lists:foldl(fun (Attr, Acc) ->
+			     render_attribute(Acc, Attr)
+		     end, E2, occi_resource:get_attributes(Res)),
+    render_xml(
+      set_attributes(E3, [{<<"id">>, occi_uri:to_string(occi_resource:get_id(Res))},
+			 {<<"title">>, occi_resource:get_title(Res)}])
+     ).
 
 %%%
 %%% Private
@@ -77,7 +91,8 @@ render_category(#xmlel{}=E, #occi_mixin{location=#uri{}=Uri}=Mixin) ->
 		    occi_uri:to_binary(Uri)).
 
 render_category(E, Scheme, Term, Title, Uri) ->
-    set_attributes(E, [{<<"scheme">>, Scheme}, {<<"term">>, Term}, {<<"title">>, Title}, {<<"location">>, Uri}]).
+    set_attributes(E, [{<<"scheme">>, Scheme}, {<<"term">>, Term}, 
+		       {<<"title">>, Title}, {<<"location">>, Uri}]).
 
 render_action(#occi_action{location=Uri}=Action) ->
     Attrs = [{<<"scheme">>, occi_action:get_scheme(Action)},
@@ -87,29 +102,28 @@ render_action(#occi_action{location=Uri}=Action) ->
     E = set_attributes(exmpp_xml:element(action), Attrs),
     render_attr_specs(E, occi_action:get_attr_list(Action)).
 
-render_parent(E, undefined) ->
+render_related(E, _, undefined) ->
     E;
-render_parent(E, #occi_cid{scheme=Scheme, term=Term}) ->
-    P = set_attributes(exmpp_xml:element(parent), 
+render_related(E, Name, #occi_cid{scheme=Scheme, term=Term}) ->
+    P = set_attributes(exmpp_xml:element(Name),
 		       [{<<"scheme">>, Scheme},
 			{<<"term">>, Term}]),
     exmpp_xml:append_child(E, P).
 
+render_parent(E, Cid) ->
+    render_related(E, parent, Cid).
+
 render_depends(E, []) ->
     E;
-render_depends(E, [#occi_cid{scheme=Scheme, term=Term}|Tail]) ->
-    Child = set_attributes(exmpp_xml:element(depends), 
-		       [{<<"scheme">>, Scheme},
-			{<<"term">>, Term}]),
-    render_depends(exmpp_xml:append_child(E, Child), Tail).
+render_depends(E, [#occi_cid{}=Cid|Tail]) ->
+    render_depends(
+      render_related(E, depends, Cid), Tail).
 
 render_applies(E, []) ->
     E;
-render_applies(E, [#occi_cid{scheme=Scheme, term=Term}|Tail]) ->
-    Child = set_attributes(exmpp_xml:element(applies), 
-			   [{<<"scheme">>, Scheme},
-			    {<<"term">>, Term}]),
-    render_applies(exmpp_xml:append_child(E, Child), Tail).
+render_applies(E, [#occi_cid{}=Cid|Tail]) ->
+    render_applies(
+      render_related(E, applies, Cid), Tail).
 
 render_attr_specs(E, []) ->
     E;
@@ -132,6 +146,13 @@ render_attr_specs(E, [#occi_attr{}=A|Tail]) ->
 render_attr_type(#xmlel{}=E, #occi_attr{}=A) ->
     exmpp_xml:set_attribute(E, <<"type">>, occi_attribute:get_type_id(A)).
 
+render_attribute(E, #occi_attr{}=Attr) ->
+    Child = set_attributes(
+	      exmpp_xml:element(attribute), 
+	      [{<<"name">>, occi_attribute:get_id(Attr)}, 
+	       {<<"value">>, render_attr_value(occi_attribute:get_value(Attr))}]),
+    exmpp_xml:append_child(E, Child).
+
 set_attributes(#xmlel{}=E, []) ->
     E;
 set_attributes(#xmlel{}=E, [{_Name, undefined}|Tail]) ->
@@ -142,3 +163,12 @@ set_attributes(#xmlel{}=E, [{Name, Value}|Tail]) ->
 render_xml(#xmlel{}=Doc) ->
     exmpp_xml:document_to_iolist(
       exmpp_xml:indent_document(Doc, <<"  ">>)).
+
+render_attr_value(Val) when is_float(Val) ->
+    io_lib:format("~p", [Val]);
+render_attr_value(Val) when is_integer(Val) ->
+    io_lib:format("~p", [Val]);
+render_attr_value(#uri{}=Val) ->
+    occi_uri:to_string(Val);
+render_attr_value(Val) ->
+    Val.

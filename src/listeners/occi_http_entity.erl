@@ -32,6 +32,7 @@
 
 %% Callback callbacks
 -export([to_json/2,
+	 to_xml/2,
 	 from_json/2]).
 
 -include("occi.hrl").
@@ -50,7 +51,10 @@ allowed_methods(Req, State) ->
 
 content_types_provided(Req, State) ->
     {[
-      {{<<"application">>,       <<"json">>,     []}, to_json}
+      {{<<"application">>,     <<"json">>,      []}, to_json},
+      {{<<"application">>,     <<"occi+json">>, []}, to_json},
+      {{<<"application">>,     <<"xml">>,       []}, to_xml},
+      {{<<"application">>,     <<"occi+xml">>,  []}, to_xml}
      ],
      Req, State}.
 
@@ -91,6 +95,10 @@ delete_resource(Req, #state{entity=Entity}=State) ->
     
 to_json(Req, #state{entity=Entity}=State) ->
     Body = occi_renderer_json:render_entity(Entity),
+    {[Body, "\n"], Req, State}.
+
+to_xml(Req, #state{entity=Entity}=State) ->
+    Body = occi_renderer_xml:render_entity(Entity),
     {[Body, "\n"], Req, State}.
 
 from_json(Req, State) ->
