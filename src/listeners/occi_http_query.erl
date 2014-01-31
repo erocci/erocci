@@ -36,19 +36,18 @@
 
 -include("occi.hrl").
 
--record(state, {mixin = undefined :: occi_mixin()}).
-
 init(_Transport, _Req, []) -> 
     {upgrade, protocol, cowboy_rest}.
 
 rest_init(Req, _Opts) ->
-    Req1 = occi_http:set_cors(Req),
-    {ok, cowboy_req:set_resp_header(<<"server">>, ?HTTP_SERVER_ID, Req1), #state{}}.
+    {ok, cowboy_req:set_resp_header(<<"server">>, ?HTTP_SERVER_ID, Req), #occi_node{type=occi_query}}.
 
-allowed_methods(Req, Ctx) ->
-    {[<<"HEAD">>, <<"GET">>, <<"DELETE">>, <<"POST">>, <<"OPTIONS">>], Req, Ctx}.
+allowed_methods(Req, State) ->
+    Methods = [<<"GET">>, <<"DELETE">>, <<"POST">>, <<"OPTIONS">>],
+    << ", ", Allow/binary >> = << << ", ", M/binary >> || M <- Methods >>,
+    {Methods, occi_http:set_cors(Req, Allow), State}.
 
-content_types_provided(Req, Ctx) ->
+content_types_provided(Req, State) ->
     {[
       {{<<"text">>,          <<"plain">>,     []}, to_plain},
       {{<<"text">>,          <<"occi">>,      []}, to_occi},
@@ -58,7 +57,7 @@ content_types_provided(Req, Ctx) ->
       {{<<"application">>,   <<"xml">>,       []}, to_xml},
       {{<<"application">>,   <<"occi+xml">>,  []}, to_xml}
      ],
-     Req, Ctx}.
+     Req, State}.
 
 content_types_accepted(Req, State) ->
     {[
@@ -67,41 +66,41 @@ content_types_accepted(Req, State) ->
      ],
      Req, State}.
 
-delete_resource(Req, Ctx) ->
-    case get_cta(Req, Ctx) of
+delete_resource(Req, State) ->
+    case get_cta(Req, State) of
 	undefined ->
 	    {ok, Req2} = cowboy_req:reply(415, Req),
-	    {halt, Req2, Ctx};
+	    {halt, Req2, State};
 	Fun ->
-	    ?MODULE:Fun(Req, Ctx)
+	    ?MODULE:Fun(Req, State)
     end.
 
-to_plain(Req, Ctx) ->
-    {K, M, A} = get_categories(),
-    Body = occi_renderer_plain:render_capabilities(K, M, A),
-    {Body, Req, Ctx}.
+to_plain(Req, State) ->
+    {ok, Node} = occi_store:find(State),
+    Body = occi_renderer_plain:render(Node),
+    {Body, Req, State}.
 
-to_occi(Req, Ctx) ->
-    {K, M, A} = get_categories(),
-    Req2 = cowboy_req:set_resp_header(<<"category">>, 
-				      occi_renderer_occi:render_capabilities(K, M, A), Req),
+to_occi(Req, State) ->
+    {ok, Node} = occi_store:find(State),
+    Value = occi_renderer_occi:render(occi_store:find(Node)),
+    Req2 = cowboy_req:set_resp_header(<<"category">>, Value, Req),
     Body = <<"OK\n">>,
-    {Body, Req2, Ctx}.
+    {Body, Req2, State}.
 
-to_uri_list(Req, Ctx) ->
-    {K, M, A} = get_categories(),
-    Body = [occi_renderer_uri_list:render_capabilities(K, M, A), "\n"],
-    {Body, Req, Ctx}.
+to_uri_list(Req, State) ->
+    {ok, Node} = occi_store:find(State),
+    Body = [occi_renderer_uri_list:render(Node), "\n"],
+    {Body, Req, State}.
 
-to_json(Req, Ctx) ->
-    {K, M, A} = get_categories(),
-    Body = [occi_renderer_json:render_capabilities(K, M, A), "\n"],
-    {Body, Req, Ctx}.
+to_json(Req, State) ->
+    {ok, Node} = occi_store:find(State),
+    Body = [occi_renderer_json:render(Node), "\n"],
+    {Body, Req, State}.
 
-to_xml(Req, Ctx) ->
-    {K, M, A} = get_categories(),
-    Body = [occi_renderer_xml:render_capabilities(K, M, A), "\n"],
-    {Body, Req, Ctx}.
+to_xml(Req, State) ->
+    {ok, Node} = occi_store:find(State),
+    Body = [occi_renderer_xml:render(Node), "\n"],
+    {Body, Req, State}.
 
 from_json(Req, State) ->
     {ok, Body, Req2} = cowboy_req:body(Req),
@@ -117,15 +116,16 @@ from_json(Req, State) ->
 	{ok, undefined} ->
 	    lager:debug("Empty request~n"),
 	    {false, Req2, State};
-	{ok, #occi_mixin{id=Cid}=Mixin} ->
+	{ok, #occi_mixin{id=Cid, location=Uri}=Mixin} ->
 	    case cowboy_req:method(Req2) of
 		{<<"DELETE">>, _} ->
-		    case catch occi_category_mgr:get_user_mixin(Cid) of
-			{error, unknown_user_mixin} ->
+		    Node = #occi_node{type=occi_user_mixin, data=#occi_mixin{id=Cid, _='_'}, _='_'},
+		    case occi_store:find(Node) of
+			{ok, []} ->
 			    {ok, Req3} = cowboy_req:reply(403, Req2),
 			    {halt, Req3, State};
-			Mixin2 ->
-			    case occi_store:delete(Mixin2) of
+			{ok, Node2} ->
+			    case occi_store:delete(Node2) of
 				{error, undefined_backend} ->
 				    lager:debug("Internal error deleting user mixin~n"),
 				    {ok, Req2} = cowboy_req:reply(500, Req),
@@ -138,10 +138,12 @@ from_json(Req, State) ->
 			    end
 		    end;
 		{<<"POST">>, _} ->
-		    case occi_category_mgr:register_user_mixin(Mixin) of
+		    Node = occi_node:new_user_mixin(Uri, Mixin),
+		    case occi_store:save(Node) of
 			ok ->
-			    RespBody = occi_renderer_json:render_mixin(Mixin),
-			    {true, cowboy_req:set_resp_body([RespBody, "\n"], Req2), State};
+			    RespBody = occi_renderer_json:render(Node),
+			    Req3 = cowboy_req:set_resp_header(<<"content-type">>, <<"application/json">>, Req2),
+			    {true, cowboy_req:set_resp_body([RespBody, "\n"], Req3), State};
 			{error, Reason} ->
 			    lager:debug("Error creating resource: ~p~n", [Reason]),
 			    {ok, Req3} = cowboy_req:reply(500, Req2),
@@ -153,20 +155,15 @@ from_json(Req, State) ->
 %%%
 %%% Private
 %%%
-get_categories() ->
-    { occi_category_mgr:find(#occi_cid{class=kind, _='_'}),
-      occi_category_mgr:find(#occi_cid{class=mixin, _='_'}),
-      occi_category_mgr:find(#occi_cid{class=action, _='_'}) }.
-
-get_cta(Req, Ctx) ->
+get_cta(Req, State) ->
     case cowboy_req:parse_header(<<"content-type">>, Req) of
 	{error, badarg} ->
 	    undefined;
 	{ok, undefined, Req2} ->
-	    {[{_Type, Fun}|_CTA], _, _} = content_types_accepted(Req2, Ctx),
+	    {[{_Type, Fun}|_CTA], _, _} = content_types_accepted(Req2, State),
 	    Fun;
 	{ok, ContentType, Req2} ->
-	    {CTA, _, _} = content_types_accepted(Req2, Ctx),
+	    {CTA, _, _} = content_types_accepted(Req2, State),
 	    choose_cta(ContentType, CTA)
     end.
 

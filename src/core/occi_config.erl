@@ -13,7 +13,7 @@
 -export([start/0,
 	 load/1,
 	 get/2,
-	 get_url/1,
+	 to_url/1,
 	 gen_id/1]).
 
 -define(TABLE, ?MODULE).
@@ -34,16 +34,9 @@ get(Name, Default) ->
 	    Value
     end.
 
-%
-% Transform relative uri in url, if necessary 
-%
-get_url(Uri) when is_binary(Uri) ->
-    get_url(binary_to_list(Uri));
-get_url([$/|Uri]) ->
+to_url(#uri{}=Uri) ->
     Name = get(name, undefined),
-    #uri{scheme=Name#uri.scheme, host=Name#uri.host, port=Name#uri.port, path=[$/|Uri]};
-get_url(Uri) ->
-    occi_uri:parse(Uri).
+    Uri#uri{scheme=Name#uri.scheme, host=Name#uri.host, port=Name#uri.port}.
 
 -spec gen_id(string() | binary()) -> binary().
 gen_id(Prefix) when is_binary(Prefix) ->

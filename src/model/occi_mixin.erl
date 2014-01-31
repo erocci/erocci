@@ -94,7 +94,7 @@ get_location(#occi_mixin{location=Uri}) ->
     Uri.
 
 set_location(Mixin, Uri) when is_list(Uri)->
-    set_location(Mixin, occi_config:get_url(Uri));
+    set_location(Mixin, occi_uri:parse(Uri));
 set_location(#occi_mixin{}=Mixin, #uri{}=Uri) -> 
     Mixin#occi_mixin{location=Uri}.
 

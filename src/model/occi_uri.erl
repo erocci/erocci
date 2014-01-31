@@ -32,6 +32,10 @@
 %%%
 %%% API
 %%%
+parse(Uri) when is_binary(Uri) ->
+    parse(binary_to_list(Uri));
+parse([$/|Uri]) ->
+    #uri{scheme=undefined, path=[$/|Uri]};
 parse(Uri) ->
     case uri:parse(Uri) of
 	{ok, {Scheme, UserInfo, Host, Port, Path, Query}} ->
@@ -42,15 +46,21 @@ parse(Uri) ->
 
 to_iolist(undefined) ->
     [];
+to_iolist(#uri{scheme=undefined}=Uri) ->
+    to_iolist(occi_config:to_url(Uri));
 to_iolist(#uri{scheme=Scheme, userinfo=Auth, host=Host, port=Port, path=Path, query=Query}) ->
     uri:to_iolist({Scheme, Auth, Host, Port, Path, Query}).
 
 to_binary(undefined) ->
     <<"">>;
+to_binary(#uri{scheme=undefined}=Uri) ->
+    to_binary(occi_config:to_url(Uri));
 to_binary(#uri{scheme=Scheme, userinfo=Auth, host=Host, port=Port, path=Path, query=Query}) ->
     uri:to_binary({Scheme, Auth, Host, Port, Path, Query}).
 
 to_string(undefined) ->
     [];
+to_string(#uri{scheme=undefined}=Uri) ->
+    to_string(occi_config:to_url(Uri));
 to_string(#uri{scheme=Scheme, userinfo=Auth, host=Host, port=Port, path=Path, query=Query}) ->
     uri:to_string({Scheme, Auth, Host, Port, Path, Query}).

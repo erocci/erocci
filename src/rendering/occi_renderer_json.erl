@@ -27,10 +27,6 @@
 
 -include("occi.hrl").
 
--export([render_capabilities/3,
-	 render_mixin/1,
-	 render_collection/1,
-	 render_entity/1]).
 -export([render/1]).
 
 -type ejson()        :: ejson_arr() | ejson_obj().
@@ -44,7 +40,14 @@
 %%%
 %%% API
 %%%
-render_capabilities(Kinds, Mixins, Actions) ->
+render(#occi_node{type=dir}=Node) ->
+    jiffy:encode(lists:flatten(render_dir(Node)));
+
+render(#occi_node{type=occi_resource, data=Res}) ->
+    Content = {<<"resources">>, [render_ejson(Res)]},
+    jiffy:encode({[Content]}, [pretty]);
+
+render(#occi_node{type=occi_query, data={Kinds, Mixins, Actions}}) ->
     KindsJson = {<<"kinds">>, lists:map(fun(Obj) -> 
 						render_ejson(Obj) 
 					end, Kinds)},
@@ -54,31 +57,14 @@ render_capabilities(Kinds, Mixins, Actions) ->
     ActionsJson = {<<"actions">>, lists:map(fun(Obj) -> 
 						    render_ejson(Obj) 
 					    end, Actions)},
-    jiffy:encode({[KindsJson, MixinsJson, ActionsJson]}, [pretty]).
+    jiffy:encode({[KindsJson, MixinsJson, ActionsJson]}, [pretty]);
 
-render_mixin(#occi_mixin{}=Mixin) ->
+render(#occi_node{type=occi_user_mixin, data=Mixin}) ->
     MixinJson = render_ejson(Mixin),
-    jiffy:encode(MixinJson, [pretty]).
+    jiffy:encode(MixinJson, [pretty]);
 
-render_collection(#occi_collection{}=Coll) ->
+render(#occi_node{type=occi_collection, data=Coll}) ->
     jiffy:encode([ occi_uri:to_binary(Id) || Id <- occi_collection:get_entities(Coll) ], [pretty]).
-
-render_entity(#occi_resource{}=Res) ->
-    Content = {<<"resources">>, [render_ejson(Res)]},
-    jiffy:encode({[Content]}, [pretty]).
-
-render(Obj) when is_record(Obj, occi_kind); 
-		 is_record(Obj, occi_mixin);
-		 is_record(Obj, occi_action); 
-		 is_record(Obj, occi_resource); 
-		 is_record(Obj, occi_link);
-		 is_record(Obj, occi_cid) ->
-    Ejson = render_ejson(Obj),
-    jiffy:encode(Ejson);
-render(List) when is_list(List) ->
-    jiffy:encode(lists:map(fun(Obj) -> 
-				   render_ejson(Obj) 
-			   end, List)).
 
 %%%
 %%% Private
@@ -170,6 +156,14 @@ render_attribute_values([#occi_attr{}=Attr|Tail], Acc) ->
 	Value ->
 	    render_attribute_values(Tail, insert_attr(Id, Value, Acc))
     end.
+
+render_dir(#occi_node{id=Id, type=dir, data=Children}) ->
+    [ occi_uri:to_binary(Id) | 
+      gb_sets:fold(fun (Child, Acc) ->
+			   [ render_dir(Child) | Acc ]
+		   end, [], Children)];
+render_dir(#occi_node{id=Id}) ->
+    [occi_uri:to_binary(Id)].
 
 %
 % insert attribute name/value into ejson tree.

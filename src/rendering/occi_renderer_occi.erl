@@ -29,18 +29,17 @@
 -include("occi.hrl").
 
 %% API
--export([render_capabilities/3,
-	 render_collection/1]).
+-export([render/1]).
 
 %%%===================================================================
 %%% API
 %%%===================================================================
-render_capabilities(Kinds, Mixins, Actions) ->
+render(#occi_node{type=occi_query, data={Kinds, Mixins, Actions}}) ->
     occi_renderer:join(
       lists:map(fun (Cat) ->
 			occi_renderer_text:render(Cat, "")
 		end, Kinds ++ Mixins ++ Actions),
-      <<", ">>).
+      <<", ">>);
 
-render_collection(#occi_collection{}=Coll) ->
+render(#occi_node{type=occi_collection, data=Coll}) ->
     occi_renderer:join([ occi_uri:to_iolist(Id) || Id <- occi_collection:get_entities(Coll) ], <<", ">>).

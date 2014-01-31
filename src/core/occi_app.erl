@@ -52,9 +52,9 @@
 %% @end
 %%--------------------------------------------------------------------
 start(normal, _Args) ->
-    ensure_started(lager),
-    ensure_started(inets),
-    ensure_started(exmpp),
+    application:ensure_all_started(lager),
+    application:ensure_all_started(inets),
+    application:ensure_all_started(exmpp),
     db_init(),
     Ret = occi_sup:start_link(),
     occi_config:start(),
@@ -90,14 +90,6 @@ loop() ->
     receive
 	_ ->
 	    loop()
-    end.
-
-ensure_started(App) ->
-    case application:start(App) of
-        ok ->
-            ok;
-        {error, {already_started, App}} ->
-            ok
     end.
 
 db_init() ->

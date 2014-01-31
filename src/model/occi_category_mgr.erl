@@ -31,12 +31,11 @@
 %% API
 -export([start_link/0]).
 -export([find/1,
+	 find_all/0,
 	 get/1,
-	 get_user_mixin/1,
 	 register_extension/2,
 	 register_kind/1,
 	 register_mixin/1,
-	 register_user_mixin/1,
 	 register_action/1]).
 
 %% Supervisor callbacks
@@ -65,66 +64,64 @@ register_extension({xml, Path}, Mapping) ->
 	    {error, parse_error};
 	Ext ->
 	    lists:foreach(fun(#occi_kind{id=Id}=Kind) ->
-				  {Uri, Backend} = get_mapping(Id, Mapping),
-				  register_kind(Kind#occi_kind{location=occi_config:get_url(Uri), backend=Backend});
+				  register_kind(Kind#occi_kind{location=get_uri(Id, Mapping)});
 			     (#occi_mixin{id=Id}=Mixin) ->
-				  {Uri, Backend} = get_mapping(Id, Mapping),
-				  register_mixin(Mixin#occi_mixin{location=occi_config:get_url(Uri), backend=Backend})
+				  register_mixin(Mixin#occi_mixin{location=get_uri(Id, Mapping)})
 			  end,
 			  occi_extension:get_categories(Ext))
     end.
 
 register_kind(#occi_kind{id=Id, location=#uri{}=Uri}=Kind) ->
-    lager:info("Registering kind: ~s~s -> ~s~n", 
-	       [ Id#occi_cid.scheme, Id#occi_cid.term, Uri#uri.path]),
+    lager:info("Registering kind: ~p -> ~p~n", [ lager:pr(Id, ?MODULE), lager:pr(Uri, ?MODULE) ]),
     ets:insert(?TABLE, Kind),
-    occi_listener:add_collection(Kind, Uri),
     lists:foreach(fun(Action) ->
 			  register_action(Action)
 		  end,
 		  occi_kind:get_actions(Kind)).
 
 register_mixin(#occi_mixin{id=Id, location=Uri}=Mixin) ->
-    lager:info("Registering mixin: ~s~s -> ~s~n", 
-	       [ Id#occi_cid.scheme, Id#occi_cid.term, Uri#uri.path ]),
+    lager:info("Registering mixin: ~p -> ~p~n", [ lager:pr(Id, ?MODULE), lager:pr(Uri, ?MODULE) ]),
     ets:insert(?TABLE, Mixin),
-    occi_listener:add_collection(Mixin, Uri),
     lists:foreach(fun(Action) ->
 			  register_action(Action)
 		  end,
 		  occi_mixin:get_actions(Mixin)).
 
-register_user_mixin(#occi_mixin{id=Id, location=Uri}=Mixin) ->
-    lager:info("Registering mixin: ~s~s -> ~s~n", [Id#occi_cid.scheme, Id#occi_cid.term, Uri#uri.path]),
-    Backend = occi_store:get_backend(Uri),
-    Mixin2 = Mixin#occi_mixin{backend=Backend},
-    case occi_store:save(Mixin2) of
-	ok ->
-	    occi_listener:add_collection(Mixin2, Uri);
-	{error, Err} ->
-	    {error, Err}
-    end.
-
-register_action(Action) ->
-    Id = Action#occi_action.id,
-    lager:info("Registering action: ~s~s~n", 
-	       [ Id#occi_cid.scheme, Id#occi_cid.term ]),
+register_action(#occi_action{id=Id}=Action) ->
+    lager:info("Registering action: ~p~n", [ lager:pr(Id, ?MODULE) ]),
     ets:insert(?TABLE, Action).
 
--spec find(occi_cid()) -> [occi_category()].
-find(#occi_cid{class=kind}=Cid) ->
-    ets:match_object(?TABLE, #occi_kind{id=Cid, _='_'});
-find(#occi_cid{class=mixin}=Cid) ->
-    Mixin = #occi_mixin{id=Cid, _='_'},
-    Mixins = ets:match_object(?TABLE, Mixin),
-    {ok, UMixins} = occi_store:find(Mixin),
-    lists:flatten([Mixins, UMixins]);
-find(#occi_cid{class=action}=Cid) ->
-    ets:match_object(?TABLE, #occi_action{id=Cid, _='_'});
+-spec find(occi_category() | uri()) -> [occi_category()].
+find(#uri{path=Path}) ->
+    case ets:match_object(?TABLE, #occi_kind{location=#uri{path=Path, _='_'}, _='_'}) of
+	[] ->
+	    ets:match_object(?TABLE, #occi_mixin{location=#uri{path=Path, _='_'}, _='_'});
+	Other ->
+	    Other
+    end;
+
 find(#occi_cid{}=Cid) ->
-    find(Cid#occi_cid{class=kind})
-	++ find(Cid#occi_cid{class=mixin})
-	++ find(Cid#occi_cid{class=action}).
+    case ets:match_object(?TABLE, #occi_kind{id=Cid, _='_'}) of
+	[] ->
+	    ets:match_object(?TABLE, #occi_mixin{id=Cid, _='_'});
+	Res ->
+	    Res
+    end;
+	    	    
+find(#occi_kind{}=Kind) ->
+    ets:match_object(?TABLE, Kind);
+
+find(#occi_mixin{}=Mixin) ->
+    ets:match_object(?TABLE, Mixin);
+
+find(#occi_action{}=Action) ->
+    ets:match_object(?TABLE, Action).
+
+-spec find_all() -> {[occi_kind()], [occi_mixin()], [occi_action()]}.
+find_all() ->
+    { find(#occi_kind{_='_'}),
+      find(#occi_mixin{_='_'}),
+      find(#occi_action{_='_'}) }.
 
 -spec get(occi_cid()) -> occi_mixin().
 get(#occi_cid{class=mixin}=Cid) ->
@@ -132,16 +129,15 @@ get(#occi_cid{class=mixin}=Cid) ->
 	[Mixin] ->
 	    Mixin;
 	_ ->
-	    throw({error, unknown_mixin})
-    end.
+	    throw({error, unknown_category})
+    end;
 
--spec get_user_mixin(occi_cid()) -> occi_mixin().
-get_user_mixin(#occi_cid{class=mixin}=Cid) ->
-    case occi_store:find(#occi_mixin{id=Cid, _='_'}) of
-	{ok, [Mixin]} ->
-	    Mixin;
+get(#occi_cid{class=kind}=Cid) ->
+    case ets:match_object(?TABLE, #occi_kind{id=Cid, _='_'}) of
+	[Kind] ->
+	    Kind;
 	_ ->
-	    throw({error, unknown_user_mixin})
+	    throw({error, unknown_category})
     end.
 
 %%%===================================================================
@@ -170,11 +166,11 @@ init([]) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
-get_mapping(Id, []) ->
+get_uri(Id, []) ->
     lager:error("Unmapped category: ~s~s~n", [Id#occi_cid.scheme, 
 					      Id#occi_cid.term]),
     throw({unmapped_category, Id});
-get_mapping(Id, [{Id, {Uri, Backend}}|_Tail]) ->
-    {Uri, Backend};
-get_mapping(Id, [_H|Tail]) ->
-    get_mapping(Id, Tail).
+get_uri(Id, [{Id, Uri}|_Tail]) ->
+    occi_uri:parse(Uri);
+get_uri(Id, [_H|Tail]) ->
+    get_uri(Id, Tail).

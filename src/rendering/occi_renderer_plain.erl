@@ -33,32 +33,21 @@
 -include("occi.hrl").
 
 %% API
--export([render_capabilities/3,
-	 render_collection/1]).
-
--export([parse_resource_repr/1]).
+-export([render/1]).
 
 %%%===================================================================
 %%% API
 %%%===================================================================
-render_capabilities(Kinds, Mixins, Actions) ->
-    lists:map(fun(Cat) -> [<<"Category: ">>, render(Cat), "\n"] end, 
-	      Kinds ++ Mixins ++ Actions).
+render(#occi_node{type=occi_query, data={Kinds, Mixins, Actions}}) ->
+    lists:map(fun(Cat) -> 
+		      [<<"Category: ">>, occi_renderer_text:render(Cat, "\n\t"), "\n"] 
+	      end, Kinds ++ Mixins ++ Actions);
 
-render_collection(Coll) ->
+render(#occi_node{type=occi_collection, data=Coll}) ->
     Headers = lists:foldl(fun (EntityId, Acc) ->
 				  orddict:append(<<"x-occi-location">>, [occi_uri:to_iolist(EntityId)], Acc)
 			  end, orddict:new(), occi_collection:get_entities(Coll)),
     render_headers(Headers).
-
-render(Category) when is_record(Category, occi_kind); 
-		      is_record(Category, occi_mixin);
-		      is_record(Category, occi_action) ->
-    occi_renderer_text:render(Category, "\n\t").
-
--spec parse_resource_repr(Bin :: binary()) -> [occi_entity()].
-parse_resource_repr(Bin) ->
-    occi_parser:parse_resource_repr(occi_scanner:scan(Bin)).
 
 %%
 %% Private

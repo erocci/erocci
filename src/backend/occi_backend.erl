@@ -27,10 +27,11 @@
 -include("occi.hrl").
 %% API
 -export([start_link/3]).
--export([associate_mixin/3,
+-export([update/2,
 	 save/2,
 	 delete/2,
-	 find/2]).
+	 find/2,
+	 load/2]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -52,20 +53,24 @@
 -callback terminate(State :: term()) ->
     term().
 
--callback associate_mixin(Cid :: occi_cid(), Uris :: [uri()], State :: term()) ->
+-callback update(Node :: occi_node(), State :: term()) ->
     {ok, State :: term()} |
     {{error, Reason :: term()}, State :: term()}.
 
--callback save(Obj :: occi_object(), State :: term()) ->
+-callback save(Node :: occi_node(), State :: term()) ->
     {ok, State :: term()} |
     {{error, Reason :: term()}, State :: term()}.
 
--callback delete(Obj :: occi_object(), State :: term()) ->
+-callback delete(Node :: occi_node(), State :: term()) ->
     {ok, State :: term()} |
     {{error, Reason :: term()}, State :: term()}.
 
--callback find(Request :: term(), State :: term()) ->
-    {{ok, term()}, term()} |
+-callback find(Request :: occi_node(), State :: term()) ->
+    {{ok, [occi_node()]}, term()} |
+    {{error, Reason :: term()}, State :: term()}.
+
+-callback load(Node :: occi_node(), State :: term()) ->
+    {{ok, occi_node()}, term()} |
     {{error, Reason :: term()}, State :: term()}.
 
 %%%
@@ -76,8 +81,8 @@ start_link(Ref, Backend, Opts) ->
     lager:info("Starting storage backend ~p (~p)~n", [Ref, Backend]),
     gen_server:start_link({local, Ref}, ?MODULE, {Backend, Opts}, []).
 
-associate_mixin(Ref, Cid, Uris) ->
-    gen_server:call(Ref, {associate_mixin, Cid, Uris}).
+update(Ref, Node) ->
+    gen_server:call(Ref, {update, Node}).
 
 save(Ref, Obj) ->
     gen_server:call(Ref, {save, Obj}).
@@ -87,6 +92,9 @@ delete(Ref, Obj) ->
 
 find(Ref, Request) ->
     gen_server:call(Ref, {find, Request}).
+
+load(Ref, Request) ->
+    gen_server:call(Ref, {load, Request}).
 
 %%--------------------------------------------------------------------
 %% @private
@@ -122,8 +130,8 @@ init({Backend, Args}) ->
 %%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_call({associate_mixin, Cid, Uris}, _From, #state{backend=Backend, state=BState}) ->
-    {Reply, RState} = Backend:associate_mixin(Cid, Uris, BState),
+handle_call({update, Node}, _From, #state{backend=Backend, state=BState}) ->
+    {Reply, RState} = Backend:update(Node, BState),
     {reply, Reply, #state{backend=Backend, state=RState}};
 handle_call({save, Obj}, _From, #state{backend=Backend, state=BState}) ->
     {Reply, RState} = Backend:save(Obj, BState),
@@ -133,6 +141,9 @@ handle_call({delete, Obj}, _From, #state{backend=Backend, state=BState}) ->
     {reply, Reply, #state{backend=Backend, state=RState}};    
 handle_call({find, Request}, _From, #state{backend=Backend, state=BState}) ->
     {Reply, RState} = Backend:find(Request, BState),
+    {reply, Reply, #state{backend=Backend, state=RState}};
+handle_call({load, Request}, _From, #state{backend=Backend, state=BState}) ->
+    {Reply, RState} = Backend:load(Request, BState),
     {reply, Reply, #state{backend=Backend, state=RState}};
 handle_call(Req, From, State) ->
     lager:error("Unknown message from ~p: ~p~n", [From, Req]),

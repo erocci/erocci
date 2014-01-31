@@ -26,6 +26,7 @@ done
 cat <<EOF > $config
 [
  {lager, [
+          {colored, true},
 	  {handlers, 
 	   [
 	    {lager_console_backend, $debug}

@@ -23,12 +23,12 @@
 			 version        :: term(),
 			 kinds          :: [occi_cid()],
 			 mixins         :: [occi_cid()],
-			 types          :: term()           % dict
+			 types          :: dict()           % dict
 			}).
 -type(occi_extension() :: #occi_extension{}).
 
 -record(occi_collection, {cid                    :: occi_cid(),
-			  entities  = undefined  :: term()}).    % ordset
+			  entities  = undefined  :: set()}).    % ordset
 -type(occi_collection() :: #occi_collection{}).
 
 %%% OCCI Category ID
@@ -37,17 +37,11 @@
 		   class     = undefined :: occi_class()}).
 -type(occi_cid() :: #occi_cid{}).
 
--record(occi_category, {ref      :: reference(),
-			id       :: #occi_cid{},
-			location :: uri(),
-			backend  :: atom()}).
-
 -record(occi_kind, {id                  :: #occi_cid{},
 		    title               :: binary(),
 		    location            :: uri(),
-		    backend             :: atom(),
 		    parent              :: #occi_cid{},
-		    attributes          :: term(),            % orddict
+		    attributes          :: dict(),            % orddict
 		    actions     = []    :: [occi_action()]
 		   }).
 -type(occi_kind() :: #occi_kind{}).
@@ -55,10 +49,9 @@
 -record(occi_mixin, {id                      :: #occi_cid{},
 		     title       = undefined :: binary(),
 		     location    = undefined :: uri(),
-		     backend                 :: atom(),
 		     depends     = []        :: [#occi_cid{}],
 		     applies     = []        :: [#occi_cid{}],
-		     attributes              :: term(),            % orddict
+		     attributes              :: dict(),            % orddict
 		     actions     = []        :: [occi_action()]
 		    }).
 -type(occi_mixin() :: #occi_mixin{}).
@@ -68,7 +61,7 @@
 -record(occi_action, {id                        :: #occi_cid{},
 		      title                     :: binary(),
 		      location    = undefined   :: uri(),
-		      attributes                :: term()             % orddict
+		      attributes                :: dict()             % orddict
 		     }).
 -type(occi_action() :: #occi_action{}).
 
@@ -91,10 +84,10 @@
 
 %%% OCCI Resource
 -record(occi_resource, {id         = undefined :: uri(),
-			cid                    :: occi_cid(),
+			cid        = undefined :: occi_cid(),
 			title      = undefined :: binary(),
 		        summary    = undefined :: binary(),
-			attributes = undefined :: term(),       % dict
+			attributes = undefined :: dict(),    % orddict()
 			links      = []        :: [uri()],
 			mixins     = []        :: [occi_cid()]}).
 -type(occi_resource() :: #occi_resource{}).
@@ -127,8 +120,6 @@
 -type(hook_name() :: on_save | on_update | on_delete | on_action).
 -type(hook_fun() :: {atom(), atom()} | fun()).
 
--type(occi_object() :: occi_entity() | occi_category() | occi_collection()).
-
 -record(occi_request, {collection          :: occi_collection(),
 		       kinds      = []     :: [occi_kind()],
 		       mixins     = []     :: [occi_mixin()],
@@ -137,3 +128,32 @@
 		       links      = []     :: [occi_link()]
 		      }).
 -type(occi_request() :: #occi_request{}).
+
+-type(occi_node_id() :: uri()).
+-type(occi_node_type() :: dir | 
+			  undefined |
+			  occi_query |
+			  occi_resource | 
+			  occi_link |
+			  occi_collection | 
+			  occi_mixin | 
+			  occi_user_mixin |
+			  occi_kind |
+			  occi_mixin).
+-record(occi_node, {id                     :: occi_node_id(),
+		    objid     = undefined  :: term(),
+		    type      = undefined  :: occi_node_type(),
+		    parent    = undefined  :: occi_node_id(),
+		    data      = undefined  :: term(),
+		    recursive = false      :: boolean(),
+		    acl       = []         :: occi_acl()}).
+-type(occi_node() :: #occi_node{}).
+
+-record(occi_backend, {ref            :: atom(),
+		       mod            :: atom(),
+		       opts           :: term()}).
+-type(occi_backend() :: #occi_backend{}).
+
+-type(occi_acl() :: [term()]).
+
+-type(occi_object() :: occi_node() | occi_entity() | occi_category() | occi_collection()).

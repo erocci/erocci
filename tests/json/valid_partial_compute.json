@@ -1,10 +1,10 @@
 { "resources":
   [
       {
-	  "kind": "http://schemas.ogf.org/occi/infrastructure#compute",
 	  "attributes": {
               "occi": {
 		  "compute": {
+		      "architecture": "x86",
 		      "speed": 2,
 		      "memory": 4,
 		      "cores": 2

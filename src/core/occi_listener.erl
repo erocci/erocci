@@ -30,23 +30,16 @@
 
 %% API
 -export([start_link/0, 
-	 register/1,
-	 notify/1,
-	 add_collection/2]).
+	 register/1]).
 
 -type opts() :: [{atom(), any()}].
 -callback start_link(atom(), opts()) -> ok | {error, atom()}.
 -callback terminate(atom()) -> ok.
--callback add_collection(atom(), occi_category(), uri()) -> ok | {error, atom()}.
 
 %% Supervisor callbacks
 -export([init/1]).
 
 -define(SUPERVISOR, ?MODULE).
--define(TABLE, ?MODULE).
-
--record(listener, {ref :: reference(), 
-		   mod ::atom()}).
 
 %%%===================================================================
 %%% API functions
@@ -62,12 +55,6 @@
 start_link() ->
     supervisor:start_link({local, ?SUPERVISOR}, ?MODULE, []).
 
-notify({add_backend, Backend}) ->
-    {ok, Mixins} = occi_store:find(Backend, #occi_mixin{_='_'}),
-    lists:foreach(fun (#occi_mixin{location=Uri}=Mixin) ->
-			  add_collection(Mixin, Uri)
-		  end, Mixins).
-
 -spec register({Ref :: atom(), Module :: atom(), Opts :: term()}) -> {ok, pid()} | {error, term()}.
 register({Ref, Module, Opts}) ->
     lager:info("Registering listener: ~p~n", [Module]),
@@ -79,18 +66,10 @@ register({Ref, Module, Opts}) ->
 		 [Module]},
     case supervisor:start_child(?SUPERVISOR, ChildSpec) of
 	{ok, Pid} ->
-	    ets:insert(?TABLE, #listener{ref=Ref, mod=Module}),
 	    {ok, Pid};
 	{error, Err} ->
 	    throw({error, Err})
     end.
-
--spec add_collection(occi_category(), uri()) -> ok.
-add_collection(Category, #uri{}=Uri) ->
-    lager:debug("Add collection path: ~p -> ~p~n", [element(2, Category), occi_uri:to_string(Uri)]),
-    lists:foreach(fun (#listener{ref=Ref, mod=Mod}) ->
-			  Mod:add_collection(Ref, Category, Uri)
-		  end, get_listeners()).
 
 %%%===================================================================
 %%% Supervisor callbacks
@@ -111,11 +90,8 @@ add_collection(Category, #uri{}=Uri) ->
 %%--------------------------------------------------------------------
 init(_) ->
     lager:info("Starting OCCI listeners manager"),
-    ?TABLE = ets:new(?TABLE, [set, public, {keypos, 2}, named_table]),
     {ok, {{one_for_one, 1000, 6000}, []}}.
 
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
-get_listeners() ->
-    ets:match_object(?TABLE, #listener{_='_'}).

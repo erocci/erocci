@@ -31,14 +31,10 @@
 %% API
 -export([start_link/0, register/1]).
 -export([save/1,
-	 save/2,
-	 associate_mixin/3,
+	 update/1,
 	 delete/1,
-	 get_collection/1,
 	 find/1,
-	 find/2,
-	 get_backend/1, 
-	 is_valid_path/1]).
+	 load/1]).
 
 %% supervisor callbacks
 -export([init/1]).
@@ -50,8 +46,6 @@
 -type(backend_mod() :: atom()).
 -type(backend_opts() :: term()).
 -type(backend_desc() :: {backend_ref(), backend_mod(), backend_opts()}).
-
--export_type([backend_ref/0]).
 
 %%%===================================================================
 %%% API
@@ -67,106 +61,108 @@
 start_link() ->
     supervisor:start_link({local, ?SUPERVISOR}, ?MODULE, []).
 
--spec register(backend_desc()) ->
-		      {ok, pid()} 
-			  | ignore 
-			  | {error, term()}.
-register({Ref, Mod, Opts}) ->
+-spec register(backend_desc()) -> {ok, pid()} | ignore | {error, term()}.
+register({Ref, Mod, Opts, Path}) when Path == "/" ->
     lager:info("Registering backend: ~p~n", [Ref]),
-    Backend = {Ref, {occi_backend, start_link, [Ref, Mod, [{ref, Ref} | Opts]]}, 
-	       permanent, 5000, worker, [occi_backend, Mod]},
-    case supervisor:start_child(occi_store, Backend) of
+    Def = {Ref, {occi_backend, start_link, [Ref, Mod, [{ref, Ref} | Opts]]}, 
+	   permanent, 5000, worker, [occi_backend, Mod]},
+    case supervisor:start_child(occi_store, Def) of
 	{ok, Pid} ->
-	    ets:insert(?TABLE, {backend, Ref}),
-	    occi_listener:notify({add_backend, Ref}),
+	    Backend = #occi_backend{ref=Ref, mod=Mod, opts=Opts},
+	    ets:insert(?TABLE, occi_node:new(occi_uri:parse(Path), Backend)),
 	    {ok, Pid};
 	{error, Err} ->
 	    {error, Err}
-    end.
-
--spec is_valid_path(Path :: uri()) -> 
-			   false 
-			       | {entity, atom(), term()}
-			       | {category, atom()}.
-is_valid_path(Path) ->
-    lager:debug("Looking up path: ~p~n", [Path]),
-    false.
-
--spec get_backend(uri()) -> backend_ref().
-get_backend(_) ->
-    % TODO: allow multiple backends
-    case ets:lookup(?TABLE, backend) of
-	[] ->
-	    undefined;
-	[{backend, Ref}] ->
-	    Ref
-    end.
-
--spec save(occi_object()) -> ok | {error, term()}.
-save(Object) ->
-    case get_backend([]) of
-	undefined ->
-	    {error, undefined_backend};
-	Backend ->
-	    occi_backend:save(Backend, Object)
-    end.
-
--spec save(backend_ref(), occi_object()) -> ok | {error, term()}.
-save(Backend, Object) ->
-    occi_backend:save(Backend, Object).
-
--spec delete(occi_object()) -> ok | {error, term()}.
-delete(Object) ->
-    case get_backend([]) of
-	undefined ->
-	    {error, undefined_backend};
-	Backend ->
-	    occi_backend:delete(Backend, Object)
-    end.
-
--spec associate_mixin(backend_ref(), occi_cid(), [uri()]) -> ok | {error, term()}.
-associate_mixin(Backend, Cid, Uris) ->
-    occi_backend:associate_mixin(Backend, Cid, Uris).
-
-get_collection(#occi_kind{id=Id, backend=Backend}) ->
-    lager:debug("Retrieve collection: ~p (backend ~p)~n", [Id, Backend]),
-    case occi_backend:find(Backend, #occi_collection{cid=Id, _='_'}) of
-	{ok, [Coll]} ->
-	    {ok, Coll};
-	_ ->
-	    {ok, occi_collection:new(Id)}
     end;
-get_collection(#occi_mixin{id=Id, backend=Backend}) ->
-    lager:debug("Retrieve collection: ~p (backend ~p)~n", [Id, Backend]),
-    case occi_backend:find(Backend, #occi_collection{cid=Id, _='_'}) of
-	{ok, [Coll]} ->
-	    {ok, Coll};
-	_ ->
-	    {ok, occi_collection:new(Id)}
-    end.
 
-find(Request) ->
-    % TODO: fix multiple backends
-    case get_backend([]) of
+register({_, _, _, _}) ->
+    lager:error("Multiple backends not supported at this time.~n"),
+    throw({error, not_supported}).
+
+-spec save(occi_node()) -> ok | {error, term()}.
+save(#occi_node{id=#uri{path=Path}}=Node) ->
+    case get_backend(Path) of
 	undefined ->
-	    {ok, []};
+	    {error, undefined_backend};
 	Backend ->
-	    find(Backend, Request)
+	    occi_backend:save(Backend, Node)
     end.
 
-find(Backend, Request) ->
-    lager:debug("Find request: ~p~n", [Request]),
-    occi_backend:find(Backend, Request).
+-spec update(occi_node()) -> ok | {error, term()}.
+update(#occi_node{id=#uri{path=Path}}=Node) ->
+    case get_backend(Path) of
+	undefined ->
+	    {error, undefined_backend};
+	Backend ->
+	    occi_backend:update(Backend, Node)
+    end.
+
+-spec delete(occi_node()) -> ok | {error, term()}.
+delete(#occi_node{id=#uri{path=Path}}=Node) ->
+    case get_backend(Path) of
+	undefined ->
+	    {error, undefined_backend};
+	Backend ->
+	    occi_backend:delete(Backend, Node)
+    end.
+
+-spec find(occi_node()) -> {ok, occi_node()} | {error, term()}.
+find(#occi_node{type=occi_query}=Req) ->
+    {K, M, A} = occi_category_mgr:find_all(),
+    UserMixins = get_user_mixins(),
+    {ok, Req#occi_node{data={K, M++UserMixins, A}}};
+
+find(#occi_node{id=#uri{path=Path}=Id}=Req) ->
+    case occi_category_mgr:find(Id) of
+	[] ->
+	    occi_backend:find(get_backend(Path), Req);
+	[#occi_kind{id=Cid}] ->
+	    {ok, [occi_node:new(#uri{path=Path}, Cid)]};
+	[#occi_mixin{id=Cid}] ->
+	    {ok, [occi_node:new(#uri{path=Path}, Cid)]}
+    end.
+
+-spec load(occi_node()) -> occi_node().
+load(#occi_node{id=#uri{path=Path}, data=undefined}=Node) ->
+    case get_backend(Path) of
+	undefined ->
+	    {error, undefined_backend};
+	Backend ->
+	    occi_backend:load(Backend, Node)
+    end;
+load(#occi_node{data=_}=Node) ->
+    Node.
 
 %%%===================================================================
 %%% supervisor callbacks
 %%%===================================================================
 init([]) ->
     lager:info("Starting OCCI storage manager"),
-    ?TABLE = ets:new(?TABLE, [set, public, {keypos, 1}, named_table]),
+    ?TABLE = ets:new(?TABLE, [set, public, {keypos, 2}, named_table]),
     % start no child, will be added with backends
     {ok, {{one_for_one, 10, 10}, []}}.
 
 %%%===================================================================
 %%% internals
 %%%===================================================================
+-spec get_backend(uri()) -> atom().
+get_backend(_) ->
+    % TODO: handle multiple backends
+    case ets:match_object(?TABLE, #occi_node{id=#uri{path="/", _='_'}, _='_'}) of
+	[] ->
+	    undefined;
+	[#occi_node{data=#occi_backend{ref=Ref}}] ->
+	    Ref
+    end.
+
+get_dft_backend() ->
+    case ets:match_object(?TABLE, #occi_node{id=#uri{path="/", _='_'}, _='_'}) of
+	[] ->
+	    throw(no_default_backend);
+	[#occi_node{data=#occi_backend{ref=Ref}}] ->
+	    Ref
+    end.
+
+get_user_mixins() ->
+    {ok, Mixins} = occi_backend:find(get_dft_backend(), #occi_node{type=occi_query, _='_'}),
+    Mixins.

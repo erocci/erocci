@@ -28,29 +28,30 @@
 -include("occi.hrl").
 -include_lib("exmpp/include/exmpp_xml.hrl").
 
--export([render_capabilities/3,
-	 render_collection/1,
-	 render_entity/1]).
+-export([render/1]).
 
 %%%
 %%% API
 %%%
-render_capabilities(Kinds, Mixins, Actions) ->
+render(#occi_node{type=occi_query, data={Kinds, Mixins, Actions}}) ->
     Children = lists:map(fun render_kind/1, Kinds)
 	++ lists:map(fun render_mixin/1, Mixins)
 	++ lists:map(fun render_action/1, Actions),
     render_xml(
       exmpp_xml:set_children(
-	exmpp_xml:element(occi, component), Children)).
+	exmpp_xml:element(occi, component), Children));
 
-render_collection(#occi_collection{}=Coll) ->
+render(#occi_node{type=occi_collection, data=Coll}) ->
     render_xml(
       exmpp_xml:set_children(
        exmpp_xml:element(occi, collection),
 	[ exmpp_xml:set_attribute(exmpp_xml:element(resource), <<"id">>, occi_uri:to_binary(Id)) || 
-	    Id <- occi_collection:get_entities(Coll) ])).
+	    Id <- occi_collection:get_entities(Coll) ]));
 
-render_entity(#occi_resource{}=Res) ->
+render(#occi_node{type=dir}=Node) ->
+    render_xml(render_dir(Node));
+
+render(#occi_node{type=occi_resource, data=Res}) ->
     E = render_related(exmpp_xml:element(occi, resource), kind, occi_resource:get_cid(Res)),
     E2 = lists:foldl(fun (Mixin, Acc) ->
 			     render_related(Acc, mixin, Mixin)
@@ -66,6 +67,18 @@ render_entity(#occi_resource{}=Res) ->
 %%%
 %%% Private
 %%%
+render_dir(#occi_node{id=Id, type=dir, data=Children}) ->
+    E = set_attributes(exmpp_xml:element(occi, node), 
+		       [{<<"id">>, occi_url:to_binary(Id)},
+			{<<"dir">>, <<"true">>}]),
+    exmpp_xml:set_children(E, gb_sets:fold(fun (Child, Acc) ->
+						   [ render_dir(Child) | Acc ]
+					   end, [], Children));
+render_dir(#occi_node{id=Id}) ->
+    set_attributes(exmpp_xml:element(occi, node), 
+		   [{<<"id">>, occi_url:to_binary(Id)}]).
+
+
 render_kind(#occi_kind{}=Kind) ->
     E = render_category(exmpp_xml:element(kind), Kind),
     E2 = render_parent(E, occi_kind:get_parent(Kind)),

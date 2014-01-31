@@ -29,22 +29,15 @@
 -include("occi.hrl").
 
 % API
--export([set_cors/1, onresponse_debug/4]).
+-export([set_cors/2]).
 
 %% occi_listener callbacks
 -export([start_link/2,
-	 terminate/1,
-	 add_collection/3]).
+	 terminate/1]).
 
--define(QUERY_ROUTES(Opts), [{<<"/-/">>,                          occi_http_query,    Opts},
-			     {<<"/.well-known/org/ogf/occi/-/">>, occi_http_query,    Opts}]).
--define(ENTITY_ROUTE,       {<<"/[...]">>,                       occi_http_entity,   []}).
-
--define(TABLE, ?MODULE).
-
--record(route, {path     :: binary(),
-		handler  :: atom(),
-		opts     :: term()}).
+-define(ROUTES,  [{<<"/-/">>,                          occi_http_query,    []},
+		  {<<"/.well-known/org/ogf/occi/-/">>, occi_http_query,    []},		  
+		  {<<"/[...]">>,                       occi_http_handler,  []}]).
 
 start_link(Ref, Opts) ->
     application:start(cowlib),
@@ -52,20 +45,8 @@ start_link(Ref, Opts) ->
     application:start(ranch),
     application:start(cowboy),
     lager:info("Starting HTTP listener ~p~n", [Opts]),
-    Dispatch = init(),
+    Dispatch = cowboy_router:compile([{'_', ?ROUTES}]),
     cowboy:start_http(Ref, 100, validate_cfg(Opts), [{env, [{dispatch, Dispatch}]}]).
-
-onresponse_debug(Code, Headers, Body, Req) ->
-    lager:debug("### Code: ~p~n", [Code]),
-    lager:debug("### Headers: ~p~n", [Headers]),
-    lager:debug("### Body: ~p~n", [Body]),
-    lager:debug("### Req: ~p~n", [Req]),
-    Req.
-
--spec add_collection(reference(), occi_category(), uri()) -> ok.
-add_collection(Ref, Category, #uri{path=Path}) ->
-    ets:insert(?TABLE, #route{path=Path, handler=occi_http_collection, opts=Category}),
-    cowboy:set_env(Ref, dispatch, get_dispatch()).
 
 validate_cfg(Opts) ->
     Address = case lists:keyfind(ip, 1, Opts) of
@@ -91,35 +72,11 @@ terminate(Ref) ->
     cowboy:stop_listener(Ref).
 
 % Convenience function for setting CORS headers
-set_cors(Req) ->
+set_cors(Req, Methods) ->
     case cowboy_req:header(<<"origin">>, Req) of
 	{undefined, Req1} -> 
 	    Req1;
 	{Origin, Req1} ->
-	    Req2 = cowboy_req:set_resp_header(<<"access-control-allow-methods">>, 
-				      <<"HEAD, GET, PUT, POST, OPTIONS, DELETE">>, 
-				      Req1),
+	    Req2 = cowboy_req:set_resp_header(<<"access-control-allow-methods">>, Methods, Req1),
 	    cowboy_req:set_resp_header(<<"access-control-allow-origin">>, Origin, Req2)
     end.
-
-%%%
-%%% Private
-%%%
-init() ->
-    ?TABLE = ets:new(?TABLE, [set, public, {keypos, 2}, named_table]),
-    Categories = occi_category_mgr:find(#occi_cid{class=kind, _='_'}) 
-	++ occi_category_mgr:find(#occi_cid{class=mixin, _='_'}),
-    Routes = lists:map(fun (#occi_kind{location=#uri{path=Path}}=Kind) ->
-			       #route{path=list_to_binary(Path), handler=occi_http_collection, opts=Kind};
-			   (#occi_mixin{location=#uri{path=Path}}=Mixin) ->
-			       #route{path=list_to_binary(Path), handler=occi_http_collection, opts=Mixin}
-		       end, Categories),
-    ets:insert(?TABLE, Routes),
-    get_dispatch().
-
-get_dispatch() ->
-    CollectionRoutes = ets:match_object(?TABLE, #route{_='_'}),
-    Routes = lists:flatten([?QUERY_ROUTES([]),
-     			    [ {R#route.path, R#route.handler, R#route.opts} || R <- CollectionRoutes ],
-     			    ?ENTITY_ROUTE]),
-    cowboy_router:compile([{'_', Routes}]).
