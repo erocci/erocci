@@ -81,6 +81,7 @@ register({_, _, _, _}) ->
 
 -spec save(occi_node()) -> ok | {error, term()}.
 save(#occi_node{id=#uri{path=Path}}=Node) ->
+    lager:debug("occi_store:save(~p)~n", [lager:pr(Node, ?MODULE)]),
     case get_backend(Path) of
 	undefined ->
 	    {error, undefined_backend};
@@ -90,6 +91,7 @@ save(#occi_node{id=#uri{path=Path}}=Node) ->
 
 -spec update(occi_node()) -> ok | {error, term()}.
 update(#occi_node{id=#uri{path=Path}}=Node) ->
+    lager:debug("occi_store:update(~p)~n", [lager:pr(Node, ?MODULE)]),
     case get_backend(Path) of
 	undefined ->
 	    {error, undefined_backend};
@@ -99,6 +101,7 @@ update(#occi_node{id=#uri{path=Path}}=Node) ->
 
 -spec delete(occi_node()) -> ok | {error, term()}.
 delete(#occi_node{id=#uri{path=Path}}=Node) ->
+    lager:debug("occi_store:delete(~p)~n", [lager:pr(Node, ?MODULE)]),
     case get_backend(Path) of
 	undefined ->
 	    {error, undefined_backend};
@@ -108,11 +111,17 @@ delete(#occi_node{id=#uri{path=Path}}=Node) ->
 
 -spec find(occi_node()) -> {ok, occi_node()} | {error, term()}.
 find(#occi_node{type=occi_query}=Req) ->
+    lager:debug("occi_store:find(~p)~n", [lager:pr(Req, ?MODULE)]),
     {K, M, A} = occi_category_mgr:find_all(),
     UserMixins = get_user_mixins(),
     {ok, Req#occi_node{data={K, M++UserMixins, A}}};
 
+find(#occi_node{type=occi_user_mixin}=Req) ->
+    lager:debug("occi_store:find(~p)~n", [lager:pr(Req, ?MODULE)]),
+    occi_backend:find(get_dft_backend(), Req);
+
 find(#occi_node{id=#uri{path=Path}=Id}=Req) ->
+    lager:debug("occi_store:find(~p)~n", [lager:pr(Req, ?MODULE)]),
     case occi_category_mgr:find(Id) of
 	[] ->
 	    occi_backend:find(get_backend(Path), Req);
@@ -124,6 +133,7 @@ find(#occi_node{id=#uri{path=Path}=Id}=Req) ->
 
 -spec load(occi_node()) -> occi_node().
 load(#occi_node{id=#uri{path=Path}, data=undefined}=Node) ->
+    lager:debug("occi_store:load(~p)~n", [lager:pr(Node, ?MODULE)]),
     case get_backend(Path) of
 	undefined ->
 	    {error, undefined_backend};
@@ -131,6 +141,7 @@ load(#occi_node{id=#uri{path=Path}, data=undefined}=Node) ->
 	    occi_backend:load(Backend, Node)
     end;
 load(#occi_node{data=_}=Node) ->
+    lager:debug("occi_store:load(~p)~n", [lager:pr(Node, ?MODULE)]),
     Node.
 
 %%%===================================================================

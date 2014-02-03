@@ -119,13 +119,12 @@ from_json(Req, State) ->
 	{ok, #occi_mixin{id=Cid, location=Uri}=Mixin} ->
 	    case cowboy_req:method(Req2) of
 		{<<"DELETE">>, _} ->
-		    Node = #occi_node{type=occi_user_mixin, data=#occi_mixin{id=Cid, _='_'}, _='_'},
-		    case occi_store:find(Node) of
+		    case occi_store:find(#occi_node{type=occi_user_mixin, objid=Cid, _='_'}) of
 			{ok, []} ->
 			    {ok, Req3} = cowboy_req:reply(403, Req2),
 			    {halt, Req3, State};
-			{ok, Node2} ->
-			    case occi_store:delete(Node2) of
+			{ok, [Node]} ->
+			    case occi_store:delete(Node) of
 				{error, undefined_backend} ->
 				    lager:debug("Internal error deleting user mixin~n"),
 				    {ok, Req2} = cowboy_req:reply(500, Req),
