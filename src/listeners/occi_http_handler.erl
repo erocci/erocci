@@ -122,8 +122,13 @@ delete_resource(Req, #occi_node{id=Id}=Node) ->
 	    {true, Req, Node}
     end.
     
-to_uri_list(Req, #occi_node{}=Node) ->
-    render(Req, Node, ?ct_uri_list).
+to_uri_list(Req, #occi_node{type=occi_collection}=Node) ->
+    render(Req, Node, ?ct_uri_list);
+to_uri_list(Req, #occi_node{type=dir}=Node) ->
+    render(Req, Node, ?ct_uri_list);
+to_uri_list(Req, State) ->
+    {ok, Req2} = cowboy_req:reply(400, Req),
+    {halt, Req2, State}.
 
 to_json(Req, #occi_node{}=Node) ->
     render(Req, Node, ?ct_json).
