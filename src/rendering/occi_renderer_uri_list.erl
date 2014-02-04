@@ -57,11 +57,10 @@ render(#occi_node{type=occi_query, data={Kinds, Mixins, Actions}}) ->
 %%%
 %%% Prive
 %%%
-render_dir(#occi_node{id=Id, type=dir, data=Children}) ->
-    L = gb_sets:fold(fun (#occi_node{}=Child, Acc) ->
-			     [ render_dir(Child) | Acc ]
+render_dir(#occi_node{type=dir, data=Children}) ->
+    L = gb_sets:fold(fun (#occi_node{type=dir}=Child, Acc) ->
+			     [ render_dir(Child) | Acc ];
+			 (#occi_node{id=ChildId}, Acc) ->
+			     [ [ occi_uri:to_iolist(ChildId) ] | Acc ]
 		     end, [], Children),
-    occi_renderer:join([occi_uri:to_iolist(Id) | L], 
-		       <<"\n">>);
-render_dir(#occi_node{id=Id}) ->
-    [ occi_uri:to_iolist(Id) ++ "\n" ].
+    occi_renderer:join(L, <<"\n">>).

@@ -92,7 +92,7 @@ allow_missing_post(Req, State) ->
 resource_exists(Req, State) ->
     {Path, _} = cowboy_req:path(Req),
     Id = occi_uri:parse(Path),
-    case occi_store:find(#occi_node{id=#uri{path=Id#uri.path}, recursive=true, _='_'}) of
+    case occi_store:find(#occi_node{id=#uri{path=Id#uri.path}, _='_'}) of
 	{ok, []} ->
 	    {false, Req, State};
 	{ok, [#occi_node{type=occi_collection, objid=#occi_cid{class=kind}}=Node]} ->

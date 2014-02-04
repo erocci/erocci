@@ -118,17 +118,10 @@ find_node_t(#occi_node{type=occi_user_mixin}=Node) ->
 find_node_t(#occi_node{type=occi_collection}=Node) ->
     mnesia:match_object(Node);
 
-find_node_t(#occi_node{id=Id, recursive=R}) ->
+find_node_t(#occi_node{id=Id}) ->
     case mnesia:wread({occi_node, Id}) of
 	[] ->
 	    [];
-	[#occi_node{type=dir, data=Children}] when true == R ->
-	    Node = occi_node:new(Id, dir),
-	    Children2 = gb_sets:fold(fun (ChildId, Acc) ->
-					     [ find_node_t(#occi_node{id=ChildId, recursive=true}) 
-					       | Acc ]
-				     end, [], Children),
-	    [occi_node:add_children(Node, Children2)];
 	[#occi_node{}=Node] ->
 	    [Node]
     end.
@@ -145,14 +138,30 @@ load_node_t(#occi_node{type=occi_resource, objid=Id}=Node) ->
     load_object_t(Node, occi_resource, Id);
 
 load_node_t(#occi_node{type=occi_link, objid=Id}=Node) ->
-    load_object_t(Node, occi_link, Id).
+    load_object_t(Node, occi_link, Id);
+
+load_node_t(#occi_node{type=dir}=Node) ->
+    load_dir_t(Node).
+
+load_dir_t(#occi_node{data=Children}=Node) ->
+    Children2 = gb_sets:fold(fun (ChildId, Acc) ->
+				     case mnesia:wread({occi_node, ChildId}) of
+					 [] ->
+					     mnesia:abort({unknown_node, ChildId});
+					 [#occi_node{type=dir}=Child] ->
+					     gb_sets:add(load_dir_t(Child), Acc);
+					 [#occi_node{}=Child] ->
+					     gb_sets:add(Child, Acc)
+				     end
+			     end, gb_sets:new(), Children),
+    Node#occi_node{data=Children2}.
 
 load_object_t(Node, Type, Id) ->
     case mnesia:wread({Type, Id}) of
 	[] ->
 	    mnesia:abort({unknown_object, {Type, Id}});
-	[Coll] ->
-	    Node#occi_node{data=Coll}
+	[Data] ->
+	    Node#occi_node{data=Data}
     end.
 
 save_t(#occi_node{type=occi_resource, data=Res}=Node) ->
@@ -214,21 +223,27 @@ add_link_t(LinkId, ResId) ->
     end.
 
 save_node_t(#occi_node{id=Id}=Node) ->
-    mnesia:write(Node#occi_node{data=undefined}),
     case mnesia:wread({occi_node, Id}) of
-	[_] -> ok;
-	[] -> add_to_dir_t(occi_node:get_parent(Id), Id)
+	[_] -> 	
+	    mnesia:write(Node#occi_node{data=undefined});
+	[] -> 
+	    mnesia:write(Node#occi_node{data=undefined}),
+	    add_to_dir_t(occi_node:get_parent(Id), Id)
     end.
 
-add_to_dir_t(#uri{}=Parent, #uri{}=Child) ->
+add_to_dir_t(#uri{path=Path}=Parent, #uri{}=Child) ->
     case mnesia:wread({occi_node, Parent}) of
 	[] ->
 	    Node = occi_node:new(Parent, dir),
-	    mnesia:write(occi_node:add_children(Node, [Child]));
+	    mnesia:write(occi_node:add_child(Node, Child));
 	[#occi_node{type=dir}=Node] ->
-	    mnesia:write(occi_node:add_children(Node, [Child]));
+	    mnesia:write(occi_node:add_child(Node, Child));
 	[#occi_node{}] ->
 	    mnesia:abort({not_a_dir, Parent})
+    end,
+    if Path /= "/" ->
+	    add_to_dir_t(occi_node:get_parent(Parent), Parent);
+       true -> ok
     end.
 
 update_t(#occi_node{type=occi_collection, data=#occi_collection{cid=Cid}=Coll}) ->

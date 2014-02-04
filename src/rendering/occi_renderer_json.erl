@@ -41,7 +41,7 @@
 %%% API
 %%%
 render(#occi_node{type=dir}=Node) ->
-    jiffy:encode(lists:flatten(render_dir(Node)));
+    jiffy:encode(lists:flatten(render_dir(Node)), [pretty]);
 
 render(#occi_node{type=occi_resource, data=Res}) ->
     Content = {<<"resources">>, [render_ejson(Res)]},
@@ -170,13 +170,12 @@ render_attribute_values([#occi_attr{}=Attr|Tail], Acc) ->
 	    render_attribute_values(Tail, insert_attr(Id, Value, Acc))
     end.
 
-render_dir(#occi_node{id=Id, type=dir, data=Children}) ->
-    [ occi_uri:to_binary(Id) | 
-      gb_sets:fold(fun (Child, Acc) ->
-			   [ render_dir(Child) | Acc ]
-		   end, [], Children)];
-render_dir(#occi_node{id=Id}) ->
-    [occi_uri:to_binary(Id)].
+render_dir(#occi_node{type=dir, data=Children}) ->
+    gb_sets:fold(fun (#occi_node{type=dir}=Child, Acc) ->
+			 [ render_dir(Child) | Acc ];
+		     (#occi_node{id=ChildId}, Acc) ->
+			 [ occi_uri:to_binary(ChildId) | Acc ]
+		 end, [], Children).
 
 %
 % insert attribute name/value into ejson tree.

@@ -132,6 +132,14 @@ find(#occi_node{id=#uri{path=Path}=Id}=Req) ->
     end.
 
 -spec load(occi_node()) -> occi_node().
+load(#occi_node{id=#uri{path=Path}, type=dir}=Node) ->
+    lager:debug("occi_store:load(~p)~n", [lager:pr(Node, ?MODULE)]),
+    case get_backend(Path) of
+	undefined ->
+	    {error, undefined_backend};
+	Backend ->
+	    occi_backend:load(Backend, Node)
+    end;
 load(#occi_node{id=#uri{path=Path}, data=undefined}=Node) ->
     lager:debug("occi_store:load(~p)~n", [lager:pr(Node, ?MODULE)]),
     case get_backend(Path) of

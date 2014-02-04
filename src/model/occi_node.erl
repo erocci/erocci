@@ -27,7 +27,8 @@
 -export([new/2,
 	 get_type/1,
 	 set_type/2,
-	 add_children/2,
+	 add_child/2,
+	 set_children/2,
 	 del_children/2,
 	 has_children/1,
 	 get_parent/1,
@@ -68,9 +69,13 @@ get_type(#occi_node{type=Type}) ->
 set_type(#occi_node{}=Node, Type) ->
     Node#occi_node{type=Type}.
 
--spec add_children(occi_node(), [uri()]) -> occi_node().
-add_children(#occi_node{type=dir, data=C}=Node, Children) when is_list(Children) ->
-    Node#occi_node{data=gb_sets:union(C, gb_sets:from_list(Children))}.
+-spec add_child(occi_node(), uri()) -> occi_node().
+add_child(#occi_node{type=dir, data=C}=Node, #uri{}=Child) ->
+    Node#occi_node{data=gb_sets:add(Child, C)}.
+
+-spec set_children(occi_node(), term()) -> occi_node().
+set_children(#occi_node{type=dir}=Node, Children) ->
+    Node#occi_node{data=Children}.
 
 -spec del_children(occi_node(), [uri()]) -> occi_node().
 del_children(#occi_node{type=dir, data=C}=Node, Children) when is_list(Children) ->
