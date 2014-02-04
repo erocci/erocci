@@ -141,7 +141,7 @@ load_node_t(#occi_node{type=occi_link, objid=Id}=Node) ->
     load_object_t(Node, occi_link, Id);
 
 load_node_t(#occi_node{type=dir}=Node) ->
-    load_dir_t(Node).
+    load_dir_t(occi_node:set_parent(Node)).
 
 load_dir_t(#occi_node{data=Children}=Node) ->
     Children2 = gb_sets:fold(fun (ChildId, Acc) ->
@@ -294,45 +294,48 @@ add_to_collection_t(#occi_cid{class=usermixin}=Cid, Uris) ->
 del_node_t(#occi_node{type=occi_user_mixin, data=undefined}=Node) ->
     del_node_t(load_node_t(Node));
 
-del_node_t(#occi_node{id=Id, type=occi_user_mixin, objid=Cid, data=Mixin}) ->
+del_node_t(#occi_node{id=Id, type=occi_user_mixin, objid=Cid, data=Mixin}=Node) ->
     del_mixin_t(Mixin),
     mnesia:delete({occi_mixin, Cid}),
-    del_from_parent_node_t(occi_node:get_parent(Id), Id),
+    del_from_parent_t(Node),
     mnesia:delete({occi_node, Id});
 
 del_node_t(#occi_node{type=occi_collection, data=Coll}) ->
     del_collection_t(Coll);
 
-del_node_t(#occi_node{id=Id, type=occi_resource, data=Res}) ->
+del_node_t(#occi_node{type=occi_resource, data=undefined}=Node) ->
+    del_node_t(load_node_t(Node));
+
+del_node_t(#occi_node{id=Id, type=occi_resource, data=Res}=Node) ->
     del_entity_t(Res),
+    del_from_parent_t(Node),
     mnesia:delete({occi_node, Id});
 
-del_node_t(#occi_node{id=Id, type=occi_link, data=Res}) ->
+del_node_t(#occi_node{type=occi_link, data=undefined}=Node) ->
+    del_node_t(load_node_t(Node));
+
+del_node_t(#occi_node{id=Id, type=occi_link, data=Res}=Node) ->
     del_entity_t(Res),
+    del_from_parent_t(Node),
     mnesia:delete({occi_node, Id});
 
-del_node_t(#occi_node{id=Id, type=dir, data=Children, parent=ParentId, recursive=true}) ->
-    del_children_node_t(Children),
-    del_from_parent_node_t(ParentId, Id),
-    mnesia:delete({occi_node, Id});
+del_node_t(#occi_node{id=Id, type=dir}=Node) ->
+    Node2 = load_node_t(Node),
+    del_dir_t(Node2),
+    del_from_parent_t(Node2),
+    mnesia:delete({occi_node, Id}).
 
-del_node_t(#occi_node{id=Id, type=dir, data=Children, parent=undefined, recursive=true}) ->
-    del_children_node_t(Children),
-    mnesia:delete({occi_node, Id});
-
-del_node_t(#occi_node{id=Id, parent=undefined}) ->
-    mnesia:delete({occi_node, Id});
-
-del_node_t(#occi_node{id=Id, parent=PP}) ->
-    mnesia:delete({occi_node, Id}),
-    del_from_parent_node_t(PP, Id).
-
-del_children_node_t(Children) ->
-    gb_sets:fold(fun (#occi_node{}=Child, _) ->
+del_dir_t(#occi_node{id=Id, type=dir, data=Children}) ->
+    gb_sets:fold(fun (#occi_node{type=dir}=Child, _) ->
+			 del_dir_t(Child);
+		     (#occi_node{}=Child, _) ->
 			 del_node_t(Child)
-		 end, ok, Children).
+		 end, ok, Children),
+    mnesia:delete({occi_node, Id}).
 
-del_from_parent_node_t(ParentId, Id) ->
+del_from_parent_t(#occi_node{parent=undefined}) ->
+    ok;
+del_from_parent_t(#occi_node{id=Id, parent=ParentId}) ->
     case mnesia:wread({occi_node, ParentId}) of
 	[] ->
 	    mnesia:abort({no_such_dir, ParentId});
