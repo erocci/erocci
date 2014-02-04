@@ -192,12 +192,7 @@ extension(E=?simpleType, _From, State) ->
     Id = to_atom(get_attr_value(E, <<"name">>)),
     push(attr_type, State#state{type=#occi_type{id=Id}});
 extension(?extensionEnd, _From, #state{extension=Ext}=State) ->
-    case catch occi_extension:check_types(Ext) of
-	{error, Reason} ->
-	    {reply, {error, Reason}, eof, State};
-	Ext2 ->
-	    {reply, {eof, Ext2}, eof, State#state{extension=undefined}}
-    end;
+    {reply, {eof, Ext}, eof, State#state{extension=undefined}};
 extension(#xmlcdata{}, _From, State) ->
     {reply, ok, extension, State};
 extension(Event, _From, State) ->
@@ -209,8 +204,7 @@ kind(E=?parent, _From, #state{kind=Kind}=State) ->
 	{error, Reason} ->
 	    {reply, {error, Reason}, eof, State};
 	{Scheme, Term} ->
-	    occi_kind:set_parent(Kind, Scheme, Term),
-	    {reply, ok, kind, State}
+	    {reply, ok, kind, State#state{kind=occi_kind:set_parent(Kind, Scheme, Term)}}
     end;
 kind(_E=?parentEnd, _From, State) ->
     {reply, ok, kind, State};

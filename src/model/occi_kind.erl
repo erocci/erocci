@@ -37,8 +37,7 @@
 	 set_title/2,
 	 add_attribute/2,
 	 get_attributes/1,
-	 get_attr_list/1,
-	 set_types_check/2]).
+	 get_attr_list/1]).
 
 new(Scheme, Term) ->
     #occi_kind{id=#occi_cid{scheme=Scheme, term=Term, class=kind},
@@ -72,12 +71,6 @@ get_attr_list(#occi_kind{attributes=Attrs}) ->
     orddict:fold(fun (_Key, Value, Acc) ->
 			 [Value|Acc]
 		 end, [], Attrs).
-
-set_types_check(#occi_kind{attributes=Attrs}=Kind, Types) -> 
-    Attrs2 = orddict:map(fun (_Id, Attr) ->
-				 occi_attribute:set_check(Attr, Types)
-			 end, Attrs),
-    Kind#occi_kind{attributes=Attrs2}.
 
 get_actions(#occi_kind{actions=Actions}) ->
     Actions.

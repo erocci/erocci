@@ -33,8 +33,8 @@
 	 stop/1,
 	 parse/2,
 	 parse_full/2]).
--export([parse_resource/1,
-	 parse_resource/2,
+-export([parse_entity/1,
+	 parse_entity/2,
 	 parse_user_mixin/1,
 	 parse_collection/1]).
 
@@ -47,14 +47,25 @@
 	 resources_req/3,
 	 resources/3,
 	 resource/3,
+	 resource_links/3,
+	 resource_link/3,
 	 resource_kind/3,
 	 resource_mixins/3,
 	 resource_mixin/3,
 	 resource_attributes/3,
 	 resource_attribute/3,
 	 resource_id/3,
-	 resource_links/3,
-	 resource_link/3,
+	 links_req/3,
+	 links/3,
+	 link/3,
+	 link_kind/3,
+	 link_mixins/3,
+	 link_mixin/3,
+	 link_attributes/3,
+	 link_attribute/3,
+	 link_id/3,
+	 link_target/3,
+	 link_source/3,
 	 mixins_req/3,
 	 mixins/3,
 	 mixin/3,
@@ -73,32 +84,56 @@
 
 -record(state, {request        = #occi_request{}    :: occi_request(),
 		collection                          :: occi_collection(),
-		resource       = undefined          :: term(),
+		entity         = undefined          :: term(),
+		entity_id      = undefined          :: uri(),
 		mixin          = undefined          :: term(),
-		link           = undefined          :: term(),
 		attrNS         = []                 :: [string()]}).
 
 %%%===================================================================
 %%% API
 %%%===================================================================
-parse_resource(Data) ->
-    case parse_full(Data, #state{resource=occi_resource:new()}) of
+parse_entity(Data) ->
+    case parse_full(Data, #state{entity=#occi_entity{}}) of
 	{error, Reason} ->
 	    {error, {parse_error, Reason}};
-	{ok, #occi_request{resources=[#occi_resource{}=Res]}} ->
+	{ok, #occi_request{entities=[#occi_resource{}=Res]}} ->
 	    {ok, Res};
+	{ok, #occi_request{entities=[#occi_link{}=Link]}} ->
+	    {ok, Link};
 	_ ->
-	    {error, {parse_error, not_a_resource}}
+	    {error, {parse_error, not_an_entity}}
     end.
 
-parse_resource(Data, #occi_resource{}=Res) ->
-    case parse_full(Data, #state{resource=Res}) of
+parse_entity(Data, #occi_resource{}=Res) ->
+    case parse_full(Data, #state{entity=Res}) of
 	{error, Reason} ->
 	    {error, {parse_error, Reason}};
-	{ok, #occi_request{resources=[#occi_resource{}=Res2]}} ->
+	{ok, #occi_request{entities=[#occi_resource{}=Res2]}} ->
 	    {ok, Res2};
 	_ ->
-	    {error, {parse_error, not_a_resource}}
+	    {error, {parse_error, not_an_entity}}
+    end;
+
+parse_entity(Data, #occi_link{}=Link) ->
+    case parse_full(Data, #state{entity=Link}) of
+	{error, Reason} ->
+	    {error, {parse_error, Reason}};
+	{ok, #occi_request{entities=[#occi_link{}=Link2]}} ->
+	    {ok, Link2};
+	_ ->
+	    {error, {parse_error, not_an_entity}}
+    end;
+
+parse_entity(Data, #occi_entity{id=Id}) ->
+    case parse_full(Data, #state{entity_id=Id}) of
+	{error, Reason} ->
+	    {error, {parse_error, Reason}};
+	{ok, #occi_request{entities=[#occi_resource{}=Res2]}} ->
+	    {ok, Res2};
+	{ok, #occi_request{entities=[#occi_link{}=Link2]}} ->
+	    {ok, Link2};
+	_ ->
+	    {error, {parse_error, not_an_entity}}
     end.
 
 parse_user_mixin(Data) ->
@@ -271,8 +306,7 @@ request(#token{name=key, data="resources"}, _From, Ctx) ->
 request(#token{name=key, data="collection"}, _From, Ctx) ->
     {reply, ok, collection_req, Ctx};
 request(#token{name=key, data="links"}, _From, Ctx) ->
-    % TODO
-    {reply, {error, invalid_request}, eof, Ctx};
+    {reply, ok, links_req, Ctx};
 request(#token{name=key, data="action"}, _From, Ctx) ->
     % TODO
     {reply, {error, invalid_request}, eof, Ctx};
@@ -294,8 +328,10 @@ resources_req(#token{name=arrBegin}, _From, Ctx) ->
 resources_req(Token, _From, Ctx) ->
     occi_parser:parse_error(Token, Ctx).
 
-resources(#token{name=objBegin}, _From, #parser{state=#state{resource=undefined}=State}=Ctx) ->
-    {reply, ok, resource, Ctx#parser{state=State#state{resource=occi_resource:new()}}};
+resources(#token{name=objBegin}, _From, #parser{state=#state{entity_id=undefined, entity=undefined}=State}=Ctx) ->
+    {reply, ok, resource, Ctx#parser{state=State#state{entity=occi_resource:new()}}};
+resources(#token{name=objBegin}, _From, #parser{state=#state{entity_id=Id, entity=undefined}=State}=Ctx) ->
+    {reply, ok, resource, Ctx#parser{state=State#state{entity_id=undefined, entity=occi_resource:new(Id)}}};
 resources(#token{name=objBegin}, _From, Ctx) ->
     {reply, ok, resource, Ctx};
 resources(#token{name=arrEnd}, _From, Ctx) ->
@@ -303,41 +339,47 @@ resources(#token{name=arrEnd}, _From, Ctx) ->
 resources(Token, _From, Ctx) ->
     occi_parser:parse_error(Token, Ctx).
     
-resource(#token{name=key, data="kind"}, _From, 
-	 #parser{state=#state{resource=#occi_resource{cid=undefined}}}=Ctx) ->
-    {reply, ok, resource_kind, Ctx};
 resource(#token{name=key, data="kind"}, _From, Ctx) ->
-    {reply, {error, invalid_category}, eof, Ctx};
+    {reply, ok, resource_kind, Ctx};
 resource(#token{name=key, data="mixins"}, _From, Ctx) ->
     {reply, ok, resource_mixins, Ctx};
 resource(#token{name=key, data="attributes"}, _From, Ctx) ->
     {reply, ok, resource_attributes, Ctx};
-resource(#token{name=key, data="id"}, _From, 
-	 #parser{state=#state{resource=#occi_resource{id=undefined}}}=Ctx) ->
-    {reply, ok, resource_id, Ctx};
 resource(#token{name=key, data="id"}, _From, Ctx) ->
-    {reply, {error, invalid_id}, eof, Ctx};
+    {reply, ok, resource_id, Ctx};
 resource(#token{name=key, data="links"}, _From, Ctx) ->
     {reply, ok, resource_links, Ctx};
-resource(#token{name=objEnd}, _From, #parser{state=#state{resource=Res, request=Req}=State}=Ctx) ->
+resource(#token{name=objEnd}, _From, #parser{state=#state{entity=Res, request=Req}=State}=Ctx) ->
     {reply, ok, resources, 
-     ?set_state(Ctx, State#state{resource=undefined, request=occi_request:add_resource(Req, Res)})};
+     ?set_state(Ctx, State#state{entity=undefined, request=occi_request:add_entity(Req, Res)})};
 resource(Token, _From, Ctx) ->
     occi_parser:parse_error(Token, Ctx).
 
-resource_kind(#token{name=value, data=Val}, _From, #parser{state=#state{resource=Res}=State}=Ctx) ->
+resource_kind(#token{name=value, data=Val}, _From, 
+	    #parser{state=#state{entity=#occi_resource{cid=undefined}=Res}=State}=Ctx) ->
     case parse_cid(Val) of
 	{Scheme, Term} ->
-	    case catch occi_category_mgr:get(#occi_cid{class=kind, scheme=Scheme, term=Term}) of
+	    Cid = #occi_cid{class=kind, scheme=Scheme, term=Term},
+	    case catch occi_category_mgr:get(Cid) of
 		{error, Err} ->
 		    {reply, {error, Err}, eof, Ctx};
-		Kind ->
+		#occi_kind{parent=#occi_cid{term=resource}}=Kind ->
 		    Res2 = occi_resource:set_cid(Res, Kind),
 		    {reply, ok, resource, 
-		     ?set_state(Ctx, State#state{resource=Res2})}
+		     ?set_state(Ctx, State#state{entity=Res2})};
+		#occi_kind{} ->
+		    {reply, {error, {invalid_cid, Cid}}, eof, Ctx}
 	    end;
 	parse_error ->
-	    {reply, {error, invalid_cid}, eof, Ctx}
+	    {reply, {error, {invalid_cid, Val}}, eof, Ctx}
+    end;
+resource_kind(#token{name=value, data=Val}, _From, 
+	      #parser{state=#state{entity=#occi_resource{cid=#occi_cid{scheme=Scheme, term=Term}}}}=Ctx) ->
+    case parse_cid(Val) of
+	{Scheme, Term} ->
+	    {reply, ok, resource, Ctx};
+	parse_error ->
+	    {reply, {error, {invalid_cid, Val}}, eof, Ctx}
     end;
 resource_kind(Token, _From, Ctx) ->
     occi_parser:parse_error(Token, Ctx).
@@ -349,19 +391,21 @@ resource_mixins(#token{name=arrEnd}, _From, Ctx) ->
 resource_mixins(Token, _From, Ctx) ->
     occi_parser:parse_error(Token, Ctx).
 
-resource_mixin(#token{name=value, data=Val}, _From, #parser{state=#state{resource=Res}=State}=Ctx) ->
+resource_mixin(#token{name=value, data=Val}, _From, 
+	       #parser{state=#state{entity=Res}=State}=Ctx) ->
     case parse_cid(Val) of
 	{Scheme, Term} ->
-	    case catch occi_category_mgr:get(#occi_cid{class=mixin, scheme=Scheme, term=Term}) of
+	    Cid = #occi_cid{class=mixin, scheme=Scheme, term=Term},
+	    case catch occi_category_mgr:get(Cid) of
 		{error, Err} ->
 		    {reply, {error, Err}, eof, Ctx};
 		#occi_mixin{}=Mixin ->
 		    Res2 = occi_resource:add_mixin(Res, Mixin),
 		    {reply, ok, resource_mixins, 
-		     ?set_state(Ctx, State#state{resource=Res2})}
+		     ?set_state(Ctx, State#state{entity=Res2})}
 	    end;
 	parse_error ->
-	    {reply, {error, invalid_cid}, eof, Ctx}
+	    {reply, {error, {invalid_cid, Val}}, eof, Ctx}
     end;
 resource_mixin(Token, _From, Ctx) ->
     occi_parser:parse_error(Token, Ctx).
@@ -380,11 +424,11 @@ resource_attribute(#token{name=key, data=Val}, _From, #parser{state=#state{attrN
 resource_attribute(#token{name=objBegin}, _From, Ctx) ->
     {reply, ok, resource_attribute, Ctx};
 resource_attribute(#token{name=value, data=Val}, _From, 
-		   #parser{state=#state{attrNS=[H|T], resource=Res}=State}=Ctx) ->
+		   #parser{state=#state{attrNS=[H|T], entity=Res}=State}=Ctx) ->
     Name = build_attr_name([H|T]),
     case occi_resource:set_attr_value(Res, Name, Val) of
 	#occi_resource{}=Res2 ->
-	    {reply, ok, resource_attribute, ?set_state(Ctx, State#state{attrNS=T, resource=Res2})};
+	    {reply, ok, resource_attribute, ?set_state(Ctx, State#state{attrNS=T, entity=Res2})};
 	{error, Err} ->
 	    lager:error("Error parsing resource: ~p~n", [Err]),
 	    {reply, {error, Err}, eof, Ctx}
@@ -398,9 +442,18 @@ resource_attribute(#token{name=objEnd}, _From, #parser{state=#state{attrNS=[]}=S
 resource_attribute(Token, _From, Ctx) ->
     occi_parser:parse_error(Token, Ctx).
 
-resource_id(#token{name=value, data=Val}, _From, #parser{state=#state{resource=Res}=State}=Ctx) ->
+resource_id(#token{name=value, data=Val}, _From, 
+	    #parser{state=#state{entity=#occi_resource{id=undefined}=Res}=State}=Ctx) ->
     {reply, ok, resource, 
-     ?set_state(Ctx, State#state{resource=occi_resource:set_id(Res, Val)})};
+     ?set_state(Ctx, State#state{entity=occi_resource:set_id(Res, Val)})};
+resource_id(#token{name=value, data=Val}, _From, 
+	    #parser{state=#state{entity=#occi_resource{id=Id}}}=Ctx) ->
+    case occi_uri:parse(Val) of
+	Id ->
+	    {reply, ok, resource, Ctx};
+	_ ->
+	    {reply, {error, {invalid_id, Val}}, eof, Ctx}
+    end;
 resource_id(Token, _From, Ctx) ->
     occi_parser:parse_error(Token, Ctx).
 
@@ -411,12 +464,154 @@ resource_links(#token{name=arrEnd}, _From, Ctx) ->
 resource_links(Token, _From, Ctx) ->
     occi_parser:parse_error(Token, Ctx).
 
-resource_link(#token{name=value, data=Val}, _From, #parser{state=#state{resource=Res}=State}=Ctx) ->
+resource_link(#token{name=value, data=Val}, _From, #parser{state=#state{entity=Res}=State}=Ctx) ->
     {reply, ok, resource_links, 
-     ?set_state(Ctx, State#state{resource=occi_resource:add_link(Res, Val)})};
+     ?set_state(Ctx, State#state{entity=occi_resource:add_link(Res, Val)})};
 resource_link(Token, _From, Ctx) ->
     occi_parser:parse_error(Token, Ctx).
+
+links_req(#token{name=arrBegin}, _From, Ctx) ->
+    {reply, ok, links, Ctx};
+links_req(Token, _From, Ctx) ->
+    occi_parser:parse_error(Token, Ctx).
+
+links(#token{name=objBegin}, _From, #parser{state=#state{entity_id=undefined, entity=undefined}=State}=Ctx) ->
+    {reply, ok, link, Ctx#parser{state=State#state{entity=occi_link:new()}}};
+links(#token{name=objBegin}, _From, #parser{state=#state{entity_id=Id, entity=undefined}=State}=Ctx) ->
+    {reply, ok, link, Ctx#parser{state=State#state{entity_id=undefined, entity=occi_link:new(Id)}}};
+links(#token{name=objBegin}, _From, Ctx) ->
+    {reply, ok, link, Ctx};
+links(#token{name=arrEnd}, _From, Ctx) ->
+    {reply, ok, request, Ctx};
+links(Token, _From, Ctx) ->
+    occi_parser:parse_error(Token, Ctx).
     
+link(#token{name=key, data="kind"}, _From, Ctx) ->
+    {reply, ok, link_kind, Ctx};
+link(#token{name=key, data="mixins"}, _From, Ctx) ->
+    {reply, ok, link_mixins, Ctx};
+link(#token{name=key, data="attributes"}, _From, Ctx) ->
+    {reply, ok, link_attributes, Ctx};
+link(#token{name=key, data="id"}, _From, Ctx) ->
+    {reply, ok, link_id, Ctx};
+link(#token{name=key, data="target"}, _From, Ctx) ->
+    {reply, ok, link_target, Ctx};
+link(#token{name=key, data="source"}, _From, Ctx) ->
+    {reply, ok, link_source, Ctx};
+link(#token{name=objEnd}, _From, #parser{state=#state{entity=Link, request=Req}=State}=Ctx) ->
+    {reply, ok, links, 
+     ?set_state(Ctx, State#state{entity=undefined, request=occi_request:add_entity(Req, Link)})};
+link(Token, _From, Ctx) ->
+    occi_parser:parse_error(Token, Ctx).
+
+link_kind(#token{name=value, data=Val}, _From, 
+	  #parser{state=#state{entity=#occi_link{cid=undefined}=Link}=State}=Ctx) ->
+    case parse_cid(Val) of
+	{Scheme, Term} ->
+	    Cid = #occi_cid{class=kind, scheme=Scheme, term=Term},
+	    case catch occi_category_mgr:get(Cid) of
+		{error, Err} ->
+		    {reply, {error, Err}, eof, Ctx};
+		#occi_kind{parent=#occi_cid{term=link}}=Kind ->
+		    Link2 = occi_link:set_cid(Link, Kind),
+		    {reply, ok, link, 
+		     ?set_state(Ctx, State#state{entity=Link2})};
+		#occi_kind{} ->
+		    {reply, {error, {invalid_cid, Cid}}, eof, Ctx}
+	    end;
+	parse_error ->
+	    {reply, {error, {invalid_cid, Val}}, eof, Ctx}
+    end;
+link_kind(#token{name=value, data=Val}, _From, 
+	  #parser{state=#state{entity=#occi_link{cid=#occi_cid{scheme=Scheme, term=Term}}}}=Ctx) ->
+    case parse_cid(Val) of
+	{Scheme, Term} ->
+	    {reply, ok, link, Ctx};
+	parse_error ->
+	    {reply, {error, {invalid_cid, Val}}, eof, Ctx}
+    end;
+link_kind(Token, _From, Ctx) ->
+    occi_parser:parse_error(Token, Ctx).
+
+link_mixins(#token{name=arrBegin}, _From, Ctx) ->
+    {reply, ok, link_mixin, Ctx};
+link_mixins(#token{name=arrEnd}, _From, Ctx) ->
+    {reply, ok, link, Ctx};
+link_mixins(Token, _From, Ctx) ->
+    occi_parser:parse_error(Token, Ctx).
+
+link_mixin(#token{name=value, data=Val}, _From, #parser{state=#state{entity=Link}=State}=Ctx) ->
+    case parse_cid(Val) of
+	{Scheme, Term} ->
+	    case catch occi_category_mgr:get(#occi_cid{class=mixin, scheme=Scheme, term=Term}) of
+		{error, Err} ->
+		    {reply, {error, Err}, eof, Ctx};
+		#occi_mixin{}=Mixin ->
+		    Link2 = occi_link:add_mixin(Link, Mixin),
+		    {reply, ok, link_mixins, 
+		     ?set_state(Ctx, State#state{entity=Link2})}
+	    end;
+	parse_error ->
+	    {reply, {error, {invalid_cid, Val}}, eof, Ctx}
+    end;
+link_mixin(Token, _From, Ctx) ->
+    occi_parser:parse_error(Token, Ctx).
+
+link_attributes(#token{name=objBegin}, _From, #parser{state=#state{}=State}=Ctx) ->
+    {reply, ok, link_attribute,
+    ?set_state(Ctx, State#state{attrNS=[]})};
+link_attributes(#token{name=objEnd}, _From, Ctx) ->
+    {reply, ok, link, Ctx};
+link_attributes(Token, _From, Ctx) ->
+    occi_parser:parse_error(Token, Ctx).
+
+link_attribute(#token{name=key, data=Val}, _From, #parser{state=#state{attrNS=NS}=State}=Ctx) ->
+    {reply, ok, link_attribute, ?set_state(Ctx, State#state{attrNS=[Val|NS]})};
+link_attribute(#token{name=objBegin}, _From, Ctx) ->
+    {reply, ok, link_attribute, Ctx};
+link_attribute(#token{name=value, data=Val}, _From, 
+	       #parser{state=#state{attrNS=[H|T], entity=Link}=State}=Ctx) ->
+    Name = build_attr_name([H|T]),
+    case occi_link:set_attr_value(Link, Name, Val) of
+	#occi_link{}=Link2 ->
+	    {reply, ok, link_attribute, ?set_state(Ctx, State#state{attrNS=T, entity=Link2})};
+	{error, Err} ->
+	    lager:error("Error parsing link: ~p~n", [Err]),
+	    {reply, {error, Err}, eof, Ctx}
+    end;
+link_attribute(#token{name=objEnd}, _From, #parser{state=#state{attrNS=[_H|T]}=State}=Ctx) ->
+    {reply, ok, link_attribute, ?set_state(Ctx, State#state{attrNS=T})};
+link_attribute(#token{name=objEnd}, _From, #parser{state=#state{attrNS=[]}=State}=Ctx) ->
+    {reply, ok, link, ?set_state(Ctx, State#state{attrNS=[]})};
+link_attribute(Token, _From, Ctx) ->
+    occi_parser:parse_error(Token, Ctx).
+
+link_id(#token{name=value, data=Val}, _From, 
+	#parser{state=#state{entity=#occi_link{id=undefined}=Link}=State}=Ctx) ->
+    {reply, ok, link, ?set_state(Ctx, State#state{entity=occi_link:set_id(Link, Val)})};
+link_id(#token{name=value, data=Val}, _From, 
+	#parser{state=#state{entity=#occi_link{id=Id}}}=Ctx) ->
+    case occi_uri:parse(Val) of
+	Id ->
+	    {reply, ok, resource, Ctx};
+	_ ->
+	    {reply, {error, {invalid_id, Val}}, eof, Ctx}
+    end;
+link_id(Token, _From, Ctx) ->
+    occi_parser:parse_error(Token, Ctx).
+
+link_target(#token{name=value, data=Val}, _From, #parser{state=#state{entity=Link}=State}=Ctx) ->
+    {reply, ok, link, 
+     ?set_state(Ctx, State#state{entity=occi_link:set_target(Link, occi_uri:parse(Val))})};
+link_target(Token, _From, Ctx) ->
+    occi_parser:parse_error(Token, Ctx).
+
+link_source(#token{name=value, data=Val}, _From, #parser{state=#state{entity=Link}=State}=Ctx) ->
+    {reply, ok, link, 
+     ?set_state(Ctx, State#state{entity=occi_link:set_source(Link, occi_uri:parse(Val))})};
+link_source(Token, _From, Ctx) ->
+    occi_parser:parse_error(Token, Ctx).
+
 mixins_req(#token{name=arrBegin}, _From, Ctx) ->
     {reply, ok, mixins, Ctx};
 mixins_req(Token, _From, Ctx) ->
@@ -476,10 +671,10 @@ mixin_depend(#token{name=value, data=Val}, _From, #parser{state=#state{mixin=Mix
 		    {reply, ok, mixin_depends, 
 		     ?set_state(Ctx, State#state{mixin=Mixin2})};
 		error ->
-		    {reply, {error, invalid_cid}, eof, Ctx}
+		    {reply, {error, {invalid_cid, Val}}, eof, Ctx}
 	    end;
 	parse_error ->
-	    {reply, {error, invalid_cid}, eof, Ctx}
+	    {reply, {error, {invalid_cid, Val}}, eof, Ctx}
     end;
 mixin_depend(Token, _From, Ctx) ->
     occi_parser:parse_error(Token, Ctx).
@@ -500,10 +695,10 @@ mixin_apply(#token{name=value, data=Val}, _From, #parser{state=#state{mixin=Mixi
 		    {reply, ok, mixin_applies, 
 		     ?set_state(Ctx, State#state{mixin=Mixin2})};
 		error ->
-		    {reply, {error, invalid_cid}, eof, Ctx}
+		    {reply, {error, {invalid_cid, Val}}, eof, Ctx}
 	    end;
 	parse_error ->
-	    {reply, {error, invalid_cid}, eof, Ctx}
+	    {reply, {error, {invalid_cid, Val}}, eof, Ctx}
     end;
 mixin_apply(Token, _From, Ctx) ->
     occi_parser:parse_error(Token, Ctx).

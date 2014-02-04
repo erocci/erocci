@@ -162,6 +162,10 @@ save_t(#occi_node{type=occi_resource, data=Res}=Node) ->
     save_entity_t(Res),
     save_node_t(Node);
 
+save_t(#occi_node{type=occi_link, data=Res}=Node) ->
+    save_entity_t(Res),
+    save_node_t(Node);
+
 save_t(#occi_node{type=occi_user_mixin, data=Mixin}=Node) ->
     mnesia:write(Mixin),
     save_node_t(Node);
@@ -187,18 +191,36 @@ save_entity_t(#occi_resource{}=Res) ->
     KindId = occi_resource:get_cid(Res),
     Uri = occi_resource:get_id(Res),
     add_to_collection_t(KindId, [Uri]),
-    lists:foreach(fun (#occi_mixin{id=MixinId}) ->
+    lists:foreach(fun (#occi_cid{}=MixinId) ->
 			  add_to_collection_t(MixinId, [Uri])
 		  end, occi_resource:get_mixins(Res)),
+    ok;
+
+save_entity_t(#occi_link{}=Link) ->
+    add_link_t(occi_link:get_id(Link), occi_link:get_source(Link)),
+    add_link_t(occi_link:get_id(Link), occi_link:get_target(Link)),
+    mnesia:write(Link),
+    KindId = occi_link:get_cid(Link),
+    Uri = occi_link:get_id(Link),
+    add_to_collection_t(KindId, [Uri]),
+    lists:foreach(fun (#occi_cid{}=MixinId) ->
+			  add_to_collection_t(MixinId, [Uri])
+		  end, occi_link:get_mixins(Link)),
     ok.
 
-save_node_t(#occi_node{id=Id}=Node) ->
-    case mnesia:wread({occi_node, Id}) of
-	[_] ->
-	    mnesia:abort({existing_node, Id});
+add_link_t(LinkId, ResId) ->
+    case mnesia:wread({occi_resource, ResId}) of
 	[] ->
-	    mnesia:write(Node#occi_node{data=undefined}),
-	    add_to_dir_t(occi_node:get_parent(Id), Id)
+	    mnesia:abort({unknown_resource, ResId});
+	[Res] ->
+	    mnesia:write(occi_resource:add_link(Res, LinkId))
+    end.
+
+save_node_t(#occi_node{id=Id}=Node) ->
+    mnesia:write(Node#occi_node{data=undefined}),
+    case mnesia:wread({occi_node, Id}) of
+	[_] -> ok;
+	[] -> add_to_dir_t(occi_node:get_parent(Id), Id)
     end.
 
 add_to_dir_t(#uri{}=Parent, #uri{}=Child) ->
@@ -317,7 +339,7 @@ del_entity_t(#occi_link{id=Id, cid=Cid}=Link) ->
     del_from_collection_t(Cid, [Id]),
     lists:foreach(fun (MixinId) ->
 			  del_from_collection_t(MixinId, [Id])
-		  end, occi_resource:get_mixins(Link)),
+		  end, occi_link:get_mixins(Link)),
     mnesia:delete({occi_link, Id}).
 
 del_from_collection_t(#occi_cid{}=Cid, Uris) ->

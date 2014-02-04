@@ -26,8 +26,8 @@
 -include("occi.hrl").
 
 -export([new/0,
-	add_resource/2,
-	get_resources/1,
+	add_entity/2,
+	get_entities/1,
 	add_mixin/2,
 	get_mixins/1,
 	set_collection/2,
@@ -36,11 +36,14 @@
 new() ->
     #occi_request{}.
 
-add_resource(#occi_request{resources=Resources}=Req, Resource) ->
-    Req#occi_request{resources=[Resource|Resources]}.
+add_entity(#occi_request{entities=Entities}=Req, #occi_resource{}=Res) ->
+    Req#occi_request{entities=[Res|Entities]};
 
-get_resources(#occi_request{resources=Resources}) ->
-    Resources.
+add_entity(#occi_request{entities=Entities}=Req, #occi_link{}=Link) ->
+    Req#occi_request{entities=[Link|Entities]}.
+
+get_entities(#occi_request{entities=Entities}) ->
+    Entities.
 
 add_mixin(#occi_request{mixins=Mixins}=Req, Mixin) ->
     Req#occi_request{mixins=[Mixin|Mixins]}.

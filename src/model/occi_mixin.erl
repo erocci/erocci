@@ -40,7 +40,6 @@
 	 add_attribute/2,
 	 get_attributes/1,
 	 get_attr_list/1,
-	 set_types_check/2,
 	 get_actions/1,
 	 add_action/2,	 
 	 get_applies/1,
@@ -108,12 +107,6 @@ get_attr_list(#occi_mixin{attributes=Attrs}) ->
     orddict:fold(fun (_Key, Value, Acc) ->
 			 [Value|Acc]
 		 end, [], Attrs).
-
-set_types_check(#occi_mixin{attributes=Attrs}=Mixin, Types) -> 
-    Attrs2 = orddict:map(fun (_Id, Attr) ->
-				 occi_attribute:set_check(Attr, Types)
-			 end, Attrs),
-    Mixin#occi_mixin{attributes=Attrs2}.
 
 get_actions(#occi_mixin{actions=Actions}) ->
     Actions.

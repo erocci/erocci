@@ -42,17 +42,22 @@
 	 set_title/2,
 	 get_title/1]).
 
+-export([reset/1]).
+
 %%%
 %%% API
 %%%
 -spec new() -> occi_resource().
 new() ->
-    #occi_resource{attributes=orddict:new()}.
+    #occi_resource{attributes=orddict:new(), links=sets:new()}.
 
--spec new(occi_kind()) -> occi_resource().
+-spec new(occi_kind() | uri()) -> occi_resource().
 new(#occi_kind{}=Kind) ->
     #occi_resource{cid=occi_kind:get_id(Kind), 
-		   attributes=occi_kind:get_attributes(Kind)}.
+		   attributes=occi_kind:get_attributes(Kind),
+		   links=sets:new()};
+new(#uri{}=Id) ->
+    #occi_resource{id=Id, attributes=orddict:new(), links=sets:new()}.
 
 -spec get_id(occi_resource()) -> uri().
 get_id(#occi_resource{id=Id}) ->
@@ -140,12 +145,15 @@ get_attributes(#occi_resource{attributes=Attrs}) ->
     orddict:fold(fun (_Key, Value, Acc) -> [Value|Acc] end, [], Attrs).
 
 -spec add_link(occi_resource(), uri()) -> occi_resource().
-add_link(Res, Link) when is_list(Link) ->
-    add_link(Res, list_to_binary(Link));
-add_link(#occi_resource{links=Links}=Res, Link) ->
-    Res#occi_resource{links=[Link|Links]}.
+add_link(#occi_resource{links=Links}=Res, #uri{}=Link) ->
+    Res#occi_resource{links=sets:add_element(Link, Links)}.
 
 -spec get_links(occi_resource()) -> [uri()].
 get_links(#occi_resource{links=Links}) ->
-    Links.
+    sets:to_list(Links).
 
+-spec reset(occi_resource()) -> occi_resource().
+reset(#occi_resource{attributes=Attrs}=Res) ->
+    Res#occi_resource{attributes=orddict:map(fun (_Key, Attr) ->
+						     occi_attribute:reset(Attr)
+					     end, Attrs)}.

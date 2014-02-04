@@ -12,8 +12,7 @@
 			"cores": 1,
 			"hostname": "pc001",
 			"memory": 5,
-			"speed": 4000,
-			"state": "inactive"			
+			"speed": 4000
 		    }
 		}
 	    }

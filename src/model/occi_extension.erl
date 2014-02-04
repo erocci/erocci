@@ -36,14 +36,14 @@
 	 add_kind/2,
 	 add_mixin/2,
 	 add_type/2,
-	 check_types/1]).
+	 get_types/1]).
 
 new(Name, Version) ->
     #occi_extension{name=Name, 
 		    version=Version,
 		    kinds=[],
 		    mixins=[],
-		    types=dict:new()}.
+		    types=[]}.
 
 get_location(#occi_mixin{location=Uri}) ->
     Uri.
@@ -74,8 +74,8 @@ get_actions(#occi_extension{}=Ext) ->
 			     get_mixins(Ext))
 		  ]).
 
-add_type(#occi_extension{types=Types}=Ext, #occi_type{id=Id}=Type) ->
-    Ext#occi_extension{types=dict:store(Id, Type, Types)}.
+add_type(#occi_extension{types=Types}=Ext, #occi_type{}=Type) ->
+    Ext#occi_extension{types=[Type|Types]}.
 
 add_kind(#occi_extension{kinds=Kinds}=Ext, Kind) ->
     Ext#occi_extension{kinds=[Kind|Kinds]}.
@@ -83,14 +83,5 @@ add_kind(#occi_extension{kinds=Kinds}=Ext, Kind) ->
 add_mixin(#occi_extension{mixins=Mixins}=Ext, Mixin) ->
     Ext#occi_extension{mixins=[Mixin|Mixins]}.
 
-check_types(#occi_extension{types=Types}=Ext) ->
-    lager:info("Check kind types"),
-    Kinds = lists:map(fun (Kind) -> 
-			      occi_kind:set_types_check(Kind, Types)
-		      end, Ext#occi_extension.kinds),
-    lager:info("Check mixin types"),
-    Mixins = lists:map(fun (Mixin) ->
-			       occi_mixin:set_types_check(Mixin, Types)
-		       end, Ext#occi_extension.mixins),
-    lager:info("Done checking types"),
-    Ext#occi_extension{kinds=Kinds, mixins=Mixins}.
+get_types(#occi_extension{types=Types}) ->
+    Types.

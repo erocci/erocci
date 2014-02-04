@@ -23,7 +23,7 @@
 			 version        :: term(),
 			 kinds          :: [occi_cid()],
 			 mixins         :: [occi_cid()],
-			 types          :: dict()           % dict
+			 types          :: [occi_type()]
 			}).
 -type(occi_extension() :: #occi_extension{}).
 
@@ -76,7 +76,6 @@
 -record(occi_attr, {id                           :: occi_attr_key(),
 		    type_id                      :: occi_type_id(),
 		    title           = undefined  :: binary(),
-		    check                        :: fun(),
 		    scalar          = true       :: boolean(),
 		    properties                   :: [term()],
 		    value           = undefined  :: any()}).
@@ -87,25 +86,24 @@
 			cid        = undefined :: occi_cid(),
 			title      = undefined :: binary(),
 		        summary    = undefined :: binary(),
-			attributes = undefined :: dict(),    % orddict()
-			links      = []        :: [uri()],
+			attributes = undefined :: dict(),         % orddict()
+			links                  :: set(),
 			mixins     = []        :: [occi_cid()]}).
 -type(occi_resource() :: #occi_resource{}).
 
 %%% OCCI Link
 -record(occi_link, {id         = undefined :: uri(),
-		    cid                    :: occi_cid(),
+		    cid        = undefined :: occi_cid(),
 		    title      = undefined :: binary(),
-		    attributes = []        :: [{atom(), any()}],
+		    attributes = undefined :: dict(),   % orddict()
 		    source                 :: uri(),
 		    target                 :: uri(),
 		    mixins     = []        :: [occi_cid()]}).
 -type(occi_link() :: #occi_link{}).
 
 %%% OCCI Entity
--record(occi_entity, {id                :: uri(),
-		      cid               :: occi_cid(),
-		      mixins            :: [occi_cid()]}).
+-record(occi_entity, {id       = undefined :: uri(),
+		      cid                  :: occi_cid()}).
 -type(occi_entity() :: #occi_entity{}).
 
 %%% OCCI Filter
@@ -124,8 +122,7 @@
 		       kinds      = []     :: [occi_kind()],
 		       mixins     = []     :: [occi_mixin()],
 		       actions    = []     :: [occi_action()],
-		       resources  = []     :: [occi_resource()],
-		       links      = []     :: [occi_link()]
+		       entities   = []     :: [occi_resource() | occi_link()]
 		      }).
 -type(occi_request() :: #occi_request{}).
 

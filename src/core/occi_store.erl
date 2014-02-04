@@ -142,7 +142,7 @@ load(#occi_node{id=#uri{path=Path}, data=undefined}=Node) ->
     end;
 load(#occi_node{data=_}=Node) ->
     lager:debug("occi_store:load(~p)~n", [lager:pr(Node, ?MODULE)]),
-    Node.
+    {ok, Node}.
 
 %%%===================================================================
 %%% supervisor callbacks

@@ -42,7 +42,8 @@
 -export([init/1]).
 
 -define(SERVER, ?MODULE).
--define(TABLE, ?MODULE).
+-define(CAT_TBL, ?MODULE).
+-define(TYPE_TBL, type_tbl).
 
 %%%===================================================================
 %%% API functions
@@ -68,12 +69,15 @@ register_extension({xml, Path}, Mapping) ->
 			     (#occi_mixin{id=Id}=Mixin) ->
 				  register_mixin(Mixin#occi_mixin{location=get_uri(Id, Mapping)})
 			  end,
-			  occi_extension:get_categories(Ext))
+			  occi_extension:get_categories(Ext)),
+	    lists:foreach(fun(#occi_type{}=Type) ->
+				  register_type(Type)
+			  end, occi_extension:get_types(Ext))
     end.
 
 register_kind(#occi_kind{id=Id, location=#uri{}=Uri}=Kind) ->
     lager:info("Registering kind: ~p -> ~p~n", [ lager:pr(Id, ?MODULE), lager:pr(Uri, ?MODULE) ]),
-    ets:insert(?TABLE, Kind),
+    ets:insert(?CAT_TBL, Kind),
     lists:foreach(fun(Action) ->
 			  register_action(Action)
 		  end,
@@ -81,7 +85,7 @@ register_kind(#occi_kind{id=Id, location=#uri{}=Uri}=Kind) ->
 
 register_mixin(#occi_mixin{id=Id, location=Uri}=Mixin) ->
     lager:info("Registering mixin: ~p -> ~p~n", [ lager:pr(Id, ?MODULE), lager:pr(Uri, ?MODULE) ]),
-    ets:insert(?TABLE, Mixin),
+    ets:insert(?CAT_TBL, Mixin),
     lists:foreach(fun(Action) ->
 			  register_action(Action)
 		  end,
@@ -89,33 +93,37 @@ register_mixin(#occi_mixin{id=Id, location=Uri}=Mixin) ->
 
 register_action(#occi_action{id=Id}=Action) ->
     lager:info("Registering action: ~p~n", [ lager:pr(Id, ?MODULE) ]),
-    ets:insert(?TABLE, Action).
+    ets:insert(?CAT_TBL, Action).
+
+register_type(#occi_type{id=Id}=Type) ->
+    lager:info("Registering type: ~p~n", [ Id ]),
+    ets:insert(?TYPE_TBL, Type).
 
 -spec find(occi_category() | uri()) -> [occi_category()].
 find(#uri{path=Path}) ->
-    case ets:match_object(?TABLE, #occi_kind{location=#uri{path=Path, _='_'}, _='_'}) of
+    case ets:match_object(?CAT_TBL, #occi_kind{location=#uri{path=Path, _='_'}, _='_'}) of
 	[] ->
-	    ets:match_object(?TABLE, #occi_mixin{location=#uri{path=Path, _='_'}, _='_'});
+	    ets:match_object(?CAT_TBL, #occi_mixin{location=#uri{path=Path, _='_'}, _='_'});
 	Other ->
 	    Other
     end;
 
 find(#occi_cid{}=Cid) ->
-    case ets:match_object(?TABLE, #occi_kind{id=Cid, _='_'}) of
+    case ets:match_object(?CAT_TBL, #occi_kind{id=Cid, _='_'}) of
 	[] ->
-	    ets:match_object(?TABLE, #occi_mixin{id=Cid, _='_'});
+	    ets:match_object(?CAT_TBL, #occi_mixin{id=Cid, _='_'});
 	Res ->
 	    Res
     end;
 	    	    
 find(#occi_kind{}=Kind) ->
-    ets:match_object(?TABLE, Kind);
+    ets:match_object(?CAT_TBL, Kind);
 
 find(#occi_mixin{}=Mixin) ->
-    ets:match_object(?TABLE, Mixin);
+    ets:match_object(?CAT_TBL, Mixin);
 
 find(#occi_action{}=Action) ->
-    ets:match_object(?TABLE, Action).
+    ets:match_object(?CAT_TBL, Action).
 
 -spec find_all() -> {[occi_kind()], [occi_mixin()], [occi_action()]}.
 find_all() ->
@@ -123,9 +131,9 @@ find_all() ->
       find(#occi_mixin{_='_'}),
       find(#occi_action{_='_'}) }.
 
--spec get(occi_cid()) -> occi_mixin().
+-spec get(occi_cid() | occi_type()) -> occi_mixin().
 get(#occi_cid{class=mixin}=Cid) ->
-    case ets:match_object(?TABLE, #occi_mixin{id=Cid, _='_'}) of
+    case ets:match_object(?CAT_TBL, #occi_mixin{id=Cid, _='_'}) of
 	[Mixin] ->
 	    Mixin;
 	_ ->
@@ -133,11 +141,19 @@ get(#occi_cid{class=mixin}=Cid) ->
     end;
 
 get(#occi_cid{class=kind}=Cid) ->
-    case ets:match_object(?TABLE, #occi_kind{id=Cid, _='_'}) of
+    case ets:match_object(?CAT_TBL, #occi_kind{id=Cid, _='_'}) of
 	[Kind] ->
 	    Kind;
 	_ ->
 	    throw({error, unknown_category})
+    end;
+
+get(#occi_type{id=Id}) ->
+    case ets:lookup(?TYPE_TBL, Id) of
+	[Type] ->
+	    Type;
+	_ ->
+	    throw({error, {unknown_type, Id}})
     end.
 
 %%%===================================================================
@@ -159,8 +175,10 @@ get(#occi_cid{class=kind}=Cid) ->
 %%--------------------------------------------------------------------
 init([]) ->
     lager:info("Starting OCCI categories manager"),
-    ?TABLE = ets:new(?TABLE, 
+    ?CAT_TBL = ets:new(?CAT_TBL, 
 		     [ordered_set, public, {keypos, 2}, named_table, {read_concurrency, true}]),
+    ?TYPE_TBL = ets:new(?TYPE_TBL, 
+			[ordered_set, public, {keypos, 2}, named_table, {read_concurrency, true}]),
     {ok, {{one_for_one, 10, 10}, []}}.
 
 %%%===================================================================

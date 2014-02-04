@@ -47,6 +47,10 @@ render(#occi_node{type=occi_resource, data=Res}) ->
     Content = {<<"resources">>, [render_ejson(Res)]},
     jiffy:encode({[Content]}, [pretty]);
 
+render(#occi_node{type=occi_link, data=Link}) ->
+    Content = {<<"links">>, [render_ejson(Link)]},
+    jiffy:encode({[Content]}, [pretty]);
+
 render(#occi_node{type=occi_query, data={Kinds, Mixins, Actions}}) ->
     KindsJson = {<<"kinds">>, lists:map(fun(Obj) -> 
 						render_ejson(Obj) 
@@ -110,10 +114,19 @@ render_ejson(#occi_resource{}=Res) ->
 		,{mixins, lists:map(fun render_cid_uri/1, occi_resource:get_mixins(Res))}
 		,{attributes, render_attribute_values(occi_resource:get_attributes(Res))}
 		,{id, occi_uri:to_binary(occi_resource:get_id(Res))}
+		,{links, lists:map(fun (Link) ->
+					   occi_uri:to_binary(Link)
+				   end, occi_resource:get_links(Res))}
 	       ]);
 
-render_ejson(#occi_link{}=_Link) ->
-    strip_list([]);
+render_ejson(#occi_link{}=Link) ->
+    strip_list([{kind, render_cid_uri(occi_link:get_cid(Link))}
+		,{mixins, lists:map(fun render_cid_uri/1, occi_link:get_mixins(Link))}
+		,{attributes, render_attribute_values(occi_link:get_attributes(Link))}
+		,{id, occi_uri:to_binary(occi_link:get_id(Link))}
+		,{source, occi_uri:to_binary(occi_link:get_source(Link))}
+		,{target, occi_uri:to_binary(occi_link:get_target(Link))}		
+	       ]);
 
 render_ejson(#occi_cid{}=Cid) ->
     strip_list([{scheme, list_to_binary(atom_to_list(Cid#occi_cid.scheme))}, 

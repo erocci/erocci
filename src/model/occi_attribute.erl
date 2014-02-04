@@ -36,12 +36,13 @@
 	 set_immutable/2,
 	 get_default/1,
 	 set_default/2,
-	 set_check/2,
 	 set_value/2,
 	 add_value/2,
 	 get_value/1,
 	 set_title/2,
 	 get_title/1]).
+
+-export([reset/1]).
 
 -define(attr_default, [{immutable, false},
 		       {minOccurs, 0},
@@ -55,9 +56,6 @@ new(Id) ->
 
 get_id(A) ->
     A#occi_attr.id.
-
-set_check(#occi_attr{type_id=Id}=A, Types) ->
-    A#occi_attr{check=get_check_fun(Id, Types)}.
 
 get_type_id(#occi_attr{type_id=Name}) ->
     Name.
@@ -107,16 +105,19 @@ get_value(#occi_attr{value=undefined, scalar=false}) ->
 get_value(#occi_attr{value=Value}) ->
     Value.
 
-set_value(#occi_attr{check=Fun}=A, Value) ->
+set_value(#occi_attr{type_id=Id}=A, Value) ->
+    Fun = get_check_fun(Id),
     A#occi_attr{value=Fun(Value)}.
 
 add_value(#occi_attr{scalar=true}, _Value) ->
     throw({error, bad_arity});
-add_value(#occi_attr{check=Fun, value=undefined}=A, Value) ->
+add_value(#occi_attr{type_id=Id, value=undefined}=A, Value) ->
+    Fun = get_check_fun(Id),
     A#occi_attr{value=[Fun(Value)]};
-add_value(#occi_attr{properties=Props, check=Fun, value=List}=A, Value) ->
+add_value(#occi_attr{properties=Props, type_id=Id, value=List}=A, Value) ->
     case dict:fetch(maxOccurs, Props) of
 	Max when Max < length(List) ->
+	    Fun = get_check_fun(Id),
 	    A#occi_attr{value=[Fun(Value)|List]};
 	_ ->
 	    throw({error, bad_arity})
@@ -125,20 +126,24 @@ add_value(#occi_attr{properties=Props, check=Fun, value=List}=A, Value) ->
 set_title(A, Title) ->
     A#occi_attr{title=Title}.
 
-get_title(A) ->
-    A#occi_attr.title.
+get_title(#occi_attr{title=Title}) ->
+    Title.
+
+-spec reset(occi_attr()) -> occi_attr().
+reset(#occi_attr{}=A) ->
+    A#occi_attr{value=get_default(A)}.
 
 %%%
 %%% Private functions
 %%%
-get_check_fun(string, _) ->
+get_check_fun(string) ->
     fun (X) when is_list(X) ->
-	    true;
+	    list_to_binary(X);
 	(X) ->
 	    throw({error, {einval, X}})
     end;
 
-get_check_fun(integer, _) ->
+get_check_fun(integer) ->
     fun (X) when is_integer(X) ->
 	    X;
 	(X) when is_list(X) ->
@@ -151,7 +156,7 @@ get_check_fun(integer, _) ->
 	    throw({error, {einval, X}})
     end;
 
-get_check_fun(float, _) ->
+get_check_fun(float) ->
     fun (X) when is_float(X) ->
 	    X;
 	(X) when is_integer(X) ->
@@ -166,8 +171,10 @@ get_check_fun(float, _) ->
 	    throw({error, {einval, X}})
     end;
 
-get_check_fun(NonBuiltin, Types) ->
-    case dict:find(NonBuiltin, Types) of
-	{ok, Fun} -> Fun;
-	error -> throw({error, {invalid_type, NonBuiltin}})
+get_check_fun(Type) ->
+    case occi_category_mgr:get(#occi_type{id=Type, _='_'}) of
+	#occi_type{f=Fun} ->
+	    Fun;
+	{error, Err} ->
+	    throw({error, Err})
     end.
