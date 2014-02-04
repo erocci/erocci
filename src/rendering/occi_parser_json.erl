@@ -140,16 +140,8 @@ parse_user_mixin(Data) ->
     case parse_full(Data) of
 	{error, Reason} ->
 	    {error, {parse_error, Reason}};
-	{ok, #occi_request{mixins=[#occi_mixin{}=Mixin]}} ->
-	    case {occi_mixin:get_attr_list(Mixin),
-		  occi_mixin:get_actions(Mixin)} of
-		{[], []} ->
-		    {ok, Mixin};
-		Err ->
-		    % User mixins can not set attributes or actions
-		    lager:error("Invalid request: ~p~n", [Err]),
-		    {error, {parse_error, Err}}
-	    end;
+	{ok, #occi_request{mixins=[#occi_mixin{id=Id}=Mixin]}} ->
+	    {ok, Mixin#occi_mixin{id=Id#occi_cid{class=usermixin}}};
 	Err ->
 	    lager:error("Invalid request: ~p~n", [Err]),
 	    {error, {parse_error, Err}}

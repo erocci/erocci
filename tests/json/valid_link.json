@@ -16,8 +16,8 @@
 		    }
 		}
 	    },
-	    "target": "/mynetworks/id1",
-	    "source": "/mycomputes/id1"
+	    "target": "http://localhost:8080/mynetworks/id1",
+	    "source": "http://localhost:8080/mycomputes/id1"
 	}
     ]
 }

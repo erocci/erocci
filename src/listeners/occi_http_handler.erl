@@ -147,6 +147,22 @@ from_json(Req, #occi_node{type=occi_collection, objid=#occi_cid{class=mixin}}=St
 	    update_collection(Req, State, ?ct_json)
     end;
 
+from_json(Req, #occi_node{type=occi_collection, objid=#occi_cid{class=usermixin}}=State) ->
+    case cowboy_req:method(Req) of
+	{<<"PUT">>, _} ->
+	    save_collection(Req, State, ?ct_json);
+	{<<"POST">>, _} ->
+	    update_collection(Req, State, ?ct_json)
+    end;
+
+from_json(Req, #occi_node{type=occi_user_mixin}=State) ->
+    case cowboy_req:method(Req) of
+	{<<"PUT">>, _} ->
+	    save_collection(Req, State, ?ct_json);
+	{<<"POST">>, _} ->
+	    update_collection(Req, State, ?ct_json)
+    end;
+
 from_json(Req, #occi_node{type=occi_resource}=State) ->
     case cowboy_req:method(Req) of
 	{<<"PUT">>, _} ->
@@ -287,7 +303,7 @@ save_collection(Req, #occi_node{objid=Cid}=State, #content_type{parser=Parser}) 
 	    end
     end.
 
-update_collection(Req, #occi_node{type=occi_collection, objid=Cid}=State, #content_type{parser=Parser}) ->
+update_collection(Req, #occi_node{objid=Cid}=State, #content_type{parser=Parser}) ->
     {ok, Body, Req2} = cowboy_req:body(Req),
     case Parser:parse_collection(Body) of
 	{error, {parse_error, Err}} ->
@@ -340,7 +356,7 @@ prepare_entity(_Req, #occi_node{type=occi_link}=Node) ->
 
 prepare_entity(Req, #occi_node{type=undefined}) ->
     {Path, _} = cowboy_req:path(Req),
-    #occi_entity{id=occi_uri:parse(Path)}.
+    #occi_entity{id=occi_config:to_url(occi_uri:parse(Path))}.
 
 create_resource_node(Req, #occi_resource{id=undefined}=Res) ->
     {Prefix, _} = cowboy_req:path(Req),

@@ -137,7 +137,7 @@ from_json(Req, State) ->
 			    end
 		    end;
 		{<<"POST">>, _} ->
-		    Node = occi_node:new_user_mixin(Uri, Mixin),
+		    Node = occi_node:new(Uri, Mixin),
 		    case occi_store:save(Node) of
 			ok ->
 			    RespBody = occi_renderer_json:render(Node),

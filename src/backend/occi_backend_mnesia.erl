@@ -112,10 +112,10 @@ load(#occi_node{}=Req, State) ->
 find_node_t(#occi_node{type=occi_query}) ->
     mnesia:match_object(#occi_mixin{_='_'});
 
-find_node_t(#occi_node{type=occi_collection}=Node) ->
+find_node_t(#occi_node{type=occi_user_mixin}=Node) ->
     mnesia:match_object(Node);
 
-find_node_t(#occi_node{type=occi_user_mixin}=Node) ->
+find_node_t(#occi_node{type=occi_collection}=Node) ->
     mnesia:match_object(Node);
 
 find_node_t(#occi_node{id=Id, recursive=R}) ->
@@ -145,10 +145,7 @@ load_node_t(#occi_node{type=occi_resource, objid=Id}=Node) ->
     load_object_t(Node, occi_resource, Id);
 
 load_node_t(#occi_node{type=occi_link, objid=Id}=Node) ->
-    load_object_t(Node, occi_link, Id);
-
-load_node_t(#occi_node{type=occi_user_mixin, objid=Id}=Node) ->
-    load_object_t(Node, occi_mixin, Id).
+    load_object_t(Node, occi_link, Id).
 
 load_object_t(Node, Type, Id) ->
     case mnesia:wread({Type, Id}) of
@@ -166,9 +163,9 @@ save_t(#occi_node{type=occi_link, data=Res}=Node) ->
     save_entity_t(Res),
     save_node_t(Node);
 
-save_t(#occi_node{type=occi_user_mixin, data=Mixin}=Node) ->
+save_t(#occi_node{type=occi_user_mixin, data=#occi_mixin{}=Mixin}=Node) ->
     mnesia:write(Mixin),
-    save_node_t(Node);
+    save_node_t(Node#occi_node{type=occi_collection});
 
 save_t(#occi_node{type=occi_collection, data=Coll}) ->
     save_collection_t(Coll).
@@ -264,6 +261,14 @@ add_to_collection_t(#occi_cid{class=kind}=Cid, Uris) ->
     end;
 
 add_to_collection_t(#occi_cid{class=mixin}=Cid, Uris) ->
+    case mnesia:wread({occi_collection, Cid}) of
+	[#occi_collection{}=C] ->
+	    mnesia:write(occi_collection:add_entities(C, Uris));
+	[] ->
+	    mnesia:write(occi_collection:new(Cid, Uris))
+    end;
+
+add_to_collection_t(#occi_cid{class=usermixin}=Cid, Uris) ->
     case mnesia:wread({occi_collection, Cid}) of
 	[#occi_collection{}=C] ->
 	    mnesia:write(occi_collection:add_entities(C, Uris));
@@ -416,7 +421,7 @@ del_mixin_t(#occi_mixin{id=Cid}=Mixin) ->
     end,
     mnesia:delete({occi_mixin, Cid}).
 
-get_mixin_t(#occi_cid{class=mixin}=Cid) ->
+get_mixin_t(#occi_cid{class=usermixin}=Cid) ->
     case mnesia:wread({occi_mixin, Cid}) of
 	[#occi_mixin{}=M] ->
 	    M;

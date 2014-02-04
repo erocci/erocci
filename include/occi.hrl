@@ -132,11 +132,8 @@
 			  occi_query |
 			  occi_resource | 
 			  occi_link |
-			  occi_collection | 
-			  occi_mixin | 
 			  occi_user_mixin |
-			  occi_kind |
-			  occi_mixin).
+			  occi_collection).
 -record(occi_node, {id                     :: occi_node_id(),
 		    objid     = undefined  :: term(),
 		    type      = undefined  :: occi_node_type(),

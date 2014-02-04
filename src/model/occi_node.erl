@@ -25,7 +25,6 @@
 -include("occi.hrl").
 
 -export([new/2,
-	 new_user_mixin/2,
 	 get_type/1,
 	 set_type/2,
 	 add_children/2,
@@ -53,20 +52,13 @@ new(#uri{path=Path}, #occi_link{id=Id}=Data)  ->
     #occi_node{id=#uri{path=Path}, objid=Id, type=occi_link, data=Data};
 
 new(#uri{path=Path}, #occi_mixin{id=Id}=Data)  ->
-    #occi_node{id=#uri{path=Path}, objid=Id, type=occi_mixin, data=Data};
-
-new(#uri{path=Path}, #occi_kind{id=Id}=Data)  ->
-    #occi_node{id=#uri{path=Path}, objid=Id, type=occi_kind, data=Data};
+    #occi_node{id=#uri{path=Path}, objid=Id, type=occi_user_mixin, data=Data};
 
 new(#uri{path=Path}, #occi_cid{}=Id) ->
     #occi_node{id=#uri{path=Path}, objid=Id, type=occi_collection, data=undefined};
 
 new(#uri{path=Path}, Type) ->
     #occi_node{id=#uri{path=Path}, type=Type}.
-
--spec new_user_mixin(occi_node_id(), occi_mixin()) -> occi_node().
-new_user_mixin(#uri{path=Path}, #occi_mixin{id=Id}=Data) ->
-    #occi_node{id=#uri{path=Path}, objid=Id, type=occi_user_mixin, data=Data}.
 
 -spec get_type(occi_node()) -> occi_node_type().
 get_type(#occi_node{type=Type}) ->
