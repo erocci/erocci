@@ -1,0 +1,4 @@
+0.1  Jean Parpaillon  <jean.parpaillon@free.fr>
+
+	* Initial release: implements full OCCI types on HTTP/JSON rendering
+	* Backend: mnesia
