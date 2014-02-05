@@ -26,12 +26,14 @@
 -include("occi.hrl").
 
 -export([new/0,
-	add_entity/2,
-	get_entities/1,
-	add_mixin/2,
-	get_mixins/1,
-	set_collection/2,
-	get_collection/1]).
+	 add_entity/2,
+	 get_entities/1,
+	 set_action/2,
+	 get_action/1,
+	 add_mixin/2,
+	 get_mixins/1,
+	 set_collection/2,
+	 get_collection/1]).
 
 new() ->
     #occi_request{}.
@@ -56,3 +58,10 @@ set_collection(#occi_request{}=Req, #occi_collection{}=Col) ->
 
 get_collection(#occi_request{collection=Col}) ->
     Col.
+
+set_action(#occi_request{}=Req, Action) ->
+    Req#occi_request{action=Action}.
+
+get_action(#occi_request{action=Action}) ->
+    Action.
+

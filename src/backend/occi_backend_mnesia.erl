@@ -41,6 +41,13 @@
 %%% occi_backend callbacks
 %%%===================================================================
 init(_) ->
+    case mnesia:system_info(extra_db_nodes) of
+	[] ->
+	    mnesia:create_schema([node()]);
+	_ ->
+	    ok
+    end,
+    application:start(mnesia, permanent),
     mnesia:create_table(occi_collection,
 			[{disc_copies, [node()]},
 			 {attributes, record_info(fields, occi_collection)}]),
@@ -56,7 +63,8 @@ init(_) ->
     mnesia:create_table(occi_node,
 		       [{disc_copies, [node()]},
 			{attributes, record_info(fields, occi_node)}]),
-    mnesia:wait_for_tables([occi_resource, occi_category], infinite),
+    mnesia:wait_for_tables([occi_collection, occi_resource, occi_link, occi_mixin, occi_node],
+			   infinite),
     {ok, #state{}}.
 
 terminate(#state{}) ->

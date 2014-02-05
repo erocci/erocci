@@ -55,7 +55,6 @@ start(normal, _Args) ->
     application:ensure_all_started(lager),
     application:ensure_all_started(inets),
     application:ensure_all_started(exmpp),
-    db_init(),
     Ret = occi_sup:start_link(),
     occi_config:start(),
     start(),
@@ -91,13 +90,3 @@ loop() ->
 	_ ->
 	    loop()
     end.
-
-db_init() ->
-    case mnesia:system_info(extra_db_nodes) of
-	[] ->
-	    mnesia:create_schema([node()]);
-	_ ->
-	    ok
-    end,
-    application:start(mnesia, permanent),
-    mnesia:wait_for_tables(mnesia:system_info(local_tables), infinity).

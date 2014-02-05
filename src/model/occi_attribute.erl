@@ -40,7 +40,8 @@
 	 add_value/2,
 	 get_value/1,
 	 set_title/2,
-	 get_title/1]).
+	 get_title/1,
+	 check/1]).
 
 -export([reset/1]).
 
@@ -178,3 +179,11 @@ get_check_fun(Type) ->
 	{error, Err} ->
 	    throw({error, Err})
     end.
+
+check(#occi_attr{value=undefined}=A) ->
+    case is_required(A) of
+	true -> error;
+	false -> ok
+    end;
+check(#occi_attr{}=_A) ->
+    ok.

@@ -30,7 +30,7 @@
 
 %% API
 -export([start_link/0]).
--export([add_hook/2, notify/3]).
+-export([trigger/2]).
 
 %% Supervisor callbacks
 -export([init/1]).
@@ -51,20 +51,19 @@
 start_link() ->
     supervisor:start_link({local, ?SUPERVISOR}, ?MODULE, []).
 
--spec add_hook(occi_cid(), hook()) -> ok.
-add_hook(Id, {Name, Fun}) ->
-    lager:info("Registering hook: {~s,~s~s}~n", 
-	       [Name, Id#occi_cid.scheme, Id#occi_cid.term]),
-    Ref = register_hook(Id, Name),
-    HookMgr = {Ref, {occi_hook_handler, start_link, [Name, Fun, Ref]}, 
-	       permanent, 5000, worker, [occi_hook_handler]},
-    supervisor:start_child(?MODULE, HookMgr).
-
-notify(HookName, Id, Data) ->
-    Managers = mnesia:dirty_match_object(#hook_rec{key={HookName, Id}, _ ='_'}),
-    list:foreach(fun(Manager) ->
-			 gen_server:cast(Manager#hook_rec.ref, {HookName, Data})
-		 end, Managers).
+-spec trigger(occi_node(), occi_action()) -> {true, occi_node()} 
+						 | false
+						 | {error, term()}.
+trigger(#occi_node{id=Id}=_Node, #occi_action{id=ActionId}=Action) ->
+    case occi_action:check(Action) of
+	ok ->
+	    lager:info("Trigger action: ~p <- ~p~n", [occi_uri:to_string(Id), 
+						      lager:pr(ActionId, ?MODULE)]),
+	    false;
+	{error, Err} ->
+	    lager:error("Error triggering action: ~p~n", [Err]),
+	    {error, Err}
+    end.
 
 %%%===================================================================
 %%% Supervisor callbacks
@@ -85,10 +84,6 @@ notify(HookName, Id, Data) ->
 %%--------------------------------------------------------------------
 init(_) ->
     lager:info("Starting OCCI hooks manager"),
-    mnesia:create_table(hook_rec,
-			[{ram_copies, [node()]},
-			 {attributes, record_info(fields, hook_rec)}]),
-    mnesia:wait_for_tables([hook_cat], infinite),
     RestartStrategy = one_for_one,
     MaxRestarts = 1000,
     MaxSecondsBetweenRestarts = 3600,
@@ -101,11 +96,3 @@ init(_) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
-register_hook(Id, Name) ->
-    Ref = make_ref(),
-    HookRec = #hook_rec{key={Name, Id}, ref=Ref},
-    Trans = fun() -> 
-		    mnesia:write(HookRec)
-	    end,
-    mnesia:transaction(Trans),
-    HookRec.

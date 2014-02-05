@@ -33,7 +33,8 @@
 	 stop/1,
 	 parse/2,
 	 parse_full/2]).
--export([parse_entity/1,
+-export([parse_action/2,
+	 parse_entity/1,
 	 parse_entity/2,
 	 parse_user_mixin/1,
 	 parse_collection/1]).
@@ -78,6 +79,10 @@
 	 mixin_title/3,
 	 mixin_location/3,
 	 collection/3,
+	 action_req/3,
+	 action/3,
+	 action_attributes/3,
+	 action_attribute/3,
 	 eof/3]).
 
 -define(SERVER, ?MODULE).
@@ -87,11 +92,22 @@
 		entity         = undefined          :: term(),
 		entity_id      = undefined          :: uri(),
 		mixin          = undefined          :: term(),
+		action         = undefined          :: occi_action(),
 		attrNS         = []                 :: [string()]}).
 
 %%%===================================================================
 %%% API
 %%%===================================================================
+parse_action(Data, Action) ->
+    case parse_full(Data, #state{action=Action}) of
+	{error, Reason} ->
+	    {error, {parse_error, Reason}};
+	{ok, #occi_request{action=#occi_action{}=Action2}} ->
+	    {ok, Action2};
+	_ ->
+	    {error, {parse_error, not_an_action}}
+    end.    
+
 parse_entity(Data) ->
     case parse_full(Data, #state{entity=#occi_entity{}}) of
 	{error, Reason} ->
@@ -300,8 +316,7 @@ request(#token{name=key, data="collection"}, _From, Ctx) ->
 request(#token{name=key, data="links"}, _From, Ctx) ->
     {reply, ok, links_req, Ctx};
 request(#token{name=key, data="action"}, _From, Ctx) ->
-    % TODO
-    {reply, {error, invalid_request}, eof, Ctx};
+    {reply, ok, action_req, Ctx};
 request(#token{name=key, data="kinds"}, _From, Ctx) ->
     % TODO
     {reply, {error, invalid_request}, eof, Ctx};
@@ -716,6 +731,66 @@ collection(#token{name=arrEnd}, _From, #parser{state=#state{request=Req, collect
     Ctx2 = ?set_state(Ctx, State#state{request=Req}),
     {reply, {eof, Req2}, eof, Ctx2};
 collection(Token, _From, Ctx) ->
+    occi_parser:parse_error(Token, Ctx).
+
+action_req(#token{name=value, data=Val}, _From, 
+	   #parser{state=#state{action=#occi_action{id=#occi_cid{term=Term}}}=State}=Ctx) ->
+    case parse_cid(Val) of
+	{Scheme, Term} ->
+	    case occi_category_mgr:get(#occi_cid{class=action, scheme=Scheme, term=Term}) of
+		#occi_action{}=Action ->
+		    {reply, ok, action, 
+		    ?set_state(Ctx, State#state{action=Action})};
+		error ->
+		    {reply, {error, {invalid_cid, Val}}, eof, Ctx}
+	    end;
+	_ ->
+	    {reply, {error, {invalid_cid, Val}}, eof, Ctx}
+    end;
+action_req(#token{name=objEnd}, _From, 
+	   #parser{state=#state{request=Req, action=A}=State}=Ctx) ->
+    {reply, ok, request, 
+     ?set_state(Ctx, State#state{request=occi_request:set_action(Req, A)})};
+action_req(Token, _From, Ctx) ->
+    occi_parser:parse_error(Token, Ctx).
+
+action(#token{name=key, data="attributes"}, _From, Ctx) ->
+    {reply, ok, action_attributes, Ctx};
+action(Token, _From, Ctx) ->
+    occi_parser:parse_error(Token, Ctx).
+
+action_attributes(#token{name=objBegin}, _From, #parser{state=State}=Ctx) ->
+    {reply, ok, action_attribute,
+    ?set_state(Ctx, State#state{attrNS=[]})};
+action_attributes(#token{name=objEnd}, _From, #parser{state=#state{request=Req, action=A}=State}=Ctx) ->
+    {reply, ok, request, 
+     ?set_state(Ctx, State#state{request=occi_request:set_action(Req, A)})};
+action_attributes(Token, _From, Ctx) ->
+    occi_parser:parse_error(Token, Ctx).
+
+action_attribute(#token{name=key, data=Val}, _From, #parser{state=#state{attrNS=NS}=State}=Ctx) ->
+    {reply, ok, action_attribute, 
+     ?set_state(Ctx, State#state{attrNS=[Val|NS]})};
+action_attribute(#token{name=objBegin}, _From, Ctx) ->
+    {reply, ok, action_attribute, Ctx};
+action_attribute(#token{name=value, data=Val}, _From, 
+		 #parser{state=#state{attrNS=[H|T], action=Action}=State}=Ctx) ->
+    Name = build_attr_name([H|T]),
+    case occi_action:set_attr_value(Action, Name, Val) of
+	#occi_action{}=Action2 ->
+	    {reply, ok, action_attribute, ?set_state(Ctx, State#state{attrNS=T, action=Action2})};
+	{error, Err} ->
+	    lager:error("Error parsing action: ~p~n", [Err]),
+	    {reply, {error, Err}, eof, Ctx}
+    end;
+action_attribute(#token{name=objEnd}, _From, #parser{state=#state{attrNS=[_H|T]}=State}=Ctx) ->
+    {reply, ok, action_attribute, 
+     ?set_state(Ctx, State#state{attrNS=T})};
+action_attribute(#token{name=objEnd}, _From, 
+		 #parser{state=#state{request=Req, action=A}=State}=Ctx) ->
+    {reply, ok, request,
+     ?set_state(Ctx, State#state{request=occi_request:set_action(Req, A)})};
+action_attribute(Token, _From, Ctx) ->
     occi_parser:parse_error(Token, Ctx).
 
 eof(_E, _F, Ctx) ->

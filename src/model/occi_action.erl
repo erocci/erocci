@@ -24,8 +24,8 @@
 
 -include("occi.hrl").
 
-%% from occi_category
--export([new/2,
+-export([new/1,
+	 new/2,
 	 get_id/1,
 	 get_class/1,
 	 get_scheme/1,
@@ -34,11 +34,15 @@
 	 set_title/2,
 	 add_attribute/2,
 	 get_attributes/1,
-	 get_attr_list/1]).
+	 get_attr_list/1,
+	 set_attr_value/3,
+	 check/1]).
+
+new(#occi_cid{}=Cid) ->
+    #occi_action{id=Cid, attributes=orddict:new(), location=undefined}.
 
 new(Scheme, Term) ->
-    #occi_action{id=#occi_cid{scheme=Scheme, term=Term, class=action},
-		 attributes=orddict:new(), location=undefined}.
+    new(#occi_cid{scheme=Scheme, term=Term, class=action}).
 
 get_id(#occi_action{id=Id}) -> 
     Id.
@@ -65,6 +69,31 @@ get_attributes(#occi_action{attributes=Attrs}) ->
     Attrs.
 
 get_attr_list(#occi_action{attributes=Attrs}) ->
-    lists:map(fun ({_Key, Val}) ->
-		      Val
-	      end, orddict:to_list(Attrs)).
+    orddict:fold(fun (_Key, Val, Acc) ->
+			 [Val|Acc]
+		 end, [], Attrs).
+
+-spec set_attr_value(occi_action(), occi_attr_key(), any()) -> occi_action().
+set_attr_value(#occi_action{}=A, 'occi.core.title', Val) ->
+    A#occi_action{title=Val};
+set_attr_value(#occi_action{}=A, 'occi.core.id', Val) ->
+    A#occi_action{id=Val};
+set_attr_value(#occi_action{}=A, Key, Val) when is_list(Key) ->
+    set_attr_value(A, list_to_atom(Key), Val);
+set_attr_value(#occi_action{attributes=Attrs}=A, Key, Val) when is_atom(Key) ->
+    case orddict:is_key(Key, Attrs) of
+	true ->
+	    Attr = orddict:fetch(Key, Attrs),
+	    A#occi_action{attributes=orddict:store(Key, occi_attribute:set_value(Attr, Val), Attrs)};
+	false ->
+	    {error, {undefined_attribute, Key}}
+    end.
+
+-spec check(occi_action()) -> ok | {error, term()}.
+check(#occi_action{attributes=Attrs}) ->
+    orddict:fold(fun (_Key, Attr, Acc) ->
+			 case occi_attribute:check(Attr) of
+			     ok -> Acc;
+			     error -> {error, badarg}
+			 end
+		 end, ok, Attrs).

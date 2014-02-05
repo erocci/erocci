@@ -148,6 +148,14 @@ get(#occi_cid{class=kind}=Cid) ->
 	    throw({error, unknown_category})
     end;
 
+get(#occi_cid{class=action}=Cid) ->
+    case ets:match_object(?CAT_TBL, #occi_action{id=Cid, _='_'}) of
+	[Action] ->
+	    Action;
+	_ ->
+	    throw({error, unknown_action})
+    end;
+
 get(#occi_type{id=Id}) ->
     case ets:lookup(?TYPE_TBL, Id) of
 	[Type] ->

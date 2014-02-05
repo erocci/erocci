@@ -137,14 +137,24 @@ to_xml(Req, #occi_node{}=Node) ->
     render(Req, Node, ?ct_xml).
 
 from_json(Req, #occi_node{type=occi_collection, objid=#occi_cid{class=kind}}=State) ->
-    save_entity(Req, State, ?ct_json);
+    case cowboy_req:qs_val(<<"action">>, Req) of
+	{undefined, Req2} ->
+	    save_entity(Req2, State, ?ct_json);
+	{Action, Req2} ->
+	    trigger(Req2, State, Action, ?ct_json)
+    end;
 
 from_json(Req, #occi_node{type=occi_collection, objid=#occi_cid{class=mixin}}=State) ->
     case cowboy_req:method(Req) of
 	{<<"PUT">>, _} ->
 	    save_collection(Req, State, ?ct_json);
 	{<<"POST">>, _} ->
-	    update_collection(Req, State, ?ct_json)
+	    case cowboy_req:qs_val(<<"action">>, Req) of
+		{undefined, Req2} ->
+		    update_collection(Req2, State, ?ct_json);
+		{Action, Req2} ->
+		    trigger(Req2, State, Action, ?ct_json)
+	    end
     end;
 
 from_json(Req, #occi_node{type=occi_collection, objid=#occi_cid{class=usermixin}}=State) ->
@@ -152,7 +162,12 @@ from_json(Req, #occi_node{type=occi_collection, objid=#occi_cid{class=usermixin}
 	{<<"PUT">>, _} ->
 	    save_collection(Req, State, ?ct_json);
 	{<<"POST">>, _} ->
-	    update_collection(Req, State, ?ct_json)
+	    case cowboy_req:qs_val(<<"action">>, Req) of
+		{undefined, Req2} ->
+		    update_collection(Req2, State, ?ct_json);
+		{Action, Req2} ->
+		    trigger(Req2, State, Action, ?ct_json)
+	    end
     end;
 
 from_json(Req, #occi_node{type=occi_user_mixin}=State) ->
@@ -160,7 +175,12 @@ from_json(Req, #occi_node{type=occi_user_mixin}=State) ->
 	{<<"PUT">>, _} ->
 	    save_collection(Req, State, ?ct_json);
 	{<<"POST">>, _} ->
-	    update_collection(Req, State, ?ct_json)
+	    case cowboy_req:qs_val(<<"action">>, Req) of
+		{undefined, Req2} ->
+		    update_collection(Req2, State, ?ct_json);
+		{Action, Req2} ->
+		    trigger(Req2, State, Action, ?ct_json)
+	    end
     end;
 
 from_json(Req, #occi_node{type=occi_resource}=State) ->
@@ -168,7 +188,12 @@ from_json(Req, #occi_node{type=occi_resource}=State) ->
 	{<<"PUT">>, _} ->
 	    save_entity(Req, State, ?ct_json);
 	{<<"POST">>, _} ->
-	    update_entity(Req, State, ?ct_json)
+	    case cowboy_req:qs_val(<<"action">>, Req) of
+		{undefined, Req2} ->
+		    update_entity(Req2, State, ?ct_json);
+		{Action, Req2} ->
+		    trigger(Req2, State, Action, ?ct_json)
+	    end
     end;
 
 from_json(Req, #occi_node{type=occi_link}=State) ->
@@ -176,8 +201,17 @@ from_json(Req, #occi_node{type=occi_link}=State) ->
 	{<<"PUT">>, _} ->
 	    save_entity(Req, State, ?ct_json);
 	{<<"POST">>, _} ->
-	    update_entity(Req, State, ?ct_json)
+	    case cowboy_req:qs_val(<<"action">>, Req) of
+		{undefined, Req2} ->
+		    update_entity(Req2, State, ?ct_json);
+		{Action, Req2} ->
+		    trigger(Req2, State, Action, ?ct_json)
+	    end
     end;
+
+from_json(Req, #occi_node{type=dir}=State) ->
+    {ok, Req2} = cowboy_req:reply(405, Req),
+    {halt, Req2, State};
 
 from_json(Req, #occi_node{type=undefined}=State) ->
     save_entity(Req, State, ?ct_json).
@@ -329,6 +363,42 @@ update_collection(Req, #occi_node{objid=Cid}=State, #content_type{parser=Parser}
 		    {halt, Req3, State}
 	    end
     end.
+
+trigger(Req, State, ActionName, #content_type{parser=Parser}) ->
+    {ok, Body, Req2} = cowboy_req:body(Req),
+    case Parser:parse_action(Body, prepare_action(Req2, State, ActionName)) of
+	{error, {parse_error, Err}} ->
+	    lager:debug("Error processing action: ~p~n", [Err]),
+	    {ok, Req3} = cowboy_req:reply(400, Req2),
+	    {halt, Req3, State};
+	{error, Err} ->
+	    lager:debug("Internal error: ~p~n", [Err]),
+	    {ok, Req3} = cowboy_req:reply(500, Req2),
+	    {halt, Req3, State};	    
+	{ok, #occi_action{}=Action} ->
+	    case occi_hook:trigger(State, Action) of
+		{true, State2} ->
+		    case occi_store:update(State2) of
+			ok ->
+			    {true, Req2, State2};
+			{error, Err} ->
+			    lager:debug("Error updating node: ~p~n", [Err]),
+			    {ok, Req3} = cowboy_req:reply(500, Req2),
+			    {halt, Req3, State2}
+		    end;
+		false ->
+		    {true, Req2, State};
+		{error, Err} ->
+		    lager:debug("Error triggering action: ~p~n", [Err]),
+		    {ok, Req3} = cowboy_req:reply(500, Req2),
+		    {halt, Req3, State}
+	    end
+    end.
+
+prepare_action(Req, State, Name) when is_binary(Name)->
+    prepare_action(Req, State, list_to_atom(binary_to_list(Name)));
+prepare_action(_Req, _State, Name) ->
+    occi_action:new(#occi_cid{term=Name, class=action}).    
 
 prepare_entity(_Req, #occi_node{type=occi_collection, objid=Cid}) ->
     case occi_category_mgr:get(Cid) of

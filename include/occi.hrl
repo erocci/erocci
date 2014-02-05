@@ -118,11 +118,11 @@
 -type(hook_name() :: on_save | on_update | on_delete | on_action).
 -type(hook_fun() :: {atom(), atom()} | fun()).
 
--record(occi_request, {collection          :: occi_collection(),
-		       kinds      = []     :: [occi_kind()],
-		       mixins     = []     :: [occi_mixin()],
-		       actions    = []     :: [occi_action()],
-		       entities   = []     :: [occi_resource() | occi_link()]
+-record(occi_request, {collection             :: occi_collection(),
+		       kinds      = []        :: [occi_kind()],
+		       mixins     = []        :: [occi_mixin()],
+		       action     = undefined :: occi_action(),
+		       entities   = []        :: [occi_resource() | occi_link()]
 		      }).
 -type(occi_request() :: #occi_request{}).
 
