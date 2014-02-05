@@ -1,3 +1,0 @@
-X-OCCI-Location: 
-    http://example.com/compute/123, 
-    http://example.com/compute/456

@@ -1,8 +1,0 @@
-Category: storage;
-	  scheme="http://schemas.ogf.org/occi/infrastructure#";
-	  class="kind";
-	  title="Storage Resource";
-	  rel="http://schemas.ogf.org/occi/core#resource";
-	  location=/storage/; 
-	  attributes="occi.storage.size occi.storage.state";
-	  actions="http://schemas.ogf.org/occi/infrastructure/storage/action#resize"

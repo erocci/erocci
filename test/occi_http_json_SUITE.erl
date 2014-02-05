@@ -36,6 +36,7 @@ suite() ->
 %%--------------------------------------------------------------------
 init_per_suite(Config) ->
     application:start(occi),
+    DataDir = proplists:lookup(data_dir, Config),
     Mapping = [
 	       {#occi_cid{scheme=?SCHEME_INFRA, term='compute', class=kind}, "/compute/"},
 	       {#occi_cid{scheme=?SCHEME_INFRA, term='storage', class=kind}, "/storage/"},
@@ -48,7 +49,7 @@ init_per_suite(Config) ->
 	       {#occi_cid{scheme=?SCHEME_INFRA, term='resource_tpl', class=mixin}, "/resource_tpl/"}
 	      ],
     Extensions = {extensions,
-		  [{xml, "../../schemas/occi-infrastructure.xml"}], 
+		  [{xml, DataDir ++ "/occi-infrastructure.xml"}], 
 		  Mapping},
     Backends = {backends, 
 		[{mnesia, occi_backend_mnesia, [], "/"}]},

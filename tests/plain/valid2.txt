@@ -1,6 +1,0 @@
-Link:
-	</storage/disk03>;
-        rel="http://example.com/occi/resource#storage";
-        self="/link/456-456-456";
-        category="http://example.com/occi/link#disk_drive";
-        com.example.drive0.interface="ide0", com.example.drive1.interface="ide1"

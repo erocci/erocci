@@ -1,0 +1,253 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<occi:extension xmlns:occi="http://schemas.ogf.org/occi"
+	xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://schemas.ogf.org/occi occi.xsd " name="Infrastructure"
+	version="1">
+	<!-- Compute Kind -->
+	<occi:kind term="compute" scheme="http://schemas.ogf.org/occi/infrastructure#"
+		title="Compute Resource">
+		<occi:parent scheme="http://schemas.ogf.org/occi/core#"
+			term="resource" />
+		<occi:attribute name="occi.compute.architecture" type="occi:arch"
+				title="CPU Architecture" />
+		<occi:attribute name="occi.compute.cores" type="xs:integer"
+				title="CPU cores number" ></occi:attribute>
+		<occi:attribute name="occi.compute.hostname" type="xs:string"
+				title="System hostname" ></occi:attribute>
+		<occi:attribute name="occi.compute.speed" type="xs:float"
+				title="CPU speed (GHz)" ></occi:attribute>
+		<occi:attribute name="occi.compute.memory" type="xs:float"
+				title="System RAM (GB)" ></occi:attribute>
+		<occi:attribute name="occi.compute.state" use="required"
+				default="inactive" immutable="true"
+				title="System state" >
+			<xs:simpleType>
+				<xs:restriction base="xs:string">
+					<xs:enumeration value="active"></xs:enumeration>
+					<xs:enumeration value="inactive"></xs:enumeration>
+					<xs:enumeration value="suspended"></xs:enumeration>
+				</xs:restriction>
+			</xs:simpleType>
+		</occi:attribute>
+		<occi:action term="start"
+			     scheme="http://schemas.ogf.org/occi/infrastructure/compute/action#"
+			     title="Start the system" ></occi:action>
+		<occi:action term="stop"
+			     scheme="http://schemas.ogf.org/occi/infrastructure/compute/action#"
+			     title="Stop the system (graceful, acpioff or poweroff)" >
+			<occi:attribute name="method">
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:enumeration value="graceful" />
+						<xs:enumeration value="acpioff" />
+						<xs:enumeration value="poweroff" />
+					</xs:restriction>
+				</xs:simpleType>
+			</occi:attribute>
+		</occi:action>
+		<occi:action term="restart"
+			     scheme="http://schemas.ogf.org/occi/infrastructure/compute/action#"
+			     title="Restart the system (graceful, warm or cold)" >
+			<occi:attribute name="method">
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:enumeration value="graceful" />
+						<xs:enumeration value="warm" />
+						<xs:enumeration value="cold" />
+					</xs:restriction>
+				</xs:simpleType>
+			</occi:attribute>
+		</occi:action>
+		<occi:action term="suspend"
+			     scheme="http://schemas.ogf.org/occi/infrastructure/compute/action#"
+			     title="Suspend the system (hibernate or in RAM)" >
+			<occi:attribute name="method">
+				<xs:simpleType>
+					<xs:restriction base="xs:string">
+						<xs:enumeration value="hibernate" />
+						<xs:enumeration value="suspend" />
+					</xs:restriction>
+				</xs:simpleType>
+			</occi:attribute>
+		</occi:action>
+	</occi:kind>
+
+	<!-- Storage Resource -->
+	<occi:kind scheme="http://schemas.ogf.org/occi/infrastructure#"
+		   term="storage" title="Storage Resource">
+		<occi:parent scheme="http://schemas.ogf.org/occi/core#"
+			term="resource" />
+		<occi:attribute name="occi.storage.size" type="xs:float"
+				use="required"
+				title="Storage size" ></occi:attribute>
+		<occi:attribute name="occi.storage.state" use="required"
+				title="Storage state" >
+			<xs:simpleType>
+				<xs:restriction base="xs:string">
+					<xs:enumeration value="online" />
+					<xs:enumeration value="offline" />
+					<xs:enumeration value="backup" />
+					<xs:enumeration value="snapshot" />
+					<xs:enumeration value="resize" />
+					<xs:enumeration value="degraded" />
+				</xs:restriction>
+			</xs:simpleType>
+		</occi:attribute>
+		<occi:action
+			scheme="http://schemas.ogf.org/occi/infrastructure/storage/action#"
+			term="online" title="Set storage online" />
+		<occi:action
+			scheme="http://schemas.ogf.org/occi/infrastructure/storage/action#"
+			term="offline" title="Set storage offline" />
+		<occi:action
+			scheme="http://schemas.ogf.org/occi/infrastructure/storage/action#"
+			term="backup" title="Set storage as backup" />
+		<occi:action
+			scheme="http://schemas.ogf.org/occi/infrastructure/storage/action#"
+			term="snapshot" title="Take storage snapshot" />
+		<occi:action
+			scheme="http://schemas.ogf.org/occi/infrastructure/storage/action#"
+			term="resize" title="Resize storage" >
+			<occi:attribute name="size" type="xs:float"></occi:attribute>
+		</occi:action>
+	</occi:kind>
+
+	<!-- StorageLink Link -->
+	<occi:kind scheme="http://schemas.ogf.org/occi/infrastructure#"
+		term="storagelink" title="StorageLink Link">
+		<occi:parent scheme="http://schemas.ogf.org/occi/core#"
+			term="link" />
+		<occi:attribute name="occi.storagelink.deviceid" use="required"
+			type="xs:string" ></occi:attribute>
+		<occi:attribute name="occi.storagelink.mountpoint"
+			type="xs:string"></occi:attribute>
+		<occi:attribute name="occi.storagelink.state" use="required"
+			immutable="true">
+			<xs:simpleType>
+				<xs:restriction base="xs:string">
+					<xs:enumeration value="active" />
+					<xs:enumeration value="inactive" />
+				</xs:restriction>
+			</xs:simpleType>
+		</occi:attribute>
+	</occi:kind>
+
+	<!-- Network -->
+	<occi:kind scheme="http://schemas.ogf.org/occi/infrastructure#"
+		term="network" title="Network Resource">
+		<occi:parent scheme="http://schemas.ogf.org/occi/core#"
+			term="resource" />
+		<occi:attribute name="occi.network.vlan">
+			<xs:simpleType>
+				<xs:restriction base="xs:integer">
+					<xs:minInclusive value="0" />
+					<xs:maxInclusive value="4095" />
+				</xs:restriction>
+			</xs:simpleType>
+		</occi:attribute>
+		<occi:attribute name="occi.network.label" type="xs:string"></occi:attribute>
+		<occi:attribute name="occi.network.state" immutable="true"
+			use="required">
+			<xs:simpleType>
+				<xs:restriction base="xs:string">
+					<xs:enumeration value="active" />
+					<xs:enumeration value="inactive" />
+				</xs:restriction>
+			</xs:simpleType>
+		</occi:attribute>
+		<occi:action scheme="http://schemas.ogf.org/occi/infrastructure/action#"
+			term="up" title="Set network up" />
+		<occi:action scheme="http://schemas.ogf.org/occi/infrastructure/action#"
+			term="down" title="Set network down" />
+	</occi:kind>
+
+	<!-- NetworkInterface Link -->
+	<occi:kind scheme="http://schemas.ogf.org/occi/infrastructure#"
+		term="networkinterface" title="NetworkInterface Link">
+		<occi:parent scheme="http://schemas.ogf.org/occi/core#"
+			term="link" />
+		<occi:attribute name="occi.networkinterface.interface"
+			immutable="true" type="xs:string" use="required"></occi:attribute>
+		<occi:attribute name="occi.networkinterface.mac" type="occi:mac802"
+			use="required"></occi:attribute>
+		<occi:attribute name="occi.networkinterface.state"
+			immutable="true" use="required">
+			<xs:simpleType>
+				<xs:restriction base="xs:string">
+					<xs:enumeration value="active" />
+					<xs:enumeration value="inactive" />
+				</xs:restriction>
+			</xs:simpleType>
+		</occi:attribute>
+	</occi:kind>
+
+	<!-- IP Networking Mixin -->
+	<occi:mixin scheme="http://schemas.ogf.org/occi/infrastructure/network#"
+		term="ipnetwork" title="IP Networking Mixin">
+		<occi:attribute name="occi.network.address" type="occi:cidr"></occi:attribute>
+		<occi:attribute name="occi.network.gateway" type="occi:ip"></occi:attribute>
+		<occi:attribute name="occi.network.allocation" use="required">
+			<xs:simpleType>
+				<xs:restriction base="xs:string">
+					<xs:enumeration value="dynamic" />
+					<xs:enumeration value="static" />
+				</xs:restriction>
+			</xs:simpleType>
+		</occi:attribute>
+	</occi:mixin>
+
+	<!-- IP NetworkInterface Mixin -->
+	<occi:mixin term="ipnetworkinterface" title="IP Network Interface Mixin"
+		scheme="http://schemas.ogf.org/occi/infrastructure/networkinterface#">
+		<occi:attribute name="occi.networkinterface.address"
+			type="occi:cidr" use="required"></occi:attribute>
+		<occi:attribute name="occi.networkinterface.gateway"
+			type="occi:ip"></occi:attribute>
+		<occi:attribute name="occi.networkinterface.allocation"
+			use="required">
+			<xs:simpleType>
+				<xs:restriction base="xs:string">
+					<xs:enumeration value="dynamic" />
+					<xs:enumeration value="static" />
+				</xs:restriction>
+			</xs:simpleType>
+		</occi:attribute>
+	</occi:mixin>
+
+	<!-- OS template -->
+	<occi:mixin scheme="http://schemas.ogf.org/occi/infrastructure#"
+		term="os_tpl" title="OS Template" />
+
+	<!-- Resource template -->
+	<occi:mixin scheme="http://schemas.ogf.org/occi/infrastructure#"
+		term="resource_tpl" title="Resource template" />
+
+	<!-- Extended types -->
+	<xs:simpleType name="arch">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="x86" />
+			<xs:enumeration value="x86_64" />
+			<xs:enumeration value="armv7" />
+		</xs:restriction>
+	</xs:simpleType>
+
+	<xs:simpleType name="ip">
+		<xs:restriction base="xs:string">
+			<xs:pattern
+				value="(((([1-9]?\d|1\d{2}|2[0-4]\d|25[0-5])\.){3}([1-9]?\d|1\d{2}|2[0-4]\d|25[0-5]))|((([\da-fA-F]{1,4})|(\:))\:){7}(([\da-fA-F]{1,4})|(\:))))" />
+		</xs:restriction>
+	</xs:simpleType>
+
+	<xs:simpleType name="cidr">
+		<xs:restriction base="xs:string">
+			<xs:pattern
+				value="(((([1-9]?\d|1\d{2}|2[0-4]\d|25[0-5])\.){3}([1-9]?\d|1\d{2}|2[0-4]\d|25[0-5])\/(\d|[1-2]\d|3[0-2]))|((([\da-fA-F]{0,4})|(\:))\:){7}(([\da-fA-F]{0,4})|(\:)))\/([1-9]?\d|1[01]\d|12[0-8])))" />
+		</xs:restriction>
+	</xs:simpleType>
+
+	<xs:simpleType name="mac802">
+		<xs:restriction base="xs:string">
+			<xs:pattern value="[\da-fA-F]{2}(\:[\da-fA-F]){5}" />
+		</xs:restriction>
+	</xs:simpleType>
+</occi:extension>
