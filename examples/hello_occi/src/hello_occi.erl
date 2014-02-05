@@ -38,14 +38,16 @@ start() ->
     Backends = {backends, 
 		[{mnesia, occi_backend_mnesia, [], "/"}]},
     Listeners = {listeners, 
-		 [{http, occi_http, [{port, 8080}]}]
-		},
+		 [{http, occi_http, [{port, 8080}]}]},
+    Handlers = {handlers, 
+		[{pid, self()}]},
     occi:config([{name, "http://localhost:8080"},
 		 Extensions, 
 		 Backends,
-		 Listeners]),
+		 Listeners,
+		 Handlers]),
     register(?MODULE, self()),
-    erlang:hibernate(?MODULE, loop, []).
+    loop().
 
 stop() ->
     application:stop(occi),
@@ -55,8 +57,12 @@ loop() ->
     receive
 	stop ->
 	    exit(the_end);
+	{Pid, #occi_action{id=ActionId}, #occi_node{id=Id}} ->
+	    lager:info("Apply action: ~p(~p)~n", [lager:pr(ActionId, ?MODULE),
+						  lager:pr(Id, ?MODULE)]),
+	    Pid ! false;
 	_ ->
-	    erlang:hibernate(?MODULE, loop, [])
+	    loop()
     end.
 
 %%%

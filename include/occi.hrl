@@ -110,13 +110,10 @@
 -type(occi_filter() :: any()).
 
 %%% OCCI hooks
--record(hook_rec, {key    :: {hook_name(), #occi_cid{}},
-		   ref    :: reference()}).
--type(hook_rec() :: #hook_rec{}).
-
--type(hook() :: {hook_name(), hook_fun()}).
--type(hook_name() :: on_save | on_update | on_delete | on_action).
--type(hook_fun() :: {atom(), atom()} | fun()).
+-type(hook_type() :: {pid, pid()}).
+-record(hook_handler, {id      = undefined    :: term(),
+		       handler = undefined    :: hook_type()}).
+-type(hook_handler() :: #hook_handler{}).
 
 -record(occi_request, {collection             :: occi_collection(),
 		       kinds      = []        :: [occi_kind()],

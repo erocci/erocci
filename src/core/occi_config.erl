@@ -71,6 +71,9 @@ load2([{backends, Backends}|Configs]) ->
     load2(Configs);
 load2([{listeners, Listeners}|Configs]) ->
     load_listeners(Listeners),
+    load2(Configs);
+load2([{handlers, Handlers}|Configs]) ->
+    load_handlers(Handlers),
     load2(Configs).
 
 load_extensions([], _) ->
@@ -99,6 +102,16 @@ load_listeners([L|Listeners]) ->
     case occi_listener:register(L) of
 	{ok, _Pid} ->
 	    load_listeners(Listeners);
+	{error, Err} ->
+	    {error, Err}
+    end.
+
+load_handlers([]) ->
+    ok;
+load_handlers([H|Handlers]) ->
+    case occi_hook:register(H) of
+	ok ->
+	    load_handlers(Handlers);
 	{error, Err} ->
 	    {error, Err}
     end.

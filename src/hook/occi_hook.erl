@@ -26,73 +26,93 @@
 
 -include("occi.hrl").
 
--behaviour(supervisor).
-
 %% API
--export([start_link/0]).
--export([trigger/2]).
-
-%% Supervisor callbacks
--export([init/1]).
+-export([start_link/0,
+	 loop/0]).
+-export([register/1,
+	 trigger/2]).
 
 -define(SUPERVISOR, ?MODULE).
+-define(TABLE, ?MODULE).
 
 %%%===================================================================
 %%% API functions
 %%%===================================================================
 
-%%--------------------------------------------------------------------
-%% @doc
-%% Starts the supervisor
-%%
-%% @spec start_link() -> {ok, Pid} | ignore | {error, Error}
-%% @end
-%%--------------------------------------------------------------------
+-spec start_link() -> ok.
 start_link() ->
-    supervisor:start_link({local, ?SUPERVISOR}, ?MODULE, []).
+    Pid = spawn_link(fun init/0),
+    {ok, Pid}.
+
+-spec register(hook_type()) -> ok | {error, term()}.
+register({pid, Pid}) ->
+    lager:info("Registering hook handler: {pid, ~p}~n", [Pid]),
+    add_handler({pid, Pid}).
 
 -spec trigger(occi_node(), occi_action()) -> {true, occi_node()} 
 						 | false
 						 | {error, term()}.
-trigger(#occi_node{id=Id}=_Node, #occi_action{id=ActionId}=Action) ->
+trigger(#occi_node{id=Id}=Node, #occi_action{id=ActionId}=Action) ->
     case occi_action:check(Action) of
 	ok ->
 	    lager:info("Trigger action: ~p <- ~p~n", [occi_uri:to_string(Id), 
 						      lager:pr(ActionId, ?MODULE)]),
-	    false;
+	    send_all(Action, Node);
 	{error, Err} ->
 	    lager:error("Error triggering action: ~p~n", [Err]),
 	    {error, Err}
     end.
 
 %%%===================================================================
-%%% Supervisor callbacks
-%%%===================================================================
-
-%%--------------------------------------------------------------------
-%% @private
-%% @doc
-%% Whenever a supervisor is started using supervisor:start_link/[2,3],
-%% this function is called by the new process to find out about
-%% restart strategy, maximum restart frequency and child
-%% specifications.
-%%
-%% @spec init(Args) -> {ok, {SupFlags, [ChildSpec]}} |
-%%                     ignore |
-%%                     {error, Reason}
-%% @end
-%%--------------------------------------------------------------------
-init(_) ->
-    lager:info("Starting OCCI hooks manager"),
-    RestartStrategy = one_for_one,
-    MaxRestarts = 1000,
-    MaxSecondsBetweenRestarts = 3600,
-
-    SupFlags = {RestartStrategy, MaxRestarts, MaxSecondsBetweenRestarts},
-    Childs = [],
-
-    {ok, {SupFlags, Childs}}.
-
-%%%===================================================================
 %%% Internal functions
 %%%===================================================================
+init() ->
+    lager:info("Starting OCCI hooks manager"),
+    ?TABLE = ets:new(?TABLE, [set, public, {keypos, 1}, named_table]),
+    erlang:hibernate(?MODULE, loop, []).
+    
+loop() ->
+    receive 
+	stop ->
+	    exit(normal);
+	_ ->
+	    erlang:hibernate(?MODULE, loop, [])
+    end.
+
+add_handler(Handler) ->
+    Handlers = case ets:lookup(?TABLE, handlers) of
+		   [] ->
+		       {handlers, [Handler]};
+		   [{handlers, H}] ->
+		       {handlers, [Handler|H]}
+	       end,
+    ets:insert(?TABLE, Handlers),
+    ok.
+
+get_handlers() ->
+    case ets:lookup(?TABLE, handlers) of
+	[] -> [];
+	[{handlers, Handlers}] -> Handlers
+    end.
+
+send_all(Evt, Node) ->
+    send(Evt, {false, Node}, get_handlers()).
+
+send(_Evt, {false, _Node}, []) ->
+    false;
+send(_Evt, {true, Node}, []) ->
+    {true, Node};
+send(_Evt, {error, Err}, []) ->
+    {error, Err};
+send(Evt, {Updated, Node}, [{pid, Pid}|Tail]) ->
+    Pid ! {self(), Evt, Node},
+    receive 
+	{true, Node2} ->
+	    send(Evt, {true, Node2}, Tail);
+	false ->
+	    send(Evt, {Updated, Node}, Tail);
+	{error, Err} ->
+	    {error, Err}
+    after 1000 ->
+	    {error, timeout}
+    end.

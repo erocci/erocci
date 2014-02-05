@@ -63,7 +63,7 @@ init(_) ->
 	    {occi_hook, start_link, []},
 	    permanent,
 	    infinity,
-	    supervisor,
+	    worker,
 	    [occi_hook]},
     Children = [Store, Listener, CategoryMgr, Hook],
     {ok, {{one_for_one, 10, 10}, Children}}.
