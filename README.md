@@ -49,3 +49,7 @@ This application will run the hello_occi application, which:
 * load OCCI infrastructure extension
 * start the Mnesia backend
 * start an HTTP listener on port 8080
+
+## Testing
+
+Run scripts/testsuite.sh to create sample resources and links.
