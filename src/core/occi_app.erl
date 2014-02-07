@@ -52,9 +52,12 @@
 %% @end
 %%--------------------------------------------------------------------
 start(normal, _Args) ->
-    application:ensure_all_started(lager),
-    application:ensure_all_started(inets),
-    application:ensure_all_started(exmpp),
+    ensure_started(compiler),
+    ensure_started(syntax_tools),
+    ensure_started(goldrush),
+    ensure_started(lager),
+    ensure_started(inets),
+    ensure_started(exmpp),
     Ret = occi_sup:start_link(),
     occi_config:start(),
     start(),
@@ -89,4 +92,12 @@ loop() ->
     receive
 	_ ->
 	    loop()
+    end.
+
+ensure_started(App) ->
+    case application:start(App) of
+        ok ->
+            ok;
+        {error, {already_started, App}} ->
+            ok
     end.
