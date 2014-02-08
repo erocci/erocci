@@ -88,24 +88,30 @@ get_title(#occi_resource{title=Title}) ->
 set_title(#occi_resource{}=Res, Title) when is_binary(Title) ->
     Res#occi_resource{title=Title}.
 
--spec get_mixins(occi_resource()) -> [occi_cid()].
+-spec get_mixins(occi_resource()) -> set().
+get_mixins(#occi_resource{mixins=undefined}) ->
+    sets:new();
 get_mixins(#occi_resource{mixins=Mixins}) ->
     Mixins.
 
 -spec add_mixin(occi_resource(), occi_mixin()) -> occi_resource().
+add_mixin(#occi_resource{mixins=undefined}=Res, Mixin) ->
+    add_mixin(Res#occi_resource{mixins=sets:new()}, Mixin);
 add_mixin(#occi_resource{mixins=Mixins, attributes=Attrs}=Res, #occi_mixin{id=Cid}=Mixin) ->
     Attrs2 = orddict:merge(fun (_Key, _Val1, Val2) ->
 				   Val2
 			   end, Attrs, occi_mixin:get_attributes(Mixin)),
-    Res#occi_resource{mixins=[Cid|Mixins], attributes=Attrs2}.
+    Res#occi_resource{mixins=sets:add_element(Cid, Mixins), attributes=Attrs2}.
 
 -spec del_mixin(occi_resource(), occi_mixin()) -> occi_resource().
+del_mixin(#occi_resource{mixins=undefined}=Res, _) ->
+    Res;
 del_mixin(#occi_resource{mixins=Mixins, attributes=Attrs}=Res, 
 	  #occi_mixin{id=Cid, attributes=MixinAttrs}) ->
     Attrs2 = lists:foldl(fun (Key, Acc) ->
 				 orddict:erase(Key, Acc)
 			 end, Attrs, orddict:fetch_keys(MixinAttrs)),
-    Mixins2 = lists:delete(Cid, Mixins),
+    Mixins2 = sets:del_element(Cid, Mixins),
     Res#occi_resource{mixins=Mixins2, attributes=Attrs2}.
 
 -spec set_attr_value(occi_resource(), occi_attr_key(), any()) -> occi_resource().

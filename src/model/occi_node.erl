@@ -88,7 +88,7 @@ get_parent(#uri{path=Path}) ->
     get_parent(Path);
 get_parent(Path) when is_list(Path) ->
     case string:tokens(Path, "/") of
-	[_] ->
+	[] ->
 	    #uri{path="/"};
 	L ->
 	    #uri{path="/"++string:join(lists:sublist(L, length(L)-1), "/")++"/"}

@@ -111,7 +111,9 @@ render_ejson(#occi_action{}=Action) ->
 
 render_ejson(#occi_resource{}=Res) ->
     strip_list([{kind, render_cid_uri(occi_resource:get_cid(Res))}
-		,{mixins, lists:map(fun render_cid_uri/1, occi_resource:get_mixins(Res))}
+		,{mixins, sets:fold(fun (Id, Acc) ->
+					    [render_cid_uri(Id)|Acc]
+				    end, [], occi_resource:get_mixins(Res))}
 		,{attributes, render_attribute_values(occi_resource:get_attributes(Res))}
 		,{id, occi_uri:to_binary(occi_resource:get_id(Res))}
 		,{links, lists:map(fun (Link) ->
@@ -121,7 +123,9 @@ render_ejson(#occi_resource{}=Res) ->
 
 render_ejson(#occi_link{}=Link) ->
     strip_list([{kind, render_cid_uri(occi_link:get_cid(Link))}
-		,{mixins, lists:map(fun render_cid_uri/1, occi_link:get_mixins(Link))}
+		,{mixins, sets:fold(fun (Id, Acc) ->
+					    [render_cid_uri(Id)|Acc]
+				    end, [], occi_link:get_mixins(Link))}
 		,{attributes, render_attribute_values(occi_link:get_attributes(Link))}
 		,{id, occi_uri:to_binary(occi_link:get_id(Link))}
 		,{source, occi_uri:to_binary(occi_link:get_source(Link))}

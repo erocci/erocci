@@ -88,7 +88,7 @@
 		        summary    = undefined :: binary(),
 			attributes = undefined :: dict(),         % orddict()
 			links                  :: set(),
-			mixins     = []        :: [occi_cid()]}).
+			mixins     = undefined :: set()}).
 -type(occi_resource() :: #occi_resource{}).
 
 %%% OCCI Link
@@ -98,7 +98,7 @@
 		    attributes = undefined :: dict(),   % orddict()
 		    source                 :: uri(),
 		    target                 :: uri(),
-		    mixins     = []        :: [occi_cid()]}).
+		    mixins     = undefined :: set()}).
 -type(occi_link() :: #occi_link{}).
 
 %%% OCCI Entity

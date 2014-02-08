@@ -205,9 +205,9 @@ save_entity_t(#occi_resource{}=Res) ->
     KindId = occi_resource:get_cid(Res),
     Uri = occi_resource:get_id(Res),
     add_to_collection_t(KindId, [Uri]),
-    lists:foreach(fun (#occi_cid{}=MixinId) ->
-			  add_to_collection_t(MixinId, [Uri])
-		  end, occi_resource:get_mixins(Res)),
+    sets:fold(fun (#occi_cid{}=MixinId, _) ->
+		      add_to_collection_t(MixinId, [Uri])
+	      end, ok, occi_resource:get_mixins(Res)),
     ok;
 
 save_entity_t(#occi_link{}=Link) ->
@@ -217,9 +217,9 @@ save_entity_t(#occi_link{}=Link) ->
     KindId = occi_link:get_cid(Link),
     Uri = occi_link:get_id(Link),
     add_to_collection_t(KindId, [Uri]),
-    lists:foreach(fun (#occi_cid{}=MixinId) ->
-			  add_to_collection_t(MixinId, [Uri])
-		  end, occi_link:get_mixins(Link)),
+    sets:fold(fun (#occi_cid{}=MixinId, _) ->
+		      add_to_collection_t(MixinId, [Uri])
+	      end, ok, occi_link:get_mixins(Link)),
     ok.
 
 add_link_t(LinkId, ResId) ->
@@ -361,16 +361,16 @@ del_from_parent_t(#occi_node{id=Id, parent=ParentId}) ->
     
 del_entity_t(#occi_resource{id=Id, cid=Cid}=Res) ->
     del_from_collection_t(Cid, [Id]),
-    lists:foreach(fun (MixinId) ->
-			  del_from_collection_t(MixinId, [Id])
-		  end, occi_resource:get_mixins(Res)),
+    sets:fold(fun (MixinId, _) ->
+		      del_from_collection_t(MixinId, [Id])
+		  end, ok, occi_resource:get_mixins(Res)),
     mnesia:delete({occi_resource, Id});
 
 del_entity_t(#occi_link{id=Id, cid=Cid}=Link) ->
     del_from_collection_t(Cid, [Id]),
-    lists:foreach(fun (MixinId) ->
-			  del_from_collection_t(MixinId, [Id])
-		  end, occi_link:get_mixins(Link)),
+    sets:fold(fun (MixinId, _) ->
+		      del_from_collection_t(MixinId, [Id])
+	      end, ok, occi_link:get_mixins(Link)),
     mnesia:delete({occi_link, Id}).
 
 del_from_collection_t(#occi_cid{}=Cid, Uris) ->
@@ -389,17 +389,17 @@ del_collection_t(#occi_collection{cid=#occi_cid{class=kind}=Cid}=Coll) ->
 				    [#occi_resource{id=Id}=Res] ->
 					mnesia:delete({occi_resource, Id}),
 					del_node_t(occi_node:set_parent(occi_node:new(Uri, Res))),
-					lists:foldl(fun (MixinId, Acc2) ->
-							    dict:append(MixinId, Uri, Acc2)
-						    end, Acc, occi_resource:get_mixins(Res));
+					sets:fold(fun (MixinId, Acc2) ->
+							  dict:append(MixinId, Uri, Acc2)
+						  end, Acc, occi_resource:get_mixins(Res));
 				    [] ->
 					case mnesia:wread({occi_link, Uri}) of
 					    [#occi_link{id=Id}=Link] ->
 						mnesia:delete({occi_link, Id}),
 						del_node_t(occi_node:set_parent(occi_node:new(Uri, Link))),
-						lists:foldl(fun (MixinId, Acc2) ->
-								    dict:append(MixinId, Uri, Acc2)
-							    end, Acc, occi_link:get_mixins(Link));
+						sets:fold(fun (MixinId, Acc2) ->
+								  dict:append(MixinId, Uri, Acc2)
+							  end, Acc, occi_link:get_mixins(Link));
 					    [] ->
 						mnesia:abort({error, unknown_object})
 					end

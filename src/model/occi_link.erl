@@ -90,18 +90,24 @@ get_title(#occi_link{title=Title}) ->
 set_title(#occi_link{}=Res, Title) when is_binary(Title) ->
     Res#occi_link{title=Title}.
 
--spec get_mixins(occi_link()) -> [occi_cid()].
+-spec get_mixins(occi_link()) -> set().
+get_mixins(#occi_link{mixins=undefined}) ->
+    sets:new();
 get_mixins(#occi_link{mixins=Mixins}) ->
     Mixins.
 
 -spec add_mixin(occi_link(), occi_mixin()) -> occi_link().
+add_mixin(#occi_link{mixins=undefined}=Link, Mixin) ->
+    add_mixin(Link#occi_link{mixins=sets:new()}, Mixin);
 add_mixin(#occi_link{mixins=Mixins, attributes=Attrs}=Res, #occi_mixin{id=Cid}=Mixin) ->
     Attrs2 = orddict:merge(fun (_Key, _Val1, Val2) ->
 				   Val2
 			   end, Attrs, occi_mixin:get_attributes(Mixin)),
-    Res#occi_link{mixins=[Cid|Mixins], attributes=Attrs2}.
+    Res#occi_link{mixins=sets:add_element(Cid, Mixins), attributes=Attrs2}.
 
 -spec del_mixin(occi_link(), occi_mixin()) -> occi_link().
+del_mixin(#occi_link{mixins=undefined}=Link, _) ->
+    Link;
 del_mixin(#occi_link{mixins=Mixins, attributes=Attrs}=Res, 
 	  #occi_mixin{id=Cid, attributes=MixinAttrs}) ->
     Attrs2 = lists:foldl(fun (Key, Acc) ->
