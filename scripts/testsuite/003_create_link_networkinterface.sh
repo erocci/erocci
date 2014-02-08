@@ -31,7 +31,7 @@ for i in $(seq 1 10); do
     ]
 }
 EOF
-    ) | curl -s -f -X PUT --data @- -H 'content-type: application/json' --data @- ${occi_srv}${id}
+    ) | curl -s -f -X PUT --data @- -H 'content-type: application/json' --data @- ${occi_srv}${id} > /dev/null 2>&1
 
     if [ $? = 0 ]; then
 	echo OK
