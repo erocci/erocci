@@ -112,11 +112,11 @@ resource_exists(Req, State) ->
 delete_resource(Req, #occi_node{id=Id}=Node) ->
     case occi_store:delete(Node) of
 	{error, undefined_backend} ->
-	    lager:debug("Internal error deleting node: ~p~n", [lager:pr(Id, ?MODULE)]),
+	    lager:error("Internal error deleting node: ~p~n", [lager:pr(Id, ?MODULE)]),
 	    {ok, Req2} = cowboy_req:reply(500, Req),
 	    {halt, Req2, Node};
 	{error, Reason} ->
-	    lager:debug("Error deleting node: ~p~n", [Reason]),
+	    lager:error("Error deleting node: ~p~n", [Reason]),
 	    {false, Req, Node};
 	ok ->
 	    {true, Req, Node}
@@ -234,11 +234,11 @@ save_entity(Req, State, #content_type{renderer=Renderer, parser=Parser, mimetype
     Entity = prepare_entity(Req, State),
     case Parser:parse_entity(Body, Entity) of
 	{error, {parse_error, Err}} ->
-	    lager:debug("Error processing request: ~p~n", [Err]),
+	    lager:error("Error processing request: ~p~n", [Err]),
 	    {ok, Req3} = cowboy_req:reply(400, Req2),
 	    {false, Req3, State};
 	{error, Err} ->
-	    lager:debug("Internal error: ~p~n", [Err]),
+	    lager:error("Internal error: ~p~n", [Err]),
 	    {ok, Req3} = cowboy_req:reply(500, Req2),
 	    {false, Req3, State};	    
 	{ok, #occi_resource{}=Res} ->
@@ -249,7 +249,7 @@ save_entity(Req, State, #content_type{renderer=Renderer, parser=Parser, mimetype
 		    Req3 = cowboy_req:set_resp_header(<<"content-type">>, MimeType, Req2),
 		    {true, cowboy_req:set_resp_body([RespBody, "\n"], Req3), State};
 		{error, Reason} ->
-		    lager:debug("Error creating resource: ~p~n", [Reason]),
+		    lager:error("Error creating resource: ~p~n", [Reason]),
 		    {ok, Req3} = cowboy_req:reply(500, Req2),
 		    {halt, Req3, State}
 	    end;
@@ -261,7 +261,7 @@ save_entity(Req, State, #content_type{renderer=Renderer, parser=Parser, mimetype
 		    Req3 = cowboy_req:set_resp_header(<<"content-type">>, MimeType, Req2),
 		    {true, cowboy_req:set_resp_body([RespBody, "\n"], Req3), State};
 		{error, Reason} ->
-		    lager:debug("Error creating link: ~p~n", [Reason]),
+		    lager:error("Error creating link: ~p~n", [Reason]),
 		    {ok, Req3} = cowboy_req:reply(500, Req2),
 		    {halt, Req3, State}
 	    end
@@ -273,11 +273,11 @@ update_entity(Req, State, #content_type{renderer=Renderer, parser=Parser, mimety
 	{ok, #occi_node{data=Entity}=Node} ->
 	    case Parser:parse_entity(Body, Entity) of
 		{error, {parse_error, Err}} ->
-		    lager:debug("Error processing request: ~p~n", [Err]),
+		    lager:error("Error processing request: ~p~n", [Err]),
 		    {ok, Req3} = cowboy_req:reply(400, Req2),
 		    {false, Req3, State};
 		{error, Err} ->
-		    lager:debug("Internal error: ~p~n", [Err]),
+		    lager:error("Internal error: ~p~n", [Err]),
 		    {ok, Req3} = cowboy_req:reply(500, Req2),
 		    {false, Req3, State};	    
 		{ok, #occi_resource{}=Res} ->
@@ -288,7 +288,7 @@ update_entity(Req, State, #content_type{renderer=Renderer, parser=Parser, mimety
 			    Req3 = cowboy_req:set_resp_header(<<"content-type">>, MimeType, Req2),
 			    {true, cowboy_req:set_resp_body([RespBody, "\n"], Req3), State};
 			{error, Reason} ->
-			    lager:debug("Error updating resource: ~p~n", [Reason]),
+			    lager:error("Error updating resource: ~p~n", [Reason]),
 			    {ok, Req3} = cowboy_req:reply(500, Req2),
 			    {halt, Req3, State}
 		    end;
@@ -300,7 +300,7 @@ update_entity(Req, State, #content_type{renderer=Renderer, parser=Parser, mimety
 			    Req3 = cowboy_req:set_resp_header(<<"content-type">>, MimeType, Req2),
 			    {true, cowboy_req:set_resp_body([RespBody, "\n"], Req3), State};
 			{error, Reason} ->
-			    lager:debug("Error updating link: ~p~n", [Reason]),
+			    lager:error("Error updating link: ~p~n", [Reason]),
 			    {ok, Req3} = cowboy_req:reply(500, Req2),
 			    {halt, Req3, State}
 		    end
@@ -315,11 +315,11 @@ save_collection(Req, #occi_node{objid=Cid}=State, #content_type{parser=Parser}) 
     {ok, Body, Req2} = cowboy_req:body(Req),
     case Parser:parse_collection(Body) of
 	{error, {parse_error, Err}} ->
-	    lager:debug("Error processing request: ~p~n", [Err]),
+	    lager:error("Error processing request: ~p~n", [Err]),
 	    {ok, Req3} = cowboy_req:reply(400, Req2),
 	    {halt, Req3, State};
 	{error, Err} ->
-	    lager:debug("Internal error: ~p~n", [Err]),
+	    lager:error("Internal error: ~p~n", [Err]),
 	    {ok, Req3} = cowboy_req:reply(500, Req2),
 	    {halt, Req3, State};	    
 	{ok, #occi_collection{}=C} ->
@@ -331,7 +331,7 @@ save_collection(Req, #occi_node{objid=Cid}=State, #content_type{parser=Parser}) 
 		    lager:debug("Invalid entity: ~p~n", [occi_uri:to_string(Uri)]),
 			    {false, Req2, State};
 		{error, Reason} ->
-		    lager:debug("Error saving collection: ~p~n", [Reason]),
+		    lager:error("Error saving collection: ~p~n", [Reason]),
 		    {ok, Req3} = cowboy_req:reply(500, Req2),
 		    {halt, Req3, State}
 	    end
@@ -341,11 +341,11 @@ update_collection(Req, #occi_node{objid=Cid}=State, #content_type{parser=Parser}
     {ok, Body, Req2} = cowboy_req:body(Req),
     case Parser:parse_collection(Body) of
 	{error, {parse_error, Err}} ->
-	    lager:debug("Error processing request: ~p~n", [Err]),
+	    lager:error("Error processing request: ~p~n", [Err]),
 	    {ok, Req3} = cowboy_req:reply(400, Req2),
 	    {halt, Req3, State};
 	{error, Err} ->
-	    lager:debug("Internal error: ~p~n", [Err]),
+	    lager:error("Internal error: ~p~n", [Err]),
 	    {ok, Req3} = cowboy_req:reply(500, Req2),
 	    {halt, Req3, State};	    
 	{ok, #occi_collection{}=C} ->
@@ -358,7 +358,7 @@ update_collection(Req, #occi_node{objid=Cid}=State, #content_type{parser=Parser}
 		    lager:debug("Invalid entity: ~p~n", [lager:pr(Uri, ?MODULE)]),
 		    {false, Req2, State};
 		{error, Reason} ->
-		    lager:debug("Error updating collection: ~p~n", [Reason]),
+		    lager:error("Error updating collection: ~p~n", [Reason]),
 		    {ok, Req3} = cowboy_req:reply(500, Req2),
 		    {halt, Req3, State}
 	    end
@@ -368,11 +368,11 @@ trigger(Req, State, ActionName, #content_type{parser=Parser}) ->
     {ok, Body, Req2} = cowboy_req:body(Req),
     case Parser:parse_action(Body, prepare_action(Req2, State, ActionName)) of
 	{error, {parse_error, Err}} ->
-	    lager:debug("Error processing action: ~p~n", [Err]),
+	    lager:error("Error processing action: ~p~n", [Err]),
 	    {ok, Req3} = cowboy_req:reply(400, Req2),
 	    {halt, Req3, State};
 	{error, Err} ->
-	    lager:debug("Internal error: ~p~n", [Err]),
+	    lager:error("Internal error: ~p~n", [Err]),
 	    {ok, Req3} = cowboy_req:reply(500, Req2),
 	    {halt, Req3, State};	    
 	{ok, #occi_action{}=Action} ->
@@ -382,14 +382,14 @@ trigger(Req, State, ActionName, #content_type{parser=Parser}) ->
 			ok ->
 			    {true, Req2, State2};
 			{error, Err} ->
-			    lager:debug("Error updating node: ~p~n", [Err]),
+			    lager:error("Error updating node: ~p~n", [Err]),
 			    {ok, Req3} = cowboy_req:reply(500, Req2),
 			    {halt, Req3, State2}
 		    end;
 		false ->
 		    {true, Req2, State};
 		{error, Err} ->
-		    lager:debug("Error triggering action: ~p~n", [Err]),
+		    lager:error("Error triggering action: ~p~n", [Err]),
 		    {ok, Req3} = cowboy_req:reply(500, Req2),
 		    {halt, Req3, State}
 	    end
