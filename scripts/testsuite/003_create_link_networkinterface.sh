@@ -3,7 +3,7 @@
 for i in $(seq 1 10); do
     idx=$(printf '%02d' $i)
     id=/mylinks/networkinterfaces/id${idx}
-    echo "Creating link "${id}
+    echo -n "Creating link "${id}"... "
 
     (
 	cat <<EOF
@@ -31,5 +31,11 @@ for i in $(seq 1 10); do
     ]
 }
 EOF
-    ) | curl -X PUT --data @- -H 'content-type: application/json' --data @- ${occi_srv}${id}
+    ) | curl -s -f -X PUT --data @- -H 'content-type: application/json' --data @- ${occi_srv}${id}
+
+    if [ $? = 0 ]; then
+	echo OK
+    else
+	echo FAIL
+    fi
 done
