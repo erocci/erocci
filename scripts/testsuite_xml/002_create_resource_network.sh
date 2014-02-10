@@ -1,5 +1,7 @@
 #!/bin/sh
 
+. $(dirname $0)/../testenv.sh
+
 for i in $(seq 1 10); do
     idx=$(printf '%02d' $i)
     id=/myresources/network/id${idx}
@@ -14,7 +16,8 @@ for i in $(seq 1 10); do
   <occi:attribute name="occi.network.label" value="mylan${idx}" />
 </occi:resource>
 EOF
-    ) | curl -s -w "%{http_code}\n" -f -X PUT --data @- -H 'content-type: application/xml' -o /dev/null ${occi_srv}${id}
+    ) | curl ${curl_opts} -X PUT --data @- -H 'content-type: application/xml' ${occi_srv}${id}
+    echo
 done
 
 exit 0

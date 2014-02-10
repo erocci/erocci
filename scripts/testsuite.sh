@@ -18,8 +18,6 @@ case "x$ct" in
 	exit 1
 	;;
 esac
-
-export occi_srv=http://localhost:8080
 	
 for script in $(find $dir -name '*.sh' -type f -perm /u=x,g=x,o=x | sort); do
     echo "### "$script

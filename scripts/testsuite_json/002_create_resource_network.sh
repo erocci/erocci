@@ -1,5 +1,7 @@
 #!/bin/sh
 
+. $(dirname $0)/../testenv.sh
+
 for i in $(seq 1 10); do
     idx=$(printf '%02d' $i)
     id=/myresources/network/id${idx}
@@ -23,7 +25,8 @@ for i in $(seq 1 10); do
     ]
 }
 EOF
-    ) | curl -s -w "%{http_code}\n" -o /dev/null -f -X PUT --data @- -H 'content-type: application/json' --data @- ${occi_srv}${id} 
+    ) | curl ${curl_opts} -X PUT --data @- -H 'content-type: application/json' ${occi_srv}${id}
+    echo
 done
 
 exit 0
