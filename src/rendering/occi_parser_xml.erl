@@ -43,6 +43,7 @@
 %% States
 -export([init/3, 
 	 resource/3,
+	 link/3,
 	 extension/3,
 	 kind/3,
 	 eof/3, 
@@ -104,7 +105,6 @@ parse_action(Data, Action) ->
     end.    
 
 parse_entity(Data, #occi_resource{}=Res) ->
-    lager:debug("### DATA: ~p~n", [Data]),
     case parse_full(Data, #state{entity=Res}) of
 	{error, Reason} ->
 	    {error, {parse_error, Reason}};
@@ -170,6 +170,9 @@ init(#parser{}=Parser) ->
 -define(resource, #xmlel{ns=?occi_ns, name=resource}).
 -define(resourceEnd, #xmlendtag{ns=?occi_ns, name=resource}).
 
+-define(link, #xmlel{ns=?occi_ns, name=link}).
+-define(linkEnd, #xmlendtag{ns=?occi_ns, name=link}).
+
 -define(categories, #xmlel{ns=?occi_ns, name=categories}).
 -define(categoriesEnd, #xmlendtag{ns=?occi_ns, name=categories}).
 
@@ -205,10 +208,23 @@ init(E=?extension, _From, #parser{state=State}=Ctx) ->
     push(extension, 
 	 ?set_state(Ctx, State#state{extension=Ext, prefixes=load_prefixes(E#xmlel.declared_ns)}));
 init(E=?resource, _From, #parser{state=State}=Ctx) ->
-    case make_resource(E, State) of
+    try make_resource(E, State) of
 	#state{}=State2 ->
 	    push(resource, ?set_state(Ctx, State2#state{prefixes=load_prefixes(E#xmlel.declared_ns)}));
 	{error, Err} ->
+	    {reply, {error, Err}, eof, Ctx}
+    catch
+	_:Err ->
+	    {reply, {error, Err}, eof, Ctx}
+    end;
+init(E=?link, _From, #parser{state=State}=Ctx) ->
+    try make_link(E, State) of
+	#state{}=State2 ->
+	    push(link, ?set_state(Ctx, State2#state{prefixes=load_prefixes(E#xmlel.declared_ns)}));
+	{error, Err} ->
+	    {reply, {error, Err}, eof, Ctx}
+    catch
+	_:Err ->
 	    {reply, {error, Err}, eof, Ctx}
     end;
 init(E, _From, Ctx) ->
@@ -223,7 +239,7 @@ resource(E=?kind, _From,
 	    {reply, {error, invalid_cid}, eof, Ctx};
 	{Scheme, Term} ->
 	    Cid = #occi_cid{class=kind, scheme=Scheme, term=Term},
-	    case catch occi_category_mgr:get(Cid) of
+	    try occi_category_mgr:get(Cid) of
 		{error, Err} ->
 		    {reply, {error, Err}, eof, Ctx};
 		#occi_kind{parent=#occi_cid{term=resource}}=Kind ->
@@ -231,6 +247,9 @@ resource(E=?kind, _From,
 		    {reply, ok, resource, ?set_state(Ctx, State#state{entity=Res2})};
 		#occi_kind{} ->
 		    {reply, {error, invalid_cid}, eof, Ctx}
+	    catch
+		_:Err ->
+		    {reply, {error, Err}, eof, Ctx}
 	    end
     end;
 resource(E=?kind, _From, 
@@ -248,7 +267,7 @@ resource(E=?kind, _From,
 resource(?kindEnd, _From, Ctx) ->
     {reply, ok, resource, Ctx};
 resource(E=?mixin, _From, 
-	 #parser{state=#state{entity=#occi_resource{cid=undefined}=Res}=State}=Ctx) ->
+	 #parser{state=#state{entity=Res}=State}=Ctx) ->
     case make_related(E, State) of
 	{undefined, _} ->
 	    {reply, {error, invalid_cid}, eof, Ctx};
@@ -256,13 +275,16 @@ resource(E=?mixin, _From,
 	    {reply, {error, invalid_cid}, eof, Ctx};
 	{Scheme, Term} ->
 	    Cid = #occi_cid{class=mixin, scheme=Scheme, term=Term},
-	    case catch occi_category_mgr:get(Cid) of
+	    try occi_category_mgr:get(Cid) of
 		{error, Err} ->
 		    {reply, {error, Err}, eof, Ctx};
 		#occi_mixin{}=Mixin ->
 		    Res2 = occi_resource:add_mixin(Res, Mixin),
 		    {reply, ok, resource, 
 		     ?set_state(Ctx, State#state{entity=Res2})}
+	    catch
+		_:Err ->
+		    {reply, {error, Err}, eof, Ctx}
 	    end
     end;
 resource(?mixinEnd, _From, Ctx) ->
@@ -276,7 +298,7 @@ resource(E=?attribute, _From,
 			{reply, ok, resource,
 			 ?set_state(Ctx, State#state{entity=Res2})}
 		catch
-		    Err ->
+		    _:Err ->
 			{reply, {error, Err}, eof, Ctx}
 		end;
 	    {error, Err} ->
@@ -288,6 +310,85 @@ resource(?resourceEnd, _From, #parser{state=#state{request=Req, entity=Res}}=Ctx
     {reply, {eof, occi_request:add_entity(Req, Res)}, eof, Ctx};
 resource(E, _From, Ctx) ->
     other_event(E, Ctx, resource).
+
+link(E=?kind, _From, #parser{state=#state{entity=#occi_link{cid=undefined}=Link}=State}=Ctx) ->
+    case make_related(E, State) of
+	{undefined, _} ->
+	    {reply, {error, invalid_cid}, eof, Ctx};
+	{_, undefined} ->
+	    {reply, {error, invalid_cid}, eof, Ctx};
+	{Scheme, Term} ->
+	    Cid = #occi_cid{class=kind, scheme=Scheme, term=Term},
+	    try occi_category_mgr:get(Cid) of
+		{error, Err} ->
+		    {reply, {error, Err}, eof, Ctx};
+		#occi_kind{parent=#occi_cid{term=link}}=Kind ->
+		    Link2 = occi_link:set_cid(Link, Kind),
+		    {reply, ok, link, ?set_state(Ctx, State#state{entity=Link2})};
+		#occi_kind{} ->
+		    {reply, {error, invalid_cid}, eof, Ctx}
+	    catch
+		_:Err ->
+		    {reply, {error, Err}, eof, Ctx}
+	    end
+    end;
+link(E=?kind, _From, 
+     #parser{state=#state{entity=#occi_link{cid=#occi_cid{scheme=Scheme, term=Term, class=kind}}}=State}=Ctx) ->
+    case make_related(E, State) of
+	{undefined, _} ->
+	    {reply, {error, invalid_cid}, eof, Ctx};
+	{_, undefined} ->
+	    {reply, {error, invalid_cid}, eof, Ctx};
+	{Scheme, Term} ->
+	    {reply, ok, link, Ctx};
+	_ ->
+	    {reply, {error, invalid_cid}, eof, Ctx}
+    end;
+link(?kindEnd, _From, Ctx) ->
+    {reply, ok, link, Ctx};
+link(E=?mixin, _From, #parser{state=#state{entity=Link}=State}=Ctx) ->
+    case make_related(E, State) of
+	{undefined, _} ->
+	    {reply, {error, invalid_cid}, eof, Ctx};
+	{_, undefined} ->
+	    {reply, {error, invalid_cid}, eof, Ctx};
+	{Scheme, Term} ->
+	    Cid = #occi_cid{class=mixin, scheme=Scheme, term=Term},
+	    try occi_category_mgr:get(Cid) of
+		{error, Err} ->
+		    {reply, {error, Err}, eof, Ctx};
+		#occi_mixin{}=Mixin ->
+		    Link2 = occi_link:add_mixin(Link, Mixin),
+		    {reply, ok, link, 
+		     ?set_state(Ctx, State#state{entity=Link2})}
+	    catch
+		_:Err ->
+		    {reply, {error, Err}, eof, Ctx}
+	    end
+    end;
+link(?mixinEnd, _From, Ctx) ->
+    {reply, ok, link, Ctx};
+link(E=?attribute, _From, #parser{state=#state{entity=#occi_link{}=Link}=State}=Ctx) ->
+	case make_attribute(E, State) of
+	    {ok, Key, Val} ->
+		try occi_link:set_attr_value(Link, Key, Val) of
+		    #occi_link{}=Link2 ->
+			{reply, ok, link,
+			 ?set_state(Ctx, State#state{entity=Link2})}
+		catch
+		    _:Err ->
+			{reply, {error, Err}, eof, Ctx}
+		end;
+	    {error, Err} ->
+		{reply, {error, Err}, eof, Ctx}
+	end;	
+link(?attributeEnd, _From, Ctx) ->
+    {reply, ok, link, Ctx};
+link(?linkEnd, _From, #parser{state=#state{request=Req, entity=Link}}=Ctx) ->
+    lager:debug("### linkL: ~p~n", [lager:pr(Link, ?MODULE)]),
+    {reply, {eof, occi_request:add_entity(Req, Link)}, eof, Ctx};
+link(E, _From, Ctx) ->
+    other_event(E, Ctx, link).
 
 extension(E=?kind, _From, #parser{state=State}=Ctx) ->
     Kind = make_kind(E, State),
@@ -601,6 +702,46 @@ make_resource(E, #state{entity_id=Id}=State) ->
 	    {error, invalid_id}
     end.
 
+make_link(E, #state{entity_id=undefined, entity=#occi_link{id=undefined}=Link}=State) ->
+    case get_attr_value(E, <<"id">>, undefined) of
+	undefined ->
+	    make_link2(E, State);
+	Id ->
+	    make_link2(E, State#state{entity=occi_link:set_id(Link, Id)})
+    end;
+make_link(E, #state{entity_id=undefined, entity=#occi_link{id=Id}}=State) ->
+    case get_attr_value(E, <<"id">>, undefined) of
+	undefined ->
+	    make_link2(E, State);
+	Id ->
+	    make_link2(E, State);
+	_ ->
+	    {error, invalid_id}
+    end;
+make_link(E, #state{entity_id=Id}=State) ->
+    case get_attr_value(E, <<"id">>, undefined) of
+	undefined ->
+	    make_link2(E, State#state{entity_id=undefined, entity=occi_link:new(Id)});
+	Id ->
+	    make_link2(E, State#state{entity_id=undefined, entity=occi_link:new(Id)});
+	_ ->
+	    {error, invalid_id}
+    end.
+
+make_link2(E, #state{entity=Link}=State) ->
+    case get_attr_value(E, <<"source">>, undefined) of
+	undefined ->
+	    {error, missing_source};
+	Src ->
+	    Link2 = occi_link:set_source(Link, occi_uri:parse(Src)),
+	    case get_attr_value(E, <<"target">>, undefined) of
+		undefined ->
+		    {error, missing_target};
+		Target ->
+		    State#state{entity=occi_link:set_target(Link2, occi_uri:parse(Target))}
+	    end
+    end.
+
 make_kind(E, #state{extension=Ext}) ->
     Scheme = to_atom(get_attr_value(E, <<"scheme">>, Ext#occi_extension.scheme)),
     Term = to_atom(get_attr_value(E, <<"term">>)),
@@ -699,7 +840,7 @@ other_event(E, Ctx, StateName) ->
 	true ->
 	    {reply, ok, StateName, Ctx};
 	false ->
-	    occi_parser:parse_error(E, Ctx)
+	    parse_error(E, Ctx)
     end.
 
 is_ws(#xmlcdata{cdata = <<  "\n", Bin/binary >>}=E) ->
@@ -712,3 +853,15 @@ is_ws(#xmlcdata{cdata = <<>>}) ->
     true;
 is_ws(_) ->
     false.
+
+parse_error(E, Ctx) ->
+    lager:error(build_err(E)),
+    {reply, {error, parse_error}, eof, Ctx}.
+
+build_err(#xmlel{name=Name}) ->
+    io_lib:format("Invalid element: ~p", [Name]);
+build_err(#xmlendtag{name=Name}) ->
+    io_lib:format("Invalid element: ~p", [Name]);
+build_err(E) ->
+    io_lib:format("Invalid element: ~p", [lager:pr(E, ?MODULE)]).
+

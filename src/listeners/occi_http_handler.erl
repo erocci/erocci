@@ -211,7 +211,7 @@ from(Req, #occi_node{type=occi_resource}=State, CT) ->
 from(Req, #occi_node{type=occi_link}=State, CT) ->
     case cowboy_req:method(Req) of
 	{<<"PUT">>, _} ->
-	    save_entity(Req, State, ?ct_json);
+	    save_entity(Req, State, CT);
 	{<<"POST">>, _} ->
 	    case cowboy_req:qs_val(<<"action">>, Req) of
 		{undefined, Req2} ->
