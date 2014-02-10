@@ -19,20 +19,13 @@
 	<xs:element name="extension" type="occi:extensionType"></xs:element>
 	<xs:element name="categories" type="occi:categoriesType"></xs:element>
 	<xs:element name="mixin" type="occi:mixinType" ></xs:element>
-	<xs:element name="filter" type="occi:filterType"></xs:element>
+	<xs:element name="resource" type="occi:resourceType" ></xs:element>
+	<xs:element name="link" type="occi:linkType" ></xs:element>
+	<xs:element name="action" type="occi:actionType" ></xs:element>
 	
 	<!--
 	    OCCI request types
 	-->
-	<xs:complexType name="filterType">
-		<xs:sequence>
-			<xs:element name="kind" type="occi:kindType" maxOccurs="unbounded" minOccurs="0"></xs:element>
-			<xs:element name="mixin" type="occi:mixinType" maxOccurs="unbounded" minOccurs="0"></xs:element>
-			<xs:element name="action" type="occi:actionSpecType" maxOccurs="unbounded" minOccurs="0"></xs:element>
-			<xs:element name="attribute" type="occi:attributeType" maxOccurs="unbounded" minOccurs="0"></xs:element>
-		</xs:sequence>
-	</xs:complexType>
-
 	<xs:complexType name="categoriesType">
 
 		<xs:sequence>
