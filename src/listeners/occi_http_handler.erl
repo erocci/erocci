@@ -36,7 +36,8 @@
 -export([to_uri_list/2,
 	 to_json/2,
 	 to_xml/2,
-	 from_json/2]).
+	 from_json/2,
+	 from_xml/2]).
 
 -record(content_type, {parser   :: atom(),
 		       renderer :: atom(),
@@ -77,7 +78,9 @@ content_types_provided(Req, State) ->
 content_types_accepted(Req, State) ->
     {[
       {{<<"application">>,     <<"json">>,      []}, from_json},
-      {{<<"application">>,     <<"occi+json">>, []}, from_json}
+      {{<<"application">>,     <<"occi+json">>, []}, from_json},
+      {{<<"application">>,     <<"xml">>,       []}, from_xml},
+      {{<<"application">>,     <<"occi+xml">>,  []}, from_xml}
      ],
      Req, State}.
 
@@ -136,89 +139,95 @@ to_json(Req, #occi_node{}=Node) ->
 to_xml(Req, #occi_node{}=Node) ->
     render(Req, Node, ?ct_xml).
 
-from_json(Req, #occi_node{type=occi_collection, objid=#occi_cid{class=kind}}=State) ->
-    case cowboy_req:qs_val(<<"action">>, Req) of
-	{undefined, Req2} ->
-	    save_entity(Req2, State, ?ct_json);
-	{Action, Req2} ->
-	    trigger(Req2, State, Action, ?ct_json)
-    end;
+from_json(Req, State) ->
+    from(Req, State, ?ct_json).
 
-from_json(Req, #occi_node{type=occi_collection, objid=#occi_cid{class=mixin}}=State) ->
-    case cowboy_req:method(Req) of
-	{<<"PUT">>, _} ->
-	    save_collection(Req, State, ?ct_json);
-	{<<"POST">>, _} ->
-	    case cowboy_req:qs_val(<<"action">>, Req) of
-		{undefined, Req2} ->
-		    update_collection(Req2, State, ?ct_json);
-		{Action, Req2} ->
-		    trigger(Req2, State, Action, ?ct_json)
-	    end
-    end;
-
-from_json(Req, #occi_node{type=occi_collection, objid=#occi_cid{class=usermixin}}=State) ->
-    case cowboy_req:method(Req) of
-	{<<"PUT">>, _} ->
-	    save_collection(Req, State, ?ct_json);
-	{<<"POST">>, _} ->
-	    case cowboy_req:qs_val(<<"action">>, Req) of
-		{undefined, Req2} ->
-		    update_collection(Req2, State, ?ct_json);
-		{Action, Req2} ->
-		    trigger(Req2, State, Action, ?ct_json)
-	    end
-    end;
-
-from_json(Req, #occi_node{type=occi_user_mixin}=State) ->
-    case cowboy_req:method(Req) of
-	{<<"PUT">>, _} ->
-	    save_collection(Req, State, ?ct_json);
-	{<<"POST">>, _} ->
-	    case cowboy_req:qs_val(<<"action">>, Req) of
-		{undefined, Req2} ->
-		    update_collection(Req2, State, ?ct_json);
-		{Action, Req2} ->
-		    trigger(Req2, State, Action, ?ct_json)
-	    end
-    end;
-
-from_json(Req, #occi_node{type=occi_resource}=State) ->
-    case cowboy_req:method(Req) of
-	{<<"PUT">>, _} ->
-	    save_entity(Req, State, ?ct_json);
-	{<<"POST">>, _} ->
-	    case cowboy_req:qs_val(<<"action">>, Req) of
-		{undefined, Req2} ->
-		    update_entity(Req2, State, ?ct_json);
-		{Action, Req2} ->
-		    trigger(Req2, State, Action, ?ct_json)
-	    end
-    end;
-
-from_json(Req, #occi_node{type=occi_link}=State) ->
-    case cowboy_req:method(Req) of
-	{<<"PUT">>, _} ->
-	    save_entity(Req, State, ?ct_json);
-	{<<"POST">>, _} ->
-	    case cowboy_req:qs_val(<<"action">>, Req) of
-		{undefined, Req2} ->
-		    update_entity(Req2, State, ?ct_json);
-		{Action, Req2} ->
-		    trigger(Req2, State, Action, ?ct_json)
-	    end
-    end;
-
-from_json(Req, #occi_node{type=dir}=State) ->
-    {ok, Req2} = cowboy_req:reply(405, Req),
-    {halt, Req2, State};
-
-from_json(Req, #occi_node{type=undefined}=State) ->
-    save_entity(Req, State, ?ct_json).
+from_xml(Req, State) ->
+    from(Req, State, ?ct_xml).
 
 %%%
 %%% Private
 %%%
+from(Req, #occi_node{type=occi_collection, objid=#occi_cid{class=kind}}=State, CT) ->
+    case cowboy_req:qs_val(<<"action">>, Req) of
+	{undefined, Req2} ->
+	    save_entity(Req2, State, CT);
+	{Action, Req2} ->
+	    trigger(Req2, State, Action, CT)
+    end;
+
+from(Req, #occi_node{type=occi_collection, objid=#occi_cid{class=mixin}}=State, CT) ->
+    case cowboy_req:method(Req) of
+	{<<"PUT">>, _} ->
+	    save_collection(Req, State, CT);
+	{<<"POST">>, _} ->
+	    case cowboy_req:qs_val(<<"action">>, Req) of
+		{undefined, Req2} ->
+		    update_collection(Req2, State, CT);
+		{Action, Req2} ->
+		    trigger(Req2, State, Action, CT)
+	    end
+    end;
+
+from(Req, #occi_node{type=occi_collection, objid=#occi_cid{class=usermixin}}=State, CT) ->
+    case cowboy_req:method(Req) of
+	{<<"PUT">>, _} ->
+	    save_collection(Req, State, CT);
+	{<<"POST">>, _} ->
+	    case cowboy_req:qs_val(<<"action">>, Req) of
+		{undefined, Req2} ->
+		    update_collection(Req2, State, CT);
+		{Action, Req2} ->
+		    trigger(Req2, State, Action, CT)
+	    end
+    end;
+
+from(Req, #occi_node{type=occi_user_mixin}=State, CT) ->
+    case cowboy_req:method(Req) of
+	{<<"PUT">>, _} ->
+	    save_collection(Req, State, CT);
+	{<<"POST">>, _} ->
+	    case cowboy_req:qs_val(<<"action">>, Req) of
+		{undefined, Req2} ->
+		    update_collection(Req2, State, CT);
+		{Action, Req2} ->
+		    trigger(Req2, State, Action, CT)
+	    end
+    end;
+
+from(Req, #occi_node{type=occi_resource}=State, CT) ->
+    case cowboy_req:method(Req) of
+	{<<"PUT">>, _} ->
+	    save_entity(Req, State, CT);
+	{<<"POST">>, _} ->
+	    case cowboy_req:qs_val(<<"action">>, Req) of
+		{undefined, Req2} ->
+		    update_entity(Req2, State, CT);
+		{Action, Req2} ->
+		    trigger(Req2, State, Action, CT)
+	    end
+    end;
+
+from(Req, #occi_node{type=occi_link}=State, CT) ->
+    case cowboy_req:method(Req) of
+	{<<"PUT">>, _} ->
+	    save_entity(Req, State, ?ct_json);
+	{<<"POST">>, _} ->
+	    case cowboy_req:qs_val(<<"action">>, Req) of
+		{undefined, Req2} ->
+		    update_entity(Req2, State, CT);
+		{Action, Req2} ->
+		    trigger(Req2, State, Action, CT)
+	    end
+    end;
+
+from(Req, #occi_node{type=dir}=State, _) ->
+    {ok, Req2} = cowboy_req:reply(405, Req),
+    {halt, Req2, State};
+
+from(Req, #occi_node{type=undefined}=State, CT) ->
+    save_entity(Req, State, CT).
+
 render(Req, State, #content_type{renderer=Renderer}) ->
     case occi_store:load(State) of
 	{ok, Node} ->

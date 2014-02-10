@@ -32,9 +32,26 @@
 	 to_uri_list/2,
 	 to_json/2,
 	 to_xml/2]).
--export([from_json/2]).
+-export([from_json/2,
+	 from_xml/2]).
 
 -include("occi.hrl").
+
+
+-record(content_type, {parser   :: atom(),
+		       renderer :: atom(),
+		       mimetype :: binary()}).
+
+-define(ct_plain,    #content_type{parser=occi_parser_plain, renderer=occi_renderer_plain, 
+				   mimetype="text/plain"}).
+-define(ct_occi,     #content_type{parser=occi_parser_occi, renderer=occi_renderer_occi, 
+				   mimetype="text/occi"}).
+-define(ct_uri_list, #content_type{parser=occi_parser_uri_list, renderer=occi_renderer_uri_list, 
+				   mimetype="text/uri-list"}).
+-define(ct_json,     #content_type{parser=occi_parser_json, renderer=occi_renderer_json, 
+				   mimetype="application/json"}).
+-define(ct_xml,      #content_type{parser=occi_parser_xml, renderer=occi_renderer_xml, 
+				   mimetype="application/xml"}).
 
 init(_Transport, _Req, []) -> 
     {upgrade, protocol, cowboy_rest}.
@@ -62,7 +79,9 @@ content_types_provided(Req, State) ->
 content_types_accepted(Req, State) ->
     {[
       {{<<"application">>,     <<"json">>,      []}, from_json},
-      {{<<"application">>,     <<"occi+json">>, []}, from_json}
+      {{<<"application">>,     <<"occi+json">>, []}, from_json},
+      {{<<"application">>,     <<"xml">>,       []}, from_xml},
+      {{<<"application">>,     <<"occi+xml">>,  []}, from_xml}
      ],
      Req, State}.
 
@@ -76,9 +95,7 @@ delete_resource(Req, State) ->
     end.
 
 to_plain(Req, State) ->
-    {ok, Node} = occi_store:find(State),
-    Body = occi_renderer_plain:render(Node),
-    {Body, Req, State}.
+    to(Req, State, ?ct_plain).
 
 to_occi(Req, State) ->
     {ok, Node} = occi_store:find(State),
@@ -88,23 +105,31 @@ to_occi(Req, State) ->
     {Body, Req2, State}.
 
 to_uri_list(Req, State) ->
-    {ok, Node} = occi_store:find(State),
-    Body = [occi_renderer_uri_list:render(Node), "\n"],
-    {Body, Req, State}.
+    to(Req, State, ?ct_uri_list).
 
 to_json(Req, State) ->
-    {ok, Node} = occi_store:find(State),
-    Body = [occi_renderer_json:render(Node), "\n"],
-    {Body, Req, State}.
+    to(Req, State, ?ct_json).
 
 to_xml(Req, State) ->
-    {ok, Node} = occi_store:find(State),
-    Body = [occi_renderer_xml:render(Node), "\n"],
-    {Body, Req, State}.
+    to(Req, State, ?ct_xml).
 
 from_json(Req, State) ->
+    from(Req, State, ?ct_json).
+
+from_xml(Req, State) ->
+    from(Req, State, ?ct_xml).
+
+%%%
+%%% Private
+%%%
+to(Req, State, #content_type{renderer=R}) ->
+    {ok, Node} = occi_store:find(State),
+    Body = [R:render(Node), "\n"],
+    {Body, Req, State}.
+
+from(Req, State, #content_type{parser=Parser, renderer=Renderer, mimetype=MimeType}) ->
     {ok, Body, Req2} = cowboy_req:body(Req),
-    case occi_parser_json:parse_user_mixin(Body) of
+    case Parser:parse_user_mixin(Body) of
 	{error, {parse_error, Err}} ->
 	    lager:debug("Error processing request: ~p~n", [Err]),
 	    {ok, Req3} = cowboy_req:reply(400, Req2),
@@ -140,8 +165,8 @@ from_json(Req, State) ->
 		    Node = occi_node:new(Uri, Mixin),
 		    case occi_store:save(Node) of
 			ok ->
-			    RespBody = occi_renderer_json:render(Node),
-			    Req3 = cowboy_req:set_resp_header(<<"content-type">>, <<"application/json">>, Req2),
+			    RespBody = Renderer:render(Node),
+			    Req3 = cowboy_req:set_resp_header(<<"content-type">>, MimeType, Req2),
 			    {true, cowboy_req:set_resp_body([RespBody, "\n"], Req3), State};
 			{error, Reason} ->
 			    lager:debug("Error creating resource: ~p~n", [Reason]),
@@ -151,9 +176,6 @@ from_json(Req, State) ->
 	    end
     end.
 
-%%%
-%%% Private
-%%%
 get_cta(Req, State) ->
     case cowboy_req:parse_header(<<"content-type">>, Req) of
 	{error, badarg} ->
