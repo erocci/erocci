@@ -2,9 +2,26 @@
 
 basedir=$(dirname $0)
 
-export occi_srv=http://localhost:8080
+ct=$1
+case "x$ct" in
+    "xjson")
+	dir=$basedir/testsuite_json
+	;;
+    "xxml")
+	dir=$basedir/testsuite_xml
+	;;
+    "x")
+	dir="$basedir/testsuite_json $basedir/testsuite_xml"
+	;;
+    *)
+	echo "Usage: "$(basename $0)" [json|xml]"
+	exit 1
+	;;
+esac
 
-for script in $basedir/testsuite/*.sh; do
-    echo "### "$(basename $script)
-    [ -x $script ] && $script
+export occi_srv=http://localhost:8080
+	
+for script in $(find $dir -name '*.sh' -type f -perm /u=x,g=x,o=x | sort); do
+    echo "### "$script
+    $script
 done
