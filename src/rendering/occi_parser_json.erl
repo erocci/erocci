@@ -29,12 +29,7 @@
 -include("occi_parser.hrl").
 
 %% API
--export([start/1,
-	 stop/1,
-	 parse/2,
-	 parse_full/2]).
 -export([parse_action/2,
-	 parse_entity/1,
 	 parse_entity/2,
 	 parse_user_mixin/1,
 	 parse_collection/1]).
@@ -108,18 +103,6 @@ parse_action(Data, Action) ->
 	    {error, {parse_error, not_an_action}}
     end.    
 
-parse_entity(Data) ->
-    case parse_full(Data, #state{entity=#occi_entity{}}) of
-	{error, Reason} ->
-	    {error, {parse_error, Reason}};
-	{ok, #occi_request{entities=[#occi_resource{}=Res]}} ->
-	    {ok, Res};
-	{ok, #occi_request{entities=[#occi_link{}=Link]}} ->
-	    {ok, Link};
-	_ ->
-	    {error, {parse_error, not_an_entity}}
-    end.
-
 parse_entity(Data, #occi_resource{}=Res) ->
     case parse_full(Data, #state{entity=Res}) of
 	{error, Reason} ->
@@ -170,36 +153,6 @@ parse_collection(Data) ->
 	{ok, #occi_request{collection=Coll}} ->
 	    {ok, Coll}
     end.
-
-parse_full(Data) ->
-    parse_full(Data, #state{request=#occi_request{}}).
-
-parse_full(<<>>, _) ->
-    {error, invalid_request};
-parse_full(Data, Ctx) ->
-    P = start(Ctx),
-    Res = parse(P, Data),
-    stop(P),
-    Res.
-
--spec parse(parser(), binary()) -> parser_result().
-parse(#parser{src=#parser{mod=Mod}=Src}, Data) ->
-    Mod:parse(Src, Data).
-
-start(Ctx) ->
-    Parser = #parser{mod=?MODULE, stack=[eof], state=Ctx},
-    case gen_fsm:start(?MODULE, Parser, []) of
-	{ok, Pid} -> 
-	    Src = occi_parser_json0:start(Parser#parser{id=Pid}),
-	    Parser#parser{id=Pid, src=Src};
-	Err -> 
-	    lager:error("Error starting occi/json parser: ~p~n", [Err]),
-	    throw(Err)
-    end.
-
-stop(#parser{id=Ref, src=#parser{mod=Mod}=Src}) ->
-    Mod:stop(Src),
-    gen_fsm:send_all_state_event(Ref, stop).
 
 %%%===================================================================
 %%% gen_fsm callbacks
@@ -799,6 +752,36 @@ eof(_E, _F, Ctx) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+parse_full(Data) ->
+    parse_full(Data, #state{request=#occi_request{}}).
+
+parse_full(<<>>, _) ->
+    {error, invalid_request};
+parse_full(Data, Ctx) ->
+    P = start(Ctx),
+    Res = parse(P, Data),
+    stop(P),
+    Res.
+
+-spec parse(parser(), binary()) -> parser_result().
+parse(#parser{src=#parser{mod=Mod}=Src}, Data) ->
+    Mod:parse(Src, Data).
+
+start(Ctx) ->
+    Parser = #parser{mod=?MODULE, stack=[eof], state=Ctx},
+    case gen_fsm:start(?MODULE, Parser, []) of
+	{ok, Pid} -> 
+	    Src = occi_parser_json0:start(Parser#parser{id=Pid}),
+	    Parser#parser{id=Pid, src=Src};
+	Err -> 
+	    lager:error("Error starting occi/json parser: ~p~n", [Err]),
+	    throw(Err)
+    end.
+
+stop(#parser{id=Ref, src=#parser{mod=Mod}=Src}) ->
+    Mod:stop(Src),
+    gen_fsm:send_all_state_event(Ref, stop).
+
 parse_cid(Str) ->
     case string:tokens(Str, "#") of
 	[Scheme, Term] ->

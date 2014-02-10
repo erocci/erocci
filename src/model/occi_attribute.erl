@@ -138,39 +138,13 @@ reset(#occi_attr{}=A) ->
 %%% Private functions
 %%%
 get_check_fun(string) ->
-    fun (X) when is_list(X) ->
-	    list_to_binary(X);
-	(X) ->
-	    throw({error, {einval, X}})
-    end;
+    fun to_string/1;
 
 get_check_fun(integer) ->
-    fun (X) when is_integer(X) ->
-	    X;
-	(X) when is_list(X) ->
-	    case catch string:to_integer(X) of
-		{I, []} -> I;
-		{I, _} when is_integer(I) -> throw({error, einval});
-		{error, no_integer} -> throw({error, einval})
-	    end;
-	(X) ->
-	    throw({error, {einval, X}})
-    end;
+    fun to_integer/1;
 
 get_check_fun(float) ->
-    fun (X) when is_float(X) ->
-	    X;
-	(X) when is_integer(X) ->
-	    X+0.0;
-	(X) when is_list(X) ->
-	    case catch string:to_float(X) of
-		{I, []} -> I;
-		{I, _} when is_integer(I)-> throw({error, einval});
-		{error, no_float} -> throw({error, einval})
-	    end;
-	(X) ->
-	    throw({error, {einval, X}})
-    end;
+    fun to_float/1;
 
 get_check_fun(Type) ->
     case occi_category_mgr:get(#occi_type{id=Type, _='_'}) of
@@ -187,3 +161,48 @@ check(#occi_attr{value=undefined}=A) ->
     end;
 check(#occi_attr{}=_A) ->
     ok.
+
+to_string(X) when is_list(X) ->
+    X;
+to_string(X) when is_binary(X) ->
+    binary_to_list(X);
+to_string(X) ->
+    throw({error, {einval, X}}).
+
+to_integer(X) when is_integer(X) ->
+    X;
+to_integer(X) when is_binary(X) ->
+    binary_to_integer(X);
+to_integer(X) when is_list(X) ->
+    list_to_integer(X);
+to_integer(X) ->
+    throw({error, {einval, X}}).
+
+to_float(X) when is_float(X) ->
+    X;
+to_float(X) when is_integer(X) ->
+    X+0.0;
+to_float(X) when is_binary(X) ->
+    try binary_to_float(X) of
+	V -> V
+    catch 
+	_:_ ->
+	    try binary_to_integer(X) of
+		V -> V+0.0
+	    catch
+		_:_ -> {error, einval}
+	    end
+    end;
+to_float(X) when is_list(X) ->
+    try list_to_float(X) of
+	V -> V
+    catch 
+	_:_ ->
+	    try list_to_integer(X) of
+		V -> V+0.0
+	    catch
+		_:_ -> {error, einval}
+	    end
+    end;
+to_float(X) ->
+    throw({error, {einval, X}}).

@@ -170,6 +170,8 @@ render_attribute_values([#occi_attr{}=Attr|Tail], Acc) ->
     case occi_attribute:get_value(Attr) of
 	undefined ->
 	    render_attribute_values(Tail, Acc);
+	Value when is_list(Value) ->
+	    render_attribute_values(Tail, insert_attr(Id, list_to_binary(Value), Acc));
 	Value ->
 	    render_attribute_values(Tail, insert_attr(Id, Value, Acc))
     end.

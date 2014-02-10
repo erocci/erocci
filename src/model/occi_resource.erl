@@ -63,7 +63,9 @@ new(#uri{}=Id) ->
 get_id(#occi_resource{id=Id}) ->
     Id.
 
--spec set_id(occi_resource(), uri() | string()) -> occi_resource().
+-spec set_id(occi_resource(), uri() | string() | binary()) -> occi_resource().
+set_id(#occi_resource{}=Res, Id) when is_binary(Id) ->
+    set_id(Res, occi_uri:parse(Id));
 set_id(#occi_resource{}=Res, Id) when is_list(Id) ->
     set_id(Res, occi_uri:parse(Id));
 set_id(#occi_resource{}=Res, #uri{}=Id) ->

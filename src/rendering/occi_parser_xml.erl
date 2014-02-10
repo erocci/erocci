@@ -27,21 +27,22 @@
 -behaviour(gen_fsm).
 
 -include("occi.hrl").
+-include("occi_parser.hrl").
 -include_lib("exmpp/include/exmpp_xml.hrl").
 
 %% API
--export([start_parser/0,
-	 reset_parser/1,
-	 stop_parser/1,
-	 load/1,
-	 load_extension/1,
-	 parse/2]).
+-export([load_extension/1,
+	 parse_action/2,
+	 parse_entity/2,
+	 parse_user_mixin/1,
+	 parse_collection/1]).
 
 %% gen_fsm callbacks
 -export([init/1, handle_event/3, handle_sync_event/4, handle_info/3, terminate/3, code_change/4]).
 
 %% States
 -export([init/3, 
+	 resource/3,
 	 extension/3,
 	 kind/3,
 	 eof/3, 
@@ -61,89 +62,113 @@
 	 {max_size, infinity}]).
 
 -record(state, {
-	  parser,
+	  request     = #occi_request{}     :: occi_request(),
+	  collection                        :: occi_collection(),
+	  entity      = undefined           :: term(),
+	  entity_id   = undefined           :: uri(),
+	  mixin       = undefined           :: term(),
+	  action      = undefined           :: occi_action(),
 	  prefixes,
-	  stack              :: [atom()],
-	  extension          :: occi_extension(),
-	  kind               :: reference(),
-	  mixin              :: reference(),
-	  action             :: reference(),
-	  attribute          :: occi_attr(),
+	  extension                         :: occi_extension(),
+	  kind                              :: occi_kind(),
+	  attribute                         :: occi_attr(),
 	  type}).
-
--type(parser_id() :: reference()).
--type(parser_result() :: occi_extension() | {atom(), occi_object:id()}).
 
 %%%===================================================================
 %%% API
 %%%===================================================================
 load_extension(Path) ->
-    case occi_parser_xml:load(Path) of
-	#occi_extension{}=Ext ->
+    {ok, Data} = file:read_file(Path),
+    parse_extension(Data).
+
+parse_extension(Data) ->
+    case parse_full(Data, #state{}) of
+	{ok, #occi_extension{}=Ext} ->
 	    lager:info("Loaded extension: ~s~n", [occi_extension:get_name(Ext)]),
 	    Ext;
 	{error, Reason} ->
-	    lager:error("Error loading extension file ~s: ~p~n", [Path, Reason]),
+	    lager:error("Error loading extension: ~p~n", [Reason]),
 	    {error, parse_error};
-	{'EXIT', Reason} ->
-	    lager:error("Error loading extension file ~s: ~p~n", [Path, Reason]),
-	    {error, parse_error};
-	Res ->
-	    lager:error("Not an extension: ~p~n", [Res]),
-	    throw({error, not_an_extension})
+	_ ->
+	    {error, {parse_error, not_an_extension}}
     end.
 
-load(Path) ->
-    {ok, Bin} = file:read_file(Path),
-    Parser = start_parser(),
-    case catch parse(Parser, Bin) of
-	{error, {parse_error, Reason}} ->
-	    lager:error("Invalid XML file: ~p~n", [Reason]),
+parse_action(Data, Action) ->
+    case parse_full(Data, #state{action=Action}) of
+	{error, Reason} ->
 	    {error, {parse_error, Reason}};
-	{error, {'EXIT', Reason}} ->
-	    lager:error("XML parser internal error: ~p~n", [Reason]),
-	    throw({error, {'EXIT', Reason}});
-	Result ->
-	    Result
+	{ok, #occi_request{action=#occi_action{}=Action2}} ->
+	    {ok, Action2};
+	_ ->
+	    {error, {parse_error, not_an_action}}
+    end.    
+
+parse_entity(Data, #occi_resource{}=Res) ->
+    lager:debug("### DATA: ~p~n", [Data]),
+    case parse_full(Data, #state{entity=Res}) of
+	{error, Reason} ->
+	    {error, {parse_error, Reason}};
+	{ok, #occi_request{entities=[#occi_resource{}=Res2]}} ->
+	    {ok, Res2};
+	_ ->
+	    {error, {parse_error, not_an_entity}}
+    end;
+
+parse_entity(Data, #occi_link{}=Link) ->
+    case parse_full(Data, #state{entity=Link}) of
+	{error, Reason} ->
+	    {error, {parse_error, Reason}};
+	{ok, #occi_request{entities=[#occi_link{}=Link2]}} ->
+	    {ok, Link2};
+	_ ->
+	    {error, {parse_error, not_an_entity}}
+    end;
+
+parse_entity(Data, #occi_entity{id=Id}) ->
+    case parse_full(Data, #state{entity_id=Id}) of
+	{error, Reason} ->
+	    {error, {parse_error, Reason}};
+	{ok, #occi_request{entities=[#occi_resource{}=Res2]}} ->
+	    {ok, Res2};
+	{ok, #occi_request{entities=[#occi_link{}=Link2]}} ->
+	    {ok, Link2};
+	_ ->
+	    {error, {parse_error, not_an_entity}}
     end.
 
--spec parse(parser_id(), binary()) -> parser_result().
-parse(Ref, Data) ->
-    XP = gen_fsm:sync_send_all_state_event(Ref, get_parser),
-    exmpp_xml:reset_parser(XP),
-    case exmpp_xml:parse_final(XP, Data) of
-	done ->
-	    send_events(Ref, []);
-	XMLElements ->
-	    send_events(Ref, XMLElements)
+parse_user_mixin(Data) ->
+    case parse_full(Data) of
+	{error, Reason} ->
+	    {error, {parse_error, Reason}};
+	{ok, #occi_request{mixins=[#occi_mixin{id=Id}=Mixin]}} ->
+	    {ok, Mixin#occi_mixin{id=Id#occi_cid{class=usermixin}}};
+	Err ->
+	    lager:error("Invalid request: ~p~n", [Err]),
+	    {error, {parse_error, Err}}
     end.
 
-start_parser() ->
-    case gen_fsm:start(?MODULE, [], []) of
-	{ok, Pid} -> Pid;
-	Other -> 
-	    lager:error("Error starting xml parser: ~p~n", [Other])
+parse_collection(Data) ->
+    case parse_full(Data) of
+	{error, Reason} ->
+	    {error, {parse_error, Reason}};
+	{ok, #occi_request{collection=Coll}} ->
+	    {ok, Coll}
     end.
-
-reset_parser(Ref) ->
-    gen_fsm:send_all_state_event(Ref, stop).
-
-stop_parser(Ref) ->
-    gen_fsm:send_all_state_event(Ref, stop).
 
 %%%===================================================================
 %%% gen_fsm callbacks
 %%%===================================================================
-init([]) ->
-    XmlParser = exmpp_xml:start_parser(?PARSER_OPTIONS),
-    {ok, init, #state{parser=XmlParser, 
-		      stack=[init]}}.
+init(#parser{}=Parser) ->
+    {ok, init, Parser#parser{stack=[init]}}.
 
 -define(occi_ns, 'http://schemas.ogf.org/occi').
 -define(xmlschema_ns, 'http://www.w3.org/2001/XMLSchema').
 
 -define(extension, #xmlel{ns=?occi_ns, name=extension}).
 -define(extensionEnd, #xmlendtag{ns=?occi_ns, name=extension}).
+
+-define(resource, #xmlel{ns=?occi_ns, name=resource}).
+-define(resourceEnd, #xmlendtag{ns=?occi_ns, name=resource}).
 
 -define(categories, #xmlel{ns=?occi_ns, name=categories}).
 -define(categoriesEnd, #xmlendtag{ns=?occi_ns, name=categories}).
@@ -175,110 +200,187 @@ init([]) ->
 -define(simpleDef, #xmlel{ns=?xmlschema_ns}).
 -define(simpleDefEnd, #xmlendtag{ns=?xmlschema_ns}).
 
-init(E=?extension, _From, State) ->
+init(E=?extension, _From, #parser{state=State}=Ctx) ->
     Ext = make_extension(E, State),
-    push(extension, State#state{extension=Ext, prefixes=load_prefixes(E#xmlel.declared_ns)});
-init(Event, _From, State) ->
-    lager:error("Invalid node: ~p~n", [Event]),
-    {reply, ok, init, State}.
+    push(extension, 
+	 ?set_state(Ctx, State#state{extension=Ext, prefixes=load_prefixes(E#xmlel.declared_ns)}));
+init(E=?resource, _From, #parser{state=State}=Ctx) ->
+    case make_resource(E, State) of
+	#state{}=State2 ->
+	    push(resource, ?set_state(Ctx, State2#state{prefixes=load_prefixes(E#xmlel.declared_ns)}));
+	{error, Err} ->
+	    {reply, {error, Err}, eof, Ctx}
+    end;
+init(E, _From, Ctx) ->
+    other_event(E, Ctx, init).
 
-extension(E=?kind, _From, State) ->
+resource(E=?kind, _From, 
+	 #parser{state=#state{entity=#occi_resource{cid=undefined}=Res}=State}=Ctx) ->
+    case make_related(E, State) of
+	{undefined, _} ->
+	    {reply, {error, invalid_cid}, eof, Ctx};
+	{_, undefined} ->
+	    {reply, {error, invalid_cid}, eof, Ctx};
+	{Scheme, Term} ->
+	    Cid = #occi_cid{class=kind, scheme=Scheme, term=Term},
+	    case catch occi_category_mgr:get(Cid) of
+		{error, Err} ->
+		    {reply, {error, Err}, eof, Ctx};
+		#occi_kind{parent=#occi_cid{term=resource}}=Kind ->
+		    Res2 = occi_resource:set_cid(Res, Kind),
+		    {reply, ok, resource, ?set_state(Ctx, State#state{entity=Res2})};
+		#occi_kind{} ->
+		    {reply, {error, invalid_cid}, eof, Ctx}
+	    end
+    end;
+resource(E=?kind, _From, 
+	 #parser{state=#state{entity=#occi_resource{cid=#occi_cid{scheme=Scheme, term=Term, class=kind}}}=State}=Ctx) ->
+    case make_related(E, State) of
+	{undefined, _} ->
+	    {reply, {error, invalid_cid}, eof, Ctx};
+	{_, undefined} ->
+	    {reply, {error, invalid_cid}, eof, Ctx};
+	{Scheme, Term} ->
+	    {reply, ok, resource, Ctx};
+	_ ->
+	    {reply, {error, invalid_cid}, eof, Ctx}
+    end;
+resource(?kindEnd, _From, Ctx) ->
+    {reply, ok, resource, Ctx};
+resource(E=?mixin, _From, 
+	 #parser{state=#state{entity=#occi_resource{cid=undefined}=Res}=State}=Ctx) ->
+    case make_related(E, State) of
+	{undefined, _} ->
+	    {reply, {error, invalid_cid}, eof, Ctx};
+	{_, undefined} ->
+	    {reply, {error, invalid_cid}, eof, Ctx};
+	{Scheme, Term} ->
+	    Cid = #occi_cid{class=mixin, scheme=Scheme, term=Term},
+	    case catch occi_category_mgr:get(Cid) of
+		{error, Err} ->
+		    {reply, {error, Err}, eof, Ctx};
+		#occi_mixin{}=Mixin ->
+		    Res2 = occi_resource:add_mixin(Res, Mixin),
+		    {reply, ok, resource, 
+		     ?set_state(Ctx, State#state{entity=Res2})}
+	    end
+    end;
+resource(?mixinEnd, _From, Ctx) ->
+    {reply, ok, resource, Ctx};
+resource(E=?attribute, _From, 
+	 #parser{state=#state{entity=#occi_resource{}=Res}=State}=Ctx) ->
+	case make_attribute(E, State) of
+	    {ok, Key, Val} ->
+		try occi_resource:set_attr_value(Res, Key, Val) of
+		    #occi_resource{}=Res2 ->
+			{reply, ok, resource,
+			 ?set_state(Ctx, State#state{entity=Res2})}
+		catch
+		    Err ->
+			{reply, {error, Err}, eof, Ctx}
+		end;
+	    {error, Err} ->
+		{reply, {error, Err}, eof, Ctx}
+	end;	
+resource(?attributeEnd, _From, Ctx) ->
+    {reply, ok, resource, Ctx};
+resource(?resourceEnd, _From, #parser{state=#state{request=Req, entity=Res}}=Ctx) ->
+    {reply, {eof, occi_request:add_entity(Req, Res)}, eof, Ctx};
+resource(E, _From, Ctx) ->
+    other_event(E, Ctx, resource).
+
+extension(E=?kind, _From, #parser{state=State}=Ctx) ->
     Kind = make_kind(E, State),
-    push(kind, State#state{kind=Kind});
-extension(E=?mixin, _From, State) ->
+    push(kind, ?set_state(Ctx, State#state{kind=Kind}));
+extension(E=?mixin, _From, #parser{state=State}=Ctx) ->
     Mixin = make_mixin(E, State),
-    push(mixin, State#state{mixin=Mixin});
-extension(E=?simpleType, _From, State) ->
+    push(mixin, ?set_state(Ctx, State#state{mixin=Mixin}));
+extension(E=?simpleType, _From, #parser{state=State}=Ctx) ->
     Id = to_atom(get_attr_value(E, <<"name">>)),
-    push(attr_type, State#state{type=#occi_type{id=Id}});
-extension(?extensionEnd, _From, #state{extension=Ext}=State) ->
-    {reply, {eof, Ext}, eof, State#state{extension=undefined}};
-extension(#xmlcdata{}, _From, State) ->
-    {reply, ok, extension, State};
-extension(Event, _From, State) ->
-    Error = io_lib:format("Invalid element: ~p~n", [Event]),
-    {reply, {error, {einval, Error}}, eof, State}.
+    push(attr_type, ?set_state(Ctx, State#state{type=#occi_type{id=Id}}));
+extension(?extensionEnd, _From, #parser{state=#state{extension=Ext}=State}=Ctx) ->
+    {reply, {eof, Ext}, eof, ?set_state(Ctx, State#state{extension=undefined})};
+extension(E, _From, Ctx) ->
+    other_event(E, Ctx, extension).
 
-kind(E=?parent, _From, #state{kind=Kind}=State) ->
+kind(E=?parent, _From, #parser{state=#state{kind=Kind}=State}=Ctx) ->
     case catch make_related(E, State) of
 	{error, Reason} ->
-	    {reply, {error, Reason}, eof, State};
+	    {reply, {error, Reason}, eof, Ctx};
 	{Scheme, Term} ->
-	    {reply, ok, kind, State#state{kind=occi_kind:set_parent(Kind, Scheme, Term)}}
+	    {reply, ok, kind, 
+	     ?set_state(Ctx, State#state{kind=occi_kind:set_parent(Kind, Scheme, Term)})}
     end;
-kind(_E=?parentEnd, _From, State) ->
-    {reply, ok, kind, State};
-kind(E=?attribute, _From, State) ->
-    case catch make_attribute(E, State) of
+kind(_E=?parentEnd, _From, Ctx) ->
+    {reply, ok, kind, Ctx};
+kind(E=?attribute, _From, #parser{state=State}=Ctx) ->
+    case catch make_attr_spec(E, State) of
 	{error, Reason} ->
-	    {reply, {error, Reason}, eof, State};
+	    {reply, {error, Reason}, eof, Ctx};
 	AttrSpec -> 
-	    push(attribute_spec, State#state{attribute=AttrSpec})
+	    push(attribute_spec, 
+		 ?set_state(Ctx, State#state{attribute=AttrSpec}))
     end;
-kind(E=?action, _From, State) ->
+kind(E=?action, _From, #parser{state=State}=Ctx) ->
     case catch make_action(E, State) of
 	{error, Reason} ->
 	    {reply, {error, Reason}, eof, State};
 	Action ->
-	    push(action_spec, State#state{action=Action})
+	    push(action_spec, 
+		 ?set_state(Ctx, State#state{action=Action}))
     end;
-kind(_E=?kindEnd, _From, #state{extension=Ext, kind=Kind}=State) ->
-    pop(State#state{kind=undefined, 
-		    extension=occi_extension:add_kind(Ext, Kind)});
-kind(#xmlcdata{}, _From, State) ->
-    {reply, ok, kind, State};
-kind(E, _From, State) ->
-    Error = io_lib:format("Invalid element: ~p~n", [E]),
-    {reply, {error, {einval, Error}}, eof, State}.
+kind(_E=?kindEnd, _From, #parser{state=#state{extension=Ext, kind=Kind}=State}=Ctx) ->
+    pop(?set_state(Ctx, State#state{kind=undefined, 
+				    extension=occi_extension:add_kind(Ext, Kind)}));
+kind(E, _From, Ctx) ->
+    other_event(E, Ctx, kind).
 
-mixin(E=?depends, _From, #state{mixin=Mixin}=State) ->
+mixin(E=?depends, _From, #parser{state=#state{mixin=Mixin}=State}=Ctx) ->
     case catch make_related(E, State) of
 	{error, Reason} ->
-	    {reply, {error, Reason}, eof, State};
+	    {reply, {error, Reason}, eof, Ctx};
 	{Scheme, Term} ->
 	    {reply, ok, mixin, 
-	     State#state{mixin=occi_mixin:add_depends(Mixin, Scheme, Term)}}
+	     ?set_state(Ctx, State#state{mixin=occi_mixin:add_depends(Mixin, Scheme, Term)})}
     end;
-mixin(_E=?dependsEnd, _From, State) ->
-    {reply, ok, mixin, State};
-mixin(E=?applies, _From, #state{mixin=Mixin}=State) ->
+mixin(_E=?dependsEnd, _From, Ctx) ->
+    {reply, ok, mixin, Ctx};
+mixin(E=?applies, _From, #parser{state=#state{mixin=Mixin}=State}=Ctx) ->
     case catch make_related(E, State) of
 	{error, Reason} ->
-	    {reply, {error, Reason}, eof, State};
+	    {reply, {error, Reason}, eof, Ctx};
 	{Scheme, Term} ->
 	    {reply, ok, mixin, 
-	     State#state{mixin=occi_mixin:add_applies(Mixin, Scheme, Term)}}
+	     ?set_state(Ctx, State#state{mixin=occi_mixin:add_applies(Mixin, Scheme, Term)})}
     end;
-mixin(_E=?appliesEnd, _From, State) ->
-    {reply, ok, mixin, State};
-mixin(E=?attribute, _From, State) ->
-    case catch make_attribute(E, State) of
+mixin(_E=?appliesEnd, _From, Ctx) ->
+    {reply, ok, mixin, Ctx};
+mixin(E=?attribute, _From, #parser{state=State}=Ctx) ->
+    case catch make_attr_spec(E, State) of
 	{error, Reason} ->
-	    {reply, {error, Reason}, eof, State};
+	    {reply, {error, Reason}, eof, Ctx};
 	Attr -> 
-	    push(attribute_spec, State#state{attribute=Attr})
+	    push(attribute_spec, 
+		 ?set_state(Ctx, State#state{attribute=Attr}))
     end;
-mixin(E=?action, _From, State) ->
+mixin(E=?action, _From, #parser{state=State}=Ctx) ->
     case catch make_action(E, State) of
 	{error, Reason} ->
-	    {reply, {error, Reason}, eof, State};
+	    {reply, {error, Reason}, eof, Ctx};
 	Action ->
-	    push(action_spec, State#state{action=Action})
+	    push(action_spec, ?set_state(Ctx, State#state{action=Action}))
     end;
-mixin(_E=?mixinEnd, _From, #state{extension=Ext, mixin=Mixin}=State) ->
-    pop(State#state{mixin=undefined,
-		   extension=occi_extension:add_mixin(Ext, Mixin)});
-mixin(#xmlcdata{}, _From, State) ->
-    {reply, ok, mixin, State};
-mixin(E, _From, State) ->
-    Error = io_lib:format("Invalid element: ~p~n", [E]),
-    {reply, {error, {einval, Error}}, eof, State}.
+mixin(_E=?mixinEnd, _From, #parser{state=#state{extension=Ext, mixin=Mixin}=State}=Ctx) ->
+    pop(?set_state(Ctx, State#state{mixin=undefined,
+				    extension=occi_extension:add_mixin(Ext, Mixin)}));
+mixin(E, _From, Ctx) ->
+    other_event(E, Ctx, mixin).
 
 attribute_spec(_E=?attributeEnd, _From, 
-	       #state{attribute=A, stack=[_Cur,Prev|_Stack]}=State) ->
+	       #parser{stack=[_Cur,Prev|_Stack], state=#state{attribute=A}=State}=Ctx) ->
     case occi_attribute:get_type_id(A) of
 	undefined ->
-	    {reply, {error, {undefined_type, occi_attribute:get_id(A)}}, eof, State};
+	    {reply, {error, {undefined_type, occi_attribute:get_id(A)}}, eof, Ctx};
 	_ ->
 	    State2 = case Prev of
 			 kind -> 
@@ -291,58 +393,49 @@ attribute_spec(_E=?attributeEnd, _From,
 			     Ref = State#state.action,
 			     State#state{action=occi_action:add_attribute(Ref, A)}
 		     end,
-	    pop(State2#state{attribute=undefined})
+	    pop(?set_state(Ctx, State2#state{attribute=undefined}))
 	end;
-attribute_spec(_E=?simpleType, _From, State) ->
-    push(attr_type, State#state{type=#occi_type{}});
-attribute_spec(#xmlcdata{}, _From, State) ->
-    {reply, ok, attribute_spec, State};
-attribute_spec(E, _From, State) ->
-    Error = io_lib:format("Invalid element: ~p~n", [E]),
-    {reply, {error, {einval, Error}}, eof, State}.
+attribute_spec(_E=?simpleType, _From, #parser{state=State}=Ctx) ->
+    push(attr_type, ?set_state(Ctx, State#state{type=#occi_type{}}));
+attribute_spec(E, _From, Ctx) ->
+    other_event(E, Ctx, attribute_spec).
 
-action_spec(E=?attribute, _From, State) ->
-    case catch make_attribute(E, State) of
+action_spec(E=?attribute, _From, #parser{state=State}=Ctx) ->
+    case catch make_attr_spec(E, State) of
 	{error, Reason} ->
-	    {reply, {error, Reason}, eof, State};
+	    {reply, {error, Reason}, eof, Ctx};
 	AttrSpec -> 
-	    push(attribute_spec, State#state{attribute=AttrSpec})
+	    push(attribute_spec, ?set_state(Ctx, State#state{attribute=AttrSpec}))
     end;
 action_spec(_E=?actionEnd, _From, 
-	    #state{action=A, stack=[_Cur,Prev|_Stack]}=State) ->
+	    #parser{stack=[_Cur,Prev|_Stack], state=#state{action=A}=State}=Ctx) ->
     State2 = case Prev of
 		 kind -> 
 		     State#state{kind=occi_kind:add_action(State#state.kind, A)};
 		 mixin -> 
 		     State#state{mixin=occi_mixin:add_action(State#state.mixin, A)}
 	     end,
-    pop(State2#state{action=undefined});
-action_spec(#xmlcdata{}, _From, State) ->
-    {reply, ok, action_spec, State};
-action_spec(E, _From, State) ->
-    Error = io_lib:format("Invalid element: ~p~n", [E]),
-    {reply, {error, {einval, Error}}, eof, State}.
+    pop(?set_state(Ctx, State2#state{action=undefined}));
+action_spec(E, _From, Ctx) ->
+    other_event(E, Ctx, action_spec).
 
 attr_type(_E=?simpleTypeEnd, _From, 
-	    #state{type=Type, extension=Ext, stack=[_Cur,Prev|_Stack]}=State) ->
+	  #parser{stack=[_Cur,Prev|_Stack], state=#state{type=Type, extension=Ext}=State}=Ctx) ->
     case Prev of
 	extension ->
 	    Ext2 = occi_extension:add_type(Ext, Type),
-	    pop(State#state{type=undefined, extension=Ext2});
+	    pop(?set_state(Ctx, State#state{type=undefined, extension=Ext2}));
 	attribute_spec ->
 	    Attr = occi_attribute:set_type_id(State#state.attribute, 
 					      get_attr_type(Type#occi_type.id)),
-	    pop(State#state{type=undefined, attribute=Attr})
+	    pop(?set_state(Ctx, State#state{type=undefined, attribute=Attr}))
     end;
-attr_type(_E=?simpleDef, _From, State) ->
-    {reply, ok, attr_type, State};
-attr_type(_E=?simpleDefEnd, _From, State) ->
-    {reply, ok, attr_type, State};
-attr_type(#xmlcdata{}, _From, State) ->
-    {reply, ok, attr_type, State};
-attr_type(E, _From, State) ->
-    Error = io_lib:format("Invalid element: ~p~n", [E]),
-    {reply, {error, {einval, Error}}, eof, State}.
+attr_type(_E=?simpleDef, _From, Ctx) ->
+    {reply, ok, attr_type, Ctx};
+attr_type(_E=?simpleDefEnd, _From, Ctx) ->
+    {reply, ok, attr_type, Ctx};
+attr_type(E, _From, Ctx) ->
+    other_event(E, Ctx, attr_type).
 
 eof(_Event, _From, State) ->
     {reply, ok, eof, State}.
@@ -353,9 +446,6 @@ eof(_Event, _From, State) ->
 %%                   {stop, Reason, NewState}
 %% @end
 %%-------------------------------------------------------------------
-handle_event(reset, _, #state{parser=Parser}=State) ->
-    Parser2 = exmpp_xml:reset_parser(Parser),
-    {next_state, init, State#state{parser=Parser2, stack=[init]}};
 handle_event(stop, _, State) ->
     {stop, normal, State};
 handle_event(_Event, StateName, State) ->
@@ -370,8 +460,6 @@ handle_event(_Event, StateName, State) ->
 %%                   {stop, Reason, Reply, NewState}
 %% @end
 %%--------------------------------------------------------------------
-handle_sync_event(get_parser, _From, StateName, #state{parser=XP}=State) ->
-    {reply, XP, StateName, State};
 handle_sync_event(_Event, _From, StateName, State) ->
     Reply = ok,
     {reply, Reply, StateName, State}.
@@ -388,8 +476,7 @@ handle_info(_Info, StateName, State) ->
 %% @spec terminate(Reason, StateName, State) -> void()
 %% @end
 %%--------------------------------------------------------------------
-terminate(_Reason, _StateName, #state{parser=Parser}) ->
-    exmpp_xml:stop_parser(Parser),
+terminate(_Reason, _StateName, _State) ->
     ok.
 
 %% @spec code_change(OldVsn, StateName, State, Extra) ->
@@ -402,22 +489,55 @@ code_change(_OldVsn, StateName, State, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
-send_events(_Ref, []) ->
-    throw({error, {parse_error, incomplete}});
-send_events(Ref, [H|T]) ->
-    %lager:debug("Event: ~p~n", [H]),
-    case catch gen_fsm:sync_send_event(Ref, H) of
-	{'EXIT', Reason} ->
-	    gen_fsm:send_all_state_event(Ref, reset),
-	    throw({error, {'EXIT', Reason}});
+parse_full(Data) ->
+    parse_full(Data, #state{request=#occi_request{}}).
+
+parse_full(<<>>, _) ->
+    {error, invalid_request};
+parse_full(Data, Ctx) ->
+    P = start(Ctx),
+    Res = parse(P, Data),
+    stop(P),
+    Res.
+
+-spec parse(parser(), binary()) -> parser_result().
+parse(#parser{src=#parser{id=Src}}=P, Data) ->
+    Parser0 = #parser{sink=P},
+    try exmpp_xml:parse_final(Src, Data) of
+	done ->
+	    send_events(Parser0, []);
+	Events ->
+	    send_events(Parser0, Events)
+    catch
+	Err ->
+	    {error, Err}
+    end.
+
+start(Ctx) ->
+    Parser = #parser{state=Ctx},
+    case gen_fsm:start(?MODULE, Parser, []) of
+	{ok, Ref} ->
+	    Src = #parser{id=exmpp_xml:start_parser(?PARSER_OPTIONS)},
+	    Parser#parser{id=Ref, src=Src};
+	Err -> 
+	    lager:error("Error starting xml parser: ~p~n", [Err])
+    end.
+
+stop(#parser{id=Ref, src=#parser{id=Src}}) ->
+    exmpp_xml:stop_parser(Src),
+    gen_fsm:send_all_state_event(Ref, stop).
+
+send_events(_P, []) ->
+    {error, {parse_error, incomplete}};
+send_events(#parser{}=P, [E|T]) ->
+    lager:debug("send_event: ~p~n", [lager:pr(E, ?MODULE)]),
+    case occi_parser:send_event(E, ok, P) of
+	{reply, {error, Err}, _, _} ->
+	    {error, Err};
 	ok ->
-	    send_events(Ref, T);
-	{error, Reason} ->
-	    gen_fsm:send_all_state_event(Ref, reset),
-	    throw({error, {parse_error, Reason}});
-	{eof, Result} ->
-	    gen_fsm:send_all_state_event(Ref, reset),
-	    Result
+	    send_events(P, T);
+	{reply, {eof, Result}, _, _} ->
+	    {ok, Result}
     end.
 
 get_attr_value(XmlEl, Name) ->
@@ -439,21 +559,47 @@ to_atom(Val) when is_binary(Val) ->
 to_atom(Val) when is_atom(Val) ->
     Val.
 
-push(Next, #state{stack=undefined}=State) ->
-    push(Next, State#state{stack=[]});
-push(Next, #state{stack=Stack}=State) ->
-    {reply, ok, Next, State#state{stack=[Next|Stack]}}.
+push(Next, #parser{stack=undefined}=Ctx) ->
+    push(Next, Ctx#parser{stack=[]});
+push(Next, #parser{stack=Stack}=Ctx) ->
+    {reply, ok, Next, Ctx#parser{stack=[Next|Stack]}}.
 
-pop(#state{stack=[]}=State) ->
-    {reply, {error, stack_error}, eof, State};
-pop(#state{stack=[_Cur,Previous|Stack]}=State) ->
-    {reply, ok, Previous, State#state{stack=[Previous|Stack]}}.
+pop(#parser{stack=[]}=Ctx) ->
+    {reply, {error, stack_error}, eof, Ctx};
+pop(#parser{stack=[_Cur,Previous|Stack]}=Ctx) ->
+    {reply, ok, Previous, Ctx#parser{stack=[Previous|Stack]}}.
 
 make_extension(E, _State) ->
     Name = to_atom(get_attr_value(E, <<"name">>, undefined)),
     Version = to_atom(get_attr_value(E, <<"version">>, undefined)),
     lager:info("Load extension: ~s v~s~n", [Name, Version]),
     occi_extension:new(Name, Version).
+
+make_resource(E, #state{entity_id=undefined, entity=#occi_resource{id=undefined}=Res}=State) ->
+    case get_attr_value(E, <<"id">>, undefined) of
+	undefined ->
+	    State;
+	Id ->
+	    State#state{entity=occi_resource:set_id(Res, Id)}
+    end;
+make_resource(E, #state{entity_id=undefined, entity=#occi_resource{id=Id}}=State) ->
+    case get_attr_value(E, <<"id">>, undefined) of
+	undefined ->
+	    State;
+	Id ->
+	    State;
+	_ ->
+	    {error, invalid_id}
+    end;
+make_resource(E, #state{entity_id=Id}=State) ->
+    case get_attr_value(E, <<"id">>, undefined) of
+	undefined ->
+	    State#state{entity_id=undefined, entity=occi_resource:new(Id)};
+	Id ->
+	    State#state{entity_id=undefined, entity=occi_resource:new(Id)};
+	_ ->
+	    {error, invalid_id}
+    end.
 
 make_kind(E, #state{extension=Ext}) ->
     Scheme = to_atom(get_attr_value(E, <<"scheme">>, Ext#occi_extension.scheme)),
@@ -471,7 +617,7 @@ make_mixin(E, #state{extension=Ext}) ->
     Title = get_attr_value(E, <<"title">>, undefined),
     occi_mixin:set_title(Mixin, Title).
 
-make_attribute(E, State) ->
+make_attr_spec(E, State) ->
     Name = get_attr_value(E, <<"name">>),
     Type = get_attr_type(get_attr_value(E, <<"type">>, undefined), 
 			 State),
@@ -480,6 +626,19 @@ make_attribute(E, State) ->
     Attr2 = occi_attribute:set_type_id(Attr, Type),
     Title = get_attr_value(E, <<"title">>, undefined),
     occi_attribute:set_title(Attr2, Title).
+
+make_attribute(E, _State) ->
+    case get_attr_value(E, <<"name">>, undefined) of
+	undefined ->
+	    {error, invalid_attribute};
+	Name ->
+	    case get_attr_value(E, <<"value">>, undefined) of
+		undefined ->
+		    {error, invalid_attribute};
+		Val ->
+		    {ok, to_atom(Name), Val}
+	    end
+    end.
 
 make_action(E, _State) ->
     Scheme = to_atom(get_attr_value(E, <<"scheme">>)),
@@ -534,3 +693,22 @@ get_attr_type({?xmlschema_ns, _}) ->
     string;
 get_attr_type(undefined) ->
     string.
+
+other_event(E, Ctx, StateName) ->
+    case is_ws(E) of
+	true ->
+	    {reply, ok, StateName, Ctx};
+	false ->
+	    occi_parser:parse_error(E, Ctx)
+    end.
+
+is_ws(#xmlcdata{cdata = <<  "\n", Bin/binary >>}=E) ->
+    is_ws(E#xmlcdata{cdata=Bin});
+is_ws(#xmlcdata{cdata = <<  "\t", Bin/binary >>}=E) ->
+    is_ws(E#xmlcdata{cdata=Bin});
+is_ws(#xmlcdata{cdata = <<  " ", Bin/binary >>}=E) ->
+    is_ws(E#xmlcdata{cdata=Bin});
+is_ws(#xmlcdata{cdata = <<>>}) ->
+    true;
+is_ws(_) ->
+    false.
