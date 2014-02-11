@@ -6,66 +6,74 @@
 	<xs:import schemaLocation="http://www.w3.org/2001/XMLSchema.xsd"
 		namespace="http://www.w3.org/2001/XMLSchema"></xs:import>
 	<xs:annotation>
-		<xs:documentation xml:lang="en">
-			OCCI model Description
-			Schema Aligned with the OCCI Core
-			Document
-		</xs:documentation>
+	  <xs:documentation xml:lang="en">
+	    OCCI model Description
+	    Schema Aligned with the OCCI Core
+	    Document
+	  </xs:documentation>
 	</xs:annotation>
 
 	<!-- 
 	     OCCI request/response elements
 	-->
 	<xs:element name="extension" type="occi:extensionType"></xs:element>
-	<xs:element name="categories" type="occi:categoriesType"></xs:element>
+	<xs:element name="component" type="occi:componentType"></xs:element>
 	<xs:element name="mixin" type="occi:mixinType" ></xs:element>
 	<xs:element name="resource" type="occi:resourceType" ></xs:element>
 	<xs:element name="link" type="occi:linkType" ></xs:element>
 	<xs:element name="action" type="occi:actionType" ></xs:element>
+	<xs:element name="collection" type="occi:collectionType" ></xs:element>
 	
 	<!--
 	    OCCI request types
 	-->
-	<xs:complexType name="categoriesType">
-
-		<xs:sequence>
-			<xs:element name="kind" type="occi:kindType"
-				maxOccurs="unbounded" minOccurs="0">
-			</xs:element>
-			<xs:element name="mixin" type="occi:mixinType"
-				maxOccurs="unbounded" minOccurs="0">
-			</xs:element>
-			<xs:element name="action" type="occi:actionSpecType" maxOccurs="unbounded" minOccurs="0"></xs:element>
-		</xs:sequence>
-	</xs:complexType>
-
 	<xs:complexType name="extensionType">
-		<xs:sequence>
-			<xs:element name="kind" type="occi:kindType"
-				maxOccurs="unbounded" minOccurs="0">
-			</xs:element>
-			<xs:element name="mixin" type="occi:mixinType"
-				maxOccurs="unbounded" minOccurs="0">
-			</xs:element>
-			<xs:element name="action" type="occi:actionSpecType"
-				maxOccurs="unbounded" minOccurs="0">
-			</xs:element>
-			<xs:element ref="xs:simpleType" maxOccurs="unbounded" minOccurs="0"></xs:element>
-		</xs:sequence>
-		<xs:attribute name="name" type="xs:string"></xs:attribute>
-		<xs:attribute name="version" type="xs:string"></xs:attribute>
-		<xs:attribute name="scheme" type="xs:anyURI"></xs:attribute>
-		<xs:attribute name="status" >
-		  <xs:simpleType>
-		    <xs:restriction base="xs:string">
-		      <xs:enumeration value="draft"></xs:enumeration>
-		      <xs:enumeration value="experimental"></xs:enumeration>
-		      <xs:enumeration value="stable"></xs:enumeration>	
-	    </xs:restriction>
-		  </xs:simpleType>
-		</xs:attribute>
+	  <xs:sequence>
+	    <xs:element name="kind" type="occi:kindType"
+			maxOccurs="unbounded" minOccurs="0">
+	    </xs:element>
+	    <xs:element name="mixin" type="occi:mixinType"
+			maxOccurs="unbounded" minOccurs="0">
+	    </xs:element>
+	    <xs:element name="action" type="occi:actionSpecType"
+			maxOccurs="unbounded" minOccurs="0">
+	    </xs:element>
+	    <xs:element ref="xs:simpleType" maxOccurs="unbounded" minOccurs="0"></xs:element>
+	  </xs:sequence>
+	  <xs:attribute name="name" type="xs:string"></xs:attribute>
+	  <xs:attribute name="version" type="xs:string"></xs:attribute>
+	  <xs:attribute name="scheme" type="xs:anyURI"></xs:attribute>
+	  <xs:attribute name="status" >
+	    <xs:simpleType>
+	      <xs:restriction base="xs:string">
+		<xs:enumeration value="draft"></xs:enumeration>
+		<xs:enumeration value="experimental"></xs:enumeration>
+		<xs:enumeration value="stable"></xs:enumeration>	
+	      </xs:restriction>
+	    </xs:simpleType>
+	  </xs:attribute>
 	</xs:complexType>
 
+	<xs:complexType name="componentType">
+	  <xs:sequence>
+	    <xs:element name="kind" type="occi:kindType"
+			maxOccurs="unbounded" minOccurs="0">
+	    </xs:element>
+	    <xs:element name="mixin" type="occi:mixinType"
+			maxOccurs="unbounded" minOccurs="0">
+	    </xs:element>
+	    <xs:element name="action" type="occi:actionSpecType" maxOccurs="unbounded" minOccurs="0"></xs:element>
+	  </xs:sequence>
+	</xs:complexType>
+
+	<xs:complexType name="collectionType" >
+	  <xs:sequence>
+	    <xs:element name="collection" type="collectionType"
+			maxOccurs="unbounded" minOccurs="0" />
+	    <xs:element name="entity" type="xlinkType" />
+	  </xs:sequence>
+	</xs:complexType>
+	
 	<!-- 
 	     OCCI types
 	-->
@@ -126,104 +134,102 @@
 	</xs:complexType>
 
 	<xs:complexType name="resourceType">
-		<xs:complexContent>
-			<xs:extension base="occi:entityType">
-				<xs:sequence>
-					<xs:element name="summary" type="xs:string" minOccurs="0"
-						maxOccurs="1">
-					</xs:element>
-					<xs:element name="link" type="occi:uriType" minOccurs="0"
-						maxOccurs="unbounded">
-					</xs:element>
-				</xs:sequence>
-			</xs:extension>
-		</xs:complexContent>
+	  <xs:complexContent>
+	    <xs:extension base="occi:entityType">
+	      <xs:sequence>
+		<xs:element name="summary" type="xs:string" minOccurs="0"
+			    maxOccurs="1">
+		</xs:element>
+		<xs:element name="link" type="occi:xlinkType" minOccurs="0"
+			    maxOccurs="unbounded">
+		</xs:element>
+	      </xs:sequence>
+	    </xs:extension>
+	  </xs:complexContent>
 	</xs:complexType>
 
 	<xs:complexType name="linkType">
-		<xs:complexContent>
-			<xs:extension base="occi:entityType">
-				<xs:attribute name="target" type="xs:anyURI" use="required">
-				</xs:attribute>
-				<xs:attribute name="source" type="xs:anyURI" use="required">
-				</xs:attribute>
-			</xs:extension>
-		</xs:complexContent>
+	  <xs:complexContent>
+	    <xs:extension base="occi:entityType">
+	      <xs:sequence>
+		<xs:element name="target" type="occi:xlinkType" minOccurs="0"
+			    maxOccurs="1">
+		</xs:element>
+		<xs:element name="source" type="occi:xlinkType" minOccurs="0"
+			    maxOccurs="unbounded">
+		</xs:element>
+	      </xs:sequence>
+	    </xs:extension>
+	  </xs:complexContent>
 	</xs:complexType>
 
 	<xs:complexType name="entityType">
-		<xs:sequence>
-			<xs:element name="kind" type="occi:relatedType" minOccurs="1"
-				maxOccurs="1">
-			</xs:element>
-			<xs:element name="mixin" type="occi:relatedType" minOccurs="0"
-				maxOccurs="unbounded">
-			</xs:element>
-			<xs:element name="attribute" type="occi:attributeType"
-				minOccurs="0" maxOccurs="unbounded">
-			</xs:element>
-			<xs:element name="action" type="occi:relatedType" minOccurs="0"
-				maxOccurs="unbounded">
-			</xs:element>
-		</xs:sequence>
-		<xs:attribute name="id" type="xs:anyURI" use="required"></xs:attribute>
-		<xs:attribute name="title" type="xs:string"></xs:attribute>
+	  <xs:sequence>
+	    <xs:element name="kind" type="occi:relatedType" minOccurs="1"
+			maxOccurs="1">
+	    </xs:element>
+	    <xs:element name="mixin" type="occi:relatedType" minOccurs="0"
+			maxOccurs="unbounded">
+	    </xs:element>
+	    <xs:element name="attribute" type="occi:attributeType"
+			minOccurs="0" maxOccurs="unbounded">
+	    </xs:element>
+	    <xs:element name="action" type="occi:relatedType" minOccurs="0"
+			maxOccurs="unbounded">
+	    </xs:element>
+	  </xs:sequence>
+	  <xs:attribute name="id" type="xs:anyURI" use="required"></xs:attribute>
+	  <xs:attribute name="title" type="xs:string"></xs:attribute>
 	</xs:complexType>
-
+	
 	<xs:complexType name="actionSpecType">
-		<xs:sequence>
-			<xs:element name="attribute" type="occi:attributeSpecType"
-				minOccurs="0" maxOccurs="unbounded">
-			</xs:element>
-		</xs:sequence>
-		<xs:attributeGroup ref="occi:categoryGroup"></xs:attributeGroup>
+	  <xs:sequence>
+	    <xs:element name="attribute" type="occi:attributeSpecType"
+			minOccurs="0" maxOccurs="unbounded">
+	    </xs:element>
+	  </xs:sequence>
+	  <xs:attributeGroup ref="occi:categoryGroup"></xs:attributeGroup>
 	</xs:complexType>
 
 	<xs:complexType name="attributeType">
-		<xs:sequence>
-			<xs:element name="value" type="xs:anyURI" minOccurs="0"
-				maxOccurs="unbounded">
-			</xs:element>
-		</xs:sequence>
-		<xs:attribute name="name" type="xs:string"></xs:attribute>
-		<xs:attribute name="value" type="xs:string"></xs:attribute>
+	  <xs:sequence>
+	    <xs:element name="value" type="xs:anyURI" minOccurs="0"
+			maxOccurs="unbounded">
+	    </xs:element>
+	  </xs:sequence>
+	  <xs:attribute name="name" type="xs:string"></xs:attribute>
+	  <xs:attribute name="value" type="xs:string"></xs:attribute>
 	</xs:complexType>
-
-
+	
+	
 
 	<xs:attributeGroup name="categoryGroup">
-
-		<xs:attribute name="scheme" type="xs:anyURI"></xs:attribute>
-
-		<xs:attribute name="term" type="xs:string" use="required"></xs:attribute>
-
-		<xs:attribute name="title" type="xs:string"></xs:attribute>
-
-		<xs:attribute name="use">
-
-			<xs:simpleType>
-				<xs:restriction base="xs:string">
-					<xs:enumeration value="required"></xs:enumeration>
-					<xs:enumeration value="optional"></xs:enumeration>
-				</xs:restriction>
-			</xs:simpleType>
-		</xs:attribute>
+	  <xs:attribute name="scheme" type="xs:anyURI"></xs:attribute>
+	  <xs:attribute name="term" type="xs:string" use="required"></xs:attribute>
+	  <xs:attribute name="title" type="xs:string"></xs:attribute>
+	  <xs:attribute name="use">
+	    <xs:simpleType>
+	      <xs:restriction base="xs:string">
+		<xs:enumeration value="required"></xs:enumeration>
+		<xs:enumeration value="optional"></xs:enumeration>
+	      </xs:restriction>
+	    </xs:simpleType>
+	  </xs:attribute>
 	</xs:attributeGroup>
-
+	
 	<xs:complexType name="relatedType">
-		<xs:attribute name="scheme" type="xs:anyURI" use="required"></xs:attribute>
-		<xs:attribute name="term" type="xs:string" use="required"></xs:attribute>
+	  <xs:attribute name="scheme" type="xs:anyURI" use="required"></xs:attribute>
+	  <xs:attribute name="term" type="xs:string" use="required"></xs:attribute>
 	</xs:complexType>
 
 	<xs:complexType name="actionType">
-		<xs:sequence>
-			<xs:element name="attribute" type="occi:attributeType"></xs:element>
-		</xs:sequence>
-		<xs:attributeGroup ref="occi:categoryGroup"></xs:attributeGroup>
+	  <xs:sequence>
+	    <xs:element name="attribute" type="occi:attributeType"></xs:element>
+	  </xs:sequence>
+	  <xs:attributeGroup ref="occi:categoryGroup"></xs:attributeGroup>
 	</xs:complexType>
-
-	<xs:complexType name="uriType">
-		<xs:attribute name="uri" type="xs:anyURI"></xs:attribute>
+	
+	<xs:complexType name="xlinkType">
+	  <xs:attribute name="href" type="xs:anyURI"></xs:attribute>
 	</xs:complexType>
-
 </xs:schema>

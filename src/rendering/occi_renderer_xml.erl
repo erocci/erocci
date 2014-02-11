@@ -37,15 +37,15 @@ render(#occi_node{type=dir}=Node) ->
     render_xml(render_dir(Node));
 
 render(#occi_node{type=occi_resource, data=Res}) ->
-    E = render_related(exmpp_xml:element(occi, resource), kind, occi_resource:get_cid(Res)),
+    E = render_cid(exmpp_xml:element(occi, resource), kind, occi_resource:get_cid(Res)),
     E2 = sets:fold(fun (Mixin, Acc) ->
-			   render_related(Acc, mixin, Mixin)
+			   render_cid(Acc, mixin, Mixin)
 		   end, E, occi_resource:get_mixins(Res)),
     E3 = lists:foldl(fun (Attr, Acc) ->
 			     render_attribute(Acc, Attr)
 		     end, E2, occi_resource:get_attributes(Res)),
     E4 = lists:foldl(fun (Link, Acc) ->
-			     render_uri(Acc, Link)
+			     render_rel(Acc, link, Link)
 		     end, E3, occi_resource:get_links(Res)),
     render_xml(
       set_attributes(E4, [{<<"id">>, occi_uri:to_string(occi_resource:get_id(Res))},
@@ -53,18 +53,21 @@ render(#occi_node{type=occi_resource, data=Res}) ->
      );
 
 render(#occi_node{type=occi_link, data=Link}) ->
-    E = render_related(exmpp_xml:element(occi, link), kind, occi_link:get_cid(Link)),
+    E = render_cid(exmpp_xml:element(occi, link), kind, occi_link:get_cid(Link)),
     E2 = sets:fold(fun (Mixin, Acc) ->
-			   render_related(Acc, mixin, Mixin)
+			   render_cid(Acc, mixin, Mixin)
 		   end, E, occi_link:get_mixins(Link)),
     E3 = lists:foldl(fun (Attr, Acc) ->
 			     render_attribute(Acc, Attr)
 		     end, E2, occi_link:get_attributes(Link)),
     render_xml(
-      set_attributes(E3, [{<<"id">>, occi_uri:to_string(occi_link:get_id(Link))},
-			  {<<"title">>, occi_link:get_title(Link)},
-			  {<<"target">>, occi_uri:to_binary(occi_link:get_target(Link))},
-			  {<<"source">>, occi_uri:to_binary(occi_link:get_source(Link))}])
+      set_attributes(
+	render_rel(
+	  render_rel(
+	    E3, source, occi_uri:to_binary(occi_link:get_source(Link))),
+	  target, occi_uri:to_binary(occi_link:get_target(Link))), 
+	[{<<"id">>, occi_uri:to_string(occi_link:get_id(Link))},
+	 {<<"title">>, occi_link:get_title(Link)}])
      );
 
 render(#occi_node{type=occi_query, data={Kinds, Mixins, Actions}}) ->
@@ -79,23 +82,20 @@ render(#occi_node{type=occi_collection, data=Coll}) ->
     render_xml(
       exmpp_xml:set_children(
        exmpp_xml:element(occi, collection),
-	[ exmpp_xml:set_attribute(exmpp_xml:element(resource), <<"id">>, occi_uri:to_binary(Id)) || 
+	[ exmpp_xml:set_attribute(exmpp_xml:element(entity), <<"href">>, occi_uri:to_binary(Id)) || 
 	    Id <- occi_collection:get_entities(Coll) ])).
 
 %%%
 %%% Private
 %%%
 render_dir(#occi_node{id=Id, type=dir, data=Children}) ->
-    E = set_attributes(exmpp_xml:element(occi, node), 
-		       [{<<"id">>, occi_uri:to_binary(Id)},
-			{<<"dir">>, <<"true">>}]),
+    E = exmpp_xml:set_attribute(
+	  exmpp_xml:element(occi, collection), {<<"id">>, occi_uri:to_binary(Id)}),
     exmpp_xml:set_children(E, gb_sets:fold(fun (Child, Acc) ->
 						   [ render_dir(Child) | Acc ]
 					   end, [], Children));
 render_dir(#occi_node{id=Id}) ->
-    set_attributes(exmpp_xml:element(occi, node), 
-		   [{<<"id">>, occi_uri:to_binary(Id)}]).
-
+    exmpp_xml:set_attribute(exmpp_xml:element(occi, entity), {<<"href">>, occi_uri:to_binary(Id)}).
 
 render_kind(#occi_kind{}=Kind) ->
     E = render_category(exmpp_xml:element(kind), Kind),
@@ -133,33 +133,34 @@ render_action(#occi_action{location=Uri}=Action) ->
     E = set_attributes(exmpp_xml:element(action), Attrs),
     render_attr_specs(E, occi_action:get_attr_list(Action)).
 
-render_uri(E, #uri{}=Uri) ->
-    exmpp_xml:append_child(
-      E, exmpp_xml:set_attribute(
-	   exmpp_xml:element(link), <<"uri">>, occi_uri:to_binary(Uri))).
-
-render_related(E, _, undefined) ->
+render_cid(E, _, undefined) ->
     E;
-render_related(E, Name, #occi_cid{scheme=Scheme, term=Term}) ->
+render_cid(E, Name, #occi_cid{scheme=Scheme, term=Term}) ->
     P = set_attributes(exmpp_xml:element(Name),
 		       [{<<"scheme">>, Scheme},
 			{<<"term">>, Term}]),
     exmpp_xml:append_child(E, P).
 
+render_rel(E, _, undefined) ->
+    E;
+render_rel(E, Name, #uri{}=Uri) ->
+    exmpp_xml:append_child(
+      E, exmpp_xml:set_attribute(exmpp_xml:element(Name), <<"href">>, occi_uri:to_binary(Uri))).
+
 render_parent(E, Cid) ->
-    render_related(E, parent, Cid).
+    render_cid(E, parent, Cid).
 
 render_depends(E, []) ->
     E;
 render_depends(E, [#occi_cid{}=Cid|Tail]) ->
     render_depends(
-      render_related(E, depends, Cid), Tail).
+      render_cid(E, depends, Cid), Tail).
 
 render_applies(E, []) ->
     E;
 render_applies(E, [#occi_cid{}=Cid|Tail]) ->
     render_applies(
-      render_related(E, applies, Cid), Tail).
+      render_cid(E, applies, Cid), Tail).
 
 render_attr_specs(E, []) ->
     E;
