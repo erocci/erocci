@@ -27,6 +27,7 @@
 -behaviour(gen_fsm).
 
 -include("occi.hrl").
+-include("occi_xml.hrl").
 -include("occi_parser.hrl").
 -include_lib("exmpp/include/exmpp_xml.hrl").
 
@@ -45,6 +46,7 @@
 	 resource/3,
 	 link/3,
 	 extension/3,
+	 collection/3,
 	 kind/3,
 	 eof/3, 
 	 attribute_spec/3,
@@ -161,48 +163,6 @@ parse_collection(Data) ->
 init(#parser{}=Parser) ->
     {ok, init, Parser#parser{stack=[init]}}.
 
--define(occi_ns, 'http://schemas.ogf.org/occi').
--define(xmlschema_ns, 'http://www.w3.org/2001/XMLSchema').
-
--define(extension, #xmlel{ns=?occi_ns, name=extension}).
--define(extensionEnd, #xmlendtag{ns=?occi_ns, name=extension}).
-
--define(resource, #xmlel{ns=?occi_ns, name=resource}).
--define(resourceEnd, #xmlendtag{ns=?occi_ns, name=resource}).
-
--define(link, #xmlel{ns=?occi_ns, name=link}).
--define(linkEnd, #xmlendtag{ns=?occi_ns, name=link}).
-
--define(categories, #xmlel{ns=?occi_ns, name=categories}).
--define(categoriesEnd, #xmlendtag{ns=?occi_ns, name=categories}).
-
--define(kind, #xmlel{ns=?occi_ns, name=kind}).
--define(kindEnd, #xmlendtag{ns=?occi_ns, name=kind}).
-
--define(mixin, #xmlel{ns=?occi_ns, name=mixin}).
--define(mixinEnd, #xmlendtag{ns=?occi_ns, name=mixin}).
-
--define(action, #xmlel{ns=?occi_ns, name=action}).
--define(actionEnd, #xmlendtag{ns=?occi_ns, name=action}).
-
--define(parent, #xmlel{ns=?occi_ns, name=parent}).
--define(parentEnd, #xmlendtag{ns=?occi_ns, name=parent}).
-
--define(depends, #xmlel{ns=?occi_ns, name=depends}).
--define(dependsEnd, #xmlendtag{ns=?occi_ns, name=depends}).
-
--define(applies, #xmlel{ns=?occi_ns, name=applies}).
--define(appliesEnd, #xmlendtag{ns=?occi_ns, name=applies}).
-
--define(attribute, #xmlel{ns=?occi_ns, name=attribute}).
--define(attributeEnd, #xmlendtag{ns=?occi_ns, name=attribute}).
-
--define(simpleType, #xmlel{ns=?xmlschema_ns, name=simpleType}).
--define(simpleTypeEnd, #xmlendtag{ns=?xmlschema_ns, name=simpleType}).
-
--define(simpleDef, #xmlel{ns=?xmlschema_ns}).
--define(simpleDefEnd, #xmlendtag{ns=?xmlschema_ns}).
-
 init(E=?extension, _From, #parser{state=State}=Ctx) ->
     Ext = make_extension(E, State),
     push(extension, 
@@ -227,8 +187,40 @@ init(E=?link, _From, #parser{state=State}=Ctx) ->
 	_:Err ->
 	    {reply, {error, Err}, eof, Ctx}
     end;
+init(E=?collection, _From, #parser{state=State}=Ctx) ->
+    try make_collection(E, State) of
+	#state{}=State2 ->
+	    push(collection, ?set_state(Ctx, State2#state{prefixes=load_prefixes(E#xmlel.declared_ns)}));
+	{error, Err} ->
+	    {reply, {error, Err}, eof, Ctx}
+    catch
+	_:Err ->
+	    {reply, {error, Err}, eof, Ctx}
+    end;
 init(E, _From, Ctx) ->
     other_event(E, Ctx, init).
+
+collection(E=?entity, _From, #parser{state=#state{collection=Coll}=State}=Ctx) ->
+    case exmpp_xml:get_attribute_node(E, ?xlink_ns, <<"href">>) of
+	undefined ->
+	    {reply, {error, invalid_entity}, eof, Ctx};
+	#xmlattr{value=Val} ->
+	    try occi_uri:parse(Val) of
+		#uri{}=Uri ->
+		    {reply, ok, collection,
+		     ?set_state(Ctx, State#state{collection=occi_collection:add_entity(Coll, Uri)})}
+	    catch
+		_:Err ->
+		    {reply, {error, Err}, eof, Ctx}
+	    end
+    end;
+collection(_E=?entityEnd, _From, Ctx) ->
+    {reply, ok, collection, Ctx};
+collection(_E=?collectionEnd, _From,
+	   #parser{state=#state{request=Req, collection=Coll}}=Ctx) ->
+    {reply, {eof, occi_request:set_collection(Req, Coll)}, eof, Ctx};
+collection(E, _From, Ctx) ->
+    other_event(E, Ctx, collection).
 
 resource(E=?kind, _From, 
 	 #parser{state=#state{entity=#occi_resource{cid=undefined}=Res}=State}=Ctx) ->
@@ -385,7 +377,6 @@ link(E=?attribute, _From, #parser{state=#state{entity=#occi_link{}=Link}=State}=
 link(?attributeEnd, _From, Ctx) ->
     {reply, ok, link, Ctx};
 link(?linkEnd, _From, #parser{state=#state{request=Req, entity=Link}}=Ctx) ->
-    lager:debug("### linkL: ~p~n", [lager:pr(Link, ?MODULE)]),
     {reply, {eof, occi_request:add_entity(Req, Link)}, eof, Ctx};
 link(E, _From, Ctx) ->
     other_event(E, Ctx, link).
@@ -705,41 +696,27 @@ make_resource(E, #state{entity_id=Id}=State) ->
 make_link(E, #state{entity_id=undefined, entity=#occi_link{id=undefined}=Link}=State) ->
     case get_attr_value(E, <<"id">>, undefined) of
 	undefined ->
-	    make_link2(E, State);
+	    State;
 	Id ->
-	    make_link2(E, State#state{entity=occi_link:set_id(Link, Id)})
+	    State#state{entity=occi_link:set_id(Link, Id)}
     end;
 make_link(E, #state{entity_id=undefined, entity=#occi_link{id=Id}}=State) ->
     case get_attr_value(E, <<"id">>, undefined) of
 	undefined ->
-	    make_link2(E, State);
+	    State;
 	Id ->
-	    make_link2(E, State);
+	    State;
 	_ ->
 	    {error, invalid_id}
     end;
 make_link(E, #state{entity_id=Id}=State) ->
     case get_attr_value(E, <<"id">>, undefined) of
 	undefined ->
-	    make_link2(E, State#state{entity_id=undefined, entity=occi_link:new(Id)});
+	    State#state{entity_id=undefined, entity=occi_link:new(Id)};
 	Id ->
-	    make_link2(E, State#state{entity_id=undefined, entity=occi_link:new(Id)});
+	    State#state{entity_id=undefined, entity=occi_link:new(Id)};
 	_ ->
 	    {error, invalid_id}
-    end.
-
-make_link2(E, #state{entity=Link}=State) ->
-    case get_attr_value(E, <<"source">>, undefined) of
-	undefined ->
-	    {error, missing_source};
-	Src ->
-	    Link2 = occi_link:set_source(Link, occi_uri:parse(Src)),
-	    case get_attr_value(E, <<"target">>, undefined) of
-		undefined ->
-		    {error, missing_target};
-		Target ->
-		    State#state{entity=occi_link:set_target(Link2, occi_uri:parse(Target))}
-	    end
     end.
 
 make_kind(E, #state{extension=Ext}) ->
@@ -758,6 +735,9 @@ make_mixin(E, #state{extension=Ext}) ->
     Title = get_attr_value(E, <<"title">>, undefined),
     occi_mixin:set_title(Mixin, Title).
 
+make_collection(_E, #state{}=State) ->
+    State#state{collection=occi_collection:new()}.
+
 make_attr_spec(E, State) ->
     Name = get_attr_value(E, <<"name">>),
     Type = get_attr_type(get_attr_value(E, <<"type">>, undefined), 
@@ -773,10 +753,15 @@ make_attribute(E, _State) ->
 	undefined ->
 	    {error, invalid_attribute};
 	Name ->
-	    case get_attr_value(E, <<"value">>, undefined) of
+	    case exmpp_xml:get_attribute_node(E, <<"value">>) of
 		undefined ->
-		    {error, invalid_attribute};
-		Val ->
+		    case exmpp_xml:get_attribute_node(E, ?xlink_ns, <<"href">>) of
+			undefined ->
+			    {error, invalid_attribute};
+			#xmlattr{value=Val} ->
+			    {ok, to_atom(Name), occi_uri:parse(Val)}
+		    end;
+		#xmlattr{value=Val} ->
 		    {ok, to_atom(Name), Val}
 	    end
     end.

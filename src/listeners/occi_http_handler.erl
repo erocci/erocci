@@ -124,7 +124,7 @@ delete_resource(Req, #occi_node{id=Id}=Node) ->
 	ok ->
 	    {true, Req, Node}
     end.
-    
+
 to_uri_list(Req, #occi_node{type=occi_collection}=Node) ->
     render(Req, Node, ?ct_uri_list);
 to_uri_list(Req, #occi_node{type=dir}=Node) ->

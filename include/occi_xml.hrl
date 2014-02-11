@@ -11,6 +11,9 @@
 -define(collection, #xmlel{ns=?occi_ns, name=collection}).
 -define(collectionEnd, #xmlendtag{ns=?occi_ns, name=collection}).
 
+-define(entity, #xmlel{ns=?occi_ns, name=entity}).
+-define(entityEnd, #xmlendtag{ns=?occi_ns, name=entity}).
+
 -define(resource, #xmlel{ns=?occi_ns, name=resource}).
 -define(resourceEnd, #xmlendtag{ns=?occi_ns, name=resource}).
 
