@@ -2,7 +2,7 @@
 <xs:schema targetNamespace="http://schemas.ogf.org/occi"
 	elementFormDefault="qualified" version="0.2"
 	xmlns:xs="http://www.w3.org/2001/XMLSchema"
-	xmlns:xl="http://www.w3.org/1999/xlink"
+	xmlns:xl="http://www.w3.org/2008/06/xlink"
 	xmlns:occi="http://schemas.ogf.org/occi" >
   
 	<xs:import schemaLocation="http://www.w3.org/2001/XMLSchema.xsd"

@@ -10,7 +10,9 @@ for i in $(seq 1 10); do
     (
 	cat <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
-<occi:link xmlns:occi="http://schemas.ogf.org/occi" >
+<occi:link 
+    xmlns:occi="http://schemas.ogf.org/occi" 
+    xmlns:xl="http://www.w3.org/2008/06/xlink"  >
   <occi:kind scheme="http://schemas.ogf.org/occi/infrastructure#" term="networkinterface" />
   <occi:mixin scheme="http://schemas.ogf.org/occi/infrastructure/networkinterface#" term="ipnetworkinterface" />
   <occi:attribute name="occi.networkinterface.interface" value="eth0" />
@@ -18,8 +20,8 @@ for i in $(seq 1 10); do
   <occi:attribute name="occi.networkinterface.address" value="192.168.3.4{idx}" />
   <occi:attribute name="occi.networkinterface.gateway" value="192.168.3.0" />
   <occi:attribute name="occi.networkinterface.allocation" value="dynamic" />
-  <occi:target href="http://localhost:8080/myresources/network/id01" />
-  <occi:source href="http://localhost:8080/myresources/network/id01" />
+  <occi:target xl:href="http://localhost:8080/myresources/network/id01" />
+  <occi:source xl:href="http://localhost:8080/myresources/network/id01" />
 </occi:link>
 EOF
     ) | curl ${curl_opts} -X PUT --data @- -H 'content-type: application/xml' ${occi_srv}${id}
