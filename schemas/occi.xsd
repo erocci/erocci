@@ -120,12 +120,7 @@
 
 	<xs:complexType name="linkType">
 	  <xs:complexContent>
-	    <xs:extension base="occi:entityType">
-	      <xs:sequence>
-		<xs:element name="target" type="occi:entityType" minOccurs="0" maxOccurs="1" />
-		<xs:element name="source" type="occi:entityType" minOccurs="0" maxOccurs="unbounded" />
-	      </xs:sequence>
-	    </xs:extension>
+	    <xs:extension base="occi:entityType" />
 	  </xs:complexContent>
 	</xs:complexType>
 

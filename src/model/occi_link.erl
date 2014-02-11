@@ -117,29 +117,33 @@ del_mixin(#occi_link{mixins=Mixins, attributes=Attrs}=Res,
     Res#occi_link{mixins=Mixins2, attributes=Attrs2}.
 
 -spec set_attr_value(occi_link(), occi_attr_key(), any()) -> occi_link().
-set_attr_value(#occi_link{}=Res, 'occi.core.title', Val) ->
-    Res#occi_link{title=Val};
-set_attr_value(#occi_link{}=Res, 'occi.core.id', Val) ->
-    Res#occi_link{id=Val};
-set_attr_value(#occi_link{}=Res, Key, Val) when is_list(Key) ->
-    set_attr_value(Res, list_to_atom(Key), Val);
-set_attr_value(#occi_link{attributes=Attrs}=Res, Key, Val) when is_atom(Key) ->
+set_attr_value(#occi_link{}=Link, 'occi.core.title', Val) ->
+    Link#occi_link{title=Val};
+set_attr_value(#occi_link{}=Link, 'occi.core.id', #uri{}=Val) ->
+    Link#occi_link{id=Val};
+set_attr_value(#occi_link{}=Link, 'occi.core.target', #uri{}=Val) ->
+    set_target(Link, Val);
+set_attr_value(#occi_link{}=Link, 'occi.core.source', #uri{}=Val) ->
+    set_source(Link, Val);
+set_attr_value(#occi_link{}=Link, Key, Val) when is_list(Key) ->
+    set_attr_value(Link, list_to_atom(Key), Val);
+set_attr_value(#occi_link{attributes=Attrs}=Link, Key, Val) when is_atom(Key) ->
     case orddict:is_key(Key, Attrs) of
 	true ->
 	    Attr = orddict:fetch(Key, Attrs),
-	    Res#occi_link{attributes=orddict:store(Key, occi_attribute:set_value(Attr, Val), Attrs)};
+	    Link#occi_link{attributes=orddict:store(Key, occi_attribute:set_value(Attr, Val), Attrs)};
 	false ->
 	    {error, {undefined_attribute, Key}}
     end.
 
 -spec add_attr_value(occi_link(), occi_attr_key(), any()) -> occi_link().
-add_attr_value(#occi_link{}=Res, Key, Val) when is_list(Key) ->
-    add_attr_value(Res, list_to_atom(Key), Val);
-add_attr_value(#occi_link{attributes=Attrs}=Res, Key, Val) when is_atom(Key) ->
+add_attr_value(#occi_link{}=Link, Key, Val) when is_list(Key) ->
+    add_attr_value(Link, list_to_atom(Key), Val);
+add_attr_value(#occi_link{attributes=Attrs}=Link, Key, Val) when is_atom(Key) ->
     case orddict:is_key(Key, Attrs) of
 	true ->
 	    Attr = orddict:fetch(Key, Attrs),
-	    Res#occi_link{attributes=orddict:store(Key, occi_attribute:add_value(Attr, Val))};
+	    Link#occi_link{attributes=orddict:store(Key, occi_attribute:add_value(Attr, Val))};
 	false ->
 	    {error, {undefined_attribute, Key}}
     end.

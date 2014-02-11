@@ -67,8 +67,8 @@ render(#occi_node{type=occi_link, data=Link}) ->
 		 [exmpp_xml:attribute(<<"id">>, occi_uri:to_string(occi_link:get_id(Link))),
 		  exmpp_xml:attribute(<<"title">>, occi_link:get_title(Link))],
 		 [make_cid(kind, occi_link:get_cid(Link)),
-		  make_rel(source, occi_link:get_source(Link)),
-		  make_rel(target, occi_link:get_target(Link))]),
+		  make_attribute('occi.core.source', occi_link:get_source(Link)),
+		  make_attribute('occi.core.target', occi_link:get_target(Link))]),
     render_xml(
       sets:fold(
 	fun (Mixin, Acc) -> render_cid(Acc, mixin, Mixin) end, 
@@ -209,10 +209,18 @@ render_attribute(E, #occi_attr{}=Attr) ->
     exmpp_xml:append_child(E, make_attribute(Attr)).
 
 make_attribute(#occi_attr{}=Attr) ->
+    make_attribute(occi_attribute:get_id(Attr), occi_attribute:get_value(Attr)).
+
+make_attribute(Name, #uri{}=Uri) ->
     exmpp_xml:element(?occi_ns, attribute, 
-		      [exmpp_xml:attribute(<<"name">>, occi_attribute:get_id(Attr)),
-		       exmpp_xml:attribute(
-			 <<"value">>, render_attr_value(occi_attribute:get_value(Attr)))],
+		      [exmpp_xml:attribute(<<"name">>, Name),
+		       exmpp_xml:attribute(?xlink_ns,
+			 <<"href">>, occi_uri:to_binary(Uri))],
+		      []);
+make_attribute(Name, Value) ->
+    exmpp_xml:element(?occi_ns, attribute, 
+		      [exmpp_xml:attribute(<<"name">>, Name),
+		       exmpp_xml:attribute(<<"value">>, render_attr_value(Value))],
 		      []).
 
 set_attributes(#xmlel{}=E, []) ->
