@@ -87,6 +87,9 @@ render(#occi_node{type=occi_query, data={Kinds, Mixins, Actions}}) ->
 	       ?occi_ns, component,
 	       [],
 	       Children));
+
+render(#occi_node{type=occi_user_mixin, data=Mixin}) ->
+    render_xml(render_mixin(Mixin));
 	  
 render(#occi_node{type=occi_collection, data=Coll}) ->
     render_xml(

@@ -4,7 +4,7 @@
 
 for i in $(seq 1 10); do
     idx=$(printf '%02d' $i)
-    id=/myresources/network/id${idx}
+    id=/myresources/xml/network/id${idx}
     echo -n "Creating resource "${id}"... "
 
     (

@@ -4,7 +4,7 @@
 
 for i in $(seq 1 10); do
     idx=$(printf '%02d' $i)
-    id=/mylinks/networkinterfaces/id${idx}
+    id=/mylinks/json/networkinterfaces/id${idx}
     echo -n "Creating link "${id}"... "
 
     (
@@ -27,8 +27,8 @@ for i in $(seq 1 10); do
 		    }
 		}
 	    },
-	    "target": "http://localhost:8080/myresources/network/id01",
-	    "source": "http://localhost:8080/myresources/compute/id${idx}"
+	    "target": "http://localhost:8080/myresources/json/network/id01",
+	    "source": "http://localhost:8080/myresources/json/compute/id${idx}"
 	}
     ]
 }

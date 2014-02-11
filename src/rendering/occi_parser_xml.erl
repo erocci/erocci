@@ -167,6 +167,7 @@ init(E=?extension, _From, #parser{state=State}=Ctx) ->
     Ext = make_extension(E, State),
     push(extension, 
 	 ?set_state(Ctx, State#state{extension=Ext, prefixes=load_prefixes(E#xmlel.declared_ns)}));
+
 init(E=?resource, _From, #parser{state=State}=Ctx) ->
     try make_resource(E, State) of
 	#state{}=State2 ->
@@ -177,6 +178,7 @@ init(E=?resource, _From, #parser{state=State}=Ctx) ->
 	_:Err ->
 	    {reply, {error, Err}, eof, Ctx}
     end;
+
 init(E=?link, _From, #parser{state=State}=Ctx) ->
     try make_link(E, State) of
 	#state{}=State2 ->
@@ -187,6 +189,7 @@ init(E=?link, _From, #parser{state=State}=Ctx) ->
 	_:Err ->
 	    {reply, {error, Err}, eof, Ctx}
     end;
+
 init(E=?collection, _From, #parser{state=State}=Ctx) ->
     try make_collection(E, State) of
 	#state{}=State2 ->
@@ -197,6 +200,16 @@ init(E=?collection, _From, #parser{state=State}=Ctx) ->
 	_:Err ->
 	    {reply, {error, Err}, eof, Ctx}
     end;
+
+init(E=?mixin, _From, #parser{state=State}=Ctx) ->
+    try make_mixin(E, State) of
+	#occi_mixin{}=Mixin ->
+	    push(mixin, ?set_state(Ctx, State#state{mixin=Mixin}))
+    catch
+	_:Err ->
+	    {reply, {error, Err}, eof, Ctx}
+    end;
+	    
 init(E, _From, Ctx) ->
     other_event(E, Ctx, init).
 
@@ -435,8 +448,10 @@ mixin(E=?depends, _From, #parser{state=#state{mixin=Mixin}=State}=Ctx) ->
 	    {reply, ok, mixin, 
 	     ?set_state(Ctx, State#state{mixin=occi_mixin:add_depends(Mixin, Scheme, Term)})}
     end;
+
 mixin(_E=?dependsEnd, _From, Ctx) ->
     {reply, ok, mixin, Ctx};
+
 mixin(E=?applies, _From, #parser{state=#state{mixin=Mixin}=State}=Ctx) ->
     case catch make_related(E, State) of
 	{error, Reason} ->
@@ -445,8 +460,10 @@ mixin(E=?applies, _From, #parser{state=#state{mixin=Mixin}=State}=Ctx) ->
 	    {reply, ok, mixin, 
 	     ?set_state(Ctx, State#state{mixin=occi_mixin:add_applies(Mixin, Scheme, Term)})}
     end;
+
 mixin(_E=?appliesEnd, _From, Ctx) ->
     {reply, ok, mixin, Ctx};
+
 mixin(E=?attribute, _From, #parser{state=State}=Ctx) ->
     case catch make_attr_spec(E, State) of
 	{error, Reason} ->
@@ -455,6 +472,7 @@ mixin(E=?attribute, _From, #parser{state=State}=Ctx) ->
 	    push(attribute_spec, 
 		 ?set_state(Ctx, State#state{attribute=Attr}))
     end;
+
 mixin(E=?action, _From, #parser{state=State}=Ctx) ->
     case catch make_action(E, State) of
 	{error, Reason} ->
@@ -462,9 +480,20 @@ mixin(E=?action, _From, #parser{state=State}=Ctx) ->
 	Action ->
 	    push(action_spec, ?set_state(Ctx, State#state{action=Action}))
     end;
+
+mixin(_E=?mixinEnd, _From, 
+      #parser{state=#state{extension=undefined, request=Req, mixin=Mixin}}=Ctx) ->
+    case occi_mixin:is_valid(Mixin) of
+	true ->
+	    {reply, {eof, occi_request:add_mixin(Req, Mixin)}, eof, Ctx};
+	{false, Err} ->
+	    {reply, {error, Err}, eof, Ctx}
+    end;
+
 mixin(_E=?mixinEnd, _From, #parser{state=#state{extension=Ext, mixin=Mixin}=State}=Ctx) ->
     pop(?set_state(Ctx, State#state{mixin=undefined,
 				    extension=occi_extension:add_mixin(Ext, Mixin)}));
+
 mixin(E, _From, Ctx) ->
     other_event(E, Ctx, mixin).
 
@@ -635,8 +664,7 @@ send_events(#parser{}=P, [E|T]) ->
 get_attr_value(XmlEl, Name) ->
     case get_attr_value(XmlEl, Name, undefined) of
 	undefined ->
-	    throw({error, {einval, 
-			   io_lib:format("Missing attribute: ~s", [Name])}});
+	    throw({error, {missing_attribute, Name}});
 	Val -> Val
     end.
 
@@ -726,6 +754,16 @@ make_kind(E, #state{extension=Ext}) ->
     Kind = occi_kind:new(Scheme, Term),
     Title = get_attr_value(E, <<"title">>, undefined),
     occi_kind:set_title(Kind, Title).
+
+make_mixin(E, #state{extension=undefined}) ->
+    Id = #occi_cid{scheme=to_atom(get_attr_value(E, <<"scheme">>)), 
+		   term=to_atom(get_attr_value(E, <<"term">>)),
+		   class=mixin},
+    occi_mixin:set_title(
+      occi_mixin:set_location(
+	occi_mixin:new(Id),
+	get_attr_value(E, <<"location">>)), 
+      get_attr_value(E, <<"title">>, undefined));
 
 make_mixin(E, #state{extension=Ext}) ->
     Scheme = to_atom(get_attr_value(E, <<"scheme">>, Ext#occi_extension.scheme)),

@@ -26,6 +26,7 @@
 
 %% API
 -export([new/0,
+	 new/1,
 	 new/2, 
 	 get_id/1,
 	 get_class/1,
@@ -45,15 +46,20 @@
 	 get_applies/1,
 	 add_applies/2,
 	 get_depends/1,
-	 add_depends/2]).
+	 add_depends/2,
+	 is_valid/1]).
 
 new() ->
     #occi_mixin{id=#occi_cid{class=mixin},
 		attributes=orddict:new()}.
 
 new(Scheme, Term) ->
-    #occi_mixin{id=#occi_cid{scheme=Scheme, term=Term, class=mixin},
-		attributes=orddict:new()}.
+    new(#occi_cid{scheme=Scheme, term=Term, class=mixin}).
+
+new(#occi_cid{class=mixin}=Cid) ->
+    #occi_mixin{id=Cid, attributes=orddict:new()};
+new(_) ->
+    throw({error, invalid_cid}).
 
 get_id(#occi_mixin{id=Id}) -> 
     Id.
@@ -92,6 +98,8 @@ set_title(#occi_mixin{}=Mixin, Title) ->
 get_location(#occi_mixin{location=Uri}) -> 
     Uri.
 
+set_location(Mixin, Uri) when is_binary(Uri)->
+    set_location(Mixin, occi_uri:parse(Uri));
 set_location(Mixin, Uri) when is_list(Uri)->
     set_location(Mixin, occi_uri:parse(Uri));
 set_location(#occi_mixin{}=Mixin, #uri{}=Uri) -> 
@@ -125,3 +133,13 @@ get_depends(#occi_mixin{depends=Depends}) ->
 
 add_depends(#occi_mixin{depends=Depends}=Mixin, #occi_cid{}=Cid) ->
     Mixin#occi_mixin{depends=[Cid|Depends]}.
+
+is_valid(#occi_mixin{id=#occi_cid{class=kind}}) ->
+    {false, invalid_class};
+is_valid(#occi_mixin{id=#occi_cid{class=action}}) ->
+    {false, invalid_class};
+is_valid(#occi_mixin{location=undefined}) ->
+    {false, missing_location};
+is_valid(#occi_mixin{}) ->
+    true.
+

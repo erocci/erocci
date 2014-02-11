@@ -4,7 +4,7 @@
 
 for i in $(seq 1 10); do
     idx=$(printf '%02d' $i)
-    id=/mylinks/networkinterfaces/id${idx}
+    id=/mylinks/xml/networkinterfaces/id${idx}
     echo -n "Creating link "${id}"... "
 
     (
@@ -19,8 +19,8 @@ for i in $(seq 1 10); do
   <attribute name="occi.networkinterface.address" value="192.168.3.4{idx}" />
   <attribute name="occi.networkinterface.gateway" value="192.168.3.0" />
   <attribute name="occi.networkinterface.allocation" value="dynamic" />
-  <attribute name="occi.core.target" xl:href="http://localhost:8080/myresources/network/id01" />
-  <attribute name="occi.core.source" xl:href="http://localhost:8080/myresources/network/id01" />
+  <attribute name="occi.core.target" xl:href="http://localhost:8080/myresources/xml/network/id01" />
+  <attribute name="occi.core.source" xl:href="http://localhost:8080/myresources/xml/network/id01" />
 </link>
 EOF
     ) | curl ${curl_opts} -X PUT --data @- -H 'content-type: application/xml' ${occi_srv}${id}

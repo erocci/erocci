@@ -4,7 +4,7 @@
 
 for i in $(seq 1 10); do
     idx=$(printf '%02d' $i)
-    id=/myresources/compute/id${idx}
+    id=/myresources/json/compute/id${idx}
     echo -n "Creating resource "${id}"... "
 
     (

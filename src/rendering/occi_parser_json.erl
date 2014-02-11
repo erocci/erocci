@@ -598,8 +598,13 @@ mixin(#token{name=key, data="title"}, _From, Ctx) ->
 mixin(#token{name=key, data="location"}, _From, Ctx) ->
     {reply, ok, mixin_location, Ctx};
 mixin(#token{name=objEnd}, _From, #parser{state=#state{mixin=Mixin, request=Req}=State}=Ctx) ->
-    {reply, ok, mixins, 
-     ?set_state(Ctx, State#state{mixin=undefined, request=occi_request:add_mixin(Req, Mixin)})};
+    case occi_mixin:is_valid(Mixin) of
+	true ->
+	    {reply, ok, mixins, 
+	     ?set_state(Ctx, State#state{mixin=undefined, request=occi_request:add_mixin(Req, Mixin)})};
+	{false, Err} ->
+	    {reply, {error, Err}, eof, Ctx}
+    end;
 mixin(Token, _From, Ctx) ->
     occi_parser:parse_error(Token, Ctx).
 
