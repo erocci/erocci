@@ -9,5 +9,3 @@ EOF
        )
 
 post 204 /os_tpl/ "application/json" "$content"
-
-exit  0

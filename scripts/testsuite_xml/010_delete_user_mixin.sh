@@ -10,6 +10,4 @@ content=$(cat <<EOF
 EOF
        )
 
-post 200 /-/ "application/xml" "$content"
-
-
+delete 200 /-/ "application/xml" "$content"

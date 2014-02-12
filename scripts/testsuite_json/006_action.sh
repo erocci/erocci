@@ -13,5 +13,3 @@ content=$(cat <<EOF
 EOF
        )
 post 204 ${id}?action=stop "application/json" "$content"
-
-exit  0

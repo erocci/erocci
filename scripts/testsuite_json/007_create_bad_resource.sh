@@ -17,5 +17,3 @@ content=$(cat <<EOF
 EOF
 	   )
 put 422 ${id} "application/json" "$content"
-
-exit 0

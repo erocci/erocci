@@ -97,11 +97,18 @@ get() {
 delete() {
     expect=$1
     url=$(norm_url $2)
-    ct=$3
 
     echo -n "DELETE ${url}... "
     
-    ret=$(curl ${curl_opts} -X DELETE ${url})
+    if [ -z "$3" ]; then
+       ret=$(curl ${curl_opts} -X DELETE ${url})
+    else
+	ct=$3
+	content=$4
+	
+	ret=$(echo "${content}" | curl ${curl_opts} -X DELETE --data @- -H "content-type: ${ct}" ${url})
+    fi
+
     echo -n ${ret}
     if [ "${ret}" = "${expect}" ]; then
 	ok
