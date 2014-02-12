@@ -46,7 +46,7 @@ send_event(_Event, IfOk, #parser{sink=undefined}) ->
 send_event(Event, IfOk, #parser{sink=Sink}=Ctx) ->
     Res = case Event of
 	      eof ->
-		  gen_fsm:send_all_state_event(Sink#parser.id, stop);
+		  stop_parser(Sink);
 	      Else ->
 		  gen_fsm:sync_send_event(Sink#parser.id, Else)
 	  end,
@@ -54,9 +54,22 @@ send_event(Event, IfOk, #parser{sink=Sink}=Ctx) ->
 	ok ->
 	    IfOk;
 	{eof, Result} ->
-	    gen_fsm:send_all_state_event(Sink#parser.id, stop),
+	    stop_parser(Sink),
 	    {reply, {eof, Result}, eof, Ctx};
 	{error, Reason} ->
-	    gen_fsm:send_all_state_event(Sink#parser.id, stop),
+	    stop_parser(Sink),
 	    {reply, {error, Reason}, eof, Ctx}
+    end.
+
+stop_parser(#parser{id=Ref}) ->
+    try gen_fsm:sync_send_all_state_event(Ref, stop) of
+	ok ->
+	    ok
+    catch
+	exit:{normal, _} ->
+	    ok;
+	exit:{noproc, _} ->
+	    ok;
+	_:Err ->
+	    {error, Err}
     end.

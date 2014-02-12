@@ -244,8 +244,7 @@ save_entity(Req, State, #content_type{parser=Parser}) ->
     case Parser:parse_entity(Body, Entity) of
 	{error, {parse_error, Err}} ->
 	    lager:error("Error processing request: ~p~n", [Err]),
-	    {ok, Req3} = cowboy_req:reply(400, Req2),
-	    {false, Req3, State};
+	    {false, Req2, State};
 	{error, Err} ->
 	    lager:error("Internal error: ~p~n", [Err]),
 	    {ok, Req3} = cowboy_req:reply(500, Req2),
@@ -281,8 +280,7 @@ update_entity(Req, State, #content_type{renderer=Renderer, parser=Parser, mimety
 	    case Parser:parse_entity(Body, Entity) of
 		{error, {parse_error, Err}} ->
 		    lager:error("Error processing request: ~p~n", [Err]),
-		    {ok, Req3} = cowboy_req:reply(400, Req2),
-		    {false, Req3, State};
+		    {false, Req2, State};
 		{error, Err} ->
 		    lager:error("Internal error: ~p~n", [Err]),
 		    {ok, Req3} = cowboy_req:reply(500, Req2),
@@ -323,8 +321,7 @@ save_collection(Req, #occi_node{objid=Cid}=State, #content_type{parser=Parser}) 
     case Parser:parse_collection(Body) of
 	{error, {parse_error, Err}} ->
 	    lager:error("Error processing request: ~p~n", [Err]),
-	    {ok, Req3} = cowboy_req:reply(400, Req2),
-	    {halt, Req3, State};
+	    {false, Req2, State};
 	{error, Err} ->
 	    lager:error("Internal error: ~p~n", [Err]),
 	    {ok, Req3} = cowboy_req:reply(500, Req2),
@@ -349,8 +346,7 @@ update_collection(Req, #occi_node{objid=Cid}=State, #content_type{parser=Parser}
     case Parser:parse_collection(Body) of
 	{error, {parse_error, Err}} ->
 	    lager:error("Error processing request: ~p~n", [Err]),
-	    {ok, Req3} = cowboy_req:reply(400, Req2),
-	    {halt, Req3, State};
+	    {false, Req2, State};
 	{error, Err} ->
 	    lager:error("Internal error: ~p~n", [Err]),
 	    {ok, Req3} = cowboy_req:reply(500, Req2),
@@ -376,8 +372,7 @@ trigger(Req, State, ActionName, #content_type{parser=Parser}) ->
     case Parser:parse_action(Body, prepare_action(Req2, State, ActionName)) of
 	{error, {parse_error, Err}} ->
 	    lager:error("Error processing action: ~p~n", [Err]),
-	    {ok, Req3} = cowboy_req:reply(400, Req2),
-	    {halt, Req3, State};
+	    {false, Req2, State};
 	{error, Err} ->
 	    lager:error("Internal error: ~p~n", [Err]),
 	    {ok, Req3} = cowboy_req:reply(500, Req2),

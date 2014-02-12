@@ -208,6 +208,8 @@ handle_event(_Event, StateName, State) ->
 %%                   {stop, Reason, Reply, NewState}
 %% @end
 %%--------------------------------------------------------------------
+handle_sync_event(stop, _, _, State) ->
+    {stop, normal, State};
 handle_sync_event(Event, _From, _StateName, State) ->
     occi_parser:parse_error(Event, State).
 
@@ -561,14 +563,26 @@ link_id(Token, _From, Ctx) ->
     occi_parser:parse_error(Token, Ctx).
 
 link_target(#token{name=value, data=Val}, _From, #parser{state=#state{entity=Link}=State}=Ctx) ->
-    {reply, ok, link, 
-     ?set_state(Ctx, State#state{entity=occi_link:set_target(Link, occi_uri:parse(Val))})};
+    try occi_uri:parse(Val) of
+	#uri{}=Uri ->
+	    {reply, ok, link, 
+	     ?set_state(Ctx, State#state{entity=occi_link:set_target(Link, Uri)})}
+    catch
+	_:Err ->
+	    {reply, {error, Err}, eof, Ctx}
+    end;
 link_target(Token, _From, Ctx) ->
     occi_parser:parse_error(Token, Ctx).
 
 link_source(#token{name=value, data=Val}, _From, #parser{state=#state{entity=Link}=State}=Ctx) ->
-    {reply, ok, link, 
-     ?set_state(Ctx, State#state{entity=occi_link:set_source(Link, occi_uri:parse(Val))})};
+    try occi_uri:parse(Val) of
+	#uri{}=Uri ->
+	    {reply, ok, link, 
+	     ?set_state(Ctx, State#state{entity=occi_link:set_source(Link, Uri)})}
+    catch
+	_:Err ->
+	    {reply, {error, Err}, eof, Ctx}
+    end;
 link_source(Token, _From, Ctx) ->
     occi_parser:parse_error(Token, Ctx).
 
