@@ -136,7 +136,7 @@
 		    type      = undefined  :: occi_node_type(),
 		    parent    = undefined  :: occi_node_id(),
 		    data      = undefined  :: term(),
-		    recursive = false      :: boolean(),
+		    etag      = undefined  :: term(),
 		    acl       = []         :: occi_acl()}).
 -type(occi_node() :: #occi_node{}).
 
