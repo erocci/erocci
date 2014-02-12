@@ -1,14 +1,12 @@
-#!/bin/sh
+#!/bin/bash
 
 . $(dirname $0)/../testenv.sh
 
-for i in $(seq 1 10); do
+for i in {1..10}; do
     idx=$(printf '%02d' $i)
     id=/myresources/json/compute/id${idx}
-    echo -n "Creating resource "${id}"... "
 
-    (
-	cat <<EOF
+    content=$(cat <<'EOF'
 {
     "resources": [
 	{
@@ -31,8 +29,8 @@ for i in $(seq 1 10); do
     ]
 }
 EOF
-    ) | curl ${curl_opts} -X PUT --data @- -H 'content-type: application/json' ${occi_srv}${id}
-    echo
+	   )
+    put 200 ${id} "application/json" "$content"
 done
 
 exit 0

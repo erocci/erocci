@@ -1,14 +1,11 @@
-#!/bin/sh
+#!/bin/bash
 
 . $(dirname $0)/../testenv.sh
 
-for i in $(seq 1 10); do
+for i in {1..10}; do
     idx=$(printf '%02d' $i)
     id=/mylinks/json/networkinterfaces/id${idx}
-    echo -n "Creating link "${id}"... "
-
-    (
-	cat <<EOF
+    content=$(cat <<'EOF'
 {
     "links": [
 	{
@@ -33,8 +30,9 @@ for i in $(seq 1 10); do
     ]
 }
 EOF
-    ) | curl ${curl_opts} -X PUT --data @- -H 'content-type: application/json' ${occi_srv}${id}
-    echo
+	   )
+
+    put 200 ${id} "application/json" "$content"
 done
 
 exit 0

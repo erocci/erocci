@@ -1,11 +1,8 @@
-#!/bin/sh
+#!/bin/bash
 
 . $(dirname $0)/../testenv.sh
 
-echo -n "Creates user mixin... "
-
-(
-    cat <<EOF
+content=$(cat <<'EOF'
 {
   "mixins": [
    {
@@ -16,7 +13,8 @@ echo -n "Creates user mixin... "
   ]
 }
 EOF
-) | curl ${curl_opts} -X POST --data @- -H 'content-type: application/json' ${occi_srv}/-/
-echo
+       )
+
+post 200 /-/ "application/json" "$content"
 
 exit  0

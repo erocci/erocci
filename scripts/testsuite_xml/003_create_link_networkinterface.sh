@@ -1,14 +1,11 @@
-#!/bin/sh
+#!/bin/bash
 
 . $(dirname $0)/../testenv.sh
 
-for i in $(seq 1 10); do
+for i in {1..10}; do
     idx=$(printf '%02d' $i)
     id=/mylinks/xml/networkinterfaces/id${idx}
-    echo -n "Creating link "${id}"... "
-
-    (
-	cat <<EOF
+    content=$(cat <<'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
 <link xmlns="http://schemas.ogf.org/occi" 
       xmlns:xl="http://www.w3.org/2008/06/xlink" >
@@ -23,8 +20,9 @@ for i in $(seq 1 10); do
   <attribute name="occi.core.source" xl:href="http://localhost:8080/myresources/xml/network/id01" />
 </link>
 EOF
-    ) | curl ${curl_opts} -X PUT --data @- -H 'content-type: application/xml' ${occi_srv}${id}
-    echo
+	   )
+
+    put 200 ${id} "application/xml" "$content"
 done
 
 exit  0
