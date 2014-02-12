@@ -11,6 +11,6 @@ content=$(cat <<'EOF'
 }
 EOF
        )
-post 201 /myresources/xml/compute/id01?action=stop "application/xml" "$content"
+post 204 /myresources/xml/compute/id01?action=stop "application/json" "$content"
 
 exit  0
