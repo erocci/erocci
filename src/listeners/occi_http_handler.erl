@@ -238,7 +238,7 @@ render(Req, State, #content_type{renderer=Renderer}) ->
 	    {halt, Req2, State}
     end.
 
-save_entity(Req, State, #content_type{renderer=Renderer, parser=Parser, mimetype=MimeType}) ->
+save_entity(Req, State, #content_type{parser=Parser}) ->
     {ok, Body, Req2} = cowboy_req:body(Req),
     Entity = prepare_entity(Req, State),
     case Parser:parse_entity(Body, Entity) of
@@ -254,9 +254,8 @@ save_entity(Req, State, #content_type{renderer=Renderer, parser=Parser, mimetype
 	    Node = create_resource_node(Req2, Res),
 	    case occi_store:save(Node) of
 		ok ->
-		    RespBody = Renderer:render(Node),
-		    Req3 = cowboy_req:set_resp_header(<<"content-type">>, MimeType, Req2),
-		    {true, cowboy_req:set_resp_body([RespBody, "\n"], Req3), State};
+		    Req3 = cowboy_req:set_resp_body("OK", Req2),
+		    {true, set_location_header(Node, Req3), State};
 		{error, Reason} ->
 		    lager:error("Error creating resource: ~p~n", [Reason]),
 		    {ok, Req3} = cowboy_req:reply(500, Req2),
@@ -266,9 +265,8 @@ save_entity(Req, State, #content_type{renderer=Renderer, parser=Parser, mimetype
 	    Node = create_link_node(Req2, Link),
 	    case occi_store:save(Node) of
 		ok ->
-		    RespBody = Renderer:render(Node),
-		    Req3 = cowboy_req:set_resp_header(<<"content-type">>, MimeType, Req2),
-		    {true, cowboy_req:set_resp_body([RespBody, "\n"], Req3), State};
+		    Req3 = cowboy_req:set_resp_body("OK", Req2),
+		    {true, set_location_header(Node, Req3), State};
 		{error, Reason} ->
 		    lager:error("Error creating link: ~p~n", [Reason]),
 		    {ok, Req3} = cowboy_req:reply(500, Req2),
@@ -450,3 +448,7 @@ create_link_node(Req, #occi_link{id=undefined}=Link) ->
     occi_node:new(Id, occi_link:set_id(Link, Id));
 create_link_node(_Req, #occi_link{}=Link) ->
     occi_node:new(occi_link:get_id(Link), Link).
+
+set_location_header(#occi_node{objid=Id}, Req) ->
+    cowboy_req:set_resp_header(<<"location">>,
+			       occi_uri:to_binary(Id), Req).
