@@ -2,9 +2,6 @@
 
 . $(dirname $0)/../testenv.sh
 
-source=$(curl -s -H "accept: text/uri-list" ${occi_srv}/compute/ | head -1)
-target=$(curl -s -H "accept: text/uri-list" ${occi_srv}/network/ | head -1)
-
 id=/mylinks/xml/networkinterfaces/id$(uuidgen)
 content=$(cat <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
@@ -17,12 +14,12 @@ content=$(cat <<EOF
   <attribute name="occi.networkinterface.address" value="192.168.3.4" />
   <attribute name="occi.networkinterface.gateway" value="192.168.3.0" />
   <attribute name="occi.networkinterface.allocation" value="dynamic" />
-  <attribute name="occi.core.target" xl:href="${target}" />
-  <attribute name="occi.core.source" xl:href="${source}" />
+  <attribute name="occi.core.target" xl:href="bad_target" />
+  <attribute name="occi.core.source" xl:href="bad_source" />
 </link>
 EOF
 	   )
 
-put 200 ${id} "application/xml" "$content"
+put 422 ${id} "application/xml" "$content"
 
 exit  0

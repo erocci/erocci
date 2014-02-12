@@ -2,7 +2,7 @@
 
 . $(dirname $0)/../testenv.sh
 
-content=$(cat <<'EOF'
+content=$(cat <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <mixin xmlns="http://schemas.ogf.org/occi" 
     term="xmlmixin" scheme="http://schemas.example.org/occi#" 

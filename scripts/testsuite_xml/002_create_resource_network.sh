@@ -4,7 +4,7 @@
 
 id=/myresources/xml/network/$(uuidgen)
 
-content=$(cat <<'EOF'
+content=$(cat <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <occi:resource xmlns:occi="http://schemas.ogf.org/occi" >
   <occi:kind scheme="http://schemas.ogf.org/occi/infrastructure#" term="network" />

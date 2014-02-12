@@ -4,7 +4,7 @@
 
 id=/myresources/json/compute/$(uuidgen)
 
-content=$(cat <<'EOF'
+content=$(cat <<EOF
 {
     "resources": [
 	{

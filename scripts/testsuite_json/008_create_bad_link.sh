@@ -2,9 +2,6 @@
 
 . $(dirname $0)/../testenv.sh
 
-source=$(curl -s -H "accept: text/uri-list" ${occi_srv}/compute/ | head -1)
-target=$(curl -s -H "accept: text/uri-list" ${occi_srv}/network/ | head -1)
-
 id=/mylinks/json/networkinterfaces/$(uuidgen)
 content=$(cat <<EOF
 {
@@ -25,14 +22,14 @@ content=$(cat <<EOF
 		    }
 		}
 	    },
-	    "target": "${target}",
-	    "source": "${source}"
+	    "target": "bad_value",
+	    "source": "bad_value"
 	}
     ]
 }
 EOF
        )
 
-put 201 ${id} "application/json" "$content"
+put 422 ${id} "application/json" "$content"
 
 exit 0

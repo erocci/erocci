@@ -2,7 +2,7 @@
 
 . $(dirname $0)/../testenv.sh
 
-content=$(cat <<'EOF'
+content=$(cat <<EOF
 {
   "mixins": [
    {

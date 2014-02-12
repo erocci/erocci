@@ -3,7 +3,7 @@
 . $(dirname $0)/../testenv.sh
 
 id=/myresources/json/network/$(uuidgen)
-content=$(cat <<'EOF'
+content=$(cat <<EOF
 {
     "resources": [
 	{

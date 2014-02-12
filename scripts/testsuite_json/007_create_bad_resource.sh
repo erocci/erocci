@@ -4,7 +4,7 @@
 
 id=/myresources/json/badcompute/id
 
-content=$(cat <<'EOF'
+content=$(cat <<EOF
 {
     "resources": [
 	{
