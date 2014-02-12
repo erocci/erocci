@@ -35,8 +35,11 @@ norm_url() {
 	http://*)
 	    echo -n ${1}
 	    ;;
-	*)
+	/*)
 	    echo -n ${occi_srv}${1}
+	    ;;
+	*)
+	    echo -n ${occi_srv}/${1}
 	    ;;
     esac	
 }
@@ -49,7 +52,7 @@ post() {
 
     echo -n "POST ${url}... "
     
-    ret=$(echo "${content}" | curl ${curl_opts} -X POST --data @- -H "content-type: ${ct}" ${occi_srv}/${url})
+    ret=$(echo "${content}" | curl ${curl_opts} -X POST --data @- -H "content-type: ${ct}" ${url})
     echo -n ${ret}
     if [ "${ret}" = "${expect}" ]; then
 	ok
@@ -66,7 +69,7 @@ put() {
 
     echo -n "PUT ${url}... "
     
-    ret=$(echo "${content}" | curl ${curl_opts} -X PUT --data @- -H "content-type: ${ct}" ${occi_srv}/${url})
+    ret=$(echo "${content}" | curl ${curl_opts} -X PUT --data @- -H "content-type: ${ct}" ${url})
     echo -n ${ret}
     if [ "${ret}" = "${expect}" ]; then
 	ok
@@ -82,7 +85,7 @@ get() {
 
     echo -n "GET ${url}... "
     
-    ret=$(curl ${curl_opts} -H "accept: ${ct}" ${occi_srv}/${url})
+    ret=$(curl ${curl_opts} -H "accept: ${ct}" ${url})
     echo -n ${ret}
     if [ "${ret}" = "${expect}" ]; then
 	ok
@@ -98,7 +101,7 @@ delete() {
 
     echo -n "DELETE ${url}... "
     
-    ret=$(curl ${curl_opts} -X DELETE ${occi_srv}/${url})
+    ret=$(curl ${curl_opts} -X DELETE ${url})
     echo -n ${ret}
     if [ "${ret}" = "${expect}" ]; then
 	ok

@@ -827,7 +827,13 @@ make_attribute(E, _State) ->
 			undefined ->
 			    {error, invalid_attribute};
 			#xmlattr{value=Val} ->
-			    {ok, to_atom(Name), occi_uri:parse(Val)}
+			    try occi_uri:parse(Val) of
+				#uri{}=Uri ->
+				    {ok, to_atom(Name), Uri}
+			    catch
+				throw:Err ->
+				    {error, Err}
+			    end
 		    end;
 		#xmlattr{value=Val} ->
 		    {ok, to_atom(Name), Val}

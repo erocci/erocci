@@ -2,11 +2,12 @@
 
 . $(dirname $0)/../testenv.sh
 
+entity=$(curl -s -H "accept: text/uri-list" ${occi_srv}/compute/ | head -1)
 content=$(cat <<EOF
-[ "http://localhost:8080/myresources/json/compute/id01" ]
+[ "${entity}" ]
 EOF
        )
 
-post 200 /os_tpl/ "application/json" "$content"
+post 204 /os_tpl/ "application/json" "$content"
 
 exit  0
