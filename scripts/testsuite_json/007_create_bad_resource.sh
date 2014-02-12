@@ -16,6 +16,6 @@ content=$(cat <<EOF
 }
 EOF
 	   )
-put 400 ${id} "application/json" "$content"
+put 422 ${id} "application/json" "$content"
 
 exit 0

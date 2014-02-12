@@ -11,6 +11,6 @@ content=$(cat <<EOF
 </occi:resource>
 EOF
        )
-put 400 ${id} "application/xml" "$content"
+put 422 ${id} "application/xml" "$content"
 
-exit 0
+

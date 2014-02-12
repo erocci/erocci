@@ -22,4 +22,4 @@ EOF
 
 put 422 ${id} "application/xml" "$content"
 
-exit  0
+

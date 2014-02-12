@@ -18,4 +18,4 @@ EOF
 	   )
 put 201 ${id} "application/xml" "$content"
 
-exit 0
+

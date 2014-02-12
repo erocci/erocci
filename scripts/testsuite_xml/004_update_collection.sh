@@ -12,4 +12,4 @@ EOF
 
 post 200 /os_tpl/ "application/xml" "$content"
 
-exit  0
+

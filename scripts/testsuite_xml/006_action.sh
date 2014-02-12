@@ -13,4 +13,4 @@ EOF
        )
 post 204 ${id}?action=stop "application/xml" "$content"
 
-exit  0
+

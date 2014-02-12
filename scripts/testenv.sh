@@ -17,6 +17,8 @@ ok() {
     tput hpa $(( $COLS - 4 ))
     echo -e $GREEN "OK" $NORM
     tput hpa 0
+
+    exit 0
 }
 
 fail() {
@@ -24,6 +26,8 @@ fail() {
     tput hpa $(( $COLS - 6 ))
     echo -e $RED "FAIL" $NORM
     tput hpa 0
+
+    exit 1
 }
 
 norm_url() {

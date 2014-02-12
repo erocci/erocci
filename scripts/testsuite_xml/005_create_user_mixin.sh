@@ -12,4 +12,4 @@ EOF
 
 post 200 /-/ "application/xml" "$content"
 
-exit  0
+
