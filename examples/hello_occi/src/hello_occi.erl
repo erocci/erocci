@@ -57,10 +57,11 @@ loop() ->
     receive
 	stop ->
 	    exit(the_end);
-	{Pid, #occi_action{id=ActionId}, #occi_node{id=Id}} ->
+	{From, #occi_action{id=ActionId}, #occi_node{id=Id}} ->
 	    lager:info("Apply action: ~p(~p)~n", [lager:pr(ActionId, ?MODULE),
 						  lager:pr(Id, ?MODULE)]),
-	    Pid ! false;
+	    From ! false,
+	    loop();
 	_ ->
 	    loop()
     end.

@@ -48,6 +48,7 @@
 	 extension/3,
 	 collection/3,
 	 kind/3,
+	 action/3,
 	 eof/3, 
 	 attribute_spec/3,
 	 mixin/3,
@@ -209,9 +210,46 @@ init(E=?mixin, _From, #parser{state=State}=Ctx) ->
 	_:Err ->
 	    {reply, {error, Err}, eof, Ctx}
     end;
-	    
+
+init(_E=?action, _From, #parser{state=#state{action=undefined}}=Ctx) ->
+    {reply, {error, {invalid_element, action}}, eof, Ctx};
+
+init(E=?action, _From, #parser{state=State}=Ctx) ->
+    try make_action(E, State) of
+	#state{}=State2 ->
+	    push(action, ?set_state(Ctx, State2));
+	{error, Err} ->
+	    {reply, {error, Err}, eof, Ctx}
+    catch
+	_:Err ->
+	    {reply, {error, Err}, eof, Ctx}
+    end;
+
 init(E, _From, Ctx) ->
     other_event(E, Ctx, init).
+
+action(E=?attribute, _From, 
+       #parser{state=#state{action=Action}=State}=Ctx) ->
+    case make_attribute(E, State) of
+	{ok, Key, Val} ->
+	    try occi_action:set_attr_value(Action, Key, Val) of
+		#occi_action{}=Action2 ->
+		    {reply, ok, action,
+		     ?set_state(Ctx, State#state{action=Action2})}
+	    catch
+		throw:Err ->
+		    {reply, {error, Err}, eof, Ctx}
+	    end;
+	{error, Err} ->
+	    {reply, {error, Err}, eof, Ctx}
+    end;
+action(_E=?attributeEnd, _From, Ctx) ->
+    {reply, ok, action, Ctx};
+action(_E=?actionEnd, _From, 
+       #parser{state=#state{request=Req, action=Action}}=Ctx) ->
+    {reply, {eof, occi_request:set_action(Req, Action)}, eof, Ctx};
+action(E, _From, Ctx) ->
+    other_event(E, Ctx, action).
 
 collection(E=?entity, _From, #parser{state=#state{collection=Coll}=State}=Ctx) ->
     case exmpp_xml:get_attribute_node(E, ?xlink_ns, <<"href">>) of
@@ -237,12 +275,8 @@ collection(E, _From, Ctx) ->
 
 resource(E=?kind, _From, 
 	 #parser{state=#state{entity=#occi_resource{cid=undefined}=Res}=State}=Ctx) ->
-    case make_related(E, State) of
-	{undefined, _} ->
-	    {reply, {error, invalid_cid}, eof, Ctx};
-	{_, undefined} ->
-	    {reply, {error, invalid_cid}, eof, Ctx};
-	{Scheme, Term} ->
+    case get_cid(E) of
+	{ok, Scheme, Term} ->
 	    Cid = #occi_cid{class=kind, scheme=Scheme, term=Term},
 	    try occi_category_mgr:get(Cid) of
 		{error, Err} ->
@@ -255,30 +289,26 @@ resource(E=?kind, _From,
 	    catch
 		_:Err ->
 		    {reply, {error, Err}, eof, Ctx}
-	    end
+	    end;
+	{error, Err} ->
+	    {reply, {error, Err}, eof, Ctx}
     end;
 resource(E=?kind, _From, 
-	 #parser{state=#state{entity=#occi_resource{cid=#occi_cid{scheme=Scheme, term=Term, class=kind}}}=State}=Ctx) ->
-    case make_related(E, State) of
-	{undefined, _} ->
-	    {reply, {error, invalid_cid}, eof, Ctx};
-	{_, undefined} ->
-	    {reply, {error, invalid_cid}, eof, Ctx};
-	{Scheme, Term} ->
+	 #parser{state=#state{entity=#occi_resource{cid=#occi_cid{scheme=Scheme, 
+								  term=Term, 
+								  class=kind}}}}=Ctx) ->
+    case get_cid(E) of
+	{ok, Scheme, Term} ->
 	    {reply, ok, resource, Ctx};
-	_ ->
-	    {reply, {error, invalid_cid}, eof, Ctx}
+	{error, Err} ->
+	    {reply, {error, Err}, eof, Ctx}
     end;
 resource(?kindEnd, _From, Ctx) ->
     {reply, ok, resource, Ctx};
 resource(E=?mixin, _From, 
 	 #parser{state=#state{entity=Res}=State}=Ctx) ->
-    case make_related(E, State) of
-	{undefined, _} ->
-	    {reply, {error, invalid_cid}, eof, Ctx};
-	{_, undefined} ->
-	    {reply, {error, invalid_cid}, eof, Ctx};
-	{Scheme, Term} ->
+    case get_cid(E) of
+	{ok, Scheme, Term} ->
 	    Cid = #occi_cid{class=mixin, scheme=Scheme, term=Term},
 	    try occi_category_mgr:get(Cid) of
 		{error, Err} ->
@@ -290,7 +320,9 @@ resource(E=?mixin, _From,
 	    catch
 		_:Err ->
 		    {reply, {error, Err}, eof, Ctx}
-	    end
+	    end;
+	{error, Err} ->
+	    {reply, {error, Err}, eof, Ctx}
     end;
 resource(?mixinEnd, _From, Ctx) ->
     {reply, ok, resource, Ctx};
@@ -317,12 +349,8 @@ resource(E, _From, Ctx) ->
     other_event(E, Ctx, resource).
 
 link(E=?kind, _From, #parser{state=#state{entity=#occi_link{cid=undefined}=Link}=State}=Ctx) ->
-    case make_related(E, State) of
-	{undefined, _} ->
-	    {reply, {error, invalid_cid}, eof, Ctx};
-	{_, undefined} ->
-	    {reply, {error, invalid_cid}, eof, Ctx};
-	{Scheme, Term} ->
+    case get_cid(E) of
+	{ok, Scheme, Term} ->
 	    Cid = #occi_cid{class=kind, scheme=Scheme, term=Term},
 	    try occi_category_mgr:get(Cid) of
 		{error, Err} ->
@@ -335,29 +363,23 @@ link(E=?kind, _From, #parser{state=#state{entity=#occi_link{cid=undefined}=Link}
 	    catch
 		_:Err ->
 		    {reply, {error, Err}, eof, Ctx}
-	    end
+	    end;
+	{error, Err} ->
+	    {reply, {error, Err}, eof, Ctx}
     end;
 link(E=?kind, _From, 
-     #parser{state=#state{entity=#occi_link{cid=#occi_cid{scheme=Scheme, term=Term, class=kind}}}=State}=Ctx) ->
-    case make_related(E, State) of
-	{undefined, _} ->
-	    {reply, {error, invalid_cid}, eof, Ctx};
-	{_, undefined} ->
-	    {reply, {error, invalid_cid}, eof, Ctx};
-	{Scheme, Term} ->
+     #parser{state=#state{entity=#occi_link{cid=#occi_cid{scheme=Scheme, term=Term, class=kind}}}}=Ctx) ->
+    case get_cid(E) of
+	{ok, Scheme, Term} ->
 	    {reply, ok, link, Ctx};
-	_ ->
-	    {reply, {error, invalid_cid}, eof, Ctx}
+	{error, Err} ->
+	    {reply, {error, Err}, eof, Ctx}
     end;
 link(?kindEnd, _From, Ctx) ->
     {reply, ok, link, Ctx};
 link(E=?mixin, _From, #parser{state=#state{entity=Link}=State}=Ctx) ->
-    case make_related(E, State) of
-	{undefined, _} ->
-	    {reply, {error, invalid_cid}, eof, Ctx};
-	{_, undefined} ->
-	    {reply, {error, invalid_cid}, eof, Ctx};
-	{Scheme, Term} ->
+    case get_cid(E) of
+	{ok, Scheme, Term} ->
 	    Cid = #occi_cid{class=mixin, scheme=Scheme, term=Term},
 	    try occi_category_mgr:get(Cid) of
 		{error, Err} ->
@@ -369,7 +391,9 @@ link(E=?mixin, _From, #parser{state=#state{entity=Link}=State}=Ctx) ->
 	    catch
 		_:Err ->
 		    {reply, {error, Err}, eof, Ctx}
-	    end
+	    end;
+	{error, Err} ->
+	    {reply, {error, Err}, eof, Ctx}
     end;
 link(?mixinEnd, _From, Ctx) ->
     {reply, ok, link, Ctx};
@@ -409,10 +433,10 @@ extension(E, _From, Ctx) ->
     other_event(E, Ctx, extension).
 
 kind(E=?parent, _From, #parser{state=#state{kind=Kind}=State}=Ctx) ->
-    case catch make_related(E, State) of
+    case get_cid(E) of
 	{error, Reason} ->
 	    {reply, {error, Reason}, eof, Ctx};
-	{Scheme, Term} ->
+	{ok, Scheme, Term} ->
 	    {reply, ok, kind, 
 	     ?set_state(Ctx, State#state{kind=occi_kind:set_parent(Kind, Scheme, Term)})}
     end;
@@ -427,12 +451,15 @@ kind(E=?attribute, _From, #parser{state=State}=Ctx) ->
 		 ?set_state(Ctx, State#state{attribute=AttrSpec}))
     end;
 kind(E=?action, _From, #parser{state=State}=Ctx) ->
-    case catch make_action(E, State) of
-	{error, Reason} ->
-	    {reply, {error, Reason}, eof, State};
-	Action ->
+    try make_action_spec(E, State) of
+	#occi_action{}=Action ->
 	    push(action_spec, 
-		 ?set_state(Ctx, State#state{action=Action}))
+		 ?set_state(Ctx, State#state{action=Action}));
+	{error, Reason} ->
+	    {reply, {error, Reason}, eof, Ctx}
+    catch
+	_:Err ->
+	    {reply, {error, Err}, eof, Ctx}
     end;
 kind(_E=?kindEnd, _From, #parser{state=#state{extension=Ext, kind=Kind}=State}=Ctx) ->
     pop(?set_state(Ctx, State#state{kind=undefined, 
@@ -441,10 +468,10 @@ kind(E, _From, Ctx) ->
     other_event(E, Ctx, kind).
 
 mixin(E=?depends, _From, #parser{state=#state{mixin=Mixin}=State}=Ctx) ->
-    case catch make_related(E, State) of
+    case get_cid(E) of
 	{error, Reason} ->
 	    {reply, {error, Reason}, eof, Ctx};
-	{Scheme, Term} ->
+	{ok, Scheme, Term} ->
 	    {reply, ok, mixin, 
 	     ?set_state(Ctx, State#state{mixin=occi_mixin:add_depends(Mixin, Scheme, Term)})}
     end;
@@ -453,10 +480,10 @@ mixin(_E=?dependsEnd, _From, Ctx) ->
     {reply, ok, mixin, Ctx};
 
 mixin(E=?applies, _From, #parser{state=#state{mixin=Mixin}=State}=Ctx) ->
-    case catch make_related(E, State) of
+    case get_cid(E) of
 	{error, Reason} ->
 	    {reply, {error, Reason}, eof, Ctx};
-	{Scheme, Term} ->
+	{ok, Scheme, Term} ->
 	    {reply, ok, mixin, 
 	     ?set_state(Ctx, State#state{mixin=occi_mixin:add_applies(Mixin, Scheme, Term)})}
     end;
@@ -474,11 +501,14 @@ mixin(E=?attribute, _From, #parser{state=State}=Ctx) ->
     end;
 
 mixin(E=?action, _From, #parser{state=State}=Ctx) ->
-    case catch make_action(E, State) of
+    try make_action_spec(E, State) of
+	#occi_action{}=Action ->
+	    push(action_spec, ?set_state(Ctx, State#state{action=Action}));
 	{error, Reason} ->
-	    {reply, {error, Reason}, eof, Ctx};
-	Action ->
-	    push(action_spec, ?set_state(Ctx, State#state{action=Action}))
+	    {reply, {error, Reason}, eof, Ctx}
+    catch
+	_:Err ->
+	    {reply, {error, Err}, eof, Ctx}
     end;
 
 mixin(_E=?mixinEnd, _From, 
@@ -804,17 +834,42 @@ make_attribute(E, _State) ->
 	    end
     end.
 
-make_action(E, _State) ->
-    Scheme = to_atom(get_attr_value(E, <<"scheme">>)),
-    Term = to_atom(get_attr_value(E, <<"term">>)),
-    lager:debug("Load action spec: ~s~s~n", [Scheme, Term]),
-    Action = occi_action:new(Scheme, Term),
-    Title = get_attr_value(E, <<"title">>, undefined),
-    occi_action:set_title(Action, Title).
+make_action(E, #state{action=#occi_action{id=#occi_cid{term=Term}}}=State) ->
+    case get_cid(E) of
+	{ok, Scheme, Term} ->
+	    case occi_category_mgr:get(#occi_cid{scheme=Scheme, term=Term, class=action}) of
+		#occi_action{}=Action ->
+		    State#state{action=Action};
+		error ->
+		    {error, invalid_cid}
+	    end;
+	{error, Err} ->
+	    {error, Err}
+    end.
 
-make_related(E, _State) ->
-    {to_atom(get_attr_value(E, <<"scheme">>)),
-     to_atom(get_attr_value(E, <<"term">>))}.
+make_action_spec(E, _State) ->
+    case get_cid(E) of
+	{ok, Scheme, Term} ->
+	    lager:debug("Load action spec: ~s~s~n", [Scheme, Term]),
+	    Action = occi_action:new(Scheme, Term),
+	    Title = get_attr_value(E, <<"title">>, undefined),
+	    occi_action:set_title(Action, Title);
+	{error, Err} ->
+	    {error, Err}
+    end.
+
+get_cid(E) ->
+    case get_attr_value(E, <<"scheme">>, undefined) of
+	undefined ->
+	    {error, invalid_cid};
+	Scheme ->
+	    case get_attr_value(E, <<"term">>, undefined) of
+		undefined ->
+		    {error, invalid_cid};
+		Term ->
+		    {ok, to_atom(Scheme), to_atom(Term)}
+	    end
+    end.
 
 % Return a dict with prefix->ns_as_atom key/value
 -spec load_prefixes([{xmlname(), string()}]) -> term().
