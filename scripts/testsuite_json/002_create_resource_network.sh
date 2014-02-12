@@ -2,10 +2,8 @@
 
 . $(dirname $0)/../testenv.sh
 
-for i in {1..10}; do
-    idx=$(printf '%02d' $i)
-    id=/myresources/json/network/id${idx}
-    content=$(cat <<'EOF'
+id=/myresources/json/network/$(uuidgen)
+content=$(cat <<'EOF'
 {
     "resources": [
 	{
@@ -14,7 +12,7 @@ for i in {1..10}; do
 		"occi": {
 		    "network": {
 			"vlan": "1",
-			"label": "mylan${idx}"
+			"label": "mylan"
 		    }
 		}
 	    }
@@ -22,8 +20,7 @@ for i in {1..10}; do
     ]
 }
 EOF
-	   )
-    put 200 ${id} "application/json" "$content"
-done
+       )
+put 201 ${id} "application/json" "$content"
 
 exit 0

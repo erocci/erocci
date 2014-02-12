@@ -2,10 +2,11 @@
 
 . $(dirname $0)/../testenv.sh
 
-for i in {1..10}; do
-    idx=$(printf '%02d' $i)
-    id=/mylinks/json/networkinterfaces/id${idx}
-    content=$(cat <<'EOF'
+source=$(curl -s -H "accept: text/uri-list" ${occi_srv}/compute/ | head -1)
+target=$(curl -s -H "accept: text/uri-list" ${occi_srv}/network/ | head -1)
+
+id=/mylinks/json/networkinterfaces/$(uuidgen)
+content=$(cat <<'EOF'
 {
     "links": [
 	{
@@ -17,22 +18,21 @@ for i in {1..10}; do
 		"occi": {
 		    "networkinterface": {
 			"interface": "eth0",
-			"mac": "00:80:41:ae:fd:${idx}",
-			"address": "192.168.3.4{idx}",
+			"mac": "00:80:41:ae:fd:32",
+			"address": "192.168.3.4",
 			"gateway": "192.168.3.0",
 			"allocation": "dynamic"
 		    }
 		}
 	    },
-	    "target": "http://localhost:8080/myresources/json/network/id01",
-	    "source": "http://localhost:8080/myresources/json/compute/id${idx}"
+	    "target": "${target}",
+	    "source": "${source}"
 	}
     ]
 }
 EOF
-	   )
+       )
 
-    put 200 ${id} "application/json" "$content"
-done
+put 201 ${id} "application/json" "$content"
 
 exit 0

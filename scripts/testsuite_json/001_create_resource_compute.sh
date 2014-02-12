@@ -2,11 +2,9 @@
 
 . $(dirname $0)/../testenv.sh
 
-for i in {1..10}; do
-    idx=$(printf '%02d' $i)
-    id=/myresources/json/compute/id${idx}
+id=/myresources/json/compute/$(uuidgen)
 
-    content=$(cat <<'EOF'
+content=$(cat <<'EOF'
 {
     "resources": [
 	{
@@ -14,12 +12,12 @@ for i in {1..10}; do
 	    "attributes": {
 		"occi": {
 		    "core": {
-			"title": "Machine${idx}"
+			"title": "Machine"
 		    },
 		    "compute": {
 			"architecture": "x86",
 			"cores": 1,
-			"hostname": "pc${idx}",
+			"hostname": "pc",
 			"memory": 5,
 			"speed": 4000
 		    }
@@ -30,7 +28,6 @@ for i in {1..10}; do
 }
 EOF
 	   )
-    put 200 ${id} "application/json" "$content"
-done
+put 201 ${id} "application/json" "$content"
 
 exit 0

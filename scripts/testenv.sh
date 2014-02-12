@@ -4,31 +4,42 @@ export curl_opts="-s -w %{http_code} -f -o /dev/null "
 export RED="\033[31;1m"
 export GREEN="\033[32;1m"
 export NORM="\033[0m"
-#export COLS=$(tput cols)
-export COLS=$(
-    cols=$(tput cols);
-    if [ $cols -gt 80 ]; then
-	echo 80;
-    else
-	echo $cols
-    fi)
+export COLS=$(tput cols)
+#export COLS=$(
+#    cols=$(tput cols);
+#    if [ $cols -gt 80 ]; then
+#	echo 80;
+#    else
+#	echo $cols
+#    fi)
 
 ok() {
-    tput hpa $(( $COLS - 3 ))
+    tput hpa $(( $COLS - 4 ))
     echo -e $GREEN "OK" $NORM
     tput hpa 0
 }
 
 fail() {
     err=$1
-    tput hpa $(( $COLS - 5 ))
+    tput hpa $(( $COLS - 6 ))
     echo -e $RED "FAIL" $NORM
     tput hpa 0
 }
 
+norm_url() {
+    case ${1} in
+	http://*)
+	    echo -n ${1}
+	    ;;
+	*)
+	    echo -n ${occi_srv}${1}
+	    ;;
+    esac	
+}
+
 post() {
     expect=$1
-    url=$2
+    url=$(norm_url $2)
     ct=$3
     content=$4
 
@@ -45,7 +56,7 @@ post() {
 
 put() {
     expect=$1
-    url=$2
+    url=$(norm_url $2)
     ct=$3
     content=$4
 
@@ -62,7 +73,7 @@ put() {
 
 get() {
     expect=$1
-    url=$2
+    url=$(norm_url $2)
     ct=$3
 
     echo -n "GET ${url}... "
@@ -78,7 +89,7 @@ get() {
 
 delete() {
     expect=$1
-    url=$2
+    url=$(norm_url $2)
     ct=$3
 
     echo -n "DELETE ${url}... "

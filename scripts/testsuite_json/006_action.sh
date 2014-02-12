@@ -2,6 +2,7 @@
 
 . $(dirname $0)/../testenv.sh
 
+id=$(curl -s -H "accept: text/uri-list" ${occi_srv}/compute/ | head -1)
 content=$(cat <<'EOF'
 {
   "action": "http://schemas.ogf.org/occi/infrastructure/compute/action#stop"
@@ -11,6 +12,6 @@ content=$(cat <<'EOF'
 }
 EOF
        )
-post 204 /myresources/xml/compute/id01?action=stop "application/json" "$content"
+post 204 ${id}?action=stop "application/json" "$content"
 
 exit  0

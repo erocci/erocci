@@ -2,9 +2,7 @@
 
 . $(dirname $0)/../testenv.sh
 
-for i in {1..10}; do
-    idx=$(printf '%02d' $i)
-    id=/myresources/xml/compute/id${idx}
+id=/myresources/xml/compute/$(uuidgen)
 
     content=$(cat <<'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
@@ -18,7 +16,6 @@ for i in {1..10}; do
 </occi:resource>
 EOF
 	   )
-    put 200 ${id} "application/xml" "$content"
-done
+put 201 ${id} "application/xml" "$content"
 
 exit 0
