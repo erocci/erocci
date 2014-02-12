@@ -140,11 +140,11 @@ parse_entity(Data, #occi_entity{id=Id}) ->
     end.
 
 parse_user_mixin(Data) ->
-    case parse_full(Data) of
+    case parse_full(Data, #state{mixin=occi_mixin:new(#occi_cid{class=usermixin})}) of
 	{error, Reason} ->
 	    {error, {parse_error, Reason}};
-	{ok, #occi_request{mixins=[#occi_mixin{id=Id}=Mixin]}} ->
-	    {ok, Mixin#occi_mixin{id=Id#occi_cid{class=usermixin}}};
+	{ok, #occi_request{mixins=[#occi_mixin{}=Mixin]}} ->
+	    {ok, Mixin};
 	Err ->
 	    lager:error("Invalid request: ~p~n", [Err]),
 	    {error, {parse_error, Err}}
@@ -785,10 +785,10 @@ make_kind(E, #state{extension=Ext}) ->
     Title = get_attr_value(E, <<"title">>, undefined),
     occi_kind:set_title(Kind, Title).
 
-make_mixin(E, #state{extension=undefined}) ->
+make_mixin(E, #state{mixin=#occi_mixin{id=#occi_cid{class=usermixin}}}) ->
     Id = #occi_cid{scheme=to_atom(get_attr_value(E, <<"scheme">>)), 
 		   term=to_atom(get_attr_value(E, <<"term">>)),
-		   class=mixin},
+		   class=usermixin},
     occi_mixin:set_title(
       occi_mixin:set_location(
 	occi_mixin:new(Id),

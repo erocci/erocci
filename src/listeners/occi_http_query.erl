@@ -127,7 +127,7 @@ to(Req, State, #content_type{renderer=R}) ->
     Body = [R:render(Node), "\n"],
     {Body, Req, State}.
 
-from(Req, State, #content_type{parser=Parser, renderer=Renderer, mimetype=MimeType}) ->
+from(Req, State, #content_type{parser=Parser}) ->
     {ok, Body, Req2} = cowboy_req:body(Req),
     case Parser:parse_user_mixin(Body) of
 	{error, {parse_error, Err}} ->
@@ -144,12 +144,12 @@ from(Req, State, #content_type{parser=Parser, renderer=Renderer, mimetype=MimeTy
 	{ok, #occi_mixin{id=Cid, location=Uri}=Mixin} ->
 	    case cowboy_req:method(Req2) of
 		{<<"DELETE">>, _} ->
-		    case occi_store:find(#occi_node{type=occi_user_mixin, objid=Cid, _='_'}) of
+		    case occi_store:find(#occi_mixin{id=Cid, _='_'}) of
 			{ok, []} ->
 			    {ok, Req3} = cowboy_req:reply(403, Req2),
 			    {halt, Req3, State};
-			{ok, [Node]} ->
-			    case occi_store:delete(Node) of
+			{ok, [Mixin]} ->
+			    case occi_store:delete(Mixin) of
 				{error, undefined_backend} ->
 				    lager:debug("Internal error deleting user mixin~n"),
 				    {ok, Req2} = cowboy_req:reply(500, Req),
@@ -158,16 +158,14 @@ from(Req, State, #content_type{parser=Parser, renderer=Renderer, mimetype=MimeTy
 				    lager:debug("Error deleting user mixin: ~p~n", [Reason]),
 				    {false, Req, State};
 				ok ->
-				    {true, Req, State}
+				    {true, cowboy_req:set_resp_body("OK\n", Req2), State}
 			    end
 		    end;
 		{<<"POST">>, _} ->
-		    Node = occi_node:new(Uri, Mixin),
-		    case occi_store:save(Node) of
+		    case occi_store:save(Mixin) of
 			ok ->
-			    RespBody = Renderer:render(Node),
-			    Req3 = cowboy_req:set_resp_header(<<"content-type">>, MimeType, Req2),
-			    {true, cowboy_req:set_resp_body([RespBody, "\n"], Req3), State};
+			    Req3 = cowboy_req:set_resp_header(<<"location">>, occi_uri:to_binary(Uri), Req2),
+			    {true, cowboy_req:set_resp_body("OK\n", Req3), State};
 			{error, Reason} ->
 			    lager:debug("Error creating resource: ~p~n", [Reason]),
 			    {ok, Req3} = cowboy_req:reply(500, Req2),

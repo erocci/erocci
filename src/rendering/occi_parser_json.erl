@@ -136,11 +136,11 @@ parse_entity(Data, #occi_entity{id=Id}) ->
     end.
 
 parse_user_mixin(Data) ->
-    case parse_full(Data) of
+    case parse_full(Data, #state{mixin=occi_mixin:new(#occi_cid{class=usermixin})}) of
 	{error, Reason} ->
 	    {error, {parse_error, Reason}};
-	{ok, #occi_request{mixins=[#occi_mixin{id=Id}=Mixin]}} ->
-	    {ok, Mixin#occi_mixin{id=Id#occi_cid{class=usermixin}}};
+	{ok, #occi_request{mixins=[#occi_mixin{}=Mixin]}} ->
+	    {ok, Mixin};
 	Err ->
 	    lager:error("Invalid request: ~p~n", [Err]),
 	    {error, {parse_error, Err}}
@@ -591,9 +591,8 @@ mixins_req(#token{name=arrBegin}, _From, Ctx) ->
 mixins_req(Token, _From, Ctx) ->
     occi_parser:parse_error(Token, Ctx).
 
-mixins(#token{name=objBegin}, _From, #parser{state=State}=Ctx) ->
-    {reply, ok, mixin, 
-     ?set_state(Ctx, State#state{mixin=occi_mixin:new()})};
+mixins(#token{name=objBegin}, _From, #parser{state=#state{mixin=#occi_mixin{}}}=Ctx) ->
+    {reply, ok, mixin, Ctx};
 mixins(#token{name=arrEnd}, _From, Ctx) ->
     {reply, ok, request, Ctx};
 mixins(Token, _From, Ctx) ->

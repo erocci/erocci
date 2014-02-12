@@ -70,16 +70,18 @@ init(_) ->
 terminate(#state{}) ->
     ok.
 
-save(#occi_node{}=Node, State) ->
-    case mnesia:transaction(fun () -> save_t(Node) end) of
+save(Obj, State) when is_record(Obj, occi_node);
+		      is_record(Obj, occi_mixin) ->
+    case mnesia:transaction(fun () -> save_t(Obj) end) of
 	{atomic, ok} ->
 	    {ok, State};
 	{aborted, Reason} ->
 	    {{error, Reason}, State}
     end.
 
-delete(#occi_node{}=Node, State) ->
-    case mnesia:transaction(fun () -> del_node_t(Node) end) of
+delete(Obj, State) when is_record(Obj, occi_node);
+			is_record(Obj, occi_mixin) ->
+    case mnesia:transaction(fun () -> del_node_t(Obj) end) of
 	{atomic, ok} ->
 	    {ok, State};
 	{aborted, Reason} ->
@@ -94,9 +96,10 @@ update(#occi_node{}=Node, State) ->
 	    {{error, Reason}, State}
     end.    
 
-find(#occi_node{}=Req, State) ->
+find(Obj, State) when is_record(Obj, occi_node);
+		      is_record(Obj, occi_mixin) ->
     case mnesia:transaction(fun () ->
-				    find_node_t(Req)
+				    find_node_t(Obj)
 			    end) of
 	{atomic, Res} -> 
 	    {{ok, Res}, State};
@@ -120,8 +123,8 @@ load(#occi_node{}=Req, State) ->
 find_node_t(#occi_node{type=occi_query}) ->
     mnesia:match_object(#occi_mixin{_='_'});
 
-find_node_t(#occi_node{type=occi_user_mixin}=Node) ->
-    mnesia:match_object(Node);
+find_node_t(#occi_mixin{}=Mixin) ->
+    mnesia:match_object(Mixin);
 
 find_node_t(#occi_node{type=occi_collection}=Node) ->
     mnesia:match_object(Node);
@@ -180,9 +183,9 @@ save_t(#occi_node{type=occi_link, data=Res}=Node) ->
     save_entity_t(Res),
     save_node_t(Node);
 
-save_t(#occi_node{type=occi_user_mixin, data=#occi_mixin{}=Mixin}=Node) ->
+save_t(#occi_mixin{id=#occi_cid{class=usermixin}=Cid, location=Uri}=Mixin) ->
     mnesia:write(Mixin),
-    save_node_t(Node#occi_node{type=occi_collection});
+    save_node_t(occi_node:new(Uri, Cid));
 
 save_t(#occi_node{type=occi_collection, data=Coll}) ->
     save_collection_t(Coll).
@@ -299,14 +302,9 @@ add_to_collection_t(#occi_cid{class=usermixin}=Cid, Uris) ->
 	    mnesia:write(occi_collection:new(Cid, Uris))
     end.
 
-del_node_t(#occi_node{type=occi_user_mixin, data=undefined}=Node) ->
-    del_node_t(load_node_t(Node));
-
-del_node_t(#occi_node{id=Id, type=occi_user_mixin, objid=Cid, data=Mixin}=Node) ->
+del_node_t(#occi_mixin{id=Cid}=Mixin) ->
     del_mixin_t(Mixin),
-    mnesia:delete({occi_mixin, Cid}),
-    del_from_parent_t(Node),
-    mnesia:delete({occi_node, Id});
+    mnesia:delete({occi_mixin, Cid});
 
 del_node_t(#occi_node{type=occi_collection, data=Coll}) ->
     del_collection_t(Coll);

@@ -79,7 +79,15 @@ register({_, _, _, _}) ->
     lager:error("Multiple backends not supported at this time.~n"),
     throw({error, not_supported}).
 
--spec save(occi_node()) -> ok | {error, term()}.
+-spec save(occi_node() | occi_mixin()) -> ok | {error, term()}.
+save(#occi_mixin{location=Path}=Mixin) ->
+    lager:debug("occi_store:save(~p)~n", [lager:pr(Mixin, ?MODULE)]),
+    case get_backend(Path) of
+	undefined ->
+	    {error, undefined_backend};
+	Backend ->
+	    occi_backend:save(Backend, Mixin)
+    end;    
 save(#occi_node{id=#uri{path=Path}}=Node) ->
     lager:debug("occi_store:save(~p)~n", [lager:pr(Node, ?MODULE)]),
     case get_backend(Path) of
@@ -99,7 +107,15 @@ update(#occi_node{id=#uri{path=Path}}=Node) ->
 	    occi_backend:update(Backend, Node)
     end.
 
--spec delete(occi_node()) -> ok | {error, term()}.
+-spec delete(occi_node() | occi_mixin()) -> ok | {error, term()}.
+delete(#occi_mixin{location=Path}=Mixin) ->
+    lager:debug("occi_store:delete(~p)~n", [lager:pr(Mixin, ?MODULE)]),
+    case get_backend(Path) of
+	undefined ->
+	    {error, undefined_backend};
+	Backend ->
+	    occi_backend:delete(Backend, Mixin)
+    end;
 delete(#occi_node{id=#uri{path=Path}}=Node) ->
     lager:debug("occi_store:delete(~p)~n", [lager:pr(Node, ?MODULE)]),
     case get_backend(Path) of
@@ -109,16 +125,16 @@ delete(#occi_node{id=#uri{path=Path}}=Node) ->
 	    occi_backend:delete(Backend, Node)
     end.
 
--spec find(occi_node()) -> {ok, occi_node()} | {error, term()}.
+-spec find(occi_node() | occi_mixin()) -> {ok, occi_node() | occi_mixin()} | {error, term()}.
+find(#occi_mixin{location=Path}=Req) ->
+    lager:debug("occi_store:find(~p)~n", [lager:pr(Req, ?MODULE)]),
+    occi_backend:find(get_backend(Path), Req);
+
 find(#occi_node{type=occi_query}=Req) ->
     lager:debug("occi_store:find(~p)~n", [lager:pr(Req, ?MODULE)]),
     {K, M, A} = occi_category_mgr:find_all(),
     UserMixins = get_user_mixins(),
     {ok, Req#occi_node{data={K, M++UserMixins, A}}};
-
-find(#occi_node{type=occi_user_mixin}=Req) ->
-    lager:debug("occi_store:find(~p)~n", [lager:pr(Req, ?MODULE)]),
-    occi_backend:find(get_dft_backend(), Req);
 
 find(#occi_node{id=#uri{path=Path}=Id}=Req) ->
     lager:debug("occi_store:find(~p)~n", [lager:pr(Req, ?MODULE)]),

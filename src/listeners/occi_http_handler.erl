@@ -253,7 +253,7 @@ save_entity(Req, State, #content_type{parser=Parser}) ->
 	    Node = create_resource_node(Req2, Res),
 	    case occi_store:save(Node) of
 		ok ->
-		    Req3 = cowboy_req:set_resp_body("OK", Req2),
+		    Req3 = cowboy_req:set_resp_body("OK\n", Req2),
 		    {true, set_location_header(Node, Req3), State};
 		{error, Reason} ->
 		    lager:error("Error creating resource: ~p~n", [Reason]),
@@ -264,7 +264,7 @@ save_entity(Req, State, #content_type{parser=Parser}) ->
 	    Node = create_link_node(Req2, Link),
 	    case occi_store:save(Node) of
 		ok ->
-		    Req3 = cowboy_req:set_resp_body("OK", Req2),
+		    Req3 = cowboy_req:set_resp_body("OK\n", Req2),
 		    {true, set_location_header(Node, Req3), State};
 		{error, Reason} ->
 		    lager:error("Error creating link: ~p~n", [Reason]),
@@ -273,7 +273,7 @@ save_entity(Req, State, #content_type{parser=Parser}) ->
 	    end
     end.
 
-update_entity(Req, State, #content_type{renderer=Renderer, parser=Parser, mimetype=MimeType}) ->
+update_entity(Req, State, #content_type{parser=Parser}) ->
     {ok, Body, Req2} = cowboy_req:body(Req),
     case occi_store:load(State) of
 	{ok, #occi_node{data=Entity}=Node} ->
@@ -289,9 +289,7 @@ update_entity(Req, State, #content_type{renderer=Renderer, parser=Parser, mimety
 		    Node2 = occi_node:set_data(Node, Res),
 		    case occi_store:update(Node2) of
 			ok ->
-			    RespBody = Renderer:render(Node2),
-			    Req3 = cowboy_req:set_resp_header(<<"content-type">>, MimeType, Req2),
-			    {true, cowboy_req:set_resp_body([RespBody, "\n"], Req3), State};
+			    {true, cowboy_req:set_resp_body("OK\n", Req2), State};
 			{error, Reason} ->
 			    lager:error("Error updating resource: ~p~n", [Reason]),
 			    {ok, Req3} = cowboy_req:reply(500, Req2),
@@ -301,9 +299,7 @@ update_entity(Req, State, #content_type{renderer=Renderer, parser=Parser, mimety
 		    Node2 = occi_node:set_data(Node, Link),
 		    case occi_store:update(Node2) of
 			ok ->
-			    RespBody = Renderer:render(Node2),
-			    Req3 = cowboy_req:set_resp_header(<<"content-type">>, MimeType, Req2),
-			    {true, cowboy_req:set_resp_body([RespBody, "\n"], Req3), State};
+			    {true, cowboy_req:set_resp_body("OK\n", Req2), State};
 			{error, Reason} ->
 			    lager:error("Error updating link: ~p~n", [Reason]),
 			    {ok, Req3} = cowboy_req:reply(500, Req2),

@@ -57,15 +57,15 @@
     {ok, State :: term()} |
     {{error, Reason :: term()}, State :: term()}.
 
--callback save(Node :: occi_node(), State :: term()) ->
+-callback save(Node :: occi_node() | occi_mixin(), State :: term()) ->
     {ok, State :: term()} |
     {{error, Reason :: term()}, State :: term()}.
 
--callback delete(Node :: occi_node(), State :: term()) ->
+-callback delete(Node :: occi_node() | occi_mixin(), State :: term()) ->
     {ok, State :: term()} |
     {{error, Reason :: term()}, State :: term()}.
 
--callback find(Request :: occi_node(), State :: term()) ->
+-callback find(Request :: occi_node() | occi_mixin(), State :: term()) ->
     {{ok, [occi_node()]}, term()} |
     {{error, Reason :: term()}, State :: term()}.
 
