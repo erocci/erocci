@@ -62,79 +62,70 @@ start_link() ->
     supervisor:start_link({local, ?SUPERVISOR}, ?MODULE, []).
 
 -spec register(backend_desc()) -> {ok, pid()} | ignore | {error, term()}.
-register({Ref, Mod, Opts, Path}) when Path == "/" ->
+register({Ref, Mod, Opts, [ $/ | Path ]}) ->
     lager:info("Registering backend: ~p~n", [Ref]),
     Def = {Ref, {occi_backend, start_link, [Ref, Mod, [{ref, Ref} | Opts]]}, 
 	   permanent, 5000, worker, [occi_backend, Mod]},
     case supervisor:start_child(occi_store, Def) of
 	{ok, Pid} ->
 	    Backend = #occi_backend{ref=Ref, mod=Mod, opts=Opts},
-	    ets:insert(?TABLE, occi_node:new(occi_uri:parse(Path), Backend)),
+	    add_backend(occi_node:new(occi_uri:parse([$/ | Path]), Backend)),
 	    {ok, Pid};
 	{error, Err} ->
 	    {error, Err}
     end;
 
-register({_, _, _, _}) ->
-    lager:error("Multiple backends not supported at this time.~n"),
-    throw({error, not_supported}).
+register({_, _, _, Path}) ->
+    lager:error("Invalid mountpoint: ~p~n", [Path]),
+    throw({invalid_mountpoint, Path}).
 
 -spec save(occi_node() | occi_mixin()) -> ok | {error, term()}.
-save(#occi_mixin{location=Path}=Mixin) ->
+save(#occi_mixin{location=#uri{path=Path}}=Mixin) ->
     lager:debug("occi_store:save(~p)~n", [lager:pr(Mixin, ?MODULE)]),
-    case get_backend(Path) of
-	undefined ->
-	    {error, undefined_backend};
-	Backend ->
-	    occi_backend:save(Backend, Mixin)
-    end;    
+    occi_backend:save(get_backend(Path), Mixin);
+
 save(#occi_node{id=#uri{path=Path}}=Node) ->
     lager:debug("occi_store:save(~p)~n", [lager:pr(Node, ?MODULE)]),
-    case get_backend(Path) of
-	undefined ->
-	    {error, undefined_backend};
-	Backend ->
-	    occi_backend:save(Backend, Node)
-    end.
+    occi_backend:save(get_backend(Path), Node).
 
 -spec update(occi_node()) -> ok | {error, term()}.
 update(#occi_node{id=#uri{path=Path}}=Node) ->
     lager:debug("occi_store:update(~p)~n", [lager:pr(Node, ?MODULE)]),
-    case get_backend(Path) of
-	undefined ->
-	    {error, undefined_backend};
-	Backend ->
-	    occi_backend:update(Backend, Node)
-    end.
+    occi_backend:update(get_backend(Path), Node).
 
 -spec delete(occi_node() | occi_mixin()) -> ok | {error, term()}.
-delete(#occi_mixin{location=Path}=Mixin) ->
+delete(#occi_mixin{location=#uri{path=Path}}=Mixin) ->
     lager:debug("occi_store:delete(~p)~n", [lager:pr(Mixin, ?MODULE)]),
-    case get_backend(Path) of
-	undefined ->
-	    {error, undefined_backend};
-	Backend ->
-	    occi_backend:delete(Backend, Mixin)
-    end;
+    occi_backend:delete(get_backend(Path), Mixin);
+
 delete(#occi_node{id=#uri{path=Path}}=Node) ->
     lager:debug("occi_store:delete(~p)~n", [lager:pr(Node, ?MODULE)]),
-    case get_backend(Path) of
-	undefined ->
-	    {error, undefined_backend};
-	Backend ->
-	    occi_backend:delete(Backend, Node)
-    end.
+    occi_backend:delete(get_backend(Path), Node).
 
--spec find(occi_node() | occi_mixin()) -> {ok, occi_node() | occi_mixin()} | {error, term()}.
-find(#occi_mixin{location=Path}=Req) ->
+-spec find(occi_node() | occi_mixin()) -> {ok, [occi_node() | occi_mixin()]} | {error, term()}.
+find(#occi_mixin{location=undefined}=Req) ->
+    lager:debug("occi_store:find(~p)~n", [lager:pr(Req, ?MODULE)]),
+    Merge = fun (Mixins, Acc) -> 
+		    Mixins ++ Acc 
+	    end,
+    store_fold(Merge, [], find, Req);
+
+find(#occi_mixin{location=#uri{path=Path}}=Req) ->
     lager:debug("occi_store:find(~p)~n", [lager:pr(Req, ?MODULE)]),
     occi_backend:find(get_backend(Path), Req);
 
 find(#occi_node{type=occi_query}=Req) ->
     lager:debug("occi_store:find(~p)~n", [lager:pr(Req, ?MODULE)]),
     {K, M, A} = occi_category_mgr:find_all(),
-    UserMixins = get_user_mixins(),
-    {ok, Req#occi_node{data={K, M++UserMixins, A}}};
+    Merge = fun (Mixins, Acc) ->
+		    Mixins ++ Acc
+	    end,
+    case store_fold(Merge, M, find, #occi_mixin{_='_'}) of
+	{ok, M2} ->
+	    {ok, [Req#occi_node{data={K, M2, A}}]};
+	{error, Err} ->
+	    {error, Err}
+    end;
 
 find(#occi_node{id=#uri{path=Path}=Id}=Req) ->
     lager:debug("occi_store:find(~p)~n", [lager:pr(Req, ?MODULE)]),
@@ -147,23 +138,24 @@ find(#occi_node{id=#uri{path=Path}=Id}=Req) ->
 	    {ok, [occi_node:new(#uri{path=Path}, Cid)]}
     end.
 
--spec load(occi_node()) -> occi_node().
+-spec load(occi_node()) -> {ok, occi_node()} | {error, term()}.
 load(#occi_node{id=#uri{path=Path}, type=dir}=Node) ->
     lager:debug("occi_store:load(~p)~n", [lager:pr(Node, ?MODULE)]),
-    case get_backend(Path) of
-	undefined ->
-	    {error, undefined_backend};
-	Backend ->
-	    occi_backend:load(Backend, Node)
+    occi_backend:load(get_backend(Path), Node);
+load(#occi_node{objid=#occi_cid{}=Cid, type=occi_collection}=Node) ->
+    lager:debug("occi_store:load(~p)~n", [lager:pr(Node, ?MODULE)]),
+    Merge = fun (#occi_node{data=C}, Acc) ->
+		    occi_collection:merge(Acc, C)
+	    end,
+    case store_fold(Merge, occi_collection:new(Cid), load, Node) of
+	{ok, Coll} ->
+	    {ok, Node#occi_node{data=Coll}};
+	{error, Err} ->
+	    {error, Err}
     end;
 load(#occi_node{id=#uri{path=Path}, data=undefined}=Node) ->
     lager:debug("occi_store:load(~p)~n", [lager:pr(Node, ?MODULE)]),
-    case get_backend(Path) of
-	undefined ->
-	    {error, undefined_backend};
-	Backend ->
-	    occi_backend:load(Backend, Node)
-    end;
+    occi_backend:load(get_backend(Path), Node);
 load(#occi_node{data=_}=Node) ->
     lager:debug("occi_store:load(~p)~n", [lager:pr(Node, ?MODULE)]),
     {ok, Node}.
@@ -173,31 +165,75 @@ load(#occi_node{data=_}=Node) ->
 %%%===================================================================
 init([]) ->
     lager:info("Starting OCCI storage manager"),
-    ?TABLE = ets:new(?TABLE, [set, public, {keypos, 2}, named_table]),
+    ?TABLE = ets:new(?TABLE, [set, public, {keypos, 1}, named_table]),
+    ets:insert(?TABLE, {tree, gb_trees:empty()}),
+    ets:insert(?TABLE, {list, []}),
     % start no child, will be added with backends
     {ok, {{one_for_one, 10, 10}, []}}.
 
 %%%===================================================================
 %%% internals
 %%%===================================================================
+-spec get_backends() -> [atom()].
+get_backends() ->
+    ets:lookup_element(?TABLE, list, 2).
+
 -spec get_backend(uri()) -> atom().
-get_backend(_) ->
-    % TODO: handle multiple backends
-    case ets:match_object(?TABLE, #occi_node{id=#uri{path="/", _='_'}, _='_'}) of
-	[] ->
-	    undefined;
-	[#occi_node{data=#occi_backend{ref=Ref}}] ->
-	    Ref
+get_backend(Path)  when is_list(Path) ->
+    T = ets:lookup_element(?TABLE, tree, 2),
+    get_backend2(Path, T).
+
+get_backend2(Path, Tree) when is_list(Path) ->
+    case gb_trees:is_empty(Tree) of
+	true ->
+	    throw({no_default_backend});
+	false->
+	    {_L, Mounts, Tree2} = gb_trees:take_largest(Tree),
+	    case lookup_mountpoint(Path, Mounts) of
+		{ok, #occi_node{objid=Ref}} ->
+		    Ref;
+		none ->
+		    get_backend2(Path, Tree2)
+	    end
     end.
 
-get_dft_backend() ->
-    case ets:match_object(?TABLE, #occi_node{id=#uri{path="/", _='_'}, _='_'}) of
-	[] ->
-	    throw(no_default_backend);
-	[#occi_node{data=#occi_backend{ref=Ref}}] ->
-	    Ref
+-spec lookup_mountpoint(string(), [occi_node()]) -> {ok, occi_node()} | none.
+lookup_mountpoint(_Path, []) ->
+    none;
+lookup_mountpoint(Path, [#occi_node{id=#uri{path=Mountpoint}}=Node|Tail]) ->
+    case lists:prefix(Mountpoint, Path) of
+	true -> {ok, Node};
+	false -> lookup_mountpoint(Path, Tail)
     end.
 
-get_user_mixins() ->
-    {ok, Mixins} = occi_backend:find(get_dft_backend(), #occi_node{type=occi_query, _='_'}),
-    Mixins.
+add_backend(Node) ->
+    insert_tree(Node),
+    insert_list(Node).
+
+insert_tree(#occi_node{id=#uri{path=Path}, type=mountpoint}=Node) ->
+    L = length(string:tokens(Path, "/")),
+    T = ets:lookup_element(?TABLE, tree, 2),
+    Mounts = case gb_trees:lookup(L, T) of
+		 {value, Val} -> Val;
+		 none ->
+		     []
+	     end,
+    T1 = gb_trees:enter(L, [Node | Mounts], T),
+    ets:insert(?TABLE, {tree, T1}).
+
+insert_list(#occi_node{objid=Ref}) ->
+    L = ets:lookup_element(?TABLE, list, 2),
+    ets:insert(?TABLE, {list, [Ref|L]}).
+
+store_fold(Merge, Acc, Op, Req) ->
+    store_fold(Merge, Acc, Op, Req, get_backends()).
+
+store_fold(_Merge, Acc, _Op, _Req, []) ->
+    {ok, Acc};
+store_fold(Merge, Acc, Op, Req, [Ref|Tail]) ->
+    case occi_backend:Op(Ref, Req) of
+	{ok, Res} ->
+	    store_fold(Merge, Merge(Res, Acc), Op, Req, Tail);
+	{error, Err} ->
+	    {error, Err}
+    end.

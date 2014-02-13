@@ -31,7 +31,8 @@
 	 add_entities/2,
 	 del_entity/2,
 	 del_entities/2,
-	 get_entities/1]).
+	 get_entities/1,
+	 merge/2]).
 
 new() ->
     #occi_collection{entities=ordsets:new()}.
@@ -60,3 +61,11 @@ del_entities(#occi_collection{entities=E}=C, Uris) ->
 
 get_entities(#occi_collection{entities=E}) ->
     ordsets:to_list(E).
+
+merge(#occi_collection{}=C, undefined) ->
+    C;
+merge(#occi_collection{cid=Cid, entities=E1}=C1,
+      #occi_collection{cid=Cid, entities=E2}) ->
+    C1#occi_collection{entities=ordsets:union(E1, E2)};
+merge(_C1, _C2) ->
+    throw({error, merge_collection_failed}).

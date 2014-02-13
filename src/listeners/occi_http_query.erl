@@ -123,7 +123,7 @@ from_xml(Req, State) ->
 %%% Private
 %%%
 to(Req, State, #content_type{renderer=R}) ->
-    {ok, Node} = occi_store:find(State),
+    {ok, [Node]} = occi_store:find(State),
     Body = [R:render(Node), "\n"],
     {Body, Req, State}.
 
