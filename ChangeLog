@@ -1,3 +1,10 @@
+0.2 Jean Parpaillon <jean.parpaillon@free.fr>
+
+	* Add XML rendering
+	* Introduce multi-backend: backends are linked to a path (like UNIX mountpoint)
+	* Multi-backends request are parallel
+	* Introduce test suite (bash)
+
 0.1.1  Jean Parpaillon  <jean.parpaillon@free.fr>
 
 	* Bug fixes:
