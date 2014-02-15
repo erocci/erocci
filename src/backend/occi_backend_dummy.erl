@@ -35,38 +35,45 @@
 	 find/2,
 	 load/2]).
 
--record(state, {id :: atom()}).
+-record(state, {id             :: atom(),
+		wait           :: integer()}).
 
 %%%===================================================================
 %%% occi_backend callbacks
 %%%===================================================================
 init(Props) ->
-    {ok, #state{id=proplists:get_value(ref, Props)}}.
+    {ok, #state{id=proplists:get_value(ref, Props),
+		wait=proplists:get_value(wait, Props, 0)}}.
 
 terminate(#state{}) ->
     ok.
 
-save(Obj, #state{id=Id}=State) when is_record(Obj, occi_node);
+save(Obj, #state{id=Id, wait=Wait}=State) when is_record(Obj, occi_node);
 		      is_record(Obj, occi_mixin) ->
     lager:info("[~p] save(~p)~n", [Id, lager:pr(Obj, ?MODULE)]),
+    timer:sleep(Wait),
     {ok, State}.
 
-delete(Obj, #state{id=Id}=State) when is_record(Obj, occi_node);
+delete(Obj, #state{id=Id, wait=Wait}=State) when is_record(Obj, occi_node);
 			is_record(Obj, occi_mixin) ->
     lager:info("[~p] delete(~p)~n", [Id, lager:pr(Obj, ?MODULE)]),
+    timer:sleep(Wait),
     {ok, State}.
 
-update(#occi_node{}=Node, #state{id=Id}=State) ->
+update(#occi_node{}=Node, #state{id=Id, wait=Wait}=State) ->
     lager:info("[~p] update(~p)~n", [Id, lager:pr(Node, ?MODULE)]),
+    timer:sleep(Wait),
     {ok, State}.
 
-find(Obj, #state{id=Id}=State) when is_record(Obj, occi_node);
+find(Obj, #state{id=Id, wait=Wait}=State) when is_record(Obj, occi_node);
 				    is_record(Obj, occi_mixin) ->
     lager:info("[~p] find(~p)~n", [Id, lager:pr(Obj, ?MODULE)]),
+    timer:sleep(Wait),
     {{ok, []}, State}.
 
-load(#occi_node{}=Req, #state{id=Id}=State) ->
+load(#occi_node{}=Req, #state{id=Id, wait=Wait}=State) ->
     lager:info("[~p] load(~p)~n", [Id, lager:pr(Req, ?MODULE)]),
+    timer:sleep(Wait),
     {{ok, Req}, State}.
 
 %%%===================================================================

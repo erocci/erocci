@@ -31,20 +31,18 @@
 	 save/2,
 	 delete/2,
 	 find/2,
-	 load/2]).
+	 load/2,
+	 cast/3,
+	 cancel/2]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
 	 terminate/2, code_change/3]).
 
-% Backends config type
--type backend_config() :: {Ref :: atom(),
-			   Mod :: atom(), 
-			   Opts :: backend_opts()}.
--type backend_opts() :: [{Key::atom(), Value::any()}].
--export_type([backend_config/0, backend_opts/0]).
-
--record(state, {backend, state}).
+-record(state, {ref             :: atom(),
+		mod             :: atom(),
+		state           :: term(),
+		pending         :: term()}).
 
 -callback init(Args :: term()) ->
     {ok, State :: term()} |
@@ -77,9 +75,9 @@
 %%% API
 %%% 
 -spec start_link(atom(), atom(), term()) -> {ok, pid()} | ignore | {error, term()}.
-start_link(Ref, Backend, Opts) ->
-    lager:info("Starting storage backend ~p (~p)~n", [Ref, Backend]),
-    gen_server:start_link({local, Ref}, ?MODULE, {Backend, Opts}, []).
+start_link(Ref, Mod, Opts) ->
+    lager:info("Starting storage backend ~p (~p)~n", [Ref, Mod]),
+    gen_server:start_link({local, Ref}, ?MODULE, {Ref, Mod, Opts}, []).
 
 update(Ref, Node) ->
     gen_server:call(Ref, {update, Node}).
@@ -96,6 +94,12 @@ find(Ref, Request) ->
 load(Ref, Request) ->
     gen_server:call(Ref, {load, Request}).
 
+cast(Ref, Op, Req) ->
+    gen_server:call(Ref, {cast, Op, Req}).
+
+cancel(Ref, Tag) ->
+    gen_server:cast(Ref, {cancel, Tag}).
+
 %%--------------------------------------------------------------------
 %% @private
 %% @doc
@@ -108,10 +112,11 @@ load(Ref, Request) ->
 %% @end
 %%--------------------------------------------------------------------
 -spec init({atom(), term()}) -> {ok, term()} | {error, term()} | ignore.
-init({Backend, Args}) ->
-    case Backend:init(Args) of
+init({Ref, Mod, Args}) ->
+    T = ets:new(Mod, [set, public, {keypos, 1}]),
+    case Mod:init(Args) of
 	{ok, BackendState} ->
-	    {ok, #state{backend=Backend, state=BackendState}};
+	    {ok, #state{ref=Ref, mod=Mod, pending=T, state=BackendState}};
 	{error, Error} ->
 	    {stop, Error}
     end.
@@ -130,21 +135,26 @@ init({Backend, Args}) ->
 %%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_call({update, Node}, _From, #state{backend=Backend, state=BState}) ->
-    {Reply, RState} = Backend:update(Node, BState),
-    {reply, Reply, #state{backend=Backend, state=RState}};
-handle_call({save, Obj}, _From, #state{backend=Backend, state=BState}) ->
-    {Reply, RState} = Backend:save(Obj, BState),
-    {reply, Reply, #state{backend=Backend, state=RState}};
-handle_call({delete, Obj}, _From, #state{backend=Backend, state=BState}) ->
-    {Reply, RState} = Backend:delete(Obj, BState),
-    {reply, Reply, #state{backend=Backend, state=RState}};    
-handle_call({find, Request}, _From, #state{backend=Backend, state=BState}) ->
-    {Reply, RState} = Backend:find(Request, BState),
-    {reply, Reply, #state{backend=Backend, state=RState}};
-handle_call({load, Request}, _From, #state{backend=Backend, state=BState}) ->
-    {Reply, RState} = Backend:load(Request, BState),
-    {reply, Reply, #state{backend=Backend, state=RState}};
+handle_call({cast, Op, Req}, {Pid, Tag}, #state{ref=Ref, mod=Mod, pending=T, state=BState}=State) ->
+    ets:insert(T, {Tag, Pid}),
+    F = fun () ->
+		{Reply, _} = Mod:Op(Req, BState),
+		case ets:match_object(T, {Tag, '_'}) of
+		    [] ->
+			% Operation canceled
+			ok;
+		    [{Tag, Pid}] ->
+			Pid ! {{Ref, Tag}, Reply},
+			ets:delete(T, Tag)
+		end
+	end,
+    spawn(F),
+    {reply, Tag, State#state{state=BState}};
+
+handle_call({Op, Request}, _From, #state{mod=Mod, state=BState}=State) ->
+    {Reply, RState} = Mod:Op(Request, BState),
+    {reply, Reply, State#state{mod=Mod, state=RState}};
+
 handle_call(Req, From, State) ->
     lager:error("Unknown message from ~p: ~p~n", [From, Req]),
     {noreply, State}.
@@ -159,6 +169,10 @@ handle_call(Req, From, State) ->
 %%                                  {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
+handle_cast({cancel, Tag}, #state{pending=T}=State) ->
+    ets:delete(T, Tag),
+    {noreply, State};
+
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
@@ -186,8 +200,9 @@ handle_info(_Info, State) ->
 %% @spec terminate(Reason, State) -> void()
 %% @end
 %%--------------------------------------------------------------------
-terminate(_Reason, #state{backend=Backend, state=State}) ->
-    Backend:terminate(State).
+terminate(_Reason, #state{pending=T, mod=Mod, state=State}) ->
+    ets:delete(T),
+    Mod:terminate(State).
 
 %%--------------------------------------------------------------------
 %% @private
@@ -199,3 +214,4 @@ terminate(_Reason, #state{backend=Backend, state=State}) ->
 %%--------------------------------------------------------------------
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
+

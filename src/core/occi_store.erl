@@ -103,7 +103,7 @@ delete(#occi_node{id=#uri{path=Path}}=Node) ->
     occi_backend:delete(get_backend(Path), Node).
 
 -spec find(occi_node() | occi_mixin()) -> {ok, [occi_node() | occi_mixin()]} | {error, term()}.
-find(#occi_mixin{location=undefined}=Req) ->
+find(#occi_mixin{location='_'}=Req) ->
     lager:debug("occi_store:find(~p)~n", [lager:pr(Req, ?MODULE)]),
     Merge = fun (Mixins, Acc) -> 
 		    Mixins ++ Acc 
@@ -167,16 +167,16 @@ init([]) ->
     lager:info("Starting OCCI storage manager"),
     ?TABLE = ets:new(?TABLE, [set, public, {keypos, 1}, named_table]),
     ets:insert(?TABLE, {tree, gb_trees:empty()}),
-    ets:insert(?TABLE, {list, []}),
+    ets:insert(?TABLE, {set, gb_sets:new()}),
     % start no child, will be added with backends
     {ok, {{one_for_one, 10, 10}, []}}.
 
 %%%===================================================================
 %%% internals
 %%%===================================================================
--spec get_backends() -> [atom()].
+-spec get_backends() -> set().
 get_backends() ->
-    ets:lookup_element(?TABLE, list, 2).
+    ets:lookup_element(?TABLE, set, 2).
 
 -spec get_backend(uri()) -> atom().
 get_backend(Path)  when is_list(Path) ->
@@ -208,7 +208,7 @@ lookup_mountpoint(Path, [#occi_node{id=#uri{path=Mountpoint}}=Node|Tail]) ->
 
 add_backend(Node) ->
     insert_tree(Node),
-    insert_list(Node).
+    insert_set(Node).
 
 insert_tree(#occi_node{id=#uri{path=Path}, type=mountpoint}=Node) ->
     L = length(string:tokens(Path, "/")),
@@ -221,19 +221,41 @@ insert_tree(#occi_node{id=#uri{path=Path}, type=mountpoint}=Node) ->
     T1 = gb_trees:enter(L, [Node | Mounts], T),
     ets:insert(?TABLE, {tree, T1}).
 
-insert_list(#occi_node{objid=Ref}) ->
-    L = ets:lookup_element(?TABLE, list, 2),
-    ets:insert(?TABLE, {list, [Ref|L]}).
+insert_set(#occi_node{objid=Ref}) ->
+    S = ets:lookup_element(?TABLE, set, 2),
+    ets:insert(?TABLE, {set, gb_sets:add(Ref, S)}).
 
-store_fold(Merge, Acc, Op, Req) ->
-    store_fold(Merge, Acc, Op, Req, get_backends()).
+store_fold(Merge, Res, Op, Req) ->
+    store_fold(Merge, Res, Op, Req, get_backends()).
 
-store_fold(_Merge, Acc, _Op, _Req, []) ->
-    {ok, Acc};
-store_fold(Merge, Acc, Op, Req, [Ref|Tail]) ->
-    case occi_backend:Op(Ref, Req) of
-	{ok, Res} ->
-	    store_fold(Merge, Merge(Res, Acc), Op, Req, Tail);
-	{error, Err} ->
+store_fold(Merge, Res, Op, Req, Backends) ->
+    Tags = gb_sets:fold(fun (Backend, Acc) ->
+				gb_sets:insert({Backend, occi_backend:cast(Backend, Op, Req)}, Acc)
+			end, gb_sets:new(), Backends),
+    wait_response(Merge, Res, Tags, Backends).
+
+wait_response(Merge, Acc, Tags, Backends) ->
+    receive 
+	{From, {ok, Res}} ->
+	    Acc2 = Merge(Res, Acc),
+	    Tags2 = gb_sets:delete(From, Tags),
+	    case gb_sets:is_empty(Tags2) of
+		true -> 
+		    {ok, Acc2};
+		false ->
+		    wait_response(Merge, Acc2, Tags2, Backends)
+	    end;
+	{_From, {error, Err}} ->
+	    cancel_response(gb_sets:next(gb_sets:iterator(Tags))),
 	    {error, Err}
+    after 
+	5000 ->
+	    cancel_response(gb_sets:next(gb_sets:iterator(Tags))),
+	    {error, timeout}
     end.
+
+cancel_response(none) ->
+    ok;
+cancel_response({{Backend, Tag}, It}) ->
+    occi_backend:cancel(Backend, Tag),
+    cancel_response(gb_sets:next(It)).
