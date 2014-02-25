@@ -44,7 +44,8 @@ new(#uri{path=Path}, dir)  ->
     #occi_node{id=#uri{path=Path}, type=dir, data=gb_sets:new()};
 
 new(#uri{path=Path}, #occi_backend{ref=Ref}=Backend)  ->
-    #occi_node{id=#uri{path=Path}, objid=Ref, type=mountpoint, data=Backend};
+    NormPath = "/" ++ string:join(string:tokens(Path, "/"), "/"),
+    #occi_node{id=#uri{path=NormPath}, objid=Ref, type=mountpoint, data=Backend};
 
 new(#uri{path=Path}, #occi_resource{id=Id}=Data)  ->
     #occi_node{id=#uri{path=Path}, objid=Id, type=occi_resource, data=Data};

@@ -135,7 +135,7 @@ init({Ref, Mod, Args}) ->
 %%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_call({cast, Op, Req}, {Pid, Tag}, #state{ref=Ref, mod=Mod, pending=T, state=BState}=State) ->
+handle_call({cast, Op, Req}, {Pid, Tag}, #state{mod=Mod, pending=T, state=BState}=State) ->
     ets:insert(T, {Tag, Pid}),
     F = fun () ->
 		{Reply, _} = Mod:Op(Req, BState),
@@ -144,7 +144,7 @@ handle_call({cast, Op, Req}, {Pid, Tag}, #state{ref=Ref, mod=Mod, pending=T, sta
 			% Operation canceled
 			ok;
 		    [{Tag, Pid}] ->
-			Pid ! {{Ref, Tag}, Reply},
+			Pid ! {Tag, Reply},
 			ets:delete(T, Tag)
 		end
 	end,

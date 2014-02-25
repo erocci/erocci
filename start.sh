@@ -37,8 +37,14 @@ cat <<EOF > $config
 ].
 EOF
 
+if [ -d $PWD/deps ]; then
+    depsbin=$PWD/deps
+else
+    depsbin=$PWD/..
+fi
+
 exec erl -pa $PWD/ebin \
-    $PWD/deps/*/ebin \
+    $depsbin/*/ebin \
     -boot start_sasl \
     -config $config \
     -kernel error_logger silent \
