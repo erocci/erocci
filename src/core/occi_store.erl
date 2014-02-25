@@ -348,8 +348,19 @@ rm_substr(_S1, S2) ->
 
 add_prefix("/", E) ->
     E;
+
 add_prefix(Prefix, #occi_mixin{location=#uri{path=Path}=Uri}=Mixin) ->
     Mixin#occi_mixin{location=Uri#uri{path=Prefix=Path}};
+
+add_prefix(Prefix, #occi_node{id=#uri{path=Path}=Uri, type=occi_resource, 
+			      data=#occi_resource{id=Id}=Res}=Node) ->
+    Res2 = Res#occi_resource{id=Id#uri{path=Prefix++Id#uri.path}},
+    Node#occi_node{id=Uri#uri{path=Prefix++Path}, data=Res2};
+
+add_prefix(Prefix, #occi_node{id=#uri{path=Path}=Uri, type=occi_link, 
+			      data=#occi_link{id=Id}=Link}=Node) ->
+    Link2 = Link#occi_link{id=Id#uri{path=Prefix++Id#uri.path}},
+    Node#occi_node{id=Uri#uri{path=Prefix++Path}, data=Link2};
+
 add_prefix(Prefix, #occi_node{id=#uri{path=Path}=Uri}=Node) ->
     Node#occi_node{id=Uri#uri{path=Prefix++Path}}.
-
