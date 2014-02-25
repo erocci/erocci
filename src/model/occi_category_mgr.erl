@@ -65,9 +65,19 @@ register_extension({xml, Path}, Mapping) ->
 	    {error, parse_error};
 	Ext ->
 	    lists:foreach(fun(#occi_kind{id=Id}=Kind) ->
-				  register_kind(Kind#occi_kind{location=get_uri(Id, Mapping)});
+				  case get_uri(Id, Mapping) of
+				      none ->
+					  lager:info("Ignore category: ~p~n", [lager:pr(Id, ?MODULE)]);
+				      #uri{}=Uri ->
+					  register_kind(Kind#occi_kind{location=Uri})
+				  end;
 			     (#occi_mixin{id=Id}=Mixin) ->
-				  register_mixin(Mixin#occi_mixin{location=get_uri(Id, Mapping)})
+				  case get_uri(Id, Mapping) of
+				      none ->
+					  lager:info("Ignore category: ~p~n", [lager:pr(Id, ?MODULE)]);
+				      #uri{}=Uri ->
+					  register_mixin(Mixin#occi_mixin{location=Uri})
+				  end
 			  end,
 			  occi_extension:get_categories(Ext)),
 	    lists:foreach(fun(#occi_type{}=Type) ->
@@ -192,10 +202,8 @@ init([]) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
-get_uri(Id, []) ->
-    lager:error("Unmapped category: ~s~s~n", [Id#occi_cid.scheme, 
-					      Id#occi_cid.term]),
-    throw({unmapped_category, Id});
+get_uri(_Id, []) ->
+    none;
 get_uri(Id, [{Id, Uri}|_Tail]) ->
     occi_uri:parse(Uri);
 get_uri(Id, [_H|Tail]) ->
