@@ -36,7 +36,8 @@
 	 add_kind/2,
 	 add_mixin/2,
 	 add_type/2,
-	 get_types/1]).
+	 get_types/1,
+	 find/2]).
 
 new(Name, Version) ->
     #occi_extension{name=Name, 
@@ -85,3 +86,25 @@ add_mixin(#occi_extension{mixins=Mixins}=Ext, Mixin) ->
 
 get_types(#occi_extension{types=Types}) ->
     Types.
+
+find(#occi_extension{kinds=Kinds, mixins=Mixins}, #occi_cid{class='_'}=Cid) ->
+    find_category(lists:flatten([Kinds, Mixins]), Cid);
+find(#occi_extension{kinds=Kinds}, #occi_cid{class=kind}=Cid) ->
+    find_category(Kinds, Cid);
+find(#occi_extension{mixins=Mixins}, #occi_cid{class=mixins}=Cid) ->
+    find_category(Mixins, Cid).
+
+%%%
+%%% Private
+%%%
+find_category([#occi_kind{id=#occi_cid{scheme=Scheme, term=Term}}=Kind | _], 
+	      #occi_cid{scheme=Scheme, term=Term}) ->
+    [Kind];
+find_category([#occi_mixin{id=#occi_cid{scheme=Scheme, term=Term}}=Mixin | _], 
+	      #occi_cid{scheme=Scheme, term=Term}) ->
+    [Mixin];
+find_category([ _ | Categories], #occi_cid{}=Cid) ->
+    find_category(Categories, Cid);
+find_category([], #occi_cid{}=_Cid) ->
+    [].
+

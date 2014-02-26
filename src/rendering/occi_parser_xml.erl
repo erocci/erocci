@@ -472,8 +472,13 @@ mixin(E=?depends, _From, #parser{state=#state{mixin=Mixin}=State}=Ctx) ->
 	{error, Reason} ->
 	    {reply, {error, Reason}, eof, Ctx};
 	{ok, Scheme, Term} ->
-	    {reply, ok, mixin, 
-	     ?set_state(Ctx, State#state{mixin=occi_mixin:add_depends(Mixin, Scheme, Term)})}
+	    case check_cid(Scheme, Term, State) of
+		#occi_cid{}=Cid ->
+		    Mixin2 = occi_mixin:add_depends(Mixin, Cid),
+		    {reply, ok, mixin, ?set_state(Ctx, State#state{mixin=Mixin2})};
+		error ->
+		    {reply, {error, invalid_cid, {Scheme, Term}}, eof, Ctx}
+	    end
     end;
 
 mixin(_E=?dependsEnd, _From, Ctx) ->
@@ -484,8 +489,13 @@ mixin(E=?applies, _From, #parser{state=#state{mixin=Mixin}=State}=Ctx) ->
 	{error, Reason} ->
 	    {reply, {error, Reason}, eof, Ctx};
 	{ok, Scheme, Term} ->
-	    {reply, ok, mixin, 
-	     ?set_state(Ctx, State#state{mixin=occi_mixin:add_applies(Mixin, Scheme, Term)})}
+	    case check_cid(Scheme, Term, State) of
+		#occi_cid{}=Cid ->
+		    Mixin2 = occi_mixin:add_applies(Mixin, Cid),
+		    {reply, ok, mixin, ?set_state(Ctx, State#state{mixin=Mixin2})};
+		error ->
+		    {reply, {error, invalid_cid, {Scheme, Term}}, eof, Ctx}
+	    end
     end;
 
 mixin(_E=?appliesEnd, _From, Ctx) ->
@@ -877,6 +887,24 @@ get_cid(E) ->
 	    end
     end.
 
+check_cid(Scheme, Term, #state{extension=Ext}) ->
+    Cid = #occi_cid{scheme=Scheme, term=Term, class='_'},
+    case occi_extension:find(Ext, Cid) of
+	[#occi_kind{id=Cid2}] ->
+	    Cid2;
+	[#occi_mixin{id=Cid2}] ->
+	    Cid2;
+	[] ->
+	    case occi_category_mgr:find(Cid) of
+		[#occi_kind{id=Cid2}] ->
+		    Cid2;
+		[#occi_mixin{id=Cid2}] ->
+		    Cid2;
+		[] ->
+		    parse_error
+	    end
+    end.
+
 % Return a dict with prefix->ns_as_atom key/value
 -spec load_prefixes([{xmlname(), string()}]) -> term().
 load_prefixes(NS) ->
@@ -948,4 +976,3 @@ build_err(#xmlendtag{name=Name}) ->
     io_lib:format("Invalid element: ~p", [Name]);
 build_err(E) ->
     io_lib:format("Invalid element: ~p", [lager:pr(E, ?MODULE)]).
-
