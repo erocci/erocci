@@ -59,7 +59,7 @@ new(#uri{path=Path}, #occi_mixin{id=Id}=Data)  ->
 new(#uri{path=Path}, #occi_cid{}=Id) ->
     #occi_node{id=#uri{path=Path}, objid=Id, type=occi_collection, data=undefined};
 
-new(#uri{path=Path}, Type) ->
+new(#uri{path=Path}, Type) when is_atom(Type) ->
     #occi_node{id=#uri{path=Path}, type=Type}.
 
 -spec get_type(occi_node()) -> occi_node_type().

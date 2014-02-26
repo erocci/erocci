@@ -198,8 +198,8 @@ load(#occi_node{id=#uri{path=Path}, type=dir}=Node) ->
     case get_backend(Path) of
 	{ok, Ref, Prefix} ->
 	    case occi_backend:load(Ref, rm_prefix(Prefix, Node)) of
-		{ok, Node} ->
-		    {ok, add_prefix(Prefix, Node)};
+		{ok, Node2} ->
+		    {ok, add_prefix(Prefix, Node2)};
 		{error, Err} ->
 		    {error, Err}
 	    end;
@@ -222,8 +222,8 @@ load(#occi_node{id=#uri{path=Path}, data=undefined}=Node) ->
     case get_backend(Path) of
 	{ok, Ref, Prefix} ->
 	    case occi_backend:load(Ref, rm_prefix(Prefix, Node)) of
-		{ok, Node} ->
-		    {ok, add_prefix(Prefix, Node)};
+		{ok, Node2} ->
+		    {ok, add_prefix(Prefix, Node2)};
 		{error, Err} ->
 		    {error, Err}
 	    end;
