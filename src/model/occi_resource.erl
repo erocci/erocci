@@ -26,7 +26,7 @@
 
 -export([new/0,
 	 new/1,
-	 new/2,
+	 new/3,
 	 get_id/1,
 	 set_id/2,
 	 get_cid/1,
@@ -60,11 +60,15 @@ new(#occi_kind{}=Kind) ->
 new(#uri{}=Id) ->
     #occi_resource{id=Id, attributes=orddict:new(), links=sets:new()}.
 
-new(#uri{}=Id, #occi_kind{}=Kind) ->
-    #occi_resource{id=Id,
-		   cid=occi_kind:get_id(Kind), 
-		   attributes=occi_kind:get_attributes(Kind),
-		   links=sets:new()}.    
+-spec new(Id :: uri(), Kind :: occi_kind(), Attributes :: [{Key :: atom(), Val :: term}]) -> occi_resource().
+new(#uri{}=Id, #occi_kind{}=Kind, Attributes) ->
+    Res = #occi_resource{id=Id,
+			 cid=occi_kind:get_id(Kind), 
+			 attributes=occi_kind:get_attributes(Kind),
+			 links=sets:new()},
+    lists:foldl(fun ({Key, Value}, Acc) ->
+			occi_resource:set_attr_value(Acc, Key, Value)
+		end, Res, Attributes).
 
 -spec get_id(occi_resource()) -> uri().
 get_id(#occi_resource{id=Id}) ->
