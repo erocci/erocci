@@ -208,8 +208,8 @@ load(#occi_node{id=#uri{path=Path}, type=dir}=Node) ->
     end;
 load(#occi_node{objid=#occi_cid{}=Cid, type=occi_collection}=Node) ->
     lager:debug("occi_store:load(~p)~n", [lager:pr(Node, ?MODULE)]),
-    Merge = fun (_B, #occi_node{data=C}, Acc) ->
-		    occi_collection:merge(Acc, C)
+    Merge = fun (#occi_node{id=#uri{path=Prefix}}, #occi_node{data=C}, Acc) ->
+		    occi_collection:merge(Acc, C, Prefix)
 	    end,
     case store_fold(Merge, occi_collection:new(Cid), load, Node) of
 	{ok, Coll} ->

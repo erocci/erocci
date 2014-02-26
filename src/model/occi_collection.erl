@@ -32,7 +32,8 @@
 	 del_entity/2,
 	 del_entities/2,
 	 get_entities/1,
-	 merge/2]).
+	 merge/2,
+	 merge/3]).
 
 new() ->
     #occi_collection{entities=ordsets:new()}.
@@ -69,3 +70,11 @@ merge(#occi_collection{cid=Cid, entities=E1}=C1,
     C1#occi_collection{entities=ordsets:union(E1, E2)};
 merge(_C1, _C2) ->
     throw({error, merge_collection_failed}).
+
+merge(#occi_collection{}=C, undefined, _) ->
+    C;
+merge(#occi_collection{}=C1, #occi_collection{entities=E2}=C2, Prefix) ->
+    E3 = ordsets:fold(fun (#uri{path=Path}=Uri, Acc) ->
+			      ordsets:add_element(Uri#uri{path=Prefix++Path}, Acc)
+		      end, ordsets:new(), E2),
+    merge(C1, C2#occi_collection{entities=E3}).
