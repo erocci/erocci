@@ -2,7 +2,7 @@
 
 . $(dirname $0)/../testenv.sh
 
-id=/myresources/xml/network/$(uuidgen)
+id=/store/myresources/xml/network/$(uuidgen)
 
 content=$(cat <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
@@ -14,5 +14,3 @@ content=$(cat <<EOF
 EOF
 	   )
 put 201 ${id} "application/xml" "$content"
-
-

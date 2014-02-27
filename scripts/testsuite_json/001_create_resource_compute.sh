@@ -2,7 +2,7 @@
 
 . $(dirname $0)/../testenv.sh
 
-id=/myresources/json/compute/$(uuidgen)
+id=/store/myresources/json/compute/$(uuidgen)
 
 content=$(cat <<EOF
 {

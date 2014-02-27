@@ -2,7 +2,7 @@
 
 . $(dirname $0)/../testenv.sh
 
-id=/mylinks/json/networkinterfaces/$(uuidgen)
+id=/store/mylinks/json/networkinterfaces/$(uuidgen)
 content=$(cat <<EOF
 {
     "links": [

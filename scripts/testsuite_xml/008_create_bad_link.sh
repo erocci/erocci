@@ -2,7 +2,7 @@
 
 . $(dirname $0)/../testenv.sh
 
-id=/mylinks/xml/networkinterfaces/id$(uuidgen)
+id=/store/mylinks/xml/networkinterfaces/id$(uuidgen)
 content=$(cat <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <link xmlns="http://schemas.ogf.org/occi" 

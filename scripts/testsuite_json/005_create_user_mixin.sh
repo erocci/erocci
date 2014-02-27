@@ -8,7 +8,7 @@ content=$(cat <<EOF
    {
       "term": "jsonmixin",
       "scheme": "http://schemas.example.org/occi#",
-      "location": "/usermixins/jsonmixin/"
+      "location": "/store/usermixins/jsonmixin/"
    }
   ]
 }

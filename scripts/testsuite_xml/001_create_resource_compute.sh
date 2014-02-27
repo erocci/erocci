@@ -2,7 +2,7 @@
 
 . $(dirname $0)/../testenv.sh
 
-id=/myresources/xml/compute/$(uuidgen)
+id=/store/myresources/xml/compute/$(uuidgen)
 
 content=$(cat <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
