@@ -49,23 +49,8 @@ start_link(Ref, Opts) ->
     cowboy:start_http(Ref, 100, validate_cfg(Opts), [{env, [{dispatch, Dispatch}]}]).
 
 validate_cfg(Opts) ->
-    Address = case lists:keyfind(ip, 1, Opts) of
-     		  false ->
-     		      {0,0,0,0};
-     		  {ip, Str} ->
-     		      case inet_parse:address(binary_to_list(Str)) of
-     			  {ok, Ip} -> Ip;
-     			  {error, einval} -> 
-     			      lager:error("Invalid listener address: ~p~n", [Str]),
-     			      throw(einval)
-     		      end
-     	      end,
-    Port = case lists:keyfind(port, 1, Opts) of
-	       false ->
-		   lager:error("No port in listener config: ~p~n", [?MODULE]),
-		   throw(einval);
-	       {port, I} -> I
-	   end,
+    Address = proplists:get_value(ip, Opts, {0,0,0,0}),
+    Port = proplists:get_value(port, Opts, 8080),
     [{ip, Address}, {port, Port}].
 
 terminate(Ref) ->
