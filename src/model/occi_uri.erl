@@ -71,6 +71,9 @@ is_rel(#uri{path=Path}) ->
 %%% If URI's path is absolute, does nothing
 %%%
 -spec add_prefix(uri(), string()) -> uri().
+add_prefix(undefined, _) ->
+    undefined;
+
 add_prefix(#uri{path=Path}=Uri, Prefix) ->
     case filename:split(Path) of
 	["/"|_P] ->
@@ -83,6 +86,9 @@ add_prefix(#uri{path=Path}=Uri, Prefix) ->
 %%% Remove prefix and make path relative
 %%%
 -spec rm_prefix(uri(), string()) -> uri().
+rm_prefix(undefined, _) ->
+    undefined;
+
 rm_prefix(#uri{path=Path}=Uri, Prefix) -> 
     case substr(Prefix, Path) of
 	{ok, Path2} -> #uri{path=Path2};
@@ -132,7 +138,7 @@ substr(["/", _C1| _S1], ["/", _C2| _S2], false) ->
 substr([C|S1], [C|S2], _MakeRel) ->
     substr(S1, S2, true);
 substr([], [], true) ->
-    {ok, "/"};
+    {ok, []};
 substr([], S2, true) ->
     {ok, filename:join(S2)};
 substr(_S1, _S2, false) ->

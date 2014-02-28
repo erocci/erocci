@@ -39,7 +39,6 @@
 	 get_attr/2,
 	 get_attributes/1,
 	 add_link/2,
-	 add_inline_link/2,
 	 get_links/1,
 	 set_title/2,
 	 get_title/1,
@@ -169,12 +168,10 @@ get_attributes(#occi_resource{attributes=Attrs}) ->
 
 -spec add_link(occi_resource(), uri()) -> occi_resource().
 add_link(#occi_resource{links=Links}=Res, #uri{}=Link) ->
-    Res#occi_resource{links=sets:add_element(Link, Links)}.
+    Res#occi_resource{links=sets:add_element(Link, Links)};
 
--spec add_inline_link(occi_resource(), occi_link()) -> occi_resource().
-add_inline_link(#occi_resource{id=Id, links=Links}=Res, #occi_link{}=Link) ->
-    Link2 = occi_link:set_source(Link, Id),
-    Res#occi_resource{links=sets:add_element(Link2, Links)}.
+add_link(#occi_resource{links=Links}=Res, #occi_link{}=Link) ->
+    Res#occi_resource{links=sets:add_element(Link, Links)}.
 
 -spec get_links(occi_resource()) -> [uri()].
 get_links(#occi_resource{links=Links}) ->
