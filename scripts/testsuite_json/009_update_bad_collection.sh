@@ -3,7 +3,7 @@
 . $(dirname $0)/../testenv.sh
 
 content=$(cat <<EOF
-[ "http://localhost:8080/badresoruce" ]
+[ "http://localhost:8080/store/badresoruce" ]
 EOF
        )
 

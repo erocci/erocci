@@ -36,7 +36,7 @@ start() ->
 		  [{xml, "schemas/occi-infrastructure.xml"}], 
 		  Mapping},
     Backends = {backends, 
-		[{dummy1, occi_backend_dumma, [], "/"},
+		[{dummy1, occi_backend_dummy, [], "/"},
 		 {mnesia, occi_backend_mnesia, [], "/store"},
 		 {dummy2, occi_backend_dummy, [], "/dummy1/with/a/long/path"},
 		 {dummy3, occi_backend_dummy, [], "/dummy2"}]},
