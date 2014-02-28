@@ -33,7 +33,9 @@
 	 del_entities/2,
 	 get_entities/1,
 	 merge/2,
-	 merge/3]).
+	 fold/2,
+	 add_prefix/2,
+	 rm_prefix/2]).
 
 new() ->
     #occi_collection{entities=ordsets:new()}.
@@ -71,10 +73,16 @@ merge(#occi_collection{cid=Cid, entities=E1}=C1,
 merge(_C1, _C2) ->
     throw({error, merge_collection_failed}).
 
-merge(#occi_collection{}=C, undefined, _) ->
-    C;
-merge(#occi_collection{}=C1, #occi_collection{entities=E2}=C2, Prefix) ->
-    E3 = ordsets:fold(fun (#uri{path=Path}=Uri, Acc) ->
-			      ordsets:add_element(Uri#uri{path=Prefix++Path}, Acc)
-		      end, ordsets:new(), E2),
-    merge(C1, C2#occi_collection{entities=E3}).
+fold(#occi_collection{entities=E}=C, F) when is_function(F) ->
+    E2 = ordsets:fold(fun (Uri, Acc) ->
+			      ordsets:add_element(F(Uri), Acc)
+		      end, ordsets:new(), E),
+    C#occi_collection{entities=E2}.
+
+-spec add_prefix(occi_collection(), string()) -> occi_collection().
+add_prefix(#occi_collection{}=Coll, Prefix) when is_list(Prefix) ->
+    fold(Coll, fun (#uri{}=Uri) -> occi_uri:add_prefix(Uri, Prefix) end).
+
+-spec rm_prefix(occi_collection(), string()) -> occi_collection().
+rm_prefix(#occi_collection{}=Coll, Prefix) when is_list(Prefix) ->
+    fold(Coll, fun (#uri{}=Uri) -> occi_uri:rm_prefix(Uri, Prefix) end).

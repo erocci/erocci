@@ -39,9 +39,13 @@
 	 get_attr/2,
 	 get_attributes/1,
 	 add_link/2,
+	 add_inline_link/2,
 	 get_links/1,
 	 set_title/2,
-	 get_title/1]).
+	 get_title/1,
+	 get_links_size/1,
+	 add_prefix/2,
+	 rm_prefix/2]).
 
 -export([reset/1]).
 
@@ -167,12 +171,39 @@ get_attributes(#occi_resource{attributes=Attrs}) ->
 add_link(#occi_resource{links=Links}=Res, #uri{}=Link) ->
     Res#occi_resource{links=sets:add_element(Link, Links)}.
 
+-spec add_inline_link(occi_resource(), occi_link()) -> occi_resource().
+add_inline_link(#occi_resource{id=Id, links=Links}=Res, #occi_link{}=Link) ->
+    Link2 = occi_link:set_source(Link, Id),
+    Res#occi_resource{links=sets:add_element(Link2, Links)}.
+
 -spec get_links(occi_resource()) -> [uri()].
 get_links(#occi_resource{links=Links}) ->
     sets:to_list(Links).
+
+-spec get_links_size(occi_resource()) -> integer().
+get_links_size(#occi_resource{links=Links}) ->
+    sets:size(Links).
 
 -spec reset(occi_resource()) -> occi_resource().
 reset(#occi_resource{attributes=Attrs}=Res) ->
     Res#occi_resource{attributes=orddict:map(fun (_Key, Attr) ->
 						     occi_attribute:reset(Attr)
 					     end, Attrs)}.
+
+-spec add_prefix(occi_resource(), string()) -> occi_resource().
+add_prefix(#occi_resource{id=Uri, links=Links}=Res, Prefix) ->
+    Links2 = sets:fold(fun (#uri{}=U, Acc) ->
+			       sets:add_element(occi_uri:add_prefix(U, Prefix), Acc);
+			   (#occi_link{}=L, Acc) ->
+			       sets:add_element(occi_link:add_prefix(L, Prefix), Acc)
+		       end, sets:new(), Links),
+    Res#occi_resource{id=occi_uri:add_prefix(Uri, Prefix), links=Links2}.
+
+-spec rm_prefix(occi_resource(), string()) -> occi_resource().
+rm_prefix(#occi_resource{id=#uri{}=Uri, links=Links}=Res, Prefix) ->
+    Links2 = sets:fold(fun (#uri{}=U, Acc) ->
+			       sets:add_element(occi_uri:rm_prefix(U, Prefix), Acc);
+			   (#occi_link{}=L, Acc) ->
+			       sets:add_element(occi_link:rm_prefix(L, Prefix), Acc)
+		       end, sets:new(), Links),
+    Res#occi_resource{id=occi_uri:rm_prefix(Uri, Prefix), links=Links2}.

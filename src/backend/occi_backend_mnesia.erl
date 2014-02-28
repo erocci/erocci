@@ -72,6 +72,7 @@ terminate(#state{}) ->
 
 save(Obj, State) when is_record(Obj, occi_node);
 		      is_record(Obj, occi_mixin) ->
+    lager:info("[~p] save(~p)~n", [?MODULE, Obj]),
     case mnesia:transaction(fun () -> save_t(Obj) end) of
 	{atomic, ok} ->
 	    {ok, State};
@@ -81,6 +82,7 @@ save(Obj, State) when is_record(Obj, occi_node);
 
 delete(Obj, State) when is_record(Obj, occi_node);
 			is_record(Obj, occi_mixin) ->
+    lager:info("[~p] delete(~p)~n", [?MODULE, Obj]),
     case mnesia:transaction(fun () -> del_node_t(Obj) end) of
 	{atomic, ok} ->
 	    {ok, State};
@@ -89,6 +91,7 @@ delete(Obj, State) when is_record(Obj, occi_node);
     end.
 
 update(#occi_node{}=Node, State) ->
+    lager:info("[~p] update(~p)~n", [?MODULE, Node]),
     case mnesia:transaction(fun () -> update_t(Node) end) of
 	{atomic, ok} ->
 	    {ok, State};
@@ -98,6 +101,7 @@ update(#occi_node{}=Node, State) ->
 
 find(Obj, State) when is_record(Obj, occi_node);
 		      is_record(Obj, occi_mixin) ->
+    lager:info("[~p] find(~p)~n", [?MODULE, Obj]),
     case mnesia:transaction(fun () ->
 				    find_node_t(Obj)
 			    end) of
@@ -108,6 +112,7 @@ find(Obj, State) when is_record(Obj, occi_node);
     end.
 
 load(#occi_node{}=Req, State) ->
+    lager:info("[~p] load(~p)~n", [?MODULE, Req]),
     case mnesia:transaction(fun () ->
 				    load_node_t(Req)
 			    end) of
@@ -192,13 +197,9 @@ save_t(#occi_node{type=occi_collection, data=Coll}) ->
 
 save_collection_t(#occi_collection{}=Coll) ->
     lists:foreach(fun (#uri{}=Id) ->
-			  case mnesia:wread({occi_resource, Id}) of
-			      [] ->
-				  case mnesia:wread({occi_link, Id}) of
-				      [] -> mnesia:abort({no_such_entity, Id});
-				      _ -> ok
-				  end;
-			      _ -> ok
+			  case check_entity_t(Id) of
+			      true -> ok;
+			      false -> mnesia:abort({unknown_entity, Id})
 			  end
 		  end, occi_collection:get_entities(Coll)),
     mnesia:write(Coll).
@@ -214,8 +215,8 @@ save_entity_t(#occi_resource{}=Res) ->
     ok;
 
 save_entity_t(#occi_link{}=Link) ->
-    add_link_t(occi_link:get_id(Link), occi_link:get_source(Link)),
-    add_link_t(occi_link:get_id(Link), occi_link:get_target(Link)),
+    add_link_t(Link, occi_link:get_source(Link)),
+    add_link_t(Link, occi_link:get_target(Link)),
     mnesia:write(Link),
     KindId = occi_link:get_cid(Link),
     Uri = occi_link:get_id(Link),
@@ -225,13 +226,24 @@ save_entity_t(#occi_link{}=Link) ->
 	      end, ok, occi_link:get_mixins(Link)),
     ok.
 
-add_link_t(LinkId, ResId) ->
-    case mnesia:wread({occi_resource, ResId}) of
-	[] ->
-	    mnesia:abort({unknown_resource, ResId});
-	[Res] ->
-	    mnesia:write(occi_resource:add_link(Res, LinkId))
-    end.
+add_link_t(Link, ResId) ->
+    Res2 = case occi_uri:is_rel(ResId) of
+	       true ->
+		   case mnesia:wread({occi_resource, ResId}) of
+		       [] ->
+			   mnesia:abort({unknown_resource, ResId});
+		       [Res] ->
+			   occi_resource:add_link(Res, occi_link:get_id(Link))
+		   end;
+	       false ->
+		   case occi_store:find(#occi_node{id=ResId, _='_'}) of
+		       {ok, []} ->
+			   mnesia:abort({unknown_resource, ResId});
+		       {ok, [#occi_resource{}=Res]} ->
+			  occi_resource:add_link(Res, occi_link:get_id(Link))
+		   end
+	   end,
+    mnesia:write(Res2).
 
 save_node_t(#occi_node{id=Id}=Node) ->
     case mnesia:wread({occi_node, Id}) of
@@ -464,4 +476,24 @@ get_mixin_t(#occi_cid{}=Cid) ->
     catch
 	_:Err ->
 	    mnesia:abort({error, Err})
+    end.
+
+check_entity_t(#uri{}=Id) ->
+    case occi_uri:is_rel(Id) of
+	true ->
+	    case mnesia:wread({occi_resource, Id}) of
+		[] ->
+		    case mnesia:wread({occi_link, Id}) of
+			[] -> mnesia:abort({unknown_entity, Id});
+					      _ -> ok
+		    end;
+		_ -> ok
+	    end;
+	false ->
+	    case occi_store:find(#occi_node{id=Id, _='_'}) of
+		{ok, []} ->
+		    mnesia:abort({unknown_entity, Id});
+		{ok, [_]} ->
+		    ok
+	    end
     end.

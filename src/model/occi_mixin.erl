@@ -47,7 +47,9 @@
 	 add_applies/2,
 	 get_depends/1,
 	 add_depends/2,
-	 is_valid/1]).
+	 is_valid/1,
+	 add_prefix/2,
+	 rm_prefix/2]).
 
 new() ->
     #occi_mixin{id=#occi_cid{class=mixin},
@@ -156,3 +158,9 @@ is_valid(#occi_mixin{id=#occi_cid{class=usermixin}}) ->
     {false, invalid_user_mixin};
 is_valid(#occi_mixin{}) ->
     true.
+
+add_prefix(#occi_mixin{location=Uri}=Mixin, Prefix) when is_list(Prefix) ->
+    Mixin#occi_mixin{location=occi_uri:add_prefix(Uri, Prefix)}.
+
+rm_prefix(#occi_mixin{location=Uri}=Mixin, Prefix) when is_list(Prefix) ->
+    Mixin#occi_mixin{location=occi_uri:rm_prefix(Uri, Prefix)}.

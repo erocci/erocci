@@ -34,7 +34,9 @@
 	 get_parent/1,
 	 set_parent/1,
 	 get_data/1,
-	 set_data/2]).
+	 set_data/2,
+	 add_prefix/2,
+	 rm_prefix/2]).
 
 %%%
 %%% API
@@ -58,6 +60,9 @@ new(#uri{path=Path}, #occi_mixin{id=Id}=Data)  ->
 
 new(#uri{path=Path}, #occi_cid{}=Id) ->
     #occi_node{id=#uri{path=Path}, objid=Id, type=occi_collection, data=undefined};
+
+new(#uri{path=Path}, #occi_collection{cid=Id}=Coll) ->
+    #occi_node{id=#uri{path=Path}, objid=Id, type=occi_collection, data=Coll};
 
 new(#uri{path=Path}, Type) when is_atom(Type) ->
     #occi_node{id=#uri{path=Path}, type=Type}.
@@ -120,3 +125,73 @@ set_data(#occi_node{type=occi_user_mixin}=Node, #occi_mixin{}=Data) ->
     Node#occi_node{data=Data};
 set_data(#occi_node{type=Type}, _) ->
     throw({invalid_data_type, Type}).
+
+-spec add_prefix(occi_node(), list()) -> occi_node().
+add_prefix(#occi_node{type=occi_resource, id=#uri{}=Id, objid=#uri{}=ObjId, 
+		      data=#occi_resource{}=Data}=Node, Prefix) when is_list(Prefix) ->
+    Node#occi_node{id=occi_uri:add_prefix(Id, Prefix), objid=occi_uri:add_prefix(ObjId, Prefix),
+		   data=occi_resource:add_prefix(Data, Prefix)};
+
+add_prefix(#occi_node{type=occi_link, id=#uri{}=Id, objid=#uri{}=ObjId, 
+		      data=#occi_link{}=Data}=Node, Prefix) when is_list(Prefix) ->
+    Node#occi_node{id=occi_uri:add_prefix(Id, Prefix), objid=occi_uri:add_prefix(ObjId, Prefix),
+		   data=occi_link:add_prefix(Data, Prefix)};
+
+add_prefix(#occi_node{type=occi_user_mixin, id=#uri{}=Id, objid=#uri{}=ObjId,
+		      data=#occi_mixin{}=Data}=Node, Prefix) when is_list(Prefix) ->
+    Node#occi_node{id=occi_uri:add_prefix(Id, Prefix), objid=occi_uri:add_prefix(ObjId, Prefix),
+		   data=occi_mixin:add_prefix(Data, Prefix)};
+
+add_prefix(#occi_node{type=occi_collection, id=#uri{}=Id, objid=#uri{}=ObjId,
+		      data=#occi_collection{}=Data}=Node, Prefix) when is_list(Prefix) ->
+    Node#occi_node{id=occi_uri:add_prefix(Id, Prefix), objid=occi_uri:add_prefix(ObjId, Prefix),
+		   data=occi_collection:add_prefix(Data, Prefix)};
+
+add_prefix(#occi_node{type=dir, id=#uri{}=Id, objid=#uri{}=ObjId,
+		      data=Data}=Node, Prefix) when is_list(Prefix) ->
+    Children = gb_sets:fold(fun (#uri{}=Child, Acc) ->
+				    gb_sets:add(occi_uri:add_prefix(Child, Prefix), Acc)
+			    end, gb_sets:new(), Data),
+    Node#occi_node{id=occi_uri:add_prefix(Id, Prefix), objid=occi_uri:add_prefix(ObjId, Prefix),
+		   data=Children};
+
+add_prefix(#occi_node{id=#uri{}=Id, objid=#uri{}=ObjId}=Node, Prefix) when is_list(Prefix) ->
+    Node#occi_node{id=occi_uri:add_prefix(Id, Prefix), objid=occi_uri:add_prefix(ObjId, Prefix)};
+
+add_prefix(#occi_node{id=#uri{}=Id}=Node, Prefix) when is_list(Prefix) ->
+    Node#occi_node{id=occi_uri:add_prefix(Id, Prefix)}.
+
+-spec rm_prefix(occi_node(), list()) -> occi_node().
+rm_prefix(#occi_node{type=occi_resource, id=#uri{}=Id, objid=#uri{}=ObjId, 
+		     data=#occi_resource{}=Data}=Node, Prefix) when is_list(Prefix) ->
+    Node#occi_node{id=occi_uri:rm_prefix(Id, Prefix), objid=occi_uri:rm_prefix(ObjId, Prefix),
+		   data=occi_resource:rm_prefix(Data, Prefix)};
+
+rm_prefix(#occi_node{type=occi_link, id=#uri{}=Id, objid=#uri{}=ObjId, 
+		     data=#occi_link{}=Data}=Node, Prefix) when is_list(Prefix) ->
+    Node#occi_node{id=occi_uri:rm_prefix(Id, Prefix), objid=occi_uri:rm_prefix(ObjId, Prefix),
+		   data=occi_link:rm_prefix(Data, Prefix)};
+
+rm_prefix(#occi_node{type=occi_user_mixin, id=#uri{}=Id, objid=#uri{}=ObjId,
+		     data=#occi_mixin{}=Data}=Node, Prefix) when is_list(Prefix) ->
+    Node#occi_node{id=occi_uri:rm_prefix(Id, Prefix), objid=occi_uri:rm_prefix(ObjId, Prefix),
+		   data=occi_mixin:rm_prefix(Data, Prefix)};
+
+rm_prefix(#occi_node{type=occi_collection, id=#uri{}=Id, objid=#uri{}=ObjId,
+		     data=#occi_collection{}=Data}=Node, Prefix) when is_list(Prefix) ->
+    Node#occi_node{id=occi_uri:rm_prefix(Id, Prefix), objid=occi_uri:rm_prefix(ObjId, Prefix),
+		   data=occi_collection:rm_prefix(Data, Prefix)};
+
+rm_prefix(#occi_node{type=dir, id=#uri{}=Id, objid=#uri{}=ObjId,
+		     data=Data}=Node, Prefix) when is_list(Prefix) ->
+    Children = gb_sets:fold(fun (#uri{}=Child, Acc) ->
+				    gb_sets:add(occi_uri:rm_prefix(Child, Prefix), Acc)
+			    end, gb_sets:new(), Data),
+    Node#occi_node{id=occi_uri:rm_prefix(Id, Prefix), objid=occi_uri:rm_prefix(ObjId, Prefix),
+		   data=Children};
+
+rm_prefix(#occi_node{id=#uri{}=Id, objid=#uri{}=ObjId}=Node, Prefix) when is_list(Prefix) ->
+    Node#occi_node{id=occi_uri:rm_prefix(Id, Prefix), objid=occi_uri:rm_prefix(ObjId, Prefix)};
+
+rm_prefix(#occi_node{id=#uri{}=Id}=Node, Prefix) when is_list(Prefix) ->
+    Node#occi_node{id=occi_uri:rm_prefix(Id, Prefix)}.

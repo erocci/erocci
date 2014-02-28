@@ -124,15 +124,16 @@
 -type(occi_request() :: #occi_request{}).
 
 -type(occi_node_id() :: uri()).
+-type(occi_node_objid() :: atom() | uri() | occi_cid()).
 -type(occi_node_type() :: dir | 
-			  undefined |
+			  mountpoint |
 			  occi_query |
 			  occi_resource | 
 			  occi_link |
 			  occi_user_mixin |
 			  occi_collection).
 -record(occi_node, {id                     :: occi_node_id(),
-		    objid     = undefined  :: term(),
+		    objid     = undefined  :: occi_node_objid(),
 		    type      = undefined  :: occi_node_type(),
 		    parent    = undefined  :: occi_node_id(),
 		    data      = undefined  :: term(),

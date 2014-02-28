@@ -26,6 +26,7 @@
 
 -export([new/0,
 	 new/1,
+	 new/4,
 	 get_id/1,
 	 set_id/2,
 	 get_cid/1,
@@ -42,7 +43,9 @@
 	 get_target/1,
 	 set_target/2,
 	 get_source/1,
-	 set_source/2]).
+	 set_source/2,
+	 add_prefix/2,
+	 rm_prefix/2]).
 
 -export([reset/1]).
 
@@ -60,6 +63,17 @@ new(#occi_kind{}=Kind) ->
 	       attributes=occi_kind:get_attributes(Kind)};
 new(#uri{}=Uri) ->
     #occi_link{id=Uri, attributes=orddict:new()}.
+
+
+-spec new(uri(), occi_kind(), [{atom(), term}], uri()) -> occi_link().
+new(#uri{}=Id, #occi_kind{}=Kind, Attributes, Target) ->
+    Link = #occi_link{id=Id,
+		      cid=occi_kind:get_id(Kind), 
+		      attributes=occi_kind:get_attributes(Kind),
+		      target=Target},
+    lists:foldl(fun ({Key, Value}, Acc) ->
+			occi_link:set_attr_value(Acc, Key, Value)
+		end, Link, Attributes).
 
 -spec get_id(occi_link()) -> uri().
 get_id(#occi_link{id=Id}) ->
@@ -177,3 +191,15 @@ reset(#occi_link{attributes=Attrs}=Link) ->
     Link#occi_link{attributes=orddict:map(fun (_Key, Attr) ->
 						  occi_attribute:reset(Attr)
 					  end, Attrs)}.
+
+-spec add_prefix(occi_link(), string()) -> occi_link().
+add_prefix(#occi_link{id=Uri, source=Src, target=Tgt}=Link, Prefix) ->
+    Link#occi_link{id=occi_uri:add_prefix(Uri, Prefix), 
+		   source=occi_uri:add_prefix(Src, Prefix),
+		   target=occi_uri:add_prefix(Tgt, Prefix)}.
+
+-spec rm_prefix(occi_link(), string()) -> occi_link().
+rm_prefix(#occi_link{id=#uri{}=Uri, source=Src, target=Tgt}=Link, Prefix) ->
+    Link#occi_link{id=occi_uri:rm_prefix(Uri, Prefix),
+		   source=occi_uri:rm_prefix(Src, Prefix),
+		   target=occi_uri:rm_prefix(Tgt, Prefix)}.

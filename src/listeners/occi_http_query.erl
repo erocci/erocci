@@ -148,8 +148,8 @@ from(Req, State, #content_type{parser=Parser}) ->
 			{ok, []} ->
 			    {ok, Req3} = cowboy_req:reply(403, Req2),
 			    {halt, Req3, State};
-			{ok, [Mixin]} ->
-			    case occi_store:delete(Mixin) of
+			{ok, [Mixin2]} ->
+			    case occi_store:delete(Mixin2) of
 				{error, undefined_backend} ->
 				    lager:debug("Internal error deleting user mixin~n"),
 				    {ok, Req2} = cowboy_req:reply(500, Req),

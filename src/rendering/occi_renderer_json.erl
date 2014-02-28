@@ -116,8 +116,10 @@ render_ejson(#occi_resource{}=Res) ->
 				    end, [], occi_resource:get_mixins(Res))}
 		,{attributes, render_attribute_values(occi_resource:get_attributes(Res))}
 		,{id, occi_uri:to_binary(occi_resource:get_id(Res))}
-		,{links, lists:map(fun (Link) ->
-					   occi_uri:to_binary(Link)
+		,{links, lists:map(fun (#uri{}=Link) ->
+					   occi_uri:to_binary(Link);
+				       (#occi_link{}=Link) ->
+					   render_ejson(Link)
 				   end, occi_resource:get_links(Res))}
 	       ]);
 
