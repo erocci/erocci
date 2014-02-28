@@ -72,7 +72,6 @@ is_rel(#uri{path=Path}) ->
 %%%
 -spec add_prefix(uri(), string()) -> uri().
 add_prefix(#uri{path=Path}=Uri, Prefix) ->
-    lager:debug("### add_prefix(~p, ~p)~n", [Path, Prefix]),
     case filename:split(Path) of
 	["/"|_P] ->
 	    Uri;
@@ -85,7 +84,6 @@ add_prefix(#uri{path=Path}=Uri, Prefix) ->
 %%%
 -spec rm_prefix(uri(), string()) -> uri().
 rm_prefix(#uri{path=Path}=Uri, Prefix) -> 
-    lager:debug("### rm_prefix(~p, ~p)~n", [Path, Prefix]),
     case substr(Prefix, Path) of
 	{ok, Path2} -> #uri{path=Path2};
 	none -> Uri
