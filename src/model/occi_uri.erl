@@ -72,6 +72,7 @@ is_rel(#uri{path=Path}) ->
 %%%
 -spec add_prefix(uri(), string()) -> uri().
 add_prefix(#uri{path=Path}=Uri, Prefix) ->
+    lager:debug("### add_prefix(~p, ~p)~n", [Path, Prefix]),
     case filename:split(Path) of
 	["/"|_P] ->
 	    Uri;
@@ -83,7 +84,8 @@ add_prefix(#uri{path=Path}=Uri, Prefix) ->
 %%% Remove prefix and make path relative
 %%%
 -spec rm_prefix(uri(), string()) -> uri().
-rm_prefix(#uri{path=Path}=Uri, Prefix) ->
+rm_prefix(#uri{path=Path}=Uri, Prefix) -> 
+    lager:debug("### rm_prefix(~p, ~p)~n", [Path, Prefix]),
     case substr(Prefix, Path) of
 	{ok, Path2} -> #uri{path=Path2};
 	none -> Uri
@@ -131,6 +133,8 @@ substr(["/", _C1| _S1], ["/", _C2| _S2], false) ->
     none;
 substr([C|S1], [C|S2], _MakeRel) ->
     substr(S1, S2, true);
+substr([], [], true) ->
+    {ok, "/"};
 substr([], S2, true) ->
     {ok, filename:join(S2)};
 substr(_S1, _S2, false) ->
@@ -153,6 +157,7 @@ add_prefix_test_() ->
 
 rm_prefix_tesst_() ->
     Uri = occi_uri:parse("http://example.com:99/what/a/prefix/path/to/a/resource"),
+    Uri2 = occi_uri:parse("/resource"),
     [
      ?_assert(rm_prefix(Uri, "/what/a/prefix") =:= #uri{path="path/to/a/resource"}),
      ?_assert(rm_prefix(Uri, "/what/a/prefix/") =:= #uri{path="path/to/a/resource"}),
@@ -161,8 +166,9 @@ rm_prefix_tesst_() ->
 		  #uri{scheme=http, host="example.com", port=99, path="/what/a/prefix/path/to/a/resource"}),
      ?_assert(rm_prefix(Uri, "/what/a/prefix") =:= 
 		  #uri{scheme=http, host="example.com", port=99, path="/what/a/prefix/path/to/a/resource"}),
-     ?_assert(rm_prefix(Uri, "/") =:= 
-		  #uri{path="what/a/prefix/path/to/a/resource"})
+     ?_assert(rm_prefix(Uri, "/") =:= #uri{path="what/a/prefix/path/to/a/resource"}),
+     ?_assert(rm_prefix(Uri2, "/a/long/prefix") =:= #uri{path="/resource"}),
+     ?_assert(rm_prefix(Uri2, "/resource/") =:= #uri{path="/resource"})
     ].
     
 -endif.
