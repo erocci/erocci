@@ -26,7 +26,7 @@
 
 -include("occi.hrl").
 %% API
--export([start_link/3]).
+-export([start_link/2]).
 -export([update/2,
 	 save/2,
 	 delete/2,
@@ -44,7 +44,7 @@
 		state           :: term(),
 		pending         :: term()}).
 
--callback init(Args :: term()) ->
+-callback init(Mountpoint :: occi_node(), Args :: term()) ->
     {ok, State :: term()} |
     {error, Reason :: term()}.
 
@@ -74,10 +74,10 @@
 %%%
 %%% API
 %%% 
--spec start_link(atom(), atom(), term()) -> {ok, pid()} | ignore | {error, term()}.
-start_link(Ref, Mod, Opts) ->
+-spec start_link(occi_node(), term()) -> {ok, pid()} | ignore | {error, term()}.
+start_link(#occi_node{objid=Ref, data=#occi_backend{mod=Mod}}=Mp, Opts) ->
     lager:info("Starting storage backend ~p (~p)~n", [Ref, Mod]),
-    gen_server:start_link({local, Ref}, ?MODULE, {Ref, Mod, Opts}, []).
+    gen_server:start_link({local, Ref}, ?MODULE, {Mp, Opts}, []).
 
 update(Ref, Node) ->
     gen_server:call(Ref, {update, Node}).
@@ -112,9 +112,9 @@ cancel(Ref, Tag) ->
 %% @end
 %%--------------------------------------------------------------------
 -spec init({atom(), term()}) -> {ok, term()} | {error, term()} | ignore.
-init({Ref, Mod, Args}) ->
+init({#occi_node{objid=Ref, data=#occi_backend{mod=Mod}}=Mp, Args}) ->
     T = ets:new(Mod, [set, public, {keypos, 1}]),
-    case Mod:init(Args) of
+    case Mod:init(Mp, Args) of
 	{ok, BackendState} ->
 	    {ok, #state{ref=Ref, mod=Mod, pending=T, state=BackendState}};
 	{error, Error} ->

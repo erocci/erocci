@@ -27,7 +27,7 @@
 -include("occi.hrl").
 
 %% occi_backend callbacks
--export([init/1,
+-export([init/2,
 	 terminate/1]).
 -export([update/2,
 	 save/2,
@@ -41,7 +41,7 @@
 %%%===================================================================
 %%% occi_backend callbacks
 %%%===================================================================
-init(Props) ->
+init(_Mp, Props) ->
     {ok, #state{id=proplists:get_value(ref, Props),
 		wait=proplists:get_value(wait, Props, 0)}}.
 

@@ -27,7 +27,7 @@
 -include("occi.hrl").
 
 %% occi_backend callbacks
--export([init/1,
+-export([init/2,
 	 terminate/1]).
 -export([update/2,
 	 save/2,
@@ -40,7 +40,7 @@
 %%%===================================================================
 %%% occi_backend callbacks
 %%%===================================================================
-init(_) ->
+init(_, _) ->
     case mnesia:system_info(extra_db_nodes) of
 	[] ->
 	    mnesia:create_schema([node()]);

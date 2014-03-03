@@ -28,16 +28,15 @@
 
 -include("occi.hrl").
 
+-define(TBL, ?MODULE).
+
 % API
--export([set_cors/2]).
+-export([set_cors/2,
+	 add_route/2]).
 
 %% occi_listener callbacks
 -export([start_link/2,
 	 terminate/1]).
-
--define(ROUTES,  [{<<"/-/">>,                          occi_http_query,    []},
-		  {<<"/.well-known/org/ogf/occi/-/">>, occi_http_query,    []},		  
-		  {<<"/[...]">>,                       occi_http_handler,  []}]).
 
 start_link(Ref, Opts) ->
     application:start(cowlib),
@@ -45,8 +44,9 @@ start_link(Ref, Opts) ->
     application:start(ranch),
     application:start(cowboy),
     lager:info("Starting HTTP listener ~p~n", [Opts]),
-    Dispatch = cowboy_router:compile([{'_', ?ROUTES}]),
-    cowboy:start_http(Ref, 100, validate_cfg(Opts), [{env, [{dispatch, Dispatch}]}]).
+    ?TBL = ets:new(?TBL, [set, public, {keypos, 1}, named_table]),
+    ets:insert(?TBL, {routes, []}),
+    cowboy:start_http(Ref, 100, validate_cfg(Opts), [{env, [{dispatch, get_dispatch()}]}]).
 
 validate_cfg(Opts) ->
     Address = proplists:get_value(ip, Opts, {0,0,0,0}),
@@ -54,6 +54,7 @@ validate_cfg(Opts) ->
     [{ip, Address}, {port, Port}].
 
 terminate(Ref) ->
+    ets:delete(?TBL),
     cowboy:stop_listener(Ref).
 
 % Convenience function for setting CORS headers
@@ -65,3 +66,23 @@ set_cors(Req, Methods) ->
 	    Req2 = cowboy_req:set_resp_header(<<"access-control-allow-methods">>, Methods, Req1),
 	    cowboy_req:set_resp_header(<<"access-control-allow-origin">>, Origin, Req2)
     end.
+
+-spec add_route(atom(), {binary(), atom(), list()}) -> ok | {error, term()}.
+add_route(Ref, Route) ->
+    Routes = ets:lookup_element(?TBL, routes, 2),
+    ets:insert(?TBL, {routes, [Route | Routes]}),
+    cowboy:set_env(Ref, dispatch, get_dispatch()).
+
+%%%
+%%% Private
+%%%
+-define(ROUTE_QUERY,   {<<"/-/">>,                          occi_http_query,    []}).
+-define(ROUTE_QUERY2,  {<<"/.well-known/org/ogf/occi/-/">>, occi_http_query,    []}).
+-define(ROUTE_OCCI,    {<<"/[...]">>,                       occi_http_handler,  []}).
+
+get_dispatch() ->
+    Routes = lists:flatten([?ROUTE_QUERY,
+			    ?ROUTE_QUERY2,
+			    ets:lookup_element(?TBL, routes, 2),
+			    ?ROUTE_OCCI]),
+    cowboy_router:compile([{'_', Routes}]).
