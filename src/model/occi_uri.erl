@@ -74,6 +74,9 @@ is_rel(#uri{path=Path}) ->
 add_prefix(undefined, _) ->
     undefined;
 
+add_prefix(#uri{scheme=urn}=Uri, _) ->
+    Uri;
+
 add_prefix(#uri{path=Path}=Uri, Prefix) ->
     case filename:split(Path) of
 	["/"|_P] ->
@@ -88,6 +91,9 @@ add_prefix(#uri{path=Path}=Uri, Prefix) ->
 -spec rm_prefix(uri(), string()) -> uri().
 rm_prefix(undefined, _) ->
     undefined;
+
+rm_prefix(#uri{scheme=urn}=Uri, _) ->
+    Uri;
 
 rm_prefix(#uri{path=Path}=Uri, Prefix) -> 
     case substr(Prefix, Path) of
