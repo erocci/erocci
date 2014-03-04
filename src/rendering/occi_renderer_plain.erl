@@ -38,9 +38,13 @@
 %%%===================================================================
 %%% API
 %%%===================================================================
+render(#occi_node{type=dir}=Node) ->
+    Headers = render_dir(Node, orddict:new()),
+    render_headers(Headers);
+
 render(#occi_node{type=occi_query, data={Kinds, Mixins, Actions}}) ->
     lists:map(fun(Cat) -> 
-		      [<<"Category: ">>, occi_renderer_text:render(Cat, "\n\t"), "\n"] 
+		      [<<"category: ">>, occi_renderer_text:render(Cat, "\n\t"), "\n"] 
 	      end, Kinds ++ Mixins ++ Actions);
 
 render(#occi_node{type=occi_collection, data=Coll}) ->
@@ -52,6 +56,13 @@ render(#occi_node{type=occi_collection, data=Coll}) ->
 %%
 %% Private
 %%
+render_dir(#occi_node{type=dir, data=Children}, Acc) ->
+    gb_sets:fold(fun (#occi_node{type=dir}=Child, Acc2) ->
+			 render_dir(Child, Acc2);
+		     (#uri{}=ChildId, Acc2) ->
+			 orddict:append(<<"x-occi-location">>, occi_uri:to_iolist(ChildId), Acc2)
+		 end, Acc, Children).
+
 render_headers(Headers) ->
     occi_renderer:join(
       lists:map(fun (Name) -> 
@@ -65,15 +76,3 @@ render_header(Name, Values) ->
 			occi_renderer:join([Name, Value], ": ")
 		end, Values),
       "\n").
-
-%%%
-%%% Tests
-%%%
--ifdef(TEST).
-
-%% render1_test() ->
-%%     T = occi_type:get_category(<<"http://localhost">>, <<"compute">>, occi_infra_compute),
-%%     Expect = <<"compute; \n\tscheme=\"http://schemas.ogf.org/occi/infrastructure#\"; \n\tclass=\"kind\"; \n\ttitle=\"Compute resource\"; \n\trel=\"http://schemas.ogf.org/occi/core#resource\"; \n\tattributes=\"occi.compute.state{required,immutable} occi.compute.memory occi.compute.speed occi.compute.hostname occi.compute.cores occi.compute.architecture\"; \n\tactions=\"http://schemas.ogf.org/occi/infrastructure/compute/action#suspend http://schemas.ogf.org/occi/infrastructure/compute/action#restart http://schemas.ogf.org/occi/infrastructure/compute/action#stop http://schemas.ogf.org/occi/infrastructure/compute/action#start\"; \n\tlocation=\"http://localhost/compute/\"">>,
-%%     ?assert(erlang:iolist_to_binary(occi_renderer_plain:render(T)) =:= Expect).
-
--endif.
