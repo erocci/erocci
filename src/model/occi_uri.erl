@@ -32,6 +32,8 @@
 	 gen_urn/2,
 	 add_prefix/2,
 	 rm_prefix/2,
+	 get_parent/1,
+	 is_root/1,
 	 is_rel/1,
 	 to_iolist/1,
 	 to_binary/1,
@@ -66,6 +68,13 @@ is_rel(#uri{path=Path}) ->
 	_ -> false
     end.
 
+is_root(#uri{path=[]}) ->
+    true;
+is_root(#uri{path="/"}) ->
+    true;
+is_root(_) ->
+    false.
+
 %%%
 %%% If URI's path is relative, add prefix
 %%% If URI's path is absolute, does nothing
@@ -99,7 +108,19 @@ rm_prefix(#uri{path=Path}=Uri, Prefix) ->
     case substr(Prefix, Path) of
 	{ok, Path2} -> #uri{path=Path2};
 	none -> Uri
-    end.	    
+    end.
+
+get_parent(#uri{path=[]}) ->
+    % parent of an empty path
+    none;
+get_parent(#uri{path=Path}=Uri) ->
+    case lists:reverse(filename:split(Path)) of
+	[_|[]] ->
+	    % root's parent
+	    none;
+	[_|Parent] ->
+	    Uri#uri{path=filename:join(lists:reverse(Parent))}
+    end.
 
 to_iolist(undefined) ->
     [];

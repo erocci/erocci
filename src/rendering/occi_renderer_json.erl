@@ -181,7 +181,7 @@ render_attribute_values([#occi_attr{}=Attr|Tail], Acc) ->
 render_dir(#occi_node{type=dir, data=Children}) ->
     gb_sets:fold(fun (#occi_node{type=dir}=Child, Acc) ->
 			 [ render_dir(Child) | Acc ];
-		     (#occi_node{id=ChildId}, Acc) ->
+		     (#uri{}=ChildId, Acc) ->
 			 [ occi_uri:to_binary(ChildId) | Acc ]
 		 end, [], Children).
 

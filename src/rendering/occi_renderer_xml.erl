@@ -121,7 +121,7 @@ make_dir(#occi_node{id=Id, type=dir, data=Children}) ->
 		      gb_sets:fold(fun (Child, Acc) ->
 					   [ make_dir(Child) | Acc ]
 				   end, [], Children));
-make_dir(#occi_node{id=Id}) ->
+make_dir(#uri{}=Id) ->
     exmpp_xml:element(?occi_ns, entity,
 		      [exmpp_xml:attribute(?xlink_ns, <<"href">>, occi_uri:to_binary(Id))], 
 		      []).

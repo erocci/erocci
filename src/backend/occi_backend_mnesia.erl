@@ -166,7 +166,7 @@ load_dir_t(#occi_node{data=Children}=Node) ->
 					     mnesia:abort({unknown_node, ChildId});
 					 [#occi_node{type=dir}=Child] ->
 					     gb_sets:add(load_dir_t(Child), Acc);
-					 [#occi_node{}=Child] ->
+					 [#occi_node{id=Child}] ->
 					     gb_sets:add(Child, Acc)
 				     end
 			     end, gb_sets:new(), Children),
@@ -251,10 +251,13 @@ save_node_t(#occi_node{id=Id}=Node) ->
 	    mnesia:write(Node#occi_node{data=undefined});
 	[] -> 
 	    mnesia:write(Node#occi_node{data=undefined}),
-	    add_to_dir_t(occi_node:get_parent(Id), Id)
+	    add_to_dir_t(occi_uri:get_parent(Id), Id)
     end.
 
-add_to_dir_t(#uri{path=Path}=Parent, #uri{}=Child) ->
+add_to_dir_t(none, _) ->
+    ok;
+add_to_dir_t(#uri{}=Parent, Child) ->
+    lager:debug("add_to_dir_t(~p, ~p)~n", [Parent, Child]),
     case mnesia:wread({occi_node, Parent}) of
 	[] ->
 	    Node = occi_node:new(Parent, dir),
@@ -264,10 +267,7 @@ add_to_dir_t(#uri{path=Path}=Parent, #uri{}=Child) ->
 	[#occi_node{}] ->
 	    mnesia:abort({not_a_dir, Parent})
     end,
-    if Path /= "/" ->
-	    add_to_dir_t(occi_node:get_parent(Parent), Parent);
-       true -> ok
-    end.
+    add_to_dir_t(occi_uri:get_parent(Parent), Parent).
 
 update_t(#occi_node{type=occi_collection, data=#occi_collection{cid=Cid}=Coll}) ->
     Mixin = get_mixin_t(Cid),

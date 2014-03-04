@@ -68,13 +68,9 @@ new(#uri{path=Path}, #occi_collection{cid=Id}=Coll) ->
 new(#uri{path=Path}, Type) when is_atom(Type) ->
     #occi_node{id=#uri{path=Path}, type=Type}.
 
--spec new_dir(uri(), [uri()]) -> occi_node().
-new_dir(#uri{path=Path}, Uris) when is_list(Uris) ->
-    Children = lists:foldl(fun (#uri{}=Uri, Acc) ->
-				   Node = #occi_node{id=Uri},
-				   gb_sets:add_element(Node, Acc)
-			   end, gb_sets:new(), Uris),
-    #occi_node{id=#uri{path=Path}, type=dir, data=Children}.
+-spec new_dir(uri(), [uri() | occi_node()]) -> occi_node().
+new_dir(#uri{path=Path}, Children) when is_list(Children) ->
+    #occi_node{id=#uri{path=Path}, type=dir, data=gb_sets:from_list(Children)}.
 
 -spec get_type(occi_node()) -> occi_node_type().
 get_type(#occi_node{type=Type}) ->
@@ -84,7 +80,9 @@ get_type(#occi_node{type=Type}) ->
 set_type(#occi_node{}=Node, Type) ->
     Node#occi_node{type=Type}.
 
--spec add_child(occi_node(), uri()) -> occi_node().
+-spec add_child(occi_node(), uri() | occi_node()) -> occi_node().
+add_child(#occi_node{type=dir, data=C}=Node, #occi_node{type=dir}=Child) ->
+    Node#occi_node{data=gb_sets:add(Child, C)};
 add_child(#occi_node{type=dir, data=C}=Node, #uri{}=Child) ->
     Node#occi_node{data=gb_sets:add(Child, C)}.
 
@@ -92,26 +90,17 @@ add_child(#occi_node{type=dir, data=C}=Node, #uri{}=Child) ->
 set_children(#occi_node{type=dir}=Node, Children) ->
     Node#occi_node{data=Children}.
 
--spec del_children(occi_node(), [uri()]) -> occi_node().
+-spec del_children(occi_node(), [uri() | occi_node()]) -> occi_node().
 del_children(#occi_node{type=dir, data=C}=Node, Children) when is_list(Children) ->
     Node#occi_node{data=gb_sets:subtract(C, gb_sets:from_list(Children))}.
 
--spec get_parent(occi_node() | uri() | string()) -> uri().
-get_parent(#occi_node{id=#uri{path=Path}}) ->
-    get_parent(Path);
-get_parent(#uri{path=Path}) -> 
-    get_parent(Path);
-get_parent(Path) when is_list(Path) ->
-    case string:tokens(Path, "/") of
-	[] ->
-	    #uri{path="/"};
-	L ->
-	    #uri{path="/"++string:join(lists:sublist(L, length(L)-1), "/")++"/"}
-    end.
+-spec get_parent(occi_node()) -> uri().
+get_parent(#occi_node{id=Id}) ->
+    occi_uri:get_parent(Id).
 
 -spec set_parent(occi_node()) -> occi_node().
 set_parent(#occi_node{id=Id}=Node) ->
-    Node#occi_node{parent=get_parent(Id)}.
+    Node#occi_node{parent=occi_uri:get_parent(Id)}.
 
 -spec has_children(occi_node()) -> boolean().
 has_children(#occi_node{type=dir, data=Children}) ->
@@ -158,7 +147,9 @@ add_prefix(#occi_node{type=occi_collection, id=#uri{}=Id, objid=#uri{}=ObjId,
 
 add_prefix(#occi_node{type=dir, id=#uri{}=Id, data=Data}=Node, Prefix) when is_list(Prefix) ->
     Children = gb_sets:fold(fun (#occi_node{}=Child, Acc) ->
-				    gb_sets:add(occi_node:add_prefix(Child, Prefix), Acc)
+				    gb_sets:add(occi_node:add_prefix(Child, Prefix), Acc);
+				(#uri{}=Child, Acc) ->
+				    gb_sets:add(occi_uri:add_prefix(Child, Prefix), Acc)
 			    end, gb_sets:new(), Data),
     Node#occi_node{id=occi_uri:add_prefix(Id, Prefix), data=Children};
 
@@ -191,7 +182,9 @@ rm_prefix(#occi_node{type=occi_collection, id=#uri{}=Id, objid=#uri{}=ObjId,
 
 rm_prefix(#occi_node{type=dir, id=#uri{}=Id, data=Data}=Node, Prefix) when is_list(Prefix) ->
     Children = gb_sets:fold(fun (#occi_node{}=Child, Acc) ->
-				    gb_sets:add(occi_node:rm_prefix(Child, Prefix), Acc)
+				    gb_sets:add(occi_node:rm_prefix(Child, Prefix), Acc);
+				(#uri{}=Child, Acc) ->
+				    gb_sets:add(occi_uri:rm_prefix(Child, Prefix), Acc)
 			    end, gb_sets:new(), Data),
     Node#occi_node{id=occi_uri:rm_prefix(Id, Prefix), data=Children};
 

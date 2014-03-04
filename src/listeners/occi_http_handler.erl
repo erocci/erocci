@@ -33,7 +33,8 @@
 	 content_types_accepted/2]).
 
 %% Callback callbacks
--export([to_uri_list/2,
+-export([to_plain/2,
+	 to_uri_list/2,
 	 to_json/2,
 	 to_xml/2,
 	 from_json/2,
@@ -67,6 +68,7 @@ allowed_methods(Req, State) ->
 
 content_types_provided(Req, State) ->
     {[
+      {{<<"text">>,            <<"plain">>,     []}, to_plain},
       {{<<"text">>,            <<"uri-list">>,  []}, to_uri_list},
       {{<<"application">>,     <<"json">>,      []}, to_json},
       {{<<"application">>,     <<"occi+json">>, []}, to_json},
@@ -124,6 +126,9 @@ delete_resource(Req, #occi_node{id=Id}=Node) ->
 	ok ->
 	    {true, Req, Node}
     end.
+
+to_plain(Req, #occi_node{}=Node) ->
+    render(Req, Node, ?ct_plain).
 
 to_uri_list(Req, #occi_node{type=occi_collection}=Node) ->
     render(Req, Node, ?ct_uri_list);
