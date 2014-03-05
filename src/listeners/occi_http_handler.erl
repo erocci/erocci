@@ -38,6 +38,8 @@
 	 to_uri_list/2,
 	 to_json/2,
 	 to_xml/2,
+	 from_plain/2,
+	 from_occi/2,
 	 from_json/2,
 	 from_xml/2]).
 
@@ -81,6 +83,8 @@ content_types_provided(Req, State) ->
 
 content_types_accepted(Req, State) ->
     {[
+      {{<<"text">>,            <<"plain">>,     []}, from_plain},
+      {{<<"text">>,            <<"occi">>,      []}, from_occi},
       {{<<"application">>,     <<"json">>,      []}, from_json},
       {{<<"application">>,     <<"occi+json">>, []}, from_json},
       {{<<"application">>,     <<"xml">>,       []}, from_xml},
@@ -148,6 +152,12 @@ to_json(Req, #occi_node{}=Node) ->
 
 to_xml(Req, #occi_node{}=Node) ->
     render(Req, Node, ?ct_xml).
+
+from_plain(Req, State) ->
+    from(Req, State, ?ct_plain).
+
+from_occi(Req, State) ->
+    from(Req, State, ?ct_occi).
 
 from_json(Req, State) ->
     from(Req, State, ?ct_json).
@@ -252,7 +262,7 @@ render(Req, State, #content_type{renderer=Renderer}) ->
 save_entity(Req, State, #content_type{parser=Parser}) ->
     {ok, Body, Req2} = cowboy_req:body(Req),
     Entity = prepare_entity(Req, State),
-    case Parser:parse_entity(Body, Entity) of
+    case Parser:parse_entity(Body, Req2, Entity) of
 	{error, {parse_error, Err}} ->
 	    lager:error("Error processing request: ~p~n", [Err]),
 	    {false, Req2, State};
@@ -288,7 +298,7 @@ update_entity(Req, State, #content_type{parser=Parser}) ->
     {ok, Body, Req2} = cowboy_req:body(Req),
     case occi_store:load(State) of
 	{ok, #occi_node{data=Entity}=Node} ->
-	    case Parser:parse_entity(Body, Entity) of
+	    case Parser:parse_entity(Body, Req2, Entity) of
 		{error, {parse_error, Err}} ->
 		    lager:error("Error processing request: ~p~n", [Err]),
 		    {false, Req2, State};
@@ -325,7 +335,7 @@ update_entity(Req, State, #content_type{parser=Parser}) ->
 
 save_collection(Req, #occi_node{objid=Cid}=State, #content_type{parser=Parser}) ->
     {ok, Body, Req2} = cowboy_req:body(Req),
-    case Parser:parse_collection(Body) of
+    case Parser:parse_collection(Body, Req2) of
 	{error, {parse_error, Err}} ->
 	    lager:error("Error processing request: ~p~n", [Err]),
 	    {false, Req2, State};
@@ -350,7 +360,7 @@ save_collection(Req, #occi_node{objid=Cid}=State, #content_type{parser=Parser}) 
 
 update_collection(Req, #occi_node{objid=Cid}=State, #content_type{parser=Parser}) ->
     {ok, Body, Req2} = cowboy_req:body(Req),
-    case Parser:parse_collection(Body) of
+    case Parser:parse_collection(Body, Req2) of
 	{error, {parse_error, Err}} ->
 	    lager:error("Error processing request: ~p~n", [Err]),
 	    {false, Req2, State};
@@ -376,7 +386,7 @@ update_collection(Req, #occi_node{objid=Cid}=State, #content_type{parser=Parser}
 
 trigger(Req, State, ActionName, #content_type{parser=Parser}) ->
     {ok, Body, Req2} = cowboy_req:body(Req),
-    case Parser:parse_action(Body, prepare_action(Req2, State, ActionName)) of
+    case Parser:parse_action(Body, Req2, prepare_action(Req2, State, ActionName)) of
 	{error, {parse_error, Err}} ->
 	    lager:error("Error processing action: ~p~n", [Err]),
 	    {false, Req2, State};

@@ -29,10 +29,10 @@
 -include("occi_parser.hrl").
 
 %% API
--export([parse_action/2,
-	 parse_entity/2,
-	 parse_user_mixin/1,
-	 parse_collection/1]).
+-export([parse_action/3,
+	 parse_entity/3,
+	 parse_user_mixin/2,
+	 parse_collection/2]).
 
 %% gen_fsm callbacks
 -export([init/1, handle_event/3, handle_sync_event/4, handle_info/3, terminate/3, code_change/4]).
@@ -93,7 +93,7 @@
 %%%===================================================================
 %%% API
 %%%===================================================================
-parse_action(Data, Action) ->
+parse_action(Data, _Env, Action) ->
     case parse_full(Data, #state{action=Action}) of
 	{error, Reason} ->
 	    {error, {parse_error, Reason}};
@@ -103,7 +103,7 @@ parse_action(Data, Action) ->
 	    {error, {parse_error, not_an_action}}
     end.    
 
-parse_entity(Data, #occi_resource{}=Res) ->
+parse_entity(Data, _Env, #occi_resource{}=Res) ->
     case parse_full(Data, #state{entity=Res}) of
 	{error, Reason} ->
 	    {error, {parse_error, Reason}};
@@ -113,7 +113,7 @@ parse_entity(Data, #occi_resource{}=Res) ->
 	    {error, {parse_error, not_an_entity}}
     end;
 
-parse_entity(Data, #occi_link{}=Link) ->
+parse_entity(Data, _Env, #occi_link{}=Link) ->
     case parse_full(Data, #state{entity=Link}) of
 	{error, Reason} ->
 	    {error, {parse_error, Reason}};
@@ -123,7 +123,7 @@ parse_entity(Data, #occi_link{}=Link) ->
 	    {error, {parse_error, not_an_entity}}
     end;
 
-parse_entity(Data, #occi_entity{id=Id}) ->
+parse_entity(Data, _Env, #occi_entity{id=Id}) ->
     case parse_full(Data, #state{entity_id=Id}) of
 	{error, Reason} ->
 	    {error, {parse_error, Reason}};
@@ -135,7 +135,7 @@ parse_entity(Data, #occi_entity{id=Id}) ->
 	    {error, {parse_error, not_an_entity}}
     end.
 
-parse_user_mixin(Data) ->
+parse_user_mixin(Data, _Env) ->
     case parse_full(Data, #state{mixin=occi_mixin:new(#occi_cid{class=usermixin})}) of
 	{error, Reason} ->
 	    {error, {parse_error, Reason}};
@@ -146,7 +146,7 @@ parse_user_mixin(Data) ->
 	    {error, {parse_error, Err}}
     end.
 
-parse_collection(Data) ->
+parse_collection(Data, _Env) ->
     case parse_full(Data) of
 	{error, Reason} ->
 	    {error, {parse_error, Reason}};

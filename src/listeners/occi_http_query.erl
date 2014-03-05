@@ -32,7 +32,9 @@
 	 to_uri_list/2,
 	 to_json/2,
 	 to_xml/2]).
--export([from_json/2,
+-export([from_plain/2,
+	 from_occi/2,
+	 from_json/2,
 	 from_xml/2]).
 
 -include("occi.hrl").
@@ -78,6 +80,8 @@ content_types_provided(Req, State) ->
 
 content_types_accepted(Req, State) ->
     {[
+      {{<<"text">>,            <<"plain">>,     []}, from_plain},
+      {{<<"text">>,            <<"occi">>,      []}, from_occi},
       {{<<"application">>,     <<"json">>,      []}, from_json},
       {{<<"application">>,     <<"occi+json">>, []}, from_json},
       {{<<"application">>,     <<"xml">>,       []}, from_xml},
@@ -109,6 +113,12 @@ to_json(Req, State) ->
 to_xml(Req, State) ->
     to(Req, State, ?ct_xml).
 
+from_plain(Req, State) ->
+    from(Req, State, ?ct_plain).
+
+from_occi(Req, State) ->
+    from(Req, State, ?ct_occi).
+
 from_json(Req, State) ->
     from(Req, State, ?ct_json).
 
@@ -125,7 +135,7 @@ to(Req, State, #content_type{renderer=R}) ->
 
 from(Req, State, #content_type{parser=Parser}) ->
     {ok, Body, Req2} = cowboy_req:body(Req),
-    case Parser:parse_user_mixin(Body) of
+    case Parser:parse_user_mixin(Body, Req2) of
 	{error, {parse_error, Err}} ->
 	    lager:debug("Error processing request: ~p~n", [Err]),
 	    {ok, Req3} = cowboy_req:reply(400, Req2),
