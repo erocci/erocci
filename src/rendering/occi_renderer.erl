@@ -26,7 +26,7 @@
 % Some common functions
 -export([join/2, to_list/1]).
 
--callback render(Node :: occi_node()) ->
+-callback render(Node :: occi_node(), Env :: any()) ->   % text/occi rendering needs HTTP request, beurk !!!
     binary() | list().
 
 %%%

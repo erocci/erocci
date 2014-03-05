@@ -33,7 +33,8 @@
 	 content_types_accepted/2]).
 
 %% Callback callbacks
--export([to_plain/2,
+-export([to_occi/2,
+	 to_plain/2,
 	 to_uri_list/2,
 	 to_json/2,
 	 to_xml/2,
@@ -69,6 +70,7 @@ allowed_methods(Req, State) ->
 content_types_provided(Req, State) ->
     {[
       {{<<"text">>,            <<"plain">>,     []}, to_plain},
+      {{<<"text">>,            <<"occi">>,      []}, to_occi},
       {{<<"text">>,            <<"uri-list">>,  []}, to_uri_list},
       {{<<"application">>,     <<"json">>,      []}, to_json},
       {{<<"application">>,     <<"occi+json">>, []}, to_json},
@@ -126,6 +128,9 @@ delete_resource(Req, #occi_node{id=Id}=Node) ->
 	ok ->
 	    {true, Req, Node}
     end.
+
+to_occi(Req, #occi_node{}=Node) ->
+    render(Req, Node, ?ct_occi).
 
 to_plain(Req, #occi_node{}=Node) ->
     render(Req, Node, ?ct_plain).
@@ -236,7 +241,8 @@ from(Req, #occi_node{type=undefined}=State, CT) ->
 render(Req, State, #content_type{renderer=Renderer}) ->
     case occi_store:load(State) of
 	{ok, Node} ->
-	    {[Renderer:render(Node), "\n"], Req, Node};
+	    {Body, Req2} = Renderer:render(Node, Req),
+	    {Body, Req2, Node};
 	{error, Err} ->
 	    lager:error("Error loading object: ~p~n", [Err]),
 	    {ok, Req2} = cowboy_req:reply(500, Req),

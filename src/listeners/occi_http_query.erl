@@ -98,11 +98,7 @@ to_plain(Req, State) ->
     to(Req, State, ?ct_plain).
 
 to_occi(Req, State) ->
-    {ok, Node} = occi_store:find(State),
-    Value = occi_renderer_occi:render(occi_store:find(Node)),
-    Req2 = cowboy_req:set_resp_header(<<"category">>, Value, Req),
-    Body = <<"OK\n">>,
-    {Body, Req2, State}.
+    to(Req, State, ?ct_occi).
 
 to_uri_list(Req, State) ->
     to(Req, State, ?ct_uri_list).
@@ -124,8 +120,8 @@ from_xml(Req, State) ->
 %%%
 to(Req, State, #content_type{renderer=R}) ->
     {ok, [Node]} = occi_store:find(State),
-    Body = [R:render(Node), "\n"],
-    {Body, Req, State}.
+    {Body, Req2} = R:render(Node, Req),
+    {Body, Req2, State}.
 
 from(Req, State, #content_type{parser=Parser}) ->
     {ok, Body, Req2} = cowboy_req:body(Req),

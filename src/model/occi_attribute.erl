@@ -41,6 +41,7 @@
 	 get_value/1,
 	 set_title/2,
 	 get_title/1,
+	 is_scalar/1,
 	 check/1]).
 
 -export([reset/1]).
@@ -100,6 +101,9 @@ get_default(#occi_attr{properties=Props}) ->
 
 set_default(#occi_attr{properties=Props}=A, Value) ->
     A#occi_attr{properties=dict:store(default, Value, Props)}.
+
+is_scalar(#occi_attr{scalar=Scalar}) ->
+    Scalar.
 
 get_value(#occi_attr{value=undefined, scalar=false}) ->
     [];

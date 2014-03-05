@@ -37,7 +37,8 @@
 	 set_title/2,
 	 add_attribute/2,
 	 get_attributes/1,
-	 get_attr_list/1]).
+	 get_attr_list/1,
+	 get_location/1]).
 
 new(Scheme, Term) ->
     #occi_kind{id=#occi_cid{scheme=Scheme, term=Term, class=kind},
@@ -83,3 +84,6 @@ get_parent(#occi_kind{parent=Parent}) ->
 
 set_parent(#occi_kind{}=Kind, Scheme, Term) ->
     Kind#occi_kind{parent=#occi_cid{scheme=Scheme, term=Term}}.
+
+get_location(#occi_kind{location=Uri}) ->
+    Uri.

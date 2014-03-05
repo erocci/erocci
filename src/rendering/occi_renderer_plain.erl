@@ -33,46 +33,37 @@
 -include("occi.hrl").
 
 %% API
--export([render/1]).
+-export([render/2]).
+-export([render_headers/2]).
 
 %%%===================================================================
 %%% API
 %%%===================================================================
-render(#occi_node{type=dir}=Node) ->
-    Headers = render_dir(Node, orddict:new()),
-    render_headers(Headers);
+render(Node, Env) ->
+    occi_renderer_text:render(Node, Env, fun ?MODULE:render_headers/2).
 
-render(#occi_node{type=occi_query, data={Kinds, Mixins, Actions}}) ->
-    lists:map(fun(Cat) -> 
-		      [<<"category: ">>, occi_renderer_text:render(Cat, "\n\t"), "\n"] 
-	      end, Kinds ++ Mixins ++ Actions);
-
-render(#occi_node{type=occi_collection, data=Coll}) ->
-    Headers = lists:foldl(fun (EntityId, Acc) ->
-				  orddict:append(<<"x-occi-location">>, [occi_uri:to_iolist(EntityId)], Acc)
-			  end, orddict:new(), occi_collection:get_entities(Coll)),
-    render_headers(Headers).
+render_headers(Headers, Req) ->
+    {BodyHdr, Req2} = 
+	lists:foldl(fun (Name, Acc) ->
+			    dispatch_headers(Name, Acc, Headers)
+		    end, {[], Req}, lists:reverse(orddict:fetch_keys(Headers))),
+    {[ occi_renderer:join(BodyHdr, "\n") | "\n"], Req2}.
 
 %%
 %% Private
 %%
-render_dir(#occi_node{type=dir, data=Children}, Acc) ->
-    gb_sets:fold(fun (#occi_node{type=dir}=Child, Acc2) ->
-			 render_dir(Child, Acc2);
-		     (#uri{}=ChildId, Acc2) ->
-			 orddict:append(<<"x-occi-location">>, occi_uri:to_iolist(ChildId), Acc2)
-		 end, Acc, Children).
-
-render_headers(Headers) ->
-    occi_renderer:join(
-      lists:map(fun (Name) -> 
-			render_header(Name, orddict:fetch(Name, Headers))
-		end, orddict:fetch_keys(Headers)),
-      "\n").
+dispatch_headers(<<"location">>, {BodyAcc, ReqAcc}, Headers) ->
+    Value = occi_renderer:join(orddict:fetch(<<"location">>, Headers), ", "),
+    ReqAcc2 = cowboy_req:set_resp_header(<<"location">>, Value, ReqAcc),
+    {BodyAcc, ReqAcc2};
+dispatch_headers(Name, {BodyAcc, ReqAcc}, Headers) -> 
+    {[ render_header(Name, orddict:fetch(Name, Headers)) | BodyAcc ], ReqAcc}.
 
 render_header(Name, Values) ->
     occi_renderer:join(
-      lists:map(fun (Value) ->
-			occi_renderer:join([Name, Value], ": ")
-		end, Values),
+      lists:foldl(fun ([], Acc) ->
+			  Acc;
+		      (Value, Acc) ->
+			  [ [ Name, ": ", Value] | Acc]
+		  end, [], Values),
       "\n").

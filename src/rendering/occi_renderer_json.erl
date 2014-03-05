@@ -27,7 +27,7 @@
 
 -include("occi.hrl").
 
--export([render/1]).
+-export([render/2]).
 
 -type ejson()        :: ejson_arr() | ejson_obj().
 -type ejson_arr()    :: [ ejson_elem() ].
@@ -40,18 +40,18 @@
 %%%
 %%% API
 %%%
-render(#occi_node{type=dir}=Node) ->
-    jiffy:encode(lists:flatten(render_dir(Node)), [pretty]);
+render(#occi_node{type=dir}=Node, Env) ->
+    {jiffy:encode(lists:flatten(render_dir(Node)), [pretty]), Env};
 
-render(#occi_node{type=occi_resource, data=Res}) ->
+render(#occi_node{type=occi_resource, data=Res}, Env) ->
     Content = {<<"resources">>, [render_ejson(Res)]},
-    jiffy:encode({[Content]}, [pretty]);
+    {jiffy:encode({[Content]}, [pretty]), Env};
 
-render(#occi_node{type=occi_link, data=Link}) ->
+render(#occi_node{type=occi_link, data=Link}, Env) ->
     Content = {<<"links">>, [render_ejson(Link)]},
-    jiffy:encode({[Content]}, [pretty]);
+    {jiffy:encode({[Content]}, [pretty]), Env};
 
-render(#occi_node{type=occi_query, data={Kinds, Mixins, Actions}}) ->
+render(#occi_node{type=occi_query, data={Kinds, Mixins, Actions}}, Env) ->
     KindsJson = {<<"kinds">>, lists:map(fun(Obj) -> 
 						render_ejson(Obj) 
 					end, Kinds)},
@@ -61,14 +61,14 @@ render(#occi_node{type=occi_query, data={Kinds, Mixins, Actions}}) ->
     ActionsJson = {<<"actions">>, lists:map(fun(Obj) -> 
 						    render_ejson(Obj) 
 					    end, Actions)},
-    jiffy:encode({[KindsJson, MixinsJson, ActionsJson]}, [pretty]);
+    {jiffy:encode({[KindsJson, MixinsJson, ActionsJson]}, [pretty]), Env};
 
-render(#occi_node{type=occi_user_mixin, data=Mixin}) ->
+render(#occi_node{type=occi_user_mixin, data=Mixin}, Env) ->
     MixinJson = render_ejson(Mixin),
-    jiffy:encode(MixinJson, [pretty]);
+    {jiffy:encode(MixinJson, [pretty]), Env};
 
-render(#occi_node{type=occi_collection, data=Coll}) ->
-    jiffy:encode([ occi_uri:to_binary(Id) || Id <- occi_collection:get_entities(Coll) ], [pretty]).
+render(#occi_node{type=occi_collection, data=Coll}, Env) ->
+    {jiffy:encode([ occi_uri:to_binary(Id) || Id <- occi_collection:get_entities(Coll) ], [pretty]), Env}.
 
 %%%
 %%% Private
