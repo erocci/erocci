@@ -52,7 +52,7 @@ post() {
 
     echo -n "POST ${url}... "
     
-    ret=$(echo "${content}" | curl ${curl_opts} -X POST --data @- -H "content-type: ${ct}" ${url})
+    ret=$(echo -e "${content}" | curl ${curl_opts} -X POST --data-binary @- -H "content-type: ${ct}" ${url})
     echo -n ${ret}
     if [ "${ret}" = "${expect}" ]; then
 	ok
@@ -68,13 +68,34 @@ put() {
     content=$4
 
     echo -n "PUT ${url}... "
-    
-    ret=$(echo "${content}" | curl ${curl_opts} -X PUT --data @- -H "content-type: ${ct}" ${url})
+
+    ret=$(echo -e "${content}" | curl ${curl_opts} -X PUT --data-binary @- -H "content-type: ${ct}" ${url})
     echo -n ${ret}
     if [ "${ret}" = "${expect}" ]; then
 	ok
     else
 	fail "${ret}"
+    fi    
+}
+
+put_h() {
+    expect=$1
+    url=$(norm_url $2)
+    ct=$3
+    content=$4
+
+    echo -n "PUT ${url}... "
+    
+    ret=$(echo -e "${content}" \
+	  | curl ${curl_opts} -X PUT \
+		 -H "content-type: ${ct}" \
+		 $(for line in "${content[@]}"; do echo '-H' "${line}"; done) \
+		 ${url})
+    echo -n ${ret}
+    if [ "${ret}" = "${expect}" ]; then
+    	ok
+    else
+    	fail "${ret}"
     fi    
 }
 
@@ -106,7 +127,7 @@ delete() {
 	ct=$3
 	content=$4
 	
-	ret=$(echo "${content}" | curl ${curl_opts} -X DELETE --data @- -H "content-type: ${ct}" ${url})
+	ret=$(echo -e "${content}" | curl ${curl_opts} -X DELETE --data-binary @- -H "content-type: ${ct}" ${url})
     fi
 
     echo -n ${ret}

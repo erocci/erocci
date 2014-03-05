@@ -13,5 +13,6 @@ x-occi-attribute: occi.compute.hostname="pc"
 x-occi-attribute: occi.compute.memory=5
 x-occi-attribute: occi.compute.speed=4000
 EOF
-	   )
-put 201 ${id} "text/plain" "$content"
+	  )
+
+put 201 ${id} "text/plain" "${content}"
