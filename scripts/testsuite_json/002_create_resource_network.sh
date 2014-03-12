@@ -11,7 +11,7 @@ content=$(cat <<EOF
 	    "attributes": {
 		"occi": {
 		    "network": {
-			"vlan": "1",
+			"vlan": 1,
 			"label": "mylan"
 		    }
 		}
