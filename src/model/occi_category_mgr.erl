@@ -25,6 +25,7 @@
 -compile([{parse_transform, lager_transform}]).
 
 -include("occi.hrl").
+-include("occi_xml.hrl").
 
 -behaviour(supervisor).
 
@@ -43,7 +44,6 @@
 
 -define(SERVER, ?MODULE).
 -define(CAT_TBL, ?MODULE).
--define(TYPE_TBL, type_tbl).
 
 %%%===================================================================
 %%% API functions
@@ -79,10 +79,7 @@ register_extension({xml, Path}, Mapping) ->
 					  register_mixin(Mixin#occi_mixin{location=Uri})
 				  end
 			  end,
-			  occi_extension:get_categories(Ext)),
-	    lists:foreach(fun(#occi_type{}=Type) ->
-				  register_type(Type)
-			  end, occi_extension:get_types(Ext))
+			  occi_extension:get_categories(Ext))
     end.
 
 register_kind(#occi_kind{id=Id, location=#uri{}=Uri}=Kind) ->
@@ -104,10 +101,6 @@ register_mixin(#occi_mixin{id=Id, location=Uri}=Mixin) ->
 register_action(#occi_action{id=Id}=Action) ->
     lager:info("Registering action: ~p~n", [ lager:pr(Id, ?MODULE) ]),
     ets:insert(?CAT_TBL, Action).
-
-register_type(#occi_type{id=Id}=Type) ->
-    lager:info("Registering type: ~p~n", [ Id ]),
-    ets:insert(?TYPE_TBL, Type).
 
 -spec find(occi_category() | uri()) -> [occi_category()].
 find(#uri{path=Path}) ->
@@ -141,7 +134,7 @@ find_all() ->
       find(#occi_mixin{_='_'}),
       find(#occi_action{_='_'}) }.
 
--spec get(occi_cid() | occi_type()) -> occi_mixin().
+-spec get(occi_cid()) -> occi_mixin().
 get(#occi_cid{class=mixin}=Cid) ->
     case ets:match_object(?CAT_TBL, #occi_mixin{id=Cid, _='_'}) of
 	[Mixin] ->
@@ -164,14 +157,6 @@ get(#occi_cid{class=action}=Cid) ->
 	    Action;
 	_ ->
 	    throw({error, unknown_action})
-    end;
-
-get(#occi_type{id=Id}) ->
-    case ets:lookup(?TYPE_TBL, Id) of
-	[Type] ->
-	    Type;
-	_ ->
-	    throw({error, {unknown_type, Id}})
     end.
 
 %%%===================================================================
@@ -195,8 +180,6 @@ init([]) ->
     lager:info("Starting OCCI categories manager"),
     ?CAT_TBL = ets:new(?CAT_TBL, 
 		     [ordered_set, public, {keypos, 2}, named_table, {read_concurrency, true}]),
-    ?TYPE_TBL = ets:new(?TYPE_TBL, 
-			[ordered_set, public, {keypos, 2}, named_table, {read_concurrency, true}]),
     {ok, {{one_for_one, 10, 10}, []}}.
 
 %%%===================================================================

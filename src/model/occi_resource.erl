@@ -26,6 +26,7 @@
 
 -export([new/0,
 	 new/1,
+	 new/2,
 	 new/3,
 	 get_id/1,
 	 set_id/2,
@@ -35,7 +36,6 @@
 	 add_mixin/2,
 	 del_mixin/2,
 	 set_attr_value/3,
-	 add_attr_value/3,
 	 get_attr/2,
 	 get_attributes/1,
 	 add_link/2,
@@ -62,6 +62,11 @@ new(#occi_kind{}=Kind) ->
 		   links=sets:new()};
 new(#uri{}=Id) ->
     #occi_resource{id=Id, attributes=orddict:new(), links=sets:new()}.
+
+-spec new(Id :: uri(), Kind :: occi_kind()) -> occi_resource().
+new(#uri{}=Id, #occi_kind{}=Kind) ->
+    #occi_resource{id=Id, cid=occi_kind:get_id(Kind), 
+		   attributes=occi_kind:get_attributes(Kind), links=sets:new()}.
 
 -spec new(Id :: uri(), Kind :: occi_kind(), Attributes :: [{Key :: atom(), Val :: term}]) -> occi_resource().
 new(#uri{}=Id, #occi_kind{}=Kind, Attributes) ->
@@ -142,18 +147,6 @@ set_attr_value(#occi_resource{attributes=Attrs}=Res, Key, Val) when is_atom(Key)
 	true ->
 	    Attr = orddict:fetch(Key, Attrs),
 	    Res#occi_resource{attributes=orddict:store(Key, occi_attribute:set_value(Attr, Val), Attrs)};
-	false ->
-	    {error, {undefined_attribute, Key}}
-    end.
-
--spec add_attr_value(occi_resource(), occi_attr_key(), any()) -> occi_resource().
-add_attr_value(#occi_resource{}=Res, Key, Val) when is_list(Key) ->
-    add_attr_value(Res, list_to_atom(Key), Val);
-add_attr_value(#occi_resource{attributes=Attrs}=Res, Key, Val) when is_atom(Key) ->
-    case orddict:is_key(Key, Attrs) of
-	true ->
-	    Attr = orddict:fetch(Key, Attrs),
-	    Res#occi_resource{attributes=orddict:store(Key, occi_attribute:add_value(Attr, Val))};
 	false ->
 	    {error, {undefined_attribute, Key}}
     end.

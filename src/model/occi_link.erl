@@ -26,6 +26,7 @@
 
 -export([new/0,
 	 new/1,
+	 new/2,
 	 new/4,
 	 get_id/1,
 	 set_id/2,
@@ -35,7 +36,6 @@
 	 add_mixin/2,
 	 del_mixin/2,
 	 set_attr_value/3,
-	 add_attr_value/3,
 	 get_attr/2,
 	 get_attributes/1,
 	 get_title/1,
@@ -56,6 +56,10 @@
 new() ->
     #occi_link{attributes=orddict:new()}.
 
+-spec new(Id :: uri(), Kind :: occi_kind()) -> occi_link().
+new(#uri{}=Id, #occi_kind{}=Kind) ->
+    #occi_link{id=Id, cid=occi_kind:get_id(Kind), 
+	       attributes=occi_kind:get_attributes(Kind)}.
 
 -spec new(occi_kind() | uri()) -> occi_link().
 new(#occi_kind{}=Kind) ->
@@ -146,18 +150,6 @@ set_attr_value(#occi_link{attributes=Attrs}=Link, Key, Val) when is_atom(Key) ->
 	true ->
 	    Attr = orddict:fetch(Key, Attrs),
 	    Link#occi_link{attributes=orddict:store(Key, occi_attribute:set_value(Attr, Val), Attrs)};
-	false ->
-	    {error, {undefined_attribute, Key}}
-    end.
-
--spec add_attr_value(occi_link(), occi_attr_key(), any()) -> occi_link().
-add_attr_value(#occi_link{}=Link, Key, Val) when is_list(Key) ->
-    add_attr_value(Link, list_to_atom(Key), Val);
-add_attr_value(#occi_link{attributes=Attrs}=Link, Key, Val) when is_atom(Key) ->
-    case orddict:is_key(Key, Attrs) of
-	true ->
-	    Attr = orddict:fetch(Key, Attrs),
-	    Link#occi_link{attributes=orddict:store(Key, occi_attribute:add_value(Attr, Val))};
 	false ->
 	    {error, {undefined_attribute, Key}}
     end.

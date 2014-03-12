@@ -15,8 +15,7 @@
 %%% specific language governing permissions and limitations
 %%% under the License.
 %%% 
-%%% @doc use EEP1108 format ofr JSON internal representation
-%%% http://www.erlang.org/eeps/eep-0018.html
+%%% @doc 
 %%%
 %%% @end
 %%% Created :  7 Oct 2013 by Jean Parpaillon <jean.parpaillon@free.fr>
@@ -52,8 +51,7 @@
 	 eof/3, 
 	 attribute_spec/3,
 	 mixin/3,
-	 action_spec/3,
-	 attr_type/3]).
+	 action_spec/3]).
 
 -define(SERVER, ?MODULE).
 -define(PARSER_OPTIONS,
@@ -424,9 +422,6 @@ extension(E=?kind, _From, #parser{state=State}=Ctx) ->
 extension(E=?mixin, _From, #parser{state=State}=Ctx) ->
     Mixin = make_mixin(E, State),
     push(mixin, ?set_state(Ctx, State#state{mixin=Mixin}));
-extension(E=?simpleType, _From, #parser{state=State}=Ctx) ->
-    Id = to_atom(get_attr_value(E, <<"name">>)),
-    push(attr_type, ?set_state(Ctx, State#state{type=#occi_type{id=Id}}));
 extension(?extensionEnd, _From, #parser{state=#state{extension=Ext}=State}=Ctx) ->
     {reply, {eof, Ext}, eof, ?set_state(Ctx, State#state{extension=undefined})};
 extension(E, _From, Ctx) ->
@@ -443,12 +438,12 @@ kind(E=?parent, _From, #parser{state=#state{kind=Kind}=State}=Ctx) ->
 kind(_E=?parentEnd, _From, Ctx) ->
     {reply, ok, kind, Ctx};
 kind(E=?attribute, _From, #parser{state=State}=Ctx) ->
-    case catch make_attr_spec(E, State) of
-	{error, Reason} ->
-	    {reply, {error, Reason}, eof, Ctx};
+    try make_attr_spec(E, State) of
 	AttrSpec -> 
-	    push(attribute_spec, 
-		 ?set_state(Ctx, State#state{attribute=AttrSpec}))
+	    push(attribute_spec, ?set_state(Ctx, State#state{attribute=AttrSpec}))
+    catch
+	_:Err ->
+	    {reply, {error, Err}, eof, Ctx}
     end;
 kind(E=?action, _From, #parser{state=State}=Ctx) ->
     try make_action_spec(E, State) of
@@ -502,12 +497,12 @@ mixin(_E=?appliesEnd, _From, Ctx) ->
     {reply, ok, mixin, Ctx};
 
 mixin(E=?attribute, _From, #parser{state=State}=Ctx) ->
-    case catch make_attr_spec(E, State) of
-	{error, Reason} ->
-	    {reply, {error, Reason}, eof, Ctx};
+    try make_attr_spec(E, State) of
 	Attr -> 
-	    push(attribute_spec, 
-		 ?set_state(Ctx, State#state{attribute=Attr}))
+	    push(attribute_spec, ?set_state(Ctx, State#state{attribute=Attr}))
+    catch
+	_:Err ->
+	    {reply, {error, Err}, eof, Ctx}
     end;
 
 mixin(E=?action, _From, #parser{state=State}=Ctx) ->
@@ -539,34 +534,28 @@ mixin(E, _From, Ctx) ->
 
 attribute_spec(_E=?attributeEnd, _From, 
 	       #parser{stack=[_Cur,Prev|_Stack], state=#state{attribute=A}=State}=Ctx) ->
-    case occi_attribute:get_type_id(A) of
-	undefined ->
-	    {reply, {error, {undefined_type, occi_attribute:get_id(A)}}, eof, Ctx};
-	_ ->
-	    State2 = case Prev of
-			 kind -> 
-			     Ref = State#state.kind,
-			     State#state{kind=occi_kind:add_attribute(Ref, A)};
-			 mixin -> 
-			     Ref = State#state.mixin,
-			     State#state{mixin=occi_mixin:add_attribute(Ref, A)};
-			 action_spec -> 
-			     Ref = State#state.action,
+    State2 = case Prev of
+		 kind -> 
+		     Ref = State#state.kind,
+		     State#state{kind=occi_kind:add_attribute(Ref, A)};
+		 mixin -> 
+		     Ref = State#state.mixin,
+		     State#state{mixin=occi_mixin:add_attribute(Ref, A)};
+		 action_spec -> 
+		     Ref = State#state.action,
 			     State#state{action=occi_action:add_attribute(Ref, A)}
-		     end,
-	    pop(?set_state(Ctx, State2#state{attribute=undefined}))
-	end;
-attribute_spec(_E=?simpleType, _From, #parser{state=State}=Ctx) ->
-    push(attr_type, ?set_state(Ctx, State#state{type=#occi_type{}}));
+	     end,
+    pop(?set_state(Ctx, State2#state{attribute=undefined}));
 attribute_spec(E, _From, Ctx) ->
     other_event(E, Ctx, attribute_spec).
 
 action_spec(E=?attribute, _From, #parser{state=State}=Ctx) ->
-    case catch make_attr_spec(E, State) of
-	{error, Reason} ->
-	    {reply, {error, Reason}, eof, Ctx};
+    try make_attr_spec(E, State) of
 	AttrSpec -> 
 	    push(attribute_spec, ?set_state(Ctx, State#state{attribute=AttrSpec}))
+    catch
+	_:Err ->
+	    {reply, {error, Err}, eof, Ctx}
     end;
 action_spec(_E=?actionEnd, _From, 
 	    #parser{stack=[_Cur,Prev|_Stack], state=#state{action=A}=State}=Ctx) ->
@@ -579,24 +568,6 @@ action_spec(_E=?actionEnd, _From,
     pop(?set_state(Ctx, State2#state{action=undefined}));
 action_spec(E, _From, Ctx) ->
     other_event(E, Ctx, action_spec).
-
-attr_type(_E=?simpleTypeEnd, _From, 
-	  #parser{stack=[_Cur,Prev|_Stack], state=#state{type=Type, extension=Ext}=State}=Ctx) ->
-    case Prev of
-	extension ->
-	    Ext2 = occi_extension:add_type(Ext, Type),
-	    pop(?set_state(Ctx, State#state{type=undefined, extension=Ext2}));
-	attribute_spec ->
-	    Attr = occi_attribute:set_type_id(State#state.attribute, 
-					      get_attr_type(Type#occi_type.id)),
-	    pop(?set_state(Ctx, State#state{type=undefined, attribute=Attr}))
-    end;
-attr_type(_E=?simpleDef, _From, Ctx) ->
-    {reply, ok, attr_type, Ctx};
-attr_type(_E=?simpleDefEnd, _From, Ctx) ->
-    {reply, ok, attr_type, Ctx};
-attr_type(E, _From, Ctx) ->
-    other_event(E, Ctx, attr_type).
 
 eof(_Event, _From, State) ->
     {reply, ok, eof, State}.
@@ -818,11 +789,10 @@ make_collection(_E, #state{}=State) ->
 
 make_attr_spec(E, State) ->
     Name = get_attr_value(E, <<"name">>),
-    Type = get_attr_type(get_attr_value(E, <<"type">>, undefined), 
-			 State),
+    Type = get_type_id(E, <<"type">>, State),
     lager:debug("Load attribute spec: ~s~n", [Name]),
     Attr = occi_attribute:new(Name),
-    Attr2 = occi_attribute:set_type_id(Attr, Type),
+    Attr2 = occi_attribute:set_type(Attr, Type),
     Title = get_attr_value(E, <<"title">>, undefined),
     occi_attribute:set_title(Attr2, Title).
 
@@ -915,37 +885,24 @@ load_prefixes([], Acc) ->
 load_prefixes([{Name, Prefix}|Tail], Acc) ->
     load_prefixes(Tail, [{Prefix, Name}|Acc]).
 
-get_attr_type(undefined, _State) ->
-    undefined;
-get_attr_type(Type, #state{prefixes=P}) ->
-    {Ns, Name} = resolve_ns(Type, P),
-    get_attr_type({Ns, Name}).
+get_type_id(#xmlel{}=E, Name, #state{prefixes=P}) ->
+    case get_attr_value(E, Name, undefined) of
+	undefined -> undefined;
+	Bin -> resolve_ns(Bin, P)
+    end.
 
 resolve_ns(Bin, Dict) ->
     case string:tokens(binary_to_list(Bin), ":") of
 	[Ns, Name] ->
-	    case catch dict:fetch(Ns, Dict) of
-		{badarg, _} ->
+	    case dict:find(Ns, Dict) of
+		error ->
 		    throw({error, {parse_error, unknown_ns}});
-		Val ->
+		{ok, Val} ->
 		    {Val, list_to_atom(Name)}
 	    end;
 	[_Name] ->
 	    throw({error, {parse_error, unknown_ns}})
     end.
-
-get_attr_type({?occi_ns, _}) ->
-    string;
-get_attr_type({?xmlschema_ns, integer}) ->
-    integer;
-get_attr_type({?xmlschema_ns, string}) ->
-    string;
-get_attr_type({?xmlschema_ns, float}) ->
-    float;
-get_attr_type({?xmlschema_ns, _}) ->
-    string;
-get_attr_type(undefined) ->
-    string.
 
 other_event(E, Ctx, StateName) ->
     case is_ws(E) of

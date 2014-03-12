@@ -26,29 +26,24 @@
 
 -export([new/1,
 	 get_id/1,
-	 get_type_id/1,
-	 set_type_id/2,
+	 get_type/1,
+	 set_type/2,
 	 is_required/1,
 	 set_required/2,
-	 get_occur/1,
-	 set_occur/3,
 	 is_immutable/1,
 	 set_immutable/2,
 	 get_default/1,
 	 set_default/2,
 	 set_value/2,
-	 add_value/2,
 	 get_value/1,
 	 set_title/2,
 	 get_title/1,
-	 is_scalar/1,
 	 check/1]).
 
 -export([reset/1]).
 
 -define(attr_default, [{immutable, false},
-		       {minOccurs, 0},
-		       {maxOccurs, 1},
+		       {required, false},
 		       {default, undefined}]).
 
 new(Id) when is_binary(Id) ->
@@ -59,36 +54,17 @@ new(Id) ->
 get_id(A) ->
     A#occi_attr.id.
 
-get_type_id(#occi_attr{type_id=Name}) ->
-    Name.
+get_type(#occi_attr{type_id=Id}) ->
+    Id.
 
-set_type_id(A, Id) ->
-    A#occi_attr{type_id=Id}.
+set_type(A, Id) ->
+    A#occi_attr{type_id=Id, f=occi_type:get(Id)}.
 
 is_required(A) ->
-    dict:fetch(minOccurs, A#occi_attr.properties) > 0.
+    dict:fetch(required, A#occi_attr.properties).
 
-set_required(A, true) ->
-    case get_occur(A) of
-	{Min, _Max} when Min > 0 ->
-	    A;
-	{_Min, _Max} ->
-	    A#occi_attr{properties=dict:store(minOccurs, 1, A#occi_attr.properties)}
-	end;
-set_required(A, false) ->
-    A#occi_attr{properties=dict:store(minOccurs, 0, A#occi_attr.properties)}.
-
-get_occur(#occi_attr{properties=Props}) ->
-    {dict:fetch(minOccurs, Props), dict:fetch(maxOccurs, Props)}.
-
-set_occur(#occi_attr{properties=Props}=A, Min, Max) ->
-    Props2 = dict:store(minOccurs, Min, Props),
-    Props3 = dict:store(maxOccurs, Max, Props2),
-    Scalar = if 
-		 Max > 1 -> false;
-		 true -> true
-	     end,		     
-    A#occi_attr{properties=Props3, scalar=Scalar}.
+set_required(A, Req) ->
+    A#occi_attr{properties=dict:store(required, Req, A#occi_attr.properties)}.
 
 is_immutable(A) ->
     dict:fetch(immutable, A#occi_attr.properties).
@@ -102,31 +78,11 @@ get_default(#occi_attr{properties=Props}) ->
 set_default(#occi_attr{properties=Props}=A, Value) ->
     A#occi_attr{properties=dict:store(default, Value, Props)}.
 
-is_scalar(#occi_attr{scalar=Scalar}) ->
-    Scalar.
-
-get_value(#occi_attr{value=undefined, scalar=false}) ->
-    [];
 get_value(#occi_attr{value=Value}) ->
     Value.
 
-set_value(#occi_attr{type_id=Id}=A, Value) ->
-    Fun = get_check_fun(Id),
+set_value(#occi_attr{f=Fun}=A, Value) ->
     A#occi_attr{value=Fun(Value)}.
-
-add_value(#occi_attr{scalar=true}, _Value) ->
-    throw({error, bad_arity});
-add_value(#occi_attr{type_id=Id, value=undefined}=A, Value) ->
-    Fun = get_check_fun(Id),
-    A#occi_attr{value=[Fun(Value)]};
-add_value(#occi_attr{properties=Props, type_id=Id, value=List}=A, Value) ->
-    case dict:fetch(maxOccurs, Props) of
-	Max when Max < length(List) ->
-	    Fun = get_check_fun(Id),
-	    A#occi_attr{value=[Fun(Value)|List]};
-	_ ->
-	    throw({error, bad_arity})
-    end.
 
 set_title(A, Title) ->
     A#occi_attr{title=Title}.
@@ -138,26 +94,6 @@ get_title(#occi_attr{title=Title}) ->
 reset(#occi_attr{}=A) ->
     A#occi_attr{value=get_default(A)}.
 
-%%%
-%%% Private functions
-%%%
-get_check_fun(string) ->
-    fun to_string/1;
-
-get_check_fun(integer) ->
-    fun to_integer/1;
-
-get_check_fun(float) ->
-    fun to_float/1;
-
-get_check_fun(Type) ->
-    case occi_category_mgr:get(#occi_type{id=Type, _='_'}) of
-	#occi_type{f=Fun} ->
-	    Fun;
-	{error, Err} ->
-	    throw({error, Err})
-    end.
-
 check(#occi_attr{value=undefined}=A) ->
     case is_required(A) of
 	true -> error;
@@ -165,48 +101,3 @@ check(#occi_attr{value=undefined}=A) ->
     end;
 check(#occi_attr{}=_A) ->
     ok.
-
-to_string(X) when is_list(X) ->
-    X;
-to_string(X) when is_binary(X) ->
-    binary_to_list(X);
-to_string(X) ->
-    throw({error, {einval, X}}).
-
-to_integer(X) when is_integer(X) ->
-    X;
-to_integer(X) when is_binary(X) ->
-    binary_to_integer(X);
-to_integer(X) when is_list(X) ->
-    list_to_integer(X);
-to_integer(X) ->
-    throw({error, {einval, X}}).
-
-to_float(X) when is_float(X) ->
-    X;
-to_float(X) when is_integer(X) ->
-    X+0.0;
-to_float(X) when is_binary(X) ->
-    try binary_to_float(X) of
-	V -> V
-    catch 
-	_:_ ->
-	    try binary_to_integer(X) of
-		V -> V+0.0
-	    catch
-		_:_ -> {error, einval}
-	    end
-    end;
-to_float(X) when is_list(X) ->
-    try list_to_float(X) of
-	V -> V
-    catch 
-	_:_ ->
-	    try list_to_integer(X) of
-		V -> V+0.0
-	    catch
-		_:_ -> {error, einval}
-	    end
-    end;
-to_float(X) ->
-    throw({error, {einval, X}}).

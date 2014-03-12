@@ -35,16 +35,13 @@
 	 get_actions/1,
 	 add_kind/2,
 	 add_mixin/2,
-	 add_type/2,
-	 get_types/1,
 	 find/2]).
 
 new(Name, Version) ->
     #occi_extension{name=Name, 
 		    version=Version,
 		    kinds=[],
-		    mixins=[],
-		    types=[]}.
+		    mixins=[]}.
 
 get_location(#occi_mixin{location=Uri}) ->
     Uri.
@@ -75,17 +72,11 @@ get_actions(#occi_extension{}=Ext) ->
 			     get_mixins(Ext))
 		  ]).
 
-add_type(#occi_extension{types=Types}=Ext, #occi_type{}=Type) ->
-    Ext#occi_extension{types=[Type|Types]}.
-
 add_kind(#occi_extension{kinds=Kinds}=Ext, Kind) ->
     Ext#occi_extension{kinds=[Kind|Kinds]}.
 
 add_mixin(#occi_extension{mixins=Mixins}=Ext, Mixin) ->
     Ext#occi_extension{mixins=[Mixin|Mixins]}.
-
-get_types(#occi_extension{types=Types}) ->
-    Types.
 
 find(#occi_extension{kinds=Kinds, mixins=Mixins}, #occi_cid{class='_'}=Cid) ->
     find_category(lists:flatten([Kinds, Mixins]), Cid);

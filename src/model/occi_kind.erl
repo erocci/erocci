@@ -42,6 +42,7 @@
 
 new(Scheme, Term) ->
     #occi_kind{id=#occi_cid{scheme=Scheme, term=Term, class=kind},
+	       actions=orddict:new(),
 	       attributes=orddict:new()}.
 
 get_id(#occi_kind{id=Id}) -> 
@@ -74,10 +75,12 @@ get_attr_list(#occi_kind{attributes=Attrs}) ->
 		 end, [], Attrs).
 
 get_actions(#occi_kind{actions=Actions}) ->
-    Actions.
+    orddict:fold(fun (_Key, Action, Acc) ->
+			 [Action | Acc]
+		 end, [], Actions).
 
 add_action(#occi_kind{actions=Actions}=Kind, Action) ->
-    Kind#occi_kind{actions=[Action|Actions]}.
+    Kind#occi_kind{actions=orddict:store(occi_action:get_id(Action), Action, Actions)}.
 
 get_parent(#occi_kind{parent=Parent}) ->
     Parent.

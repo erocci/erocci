@@ -53,15 +53,16 @@
 
 new() ->
     #occi_mixin{id=#occi_cid{class=mixin},
+		actions=orddict:new(),
 		attributes=orddict:new()}.
 
 new(Scheme, Term) ->
     new(#occi_cid{scheme=Scheme, term=Term, class=mixin}).
 
 new(#occi_cid{class=mixin}=Cid) ->
-    #occi_mixin{id=Cid, attributes=orddict:new()};
+    #occi_mixin{id=Cid, attributes=orddict:new(), actions=orddict:new()};
 new(#occi_cid{class=usermixin}=Cid) ->
-    #occi_mixin{id=Cid, attributes=orddict:new()};
+    #occi_mixin{id=Cid, attributes=orddict:new(), actions=orddict:new()};
 new(_) ->
     throw({error, invalid_cid}).
 
@@ -121,10 +122,12 @@ get_attr_list(#occi_mixin{attributes=Attrs}) ->
 		 end, [], Attrs).
 
 get_actions(#occi_mixin{actions=Actions}) ->
-    Actions.
+    orddict:fold(fun (_Key, Action, Acc) ->
+			 [Action | Acc]
+		 end, [], Actions).
 
 add_action(#occi_mixin{actions=Actions}=Mixin, Action) ->
-    Mixin#occi_mixin{actions=[Action|Actions]}.
+    Mixin#occi_mixin{actions=orddict:store(occi_action:get_id(Action), Action, Actions)}.
 
 get_applies(#occi_mixin{applies=Applies}) ->
     Applies.

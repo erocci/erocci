@@ -22,8 +22,7 @@
 			 scheme         :: atom(),
 			 version        :: term(),
 			 kinds          :: [occi_cid()],
-			 mixins         :: [occi_cid()],
-			 types          :: [occi_type()]
+			 mixins         :: [occi_cid()]
 			}).
 -type(occi_extension() :: #occi_extension{}).
 
@@ -42,7 +41,7 @@
 		    location            :: uri(),
 		    parent              :: #occi_cid{},
 		    attributes          :: dict(),            % orddict
-		    actions     = []    :: [occi_action()]
+		    actions             :: dict()             % orddict
 		   }).
 -type(occi_kind() :: #occi_kind{}).
 
@@ -51,8 +50,8 @@
 		     location    = undefined :: uri(),
 		     depends     = []        :: [#occi_cid{}],
 		     applies     = []        :: [#occi_cid{}],
-		     attributes              :: dict(),            % orddict
-		     actions     = []        :: [occi_action()]
+		     attributes              :: dict(),        % orddict
+		     actions                 :: dict()         % orddict    
 		    }).
 -type(occi_mixin() :: #occi_mixin{}).
 
@@ -65,18 +64,12 @@
 		     }).
 -type(occi_action() :: #occi_action{}).
 
-%%% OCCI simple types
--record(occi_type, {id           :: occi_type_id(),
-		    f            :: fun()}).
--type(occi_type_id() :: atom() | {atom(), atom()}).
--type(occi_type() :: #occi_type{}).
-
 %%% OCCI Attribute description
 -type(occi_attr_key() :: atom()).
 -record(occi_attr, {id                           :: occi_attr_key(),
-		    type_id                      :: occi_type_id(),
+		    type_id                      :: atom(),
+		    f               = undefined  :: fun(),
 		    title           = undefined  :: binary(),
-		    scalar          = true       :: boolean(),
 		    properties                   :: [term()],
 		    value           = undefined  :: any()}).
 -type(occi_attr() :: #occi_attr{}).

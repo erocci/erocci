@@ -53,5 +53,47 @@
 -define(simpleType, #xmlel{ns=?xmlschema_ns, name=simpleType}).
 -define(simpleTypeEnd, #xmlendtag{ns=?xmlschema_ns, name=simpleType}).
 
--define(simpleDef, #xmlel{ns=?xmlschema_ns}).
--define(simpleDefEnd, #xmlendtag{ns=?xmlschema_ns}).
+-define(restriction, #xmlel{ns=?xmlschema_ns, name=restriction}).
+-define(restrictionEnd, #xmlendtag{ns=?xmlschema_ns, name=restriction}).
+
+-define(list, #xmlel{ns=?xmlschema_ns, name=list}).
+-define(listEnd, #xmlendtag{ns=?xmlschema_ns, name=list}).
+
+-define(union, #xmlel{ns=?xmlschema_ns, name=union}).
+-define(unionEnd, #xmlendtag{ns=?xmlschema_ns, name=union}).
+
+-define(minInclusive, #xmlel{ns=?xmlschema_ns, name=minInclusive}).
+-define(minInclusiveEnd, #xmlendtag{ns=?xmlschema_ns, name=minInclusive}).
+
+-define(minExclusive, #xmlel{ns=?xmlschema_ns, name=minExclusive}).
+-define(minExclusiveEnd, #xmlendtag{ns=?xmlschema_ns, name=minExclusive}).
+
+-define(maxInclusive, #xmlel{ns=?xmlschema_ns, name=maxInclusive}).
+-define(maxInclusiveEnd, #xmlendtag{ns=?xmlschema_ns, name=maxInclusive}).
+
+-define(maxExclusive, #xmlel{ns=?xmlschema_ns, name=maxExclusive}).
+-define(maxExclusiveEnd, #xmlendtag{ns=?xmlschema_ns, name=maxExclusive}).
+
+-define(totalDigits, #xmlel{ns=?xmlschema_ns, name=totalDigits}).
+-define(totalDigitsEnd, #xmlendtag{ns=?xmlschema_ns, name=totalDigits}).
+
+-define(fractionDigits, #xmlel{ns=?xmlschema_ns, name=fractionDigits}).
+-define(fractionDigitsEnd, #xmlendtag{ns=?xmlschema_ns, name=fractionDigits}).
+
+-define(length, #xmlel{ns=?xmlschema_ns, name=length}).
+-define(lengthEnd, #xmlendtag{ns=?xmlschema_ns, name=length}).
+
+-define(minLength, #xmlel{ns=?xmlschema_ns, name=minLength}).
+-define(minLengthEnd, #xmlendtag{ns=?xmlschema_ns, name=minLength}).
+
+-define(maxLength, #xmlel{ns=?xmlschema_ns, name=maxLength}).
+-define(maxLengthEnd, #xmlendtag{ns=?xmlschema_ns, name=maxLength}).
+
+-define(enumeration, #xmlel{ns=?xmlschema_ns, name=enumeration}).
+-define(enumerationEnd, #xmlendtag{ns=?xmlschema_ns, name=enumeration}).
+
+-define(whiteSpace, #xmlel{ns=?xmlschema_ns, name=whiteSpace}).
+-define(whiteEnd, #xmlendtag{ns=?xmlschema_ns, name=whiteSpace}).
+
+-define(pattern, #xmlel{ns=?xmlschema_ns, name=pattern}).
+-define(patternEnd, #xmlendtag{ns=?xmlschema_ns, name=pattern}).

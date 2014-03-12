@@ -34,7 +34,6 @@
 	    <xs:element name="kind" type="occi:kindType" maxOccurs="unbounded" minOccurs="0" />
 	    <xs:element name="mixin" type="occi:mixinType" maxOccurs="unbounded" minOccurs="0" />
 	    <xs:element name="action" type="occi:actionSpecType" maxOccurs="unbounded" minOccurs="0" />
-	    <xs:element ref="xs:simpleType" maxOccurs="unbounded" minOccurs="0" />
 	  </xs:sequence>
 	  <xs:attribute name="name" type="xs:string"></xs:attribute>
 	  <xs:attribute name="version" type="xs:string"></xs:attribute>
@@ -101,8 +100,6 @@
 		  </xs:documentation>
 		</xs:annotation>
 	      </xs:attribute>
-	      <xs:attribute name="minOccurs" type="xs:nonNegativeInteger" use="optional" default="1" />
-	      <xs:attribute name="maxOccurs" type="xs:allNNI" use="optional" default="1" />
 	    </xs:extension>
 	  </xs:complexContent>
 	</xs:complexType>
@@ -112,10 +109,16 @@
 	    <xs:extension base="occi:entityType">
 	      <xs:sequence>
 		<xs:element name="summary" type="xs:string" minOccurs="0" maxOccurs="1" />
-		<xs:element name="link" type="occi:xlinkType" minOccurs="0" maxOccurs="unbounded" />
+		<xs:element name="link" type="occi:resourceLinkType" minOccurs="0" maxOccurs="unbounded" />
 	      </xs:sequence>
 	    </xs:extension>
 	  </xs:complexContent>
+	</xs:complexType>
+
+	<xs:complexType name="resourceLinkType" >
+	  <xs:complexType>
+	    <xs:extension base="occi:linkType" />
+	  </xs:complexType>
 	</xs:complexType>
 
 	<xs:complexType name="linkType">
@@ -131,8 +134,8 @@
 	    <xs:element name="attribute" type="occi:attributeType" minOccurs="0" maxOccurs="unbounded" />
 	    <xs:element name="action" type="occi:categoryType" minOccurs="0" maxOccurs="unbounded" />
 	  </xs:sequence>
-	  <xs:attribute name="id" type="xs:anyURI" use="required"></xs:attribute>
-	  <xs:attribute name="title" type="xs:string"></xs:attribute>
+	  <xs:attribute name="id" type="xs:anyURI" ></xs:attribute>
+	  <xs:attribute name="title" type="xs:string" ></xs:attribute>
 	  <xs:attribute name="href" type="xl:href" />
 	</xs:complexType>
 	
@@ -178,5 +181,9 @@
 	    <xs:element name="attribute" type="occi:attributeType"></xs:element>
 	  </xs:sequence>
 	  <xs:attributeGroup ref="occi:categoryGroup"></xs:attributeGroup>
+	</xs:complexType>
+
+	<xs:complexType name="xlinkType" >
+	  <xs:attribute name="href" type="xl:href" />
 	</xs:complexType>
       </xs:schema>
