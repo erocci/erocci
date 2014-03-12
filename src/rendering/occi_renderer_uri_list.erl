@@ -29,30 +29,32 @@
 -include("occi.hrl").
 
 %% API
--export([render/1]).
+-export([render/2]).
 
 %%%===================================================================
 %%% API
 %%%===================================================================
-render(#occi_node{type=dir}=Node) ->
-    occi_renderer:join(render_dir(Node), "\n");
+render(#occi_node{type=dir}=Node, Env) ->
+    {occi_renderer:join(render_dir(Node), "\n"), Env};
 
-render(#occi_node{type=occi_collection, data=Coll}) ->
-    occi_renderer:join([ occi_uri:to_iolist(Id) || Id <- occi_collection:get_entities(Coll) ], <<"\n">>);
+render(#occi_node{type=occi_collection, data=Coll}, Env) ->
+    Data = occi_renderer:join([ occi_uri:to_iolist(Id) || Id <- occi_collection:get_entities(Coll) ], <<"\n">>),
+    {Data, Env};
 
-render(#occi_node{type=occi_query, data={Kinds, Mixins, Actions}}) ->
-    occi_renderer:join(
-      lists:reverse(
-	lists:foldl(fun (#occi_kind{location=#uri{}=Uri}, Acc) ->
-			    [occi_uri:to_iolist(Uri)|Acc];
-			(#occi_mixin{location=#uri{}=Uri}, Acc) ->
-			    [occi_uri:to_iolist(Uri)|Acc];
-			(#occi_action{location=undefined}, Acc) ->
-			    Acc;
-			(#occi_action{location=#uri{}=Uri}, Acc) ->
-			    [occi_uri:to_iolist(Uri)|Acc]
-		    end, [], Kinds ++ Mixins ++ Actions)),
-      <<"\n">>).    
+render(#occi_node{type=occi_query, data={Kinds, Mixins, Actions}}, Env) ->
+    Data = occi_renderer:join(
+	     lists:reverse(
+	       lists:foldl(fun (#occi_kind{location=#uri{}=Uri}, Acc) ->
+				   [occi_uri:to_iolist(Uri)|Acc];
+			       (#occi_mixin{location=#uri{}=Uri}, Acc) ->
+				   [occi_uri:to_iolist(Uri)|Acc];
+			       (#occi_action{location=undefined}, Acc) ->
+				   Acc;
+			       (#occi_action{location=#uri{}=Uri}, Acc) ->
+				   [occi_uri:to_iolist(Uri)|Acc]
+			   end, [], Kinds ++ Mixins ++ Actions)),
+	     <<"\n">>),
+    {Data, Env}.
 
 %%%
 %%% Prive

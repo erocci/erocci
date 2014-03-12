@@ -23,8 +23,7 @@
 -module(occi_parser_plain).
 -compile({parse_transform, lager_transform}).
 
--include("occi.hrl").
--include("occi_parser.hrl").
+-include("occi_parser_text.hrl").
 
 %% API
 -export([parse_action/3,
@@ -32,95 +31,71 @@
 	 parse_user_mixin/2,
 	 parse_collection/2]).
 
--record(state, {request        = #occi_request{}    :: occi_request(),
-		collection                          :: occi_collection(),
-		entity         = undefined          :: term(),
-		entity_id      = undefined          :: uri(),
-		mixin          = undefined          :: term(),
-		action         = undefined          :: occi_action(),
-		attrNS         = []                 :: [string()]}).
-
 %%%===================================================================
 %%% API
 %%%===================================================================
 parse_action(Data, _Env, Action) ->
-    case parse_full(Data, #state{action=Action}) of
-	{error, Reason} ->
-	    {error, {parse_error, Reason}};
-	{ok, #occi_request{action=#occi_action{}=Action2}} ->
-	    {ok, Action2};
-	_ ->
-	    {error, {parse_error, not_an_action}}
+    case parse_header(Data, orddict:new()) of
+	{error, Err} ->
+	    {error, Err};
+	{ok, Headers} ->
+	    occi_parser_text:parse_action(Headers, #state{action=Action})
     end.    
 
-parse_entity(Data, _Env, #occi_resource{}=Res) ->
-    case parse_full(Data, #state{entity=Res}) of
-	{error, Reason} ->
-	    {error, {parse_error, Reason}};
-	{ok, #occi_request{entities=[#occi_resource{}=Res2]}} ->
-	    {ok, Res2};
-	_ ->
-	    {error, {parse_error, not_an_entity}}
+parse_entity(Data, Env, #occi_resource{}=Res) ->
+    case parse_header(Data, orddict:new()) of
+	{error, Err} ->
+	    {error, Err};
+	{ok, Headers} ->
+	    {Location, _} = cowboy_req:header(<<"location">>, Env),
+	    Headers2 = add_header_value('location', Location, Headers),
+	    occi_parser_text:parse_entity(Headers2, #state{entity=Res})
     end;
 
-parse_entity(Data, _Env, #occi_link{}=Link) ->
-    case parse_full(Data, #state{entity=Link}) of
-	{error, Reason} ->
-	    {error, {parse_error, Reason}};
-	{ok, #occi_request{entities=[#occi_link{}=Link2]}} ->
-	    {ok, Link2};
-	_ ->
-	    {error, {parse_error, not_an_entity}}
+parse_entity(Data, Env, #occi_link{}=Link) ->
+    case parse_header(Data, orddict:new()) of
+	{error, Err} ->
+	    {error, Err};
+	{ok, Headers} ->
+	    {Location, _} = cowboy_req:header(<<"location">>, Env),
+	    Headers2 = add_header_value('location', Location, Headers),
+	    occi_parser_text:parse_entity(Headers2, #state{entity=Link})
     end;
 
 parse_entity(Data, _Env, #occi_entity{id=Id}) ->
-    case parse_full(Data, #state{entity_id=Id}) of
-	{error, Reason} ->
-	    {error, {parse_error, Reason}};
-	{ok, #occi_request{entities=[#occi_resource{}=Res2]}} ->
-	    {ok, Res2};
-	{ok, #occi_request{entities=[#occi_link{}=Link2]}} ->
-	    {ok, Link2};
-	_ ->
-	    {error, {parse_error, not_an_entity}}
+    case parse_header(Data, orddict:new()) of
+	{error, Err} ->
+	    {error, Err};
+	{ok, Headers} ->
+	    occi_parser_text:parse_entity(Headers, #state{entity_id=Id})
     end.
 
 parse_user_mixin(Data, _Env) ->
-    case parse_full(Data, #state{mixin=occi_mixin:new(#occi_cid{class=usermixin})}) of
-	{error, Reason} ->
-	    {error, {parse_error, Reason}};
-	{ok, #occi_request{mixins=[#occi_mixin{}=Mixin]}} ->
-	    {ok, Mixin};
-	Err ->
-	    lager:error("Invalid request: ~p~n", [Err]),
-	    {error, {parse_error, Err}}
+    case parse_header(Data, orddict:new()) of
+	{error, Err} ->
+	    {error, Err};
+	{ok, Headers} ->
+	    occi_parser_text:parse_user_mixin(Headers, #state{mixin=occi_mixin:new(#occi_cid{class=usermixin})})
     end.
 
 parse_collection(Data, _Env) ->
-    case parse_full(Data, #state{}) of
-	{error, Reason} ->
-	    {error, {parse_error, Reason}};
-	{ok, #occi_request{collection=Coll}} ->
-	    {ok, Coll}
+    case parse_header(Data, orddict:new()) of
+	{error, Err} ->
+	    {error, Err};
+	{ok, Headers} ->
+	    occi_parser_text:parse_collection(Headers, #state{})
     end.
 
 %%%
 %%% Private
-%%%
-parse_full(Data, _State) ->
-    Headers = parse_header(Data, []),
-    lager:info("### Headers: ~p~n", [Headers]),
-    {error, not_yet}.
-
-%%%
 %%% Largely inspired by cowboy_protocol
 %%%
 parse_header(<<>>, Headers) ->
-    lists:reverse(Headers);
+    {ok, reverse(Headers)};
 parse_header(<< $\r, Rest/bits >>, Headers) ->
     parse_header(Rest, Headers);
 parse_header(<< $\n, _Rest/bits >>, Headers) ->
-    lists:reverse(Headers);
+    {ok, reverse(Headers)};
 parse_header(Buffer, H) ->
     case match_colon(Buffer, 0) of
 	nomatch ->
@@ -128,6 +103,11 @@ parse_header(Buffer, H) ->
 	_ ->
 	    parse_hd_name(Buffer, H, <<>>)
     end.
+
+reverse(H) ->
+    orddict:fold(fun (Key, Values, Acc) ->
+			 orddict:store(Key, lists:reverse(Values), Acc)
+		 end, orddict:new(), H).
 
 match_colon(<< $:, _/bits >>, N) ->
     N;
@@ -190,8 +170,17 @@ parse_hd_value(<< $\n, C, Rest/bits >>, Headers, Name, SoFar)
   when C =:= $\s; C =:= $\t ->
     parse_hd_value(Rest, Headers, Name, SoFar);
 parse_hd_value(<< $\n, Rest/bits >>, Headers, Name, SoFar) ->
-    parse_header(Rest, [{Name, SoFar}|Headers]);
+    parse_header(Rest, add_header_value(Name, SoFar, Headers));
 parse_hd_value(<< C, Rest/bits >>, H, N, SoFar) ->
     parse_hd_value(Rest, H, N, << SoFar/binary, C >>);
 parse_hd_value(<<>>, _H, _N, _SoFar) ->
     {error, eof}.
+
+add_header_value(Name, Value, Acc) when is_binary(Name) ->
+    add_header_value(list_to_atom(binary_to_list(Name)), Value, Acc);
+add_header_value(Name, Value, Acc) ->
+    Values = case orddict:find(Name, Acc) of
+		 {ok, V} -> V;
+		 error -> []
+	     end,
+    orddict:store(Name, [Value | Values], Acc).

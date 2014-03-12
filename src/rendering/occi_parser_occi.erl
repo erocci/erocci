@@ -23,22 +23,13 @@
 -module(occi_parser_occi).
 -compile({parse_transform, lager_transform}).
 
--include("occi.hrl").
--include("occi_parser.hrl").
+-include("occi_parser_text.hrl").
 
 %% API
 -export([parse_action/3,
 	 parse_entity/3,
 	 parse_user_mixin/2,
 	 parse_collection/2]).
-
--record(state, {request        = #occi_request{}    :: occi_request(),
-		collection                          :: occi_collection(),
-		entity         = undefined          :: term(),
-		entity_id      = undefined          :: uri(),
-		mixin          = undefined          :: term(),
-		action         = undefined          :: occi_action(),
-		attrNS         = []                 :: [string()]}).
 
 %%%===================================================================
 %%% API

@@ -137,12 +137,18 @@ del_mixin(#occi_link{mixins=Mixins, attributes=Attrs}=Res,
 -spec set_attr_value(occi_link(), occi_attr_key(), any()) -> occi_link().
 set_attr_value(#occi_link{}=Link, 'occi.core.title', Val) ->
     Link#occi_link{title=Val};
-set_attr_value(#occi_link{}=Link, 'occi.core.id', #uri{}=Val) ->
-    Link#occi_link{id=Val};
-set_attr_value(#occi_link{}=Link, 'occi.core.target', #uri{}=Val) ->
-    set_target(Link, Val);
-set_attr_value(#occi_link{}=Link, 'occi.core.source', #uri{}=Val) ->
-    set_source(Link, Val);
+set_attr_value(#occi_link{}=Link, 'occi.core.id', #uri{}=Id) ->
+    Link#occi_link{id=Id};
+set_attr_value(#occi_link{}=Link, 'occi.core.id', Val) ->
+    Link#occi_link{id=occi_uri:parse(Val)};
+set_attr_value(#occi_link{}=Link, 'occi.core.target', #uri{}=Target) ->
+    set_target(Link, Target);
+set_attr_value(#occi_link{}=Link, 'occi.core.target', Val) ->
+    set_target(Link, occi_uri:parse(Val));
+set_attr_value(#occi_link{}=Link, 'occi.core.source', #uri{}=Src) ->
+    set_source(Link, Src);
+set_attr_value(#occi_link{}=Link, 'occi.core.source', Val) ->
+    set_source(Link, occi_uri:parse(Val));
 set_attr_value(#occi_link{}=Link, Key, Val) when is_list(Key) ->
     set_attr_value(Link, list_to_atom(Key), Val);
 set_attr_value(#occi_link{attributes=Attrs}=Link, Key, Val) when is_atom(Key) ->

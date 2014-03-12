@@ -186,13 +186,7 @@ build_inline_link(#occi_link{}=Link) ->
 
 build_attribute(#occi_attr{}=Attr) ->
     Name = atom_to_list(occi_attribute:get_id(Attr)),
-    case occi_attribute:is_scalar(Attr) of
-	true ->
-	    render_kv(Name, occi_attribute:get_value(Attr));
-	false ->
-	    Values = occi_renderer:join(occi_attribute:get_value(Attr), " "),
-	    render_kv(Name, Values)
-    end.
+    render_kv(Name, occi_attribute:get_value(Attr)).
 
 build_cid(#occi_cid{term=Term, scheme=Scheme, class=Cls}) ->
     occi_renderer:join(
