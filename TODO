@@ -1,21 +1,7 @@
 # Entity creation: 
 
 ## Create resources with links
-## Create resources with mixins
-## Create links
-
-# Entity updates
-
-## Dissociate update/creation (PUT/POST)...
 
 # Mixin association
 
 ## Handle depends and applies
-
-# Storage
-
-## Merge category manager and store ?
-
-# Collections
-
-## Check resource exists when adding it to a mixin collection
