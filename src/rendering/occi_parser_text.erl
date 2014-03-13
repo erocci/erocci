@@ -48,12 +48,34 @@ parse_entity(Headers, #state{}=State) ->
 parse_user_mixin(_Headers, #state{}=_State) ->
     {ok, occi_mixin:new()}.
 
-parse_collection(_Headers, #state{}=_State) ->
-    {ok, occi_collection:new()}.
+parse_collection(Headers, #state{}=_State) ->
+    Ret = occi_collection:new(),
+    case orddict:find('x-occi-location', Headers) of
+	{ok, Values} ->
+	    case parse_o_l_values(Values, []) of
+		{ok, Uris} ->
+		    {ok, occi_collection:add_entities(Ret, Uris)};
+		{error, Err} ->
+		    {error, Err}
+	    end;
+	error ->
+	    {ok, Ret}
+    end.
 
 %%%
 %%% Priv
 %%%
+parse_o_l_values([], Acc) ->
+    {ok, Acc};
+parse_o_l_values([Bin | Values], Acc) ->
+    try occi_uri:parse(Bin) of
+	#uri{}=Uri ->
+	    parse_o_l_values(Values, [Uri | Acc])
+    catch
+	throw:Err ->
+	    {error, Err}
+    end.
+
 parse_category(H, S) ->
     case orddict:find(category, H) of
 	{ok, Values} ->
