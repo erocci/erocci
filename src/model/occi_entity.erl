@@ -28,10 +28,20 @@
 -define(cid_resource, #occi_cid{scheme=?scheme_core, term=resource}).
 -define(cid_link, #occi_cid{scheme=?scheme_core, term=link}).
 
--export([new/2,
+-export([new/1,
+	 new/2,
 	 set_id/2,
 	 add_mixin/2,
 	 set_attr_value/3]).
+
+-spec new(occi_kind()) -> occi_resource() | occi_link().
+new(#occi_kind{}=Kind) ->
+    case occi_kind:get_parent(Kind) of
+	?cid_resource ->
+	    occi_resource:new(Kind);
+	?cid_link ->
+	    occi_link:new(Kind)
+    end.
 
 -spec new(uri(), occi_kind()) -> occi_resource() | occi_link().
 new(Id, #occi_kind{}=Kind) ->

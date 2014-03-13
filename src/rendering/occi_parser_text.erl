@@ -106,7 +106,7 @@ parse_c_values([Bin | Values], H, S) ->
 parse_c_value(Bin, V, H, S) ->
     case match_eq(Bin, 0) of
 	nomatch ->
-	    parse_c_term(Bin, V, H, S, <<>>);
+	    parse_c_term(parse_ws(Bin), V, H, S, <<>>);
 	_ ->
 	    {error, {parse_error, bad_term}}
     end.
@@ -231,11 +231,15 @@ make_cid(Dict, Class) ->
 	{error, Err} -> {error, Err}
     end.
 
+new_entity(_, V, H, #state{entity=#occi_resource{}, entity_id=undefined}=State) ->
+    parse_c_values(V, H, State);
+new_entity(_, V, H, #state{entity=#occi_link{}, entity_id=undefined}=State) ->
+    parse_c_values(V, H, State);
 new_entity(Kind, V, H, #state{entity=undefined, entity_id=Id}=State) ->
     parse_c_values(V, H, State#state{entity=occi_entity:new(Id, Kind)}).
 
 add_mixin(_, _, _, #state{entity=undefined}) ->
-    {error, {parse_error, invalid_mixin}};
+    {error, invalid_mixin};
 add_mixin(Mixin, V, H, #state{entity=Entity}=State) ->
     parse_c_values(V, H, State#state{entity=occi_entity:add_mixin(Entity, Mixin)}).
 
@@ -249,6 +253,10 @@ parse_attributes(Headers, State) ->
 
 parse_a_values([], _, #state{action=#occi_action{}}=State) ->
     {ok, State};
+parse_a_values([], _, #state{entity=#occi_resource{}=Res, entity_id=#uri{}=Id}=State) ->
+    {ok, State#state{entity=occi_resource:set_id(Res, Id)}};
+parse_a_values([], _, #state{entity=#occi_link{}=Link, entity_id=#uri{}=Id}=State) ->
+    {ok, State#state{entity=occi_link:set_id(Link, Id)}};
 parse_a_values([], H, #state{entity_id=undefined}=State) ->
     parse_location(H, State);
 parse_a_values([], _, State) ->
@@ -305,12 +313,12 @@ parse_location(Headers, #state{entity=E}=S) ->
 		    {error, {parse_error, Err}}
 	    end;
 	error ->
-	    {error, {parse_error, no_location}}
+	    % Note: location is optional since we generate uuid if missing
+	    {ok, S}
     end.
 
 parse_kv(Bin) ->
-    Rest = parse_ws(Bin),
-    parse_key(Rest, <<>>, dict:new()).
+    parse_key(parse_ws(Bin), <<>>, dict:new()).
 
 parse_key(<< $=, Rest/bits >>, SoFar, D) ->
     Rest2 = parse_ws(Rest),
