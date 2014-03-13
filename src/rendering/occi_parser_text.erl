@@ -39,7 +39,7 @@ parse_action(Headers, #state{}=State) ->
 	{ok, #state{action=Action}} ->
 	    {ok, Action};
 	{error, Err} ->
-	    {error, Err}
+	    {error, {parse_error, Err}}
     end.
 
 parse_entity(Headers, #state{}=State) ->
@@ -47,7 +47,7 @@ parse_entity(Headers, #state{}=State) ->
 	{ok, #state{entity=Entity}} ->
 	    {ok, Entity};
 	{error, Err} ->
-	    {error, Err}
+	    {error, {parse_error, Err}}
     end.
 
 parse_user_mixin(Headers, #state{}=State) ->
@@ -55,7 +55,7 @@ parse_user_mixin(Headers, #state{}=State) ->
 	{ok, #state{mixin=Mixin}} ->
 	    {ok, Mixin};
 	{error, Err} ->
-	    {error, Err}
+	    {error, {parse_error, Err}}
     end.
 
 parse_collection(Headers, #state{}=_State) ->
@@ -66,7 +66,7 @@ parse_collection(Headers, #state{}=_State) ->
 		{ok, Uris} ->
 		    {ok, occi_collection:add_entities(Ret, Uris)};
 		{error, Err} ->
-		    {error, Err}
+		    {error, {parse_error, Err}}
 	    end;
 	error ->
 	    {ok, Ret}
@@ -150,11 +150,14 @@ make_action(Dict, H, S) ->
 	{ok, {string, <<"action">>}} ->
 	    case make_cid(Dict, action) of
 		#occi_cid{}=Cid ->
-		    case occi_category_mgr:get(Cid) of
+		    try occi_category_mgr:get(Cid) of
 			#occi_action{}=A ->
 			    parse_attributes(H, S#state{action=A});
 			_ ->
 			    {error, invalid_category}
+		    catch
+			throw:Err ->
+			    {error, Err}
 		    end;
 		{error, Err} ->
 		    {error, Err}
@@ -191,11 +194,16 @@ add_category(Dict, V, H, S) ->
 	{ok, {string, Bin}} ->
 	    case make_cid(Dict, to_atom(Bin)) of
 		#occi_cid{}=Cid ->
-		    case occi_category_mgr:get(Cid) of
+		    try occi_category_mgr:get(Cid) of
 			#occi_kind{}=Kind ->
 			    new_entity(Kind, V, H, S);
 			#occi_mixin{}=Mixin ->
-			    add_mixin(Mixin, V, H, S)
+			    add_mixin(Mixin, V, H, S);
+			_ ->
+			    {error, {einval, Cid}}
+		    catch
+			throw:Err ->
+			    {error, Err}
 		    end;
 		{ok, Val} ->
 		    {error, {einval, Val}};
