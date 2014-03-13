@@ -140,7 +140,7 @@ get(#occi_cid{class=mixin}=Cid) ->
 	[Mixin] ->
 	    Mixin;
 	_ ->
-	    throw({error, unknown_category})
+	    throw({error, {unknown_category, Cid}})
     end;
 
 get(#occi_cid{class=kind}=Cid) ->
@@ -148,7 +148,7 @@ get(#occi_cid{class=kind}=Cid) ->
 	[Kind] ->
 	    Kind;
 	_ ->
-	    throw({error, unknown_category})
+	    throw({error, {unknown_category, Cid}})
     end;
 
 get(#occi_cid{class=action}=Cid) ->
@@ -156,7 +156,7 @@ get(#occi_cid{class=action}=Cid) ->
 	[Action] ->
 	    Action;
 	_ ->
-	    throw({error, unknown_action})
+	    throw({error, {unknown_action, Cid}})
     end.
 
 %%%===================================================================
