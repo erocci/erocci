@@ -34,8 +34,13 @@
 %%%===================================================================
 %%% API
 %%%===================================================================
-parse_action(_Headers, #state{}=_State) ->
-    {ok, occi_action:new()}.
+parse_action(Headers, #state{}=State) ->
+    case parse_category(Headers, State) of
+	{ok, #state{action=Action}} ->
+	    {ok, Action};
+	{error, Err} ->
+	    {error, Err}
+    end.
 
 parse_entity(Headers, #state{}=State) ->
     case parse_category(Headers, State) of
@@ -123,12 +128,41 @@ parse_c_kv(Bin, Term, [], H, #state{mixin=#occi_mixin{}}=S) ->
     end;
 parse_c_kv(_, _, _V, _, #state{mixin=#occi_mixin{}}) ->
     {error, invalid_mixin};
+parse_c_kv(Bin, Term, [], H, #state{action=#occi_action{}}=S) ->
+    case parse_kv(Bin) of
+	{ok, Dict} ->
+	    make_action(dict:store(term, {atom, Term}, Dict), H, S);
+	{error, Err} ->
+	    {error, Err}
+    end;
+parse_c_kv(_, _, _V, _, #state{action=#occi_action{}}) ->
+    {error, invalid_action};
 parse_c_kv(Bin, Term, V, H, S) ->
     case parse_kv(Bin) of
 	{ok, Dict} ->
 	    add_category(dict:store(term, {atom, Term}, Dict), V, H, S);
 	{error, Err} ->
 	    {error, Err}
+    end.
+
+make_action(Dict, H, S) ->
+    case dict:find(<<"class">>, Dict) of
+	{ok, {string, <<"action">>}} ->
+	    case make_cid(Dict, action) of
+		#occi_cid{}=Cid ->
+		    case occi_category_mgr:get(Cid) of
+			#occi_action{}=A ->
+			    parse_attributes(H, S#state{action=A});
+			_ ->
+			    {error, invalid_category}
+		    end;
+		{error, Err} ->
+		    {error, Err}
+	    end;
+	{ok, Val} -> 
+	    {error, {einval, Val}};
+	error ->
+	    {error, missing_class}
     end.
 
 make_mixin(Dict, _, #state{mixin=#occi_mixin{id=#occi_cid{class=Cls}}=Mixin}=S) ->
@@ -205,6 +239,8 @@ parse_attributes(Headers, State) ->
 	    {ok, State}
     end.
 
+parse_a_values([], _, #state{action=#occi_action{}}=State) ->
+    {ok, State};
 parse_a_values([], H, #state{entity_id=undefined}=State) ->
     parse_location(H, State);
 parse_a_values([], _, State) ->
@@ -225,6 +261,16 @@ parse_a_value(Bin, V, H, S) ->
 	    {error, Err}
     end.
 
+add_attr(Key, Value, Attrs, H, #state{action=#occi_action{}=A}=S) ->
+    try occi_action:set_attr_value(A, Key, Value) of
+	#occi_action{}=A2 ->
+	    parse_a_values(Attrs, H, S#state{action=A2});
+	{error, Err} ->
+	    {error, {parse_error, Err}}
+    catch
+	_:Err ->
+	    {error, {parse_error, Err}}
+    end;
 add_attr(_, _, _, _, #state{entity=undefined}) ->
     {error, {parse_error, attribute}};
 add_attr(Key, Value, Attrs, H, #state{entity=E}=S) ->
