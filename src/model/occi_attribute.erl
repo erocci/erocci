@@ -27,6 +27,7 @@
 -export([new/1,
 	 get_id/1,
 	 get_type/1,
+	 get_type_id/1,
 	 set_type/2,
 	 is_required/1,
 	 set_required/2,
@@ -53,6 +54,9 @@ new(Id) ->
 
 get_id(A) ->
     A#occi_attr.id.
+
+get_type_id(#occi_attr{type_id={_Ns, Id}}) ->
+    Id.
 
 get_type(#occi_attr{type_id=Id}) ->
     Id.

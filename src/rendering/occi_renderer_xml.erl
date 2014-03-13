@@ -43,7 +43,7 @@ render(#occi_node{type=dir}=Node, Env) ->
 	     exmpp_xml:declare_ns_here(
 	       exmpp_xml:declare_ns_here(E, ?xlink_ns, "xl"),
 	       ?occi_ns, none)),
-    {Data, Env};
+    {[Data, "\n"], Env};
 
 render(#occi_node{type=occi_resource, data=Res}, Env) ->
     E = make_doc([?declared_occi_ns, ?declared_xlink_ns],
@@ -65,7 +65,7 @@ render(#occi_node{type=occi_resource, data=Res}, Env) ->
 		   E, occi_resource:get_mixins(Res)),
 		 occi_resource:get_attributes(Res)),
 	       occi_resource:get_links(Res))),
-    {Data, Env};
+    {[Data, "\n"], Env};
 
 render(#occi_node{type=occi_link, data=Link}, Env) ->
     {render_xml(make_link(Link)), Env};
@@ -79,10 +79,11 @@ render(#occi_node{type=occi_query, data={Kinds, Mixins, Actions}}, Env) ->
 		      ?occi_ns, component,
 		      [],
 		      Children)),
-    {Data, Env};
+    {[Data, "\n"], Env};
 
 render(#occi_node{type=occi_user_mixin, data=Mixin}, Env) ->
-    {render_xml(render_mixin(Mixin)), Env};
+    Data = render_xml(render_mixin(Mixin)),
+    {[Data, "\n"], Env};
 	  
 render(#occi_node{type=occi_collection, data=Coll}, Env) ->
     Data = render_xml(
@@ -93,7 +94,7 @@ render(#occi_node{type=occi_collection, data=Coll}, Env) ->
 			  ?occi_ns, entity,
 			  [exmpp_xml:attribute(?xlink_ns, <<"href">>, occi_uri:to_binary(Id))], []) || 
 			  Id <- occi_collection:get_entities(Coll) ])),
-    {Data, Env}.
+    {[Data, "\n"], Env}.
 
 %%%
 %%% Private
@@ -209,19 +210,29 @@ render_attr_specs(E, [#occi_attr{}=A|Tail]) ->
       exmpp_xml:append_child(E, make_attr_spec(A)), Tail).
 
 make_attr_spec(#occi_attr{}=A) ->
-    Attrs = [exmpp_xml:attribute(<<"name">>, occi_attribute:get_id(A)),
-	     exmpp_xml:attribute(<<"title">>, occi_attribute:get_title(A)),
-	     exmpp_xml:attribute(<<"default">>, occi_attribute:get_default(A)),
-	     exmpp_xml:attribute(<<"use">>, case occi_attribute:is_required(A) of
-						true -> required;
-						false -> undefined
-					    end),
-	     exmpp_xml:attribute(<<"immutable">>, case occi_attribute:is_immutable(A) of
-						      true -> true;
-						      false -> undefined
-						  end),
-	     exmpp_xml:attribute(<<"type">>, occi_attribute:get_type_id(A))],
-    exmpp_xml:element(?occi_ns, attribute, Attrs, []).
+    L = [exmpp_xml:attribute(<<"type">>, occi_attribute:get_type_id(A))],
+    L2 = case occi_attribute:is_immutable(A) of
+	     false -> L;
+	     true -> [exmpp_xml:attribute(<<"immutable">>, true) | L]
+	 end,
+    L3 = case occi_attribute:is_required(A) of
+	     false -> L2;
+	     true -> [exmpp_xml:attribute(<<"use">>, true) | L2]
+	 end,
+    L4 = case occi_attribute:is_required(A) of
+	     false -> L3;
+	     true -> [exmpp_xml:attribute(<<"use">>, true) | L3]
+	 end,
+    L5 = case occi_attribute:get_default(A) of
+	     undefined -> L4;
+	     D -> [exmpp_xml:attribute(<<"default">>, D) | L4]
+	 end,
+    L6 = case occi_attribute:get_title(A) of
+	     undefined -> L5;
+	     T -> [exmpp_xml:attribute(<<"title">>, T) | L5]
+	 end,
+    L7 = [exmpp_xml:attribute(<<"name">>, occi_attribute:get_id(A)) | L6],
+    exmpp_xml:element(?occi_ns, attribute, L7, []).
 
 render_attribute(E, #occi_attr{}=Attr) ->
     exmpp_xml:append_child(E, make_attribute(Attr)).
