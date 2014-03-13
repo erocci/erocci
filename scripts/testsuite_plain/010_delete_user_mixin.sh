@@ -3,7 +3,7 @@
 . $(dirname $0)/../testenv.sh
 
 content=$(cat <<EOF
-category: jsonmixin; scheme="http://schemas.example.org/occi#"; class="mixin"; location="/store/usermixins/jsonmixin/"
+category: plainmixin; scheme="http://schemas.example.org/occi#"; class="mixin"; location="/store/usermixins/plainmixin/"
 EOF
        )
 
