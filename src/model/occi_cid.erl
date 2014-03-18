@@ -1,5 +1,5 @@
 %%% @author Jean Parpaillon <jean.parpaillon@free.fr>
-%%% @copyright (C) 2013, Jean Parpaillon
+%%% @copyright (C) 2014, Jean Parpaillon
 %%% 
 %%% This file is provided to you under the Apache License,
 %%% Version 2.0 (the "License"); you may not use this file
@@ -18,34 +18,25 @@
 %%% @doc
 %%%
 %%% @end
-%%% Created : 10 Sep 2013 by Jean Parpaillon <jean.parpaillon@free.fr>
+%%% Created : 17 Mar 2014 by Jean Parpaillon <jean.parpaillon@free.fr>
+-module(occi_cid).
+-compile([{parse_transform, lager_transform}]).
 
--module(occi_scanner_tests).
+-include("occi.hrl").
 
--include_lib("eunit/include/eunit.hrl").
+-export([parse/1]).
 
-scanner_test_() ->
-    Files = filelib:wildcard("../tests/plain/valid*.txt"),
-    {setup,
-     fun setup/0,
-     fun cleanup/1,
-     lists:map(fun(File) ->
-		       ?_test(scan(File))
-	       end, Files)}.
-
-scan(File) ->
-    ?debugFmt("scan ~s", [File]),
-    {ok, Input} = file:read_file(File),
-    case occi_scanner:string(binary_to_list(Input)) of
-	{ok,_Tokens,_EndLine} ->
-	    %?debugFmt("~n~p", [Tokens]),
-	    ok;
-	ErrorInfo ->
-	    throw(ErrorInfo)
+-spec parse(binary()) -> occi_cid().
+parse(Bin) when is_binary(Bin) ->
+    case binary:split(Bin, <<"#">>) of
+	[Scheme, Term] ->
+	    #occi_cid{scheme=to_atom(<< Scheme/binary, "#" >>), term=to_atom(Term), class='_'};
+	_ ->
+	    throw({error, invalid_cid})
     end.
 
-setup() ->
-    ok.
-
-cleanup(_) ->
-    ok.
+%%%
+%%% Priv
+%%%
+to_atom(Bin) when is_binary(Bin) ->
+    list_to_atom(binary_to_list(Bin)).

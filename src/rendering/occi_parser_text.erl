@@ -91,13 +91,79 @@ parse_category(H, S) ->
 	{ok, Values} ->
 	    parse_c_values(Values, H, S);
 	error ->
-	    {error, {parse_error, missing_category}}
+	    {error, missing_category}
     end.
+
+parse_links(H, S) ->
+    case orddict:find(link, H) of
+	{ok, Values} ->
+	    parse_l_values(Values, H, S);
+	error ->
+	    parse_attributes(H, S)
+    end.
+
+parse_l_values([], H, S) ->
+    parse_attributes(H, S);
+parse_l_values([Bin | Values], H, S) ->
+    parse_l_open_target(Bin, Values, H, S).
+
+parse_l_open_target(<< $<, Rest/bits >>, V, H, S) ->
+    parse_l_target(Rest, V, H, S, <<>>);
+parse_l_open_target(<< C, _/bits >>, _, _, _) ->
+    {error, {invalid_char, C}}.
+
+parse_l_target(<< $>, Rest/bits >>, V, H, S, SoFar) ->
+    try occi_uri:parse(SoFar) of
+	#uri{}=Target -> parse_l_after_target(parse_ws(Rest), Target, V, H, S)
+    catch throw:Err -> {error, Err}
+    end;
+parse_l_target(<< C, Rest/bits >>, V, H, S, SoFar) ->
+    parse_l_target(Rest, V, H, S, << SoFar/binary, C >>).
+
+parse_l_after_target(<< $;, Rest/bits >>, T, V, H, S) ->
+    Link = occi_link:new(),
+    parse_l_kv(parse_kv(Rest), occi_link:set_target(Link, T), V, H, S);
+parse_l_after_target(<< C, _/bits >>, _, _, _, _) ->
+    {error, {invalid_char, C}}.
+
+parse_l_kv({ok, rel, {string, Bin}, Rest}, L, V, H, S) ->
+    try occi_cid:parse(Bin) of
+	#occi_cid{}=Cid -> parse_l_kv(parse_kv(Rest), occi_link:set_target_cid(L, Cid#occi_cid{class=kind}), V, H, S)
+    catch throw:Err -> {error, Err}
+    end;
+parse_l_kv({ok, rel, _, _}, _, _, _, _) ->
+    {error, invalid_rel};
+parse_l_kv({ok, self, {string, Bin}, Rest}, L, V, H, S) ->
+    try occi_uri:parse(Bin) of
+	#uri{}=Id -> parse_l_kv(parse_kv(Rest), occi_link:set_id(L, Id), V, H, S)
+    catch throw:Err -> {error, Err}
+    end;
+parse_l_kv({ok, self, _, _}, _, _, _, _) ->
+    {error, invalid_self};
+parse_l_kv({ok, category, {string, Bin}, Rest}, L, V, H, S) ->
+    Cid = occi_cid:parse(Bin),
+    case occi_store:find(Cid#occi_cid{class='_'}) of
+	{ok, [#occi_kind{}=Kind]} -> 
+	    parse_l_kv(parse_kv(Rest), occi_link:set_cid(L, Kind), V, H, S);
+	{ok, [#occi_mixin{}=Mixin]} -> 
+	    parse_l_kv(parse_kv(Rest), occi_link:add_mixin(L, Mixin), V, H, S);
+	_ -> 
+	    throw({error, invalid_category})
+    end;
+parse_l_kv({ok, Key, {_, Val}, Rest}, L, V, H, S) ->
+    case occi_link:set_attr_value(L, Key, Val) of
+	#occi_link{}=L2 -> parse_l_kv(parse_kv(Rest), L2, V, H, S);
+	{error, Err} -> {error, Err}
+    end;
+parse_l_kv({error, Err}, _, _, _, _) ->
+    {error, Err};
+parse_l_kv(none, L, V, H, #state{entity=#occi_resource{}=Res}=S) ->
+    parse_l_values(V, H, S#state{entity=occi_resource:add_link(Res, L)}).
 
 parse_c_values([], _H, #state{entity=undefined}=_S) ->
     {error, {parse_error, undefined_category}};
 parse_c_values([], H, #state{entity=#occi_resource{}}=S) ->
-    parse_attributes(H, S);
+    parse_links(H, S);
 parse_c_values([], H, #state{entity=#occi_link{}}=S) ->
     parse_attributes(H, S);
 parse_c_values([Bin | Values], H, S) ->
@@ -108,127 +174,56 @@ parse_c_value(Bin, V, H, S) ->
 	nomatch ->
 	    parse_c_term(parse_ws(Bin), V, H, S, <<>>);
 	_ ->
-	    {error, {parse_error, bad_term}}
+	    {error, bad_term}
     end.
 
+parse_c_term(<< $;, Rest/bits >>, V, H, #state{mixin=#occi_mixin{id=Cid}}=S, SoFar)->
+    Term = list_to_atom(binary_to_list(SoFar)),
+    parse_c_kv(parse_kv(Rest), Cid#occi_cid{term=Term}, V, H, S);
 parse_c_term(<< $;, Rest/bits >>, V, H, S, SoFar)->
     Term = list_to_atom(binary_to_list(SoFar)),
-    parse_c_kv(Rest, Term, V, H, S);
+    parse_c_kv(parse_kv(Rest), #occi_cid{term=Term}, V, H, S);
 parse_c_term(<< C, Rest/bits >>, V, H, S, SoFar) ->
     parse_c_term(Rest, V, H, S, << SoFar/binary, C >>);
 parse_c_term(_, _, _, _, _) ->
-    {error, {parse_error, invalid_category}}.
+    {error, invalid_category}.
 
-parse_c_kv(Bin, Term, [], H, #state{mixin=#occi_mixin{}}=S) ->
-    case parse_kv(Bin) of
-	{ok, Dict} ->
-	    make_mixin(dict:store(term, {atom, Term}, Dict), H, S);
-	{error, Err} ->
-	    {error, Err}
+parse_c_kv({ok, location, {string, Bin}, Rest}, Cid, V, H, #state{mixin=#occi_mixin{}=M}=S) ->
+    try occi_uri:parse(Bin) of
+	#uri{}=Uri ->
+	    parse_c_kv(parse_kv(Rest), Cid, V, H, S#state{mixin=occi_mixin:set_location(M, Uri)})
+    catch throw:Err -> {error, Err}
     end;
-parse_c_kv(_, _, _V, _, #state{mixin=#occi_mixin{}}) ->
-    {error, invalid_mixin};
-parse_c_kv(Bin, Term, [], H, #state{action=#occi_action{}}=S) ->
-    case parse_kv(Bin) of
-	{ok, Dict} ->
-	    make_action(dict:store(term, {atom, Term}, Dict), H, S);
-	{error, Err} ->
-	    {error, Err}
+parse_c_kv({ok, scheme, {string, Bin}, Rest}, Cid, V, H, S) ->
+    parse_c_kv(parse_kv(Rest), Cid#occi_cid{scheme=to_atom(Bin)}, V, H, S);
+parse_c_kv({ok, class, {string, Bin}, Rest}, #occi_cid{class=undefined}=Cid, V, H, S) ->
+    parse_c_kv(parse_kv(Rest), Cid#occi_cid{class=to_atom(Bin)}, V, H, S);
+parse_c_kv({ok, class, {string, Bin}, Rest}, #occi_cid{class=Cls}=Cid, V, H, S) ->
+    C = to_atom(Bin),
+    if
+	C == mixin andalso Cls == usermixin ->
+	    parse_c_kv(parse_kv(Rest), Cid, V, H, S);
+	C == Cls -> parse_c_kv(parse_kv(Rest), Cid, V, H, S);
+	true -> {error, invalid_class}
     end;
-parse_c_kv(_, _, _V, _, #state{action=#occi_action{}}) ->
-    {error, invalid_action};
-parse_c_kv(Bin, Term, V, H, S) ->
-    case parse_kv(Bin) of
-	{ok, Dict} ->
-	    add_category(dict:store(term, {atom, Term}, Dict), V, H, S);
-	{error, Err} ->
-	    {error, Err}
-    end.
+parse_c_kv({error, Err}, _, _, _, _) ->
+    {error, Err};
+parse_c_kv(none, Cid, [], H, #state{action=#occi_action{}}=S) ->
+    case occi_store:find(Cid) of
+	{ok, [#occi_action{}=A]} -> parse_attributes(H, S#state{action=A});
+	_ -> {error, invalid_category}
+    end;
+parse_c_kv(none, Cid, [], _, #state{mixin=#occi_mixin{}=M}=S) ->
+    {ok, S#state{mixin=M#occi_mixin{id=Cid}}};
+parse_c_kv(none, Cid, V, H, S) ->
+    add_category(Cid, V, H, S).
 
-make_action(Dict, H, S) ->
-    case dict:find(<<"class">>, Dict) of
-	{ok, {string, <<"action">>}} ->
-	    case make_cid(Dict, action) of
-		#occi_cid{}=Cid ->
-		    try occi_category_mgr:get(Cid) of
-			#occi_action{}=A ->
-			    parse_attributes(H, S#state{action=A});
-			_ ->
-			    {error, invalid_category}
-		    catch
-			throw:Err ->
-			    {error, Err}
-		    end;
-		{error, Err} ->
-		    {error, Err}
-	    end;
-	{ok, Val} -> 
-	    {error, {einval, Val}};
-	error ->
-	    {error, missing_class}
-    end.
-
-make_mixin(Dict, _, #state{mixin=#occi_mixin{id=#occi_cid{class=Cls}}=Mixin}=S) ->
-    case make_cid(Dict, Cls) of
-	#occi_cid{}=Cid ->
-	    case dict:find(<<"location">>, Dict) of
-		{ok, {string, Val}} ->
-		    try occi_uri:parse(Val) of
-			#uri{}=Uri ->
-			    {ok, S#state{mixin=Mixin#occi_mixin{id=Cid, location=Uri}}}
-		    catch
-			throw:Err ->
-			    {error, Err}
-		    end;
-		{ok, Val} ->
-		    {error, {einval, Val}};
-		error ->
-		    {error, missing_location}
-	    end;
-	{error, Err} ->
-	    {error, Err}
-    end.
-
-add_category(Dict, V, H, S) ->
-    case dict:find(<<"class">>, Dict) of
-	{ok, {string, Bin}} ->
-	    case make_cid(Dict, to_atom(Bin)) of
-		#occi_cid{}=Cid ->
-		    try occi_category_mgr:get(Cid) of
-			#occi_kind{}=Kind ->
-			    new_entity(Kind, V, H, S);
-			#occi_mixin{}=Mixin ->
-			    add_mixin(Mixin, V, H, S);
-			_ ->
-			    {error, {einval, Cid}}
-		    catch
-			throw:Err ->
-			    {error, Err}
-		    end;
-		{ok, Val} ->
-		    {error, {einval, Val}};
-		{error, Err} ->
-		    {error, Err}
-	    end;
-
-	{error, Err} ->
-	    {error, Err}
-    end.
-
-make_cid(Dict, Class) ->
-    case dict:find(term, Dict) of
-	{ok, {atom, Term}} ->
-	    case dict:find(<<"scheme">>, Dict) of
-		{ok, {string, Scheme}} ->
-		    #occi_cid{scheme=to_atom(Scheme), term=Term, class=Class};
-		{ok, Val} ->
-		    {error, {einval, Val}};
-		{error, Err} -> 
-		    {error, Err}
-	    end;
-	{ok, Val} ->
-	    {error, {einval, Val}};
-	{error, Err} -> {error, Err}
+add_category(Cid, V, H, S) ->
+    case occi_store:find(Cid) of
+	{ok, [#occi_kind{}=Kind]} -> new_entity(Kind, V, H, S);
+	{ok, [#occi_mixin{}=Mixin]} -> add_mixin(Mixin, V, H, S);
+	_ ->
+	    {error, {einval, Cid}}
     end.
 
 new_entity(_, V, H, #state{entity=#occi_resource{}, entity_id=undefined}=State) ->
@@ -262,45 +257,28 @@ parse_a_values([], H, #state{entity_id=undefined}=State) ->
 parse_a_values([], _, State) ->
     {ok, State};
 parse_a_values([Bin | Attrs], H, S) ->
-    parse_a_value(Bin, Attrs, H, S).
+    parse_a_value(parse_kv(Bin), Attrs, H, S).
 
-parse_a_value(Bin, V, H, S) ->
-    case parse_kv(Bin) of
-	{ok, Dict} ->
-	    case dict:to_list(Dict) of
-		[{Key, {_Type, Value}}] ->
-		    add_attr(list_to_atom(binary_to_list(Key)), Value, V, H, S);
-		_ ->
-		    {error, invalid_attribute}
-	    end;
-	{error, Err} ->
-	    {error, Err}
-    end.
-
-add_attr(Key, Value, Attrs, H, #state{action=#occi_action{}=A}=S) ->
+parse_a_value({ok, Key, {_, Value}, Rest}, V, H, #state{action=#occi_action{}=A}=S) ->
     try occi_action:set_attr_value(A, Key, Value) of
 	#occi_action{}=A2 ->
-	    parse_a_values(Attrs, H, S#state{action=A2});
-	{error, Err} ->
-	    {error, {parse_error, Err}}
-    catch
-	_:Err ->
-	    {error, {parse_error, Err}}
+	    parse_a_value(parse_kv(Rest), V, H, S#state{action=A2});
+	{error, Err} -> {error, Err}
+    catch throw:Err -> {error, Err}
     end;
-add_attr(_, _, _, _, #state{entity=undefined}) ->
-    {error, {parse_error, attribute}};
-add_attr(Key, Value, Attrs, H, #state{entity=E}=S) ->
+parse_a_value({ok, Key, {_, Value}, Rest}, V, H, #state{entity=E}=S) ->
     try occi_entity:set_attr_value(E, Key, Value) of
 	#occi_resource{}=E2 ->
-	    parse_a_values(Attrs, H, S#state{entity=E2});
+	    parse_a_value(parse_kv(Rest), V, H, S#state{entity=E2});
 	#occi_link{}=E2 ->
-	    parse_a_values(Attrs, H, S#state{entity=E2});
-	{error, Err} ->
-	    {error, {parse_error, Err}}
-    catch
-	_:Err ->
-	    {error, {parse_error, Err}}
-    end.
+	    parse_a_value(parse_kv(Rest), V, H, S#state{entity=E2});
+	{error, Err} -> {error, Err}
+    catch throw:Err -> {error, Err}
+    end;
+parse_a_value({error, Err}, _, _, _) ->
+    {error, Err};
+parse_a_value(none, V, H, S) ->
+    parse_a_values(V, H, S).
 
 parse_location(Headers, #state{entity=E}=S) ->
     case orddict:find(location, Headers) of
@@ -317,136 +295,138 @@ parse_location(Headers, #state{entity=E}=S) ->
 	    {ok, S}
     end.
 
+parse_kv(<<>>) ->
+    none;
 parse_kv(Bin) ->
-    parse_key(parse_ws(Bin), <<>>, dict:new()).
+    parse_key(parse_ws(Bin), <<>>).
 
-parse_key(<< $=, Rest/bits >>, SoFar, D) ->
+parse_key(<< $=, Rest/bits >>, SoFar) ->
     Rest2 = parse_ws(Rest),
-    parse_value(Rest2, SoFar, D);
-parse_key(<< C, Rest/bits >>, SoFar, D) ->
+    parse_value(Rest2, to_atom(SoFar));
+parse_key(<< C, Rest/bits >>, SoFar) ->
     case C of
-	$a -> parse_key(Rest, << SoFar/binary, $a >>, D);
-	$b -> parse_key(Rest, << SoFar/binary, $b >>, D);
-	$c -> parse_key(Rest, << SoFar/binary, $c >>, D);
-	$d -> parse_key(Rest, << SoFar/binary, $d >>, D);
-	$e -> parse_key(Rest, << SoFar/binary, $e >>, D);
-	$f -> parse_key(Rest, << SoFar/binary, $f >>, D);
-	$g -> parse_key(Rest, << SoFar/binary, $g >>, D);
-	$h -> parse_key(Rest, << SoFar/binary, $h >>, D);
-	$i -> parse_key(Rest, << SoFar/binary, $i >>, D);
-	$j -> parse_key(Rest, << SoFar/binary, $j >>, D);
-	$k -> parse_key(Rest, << SoFar/binary, $k >>, D);
-	$l -> parse_key(Rest, << SoFar/binary, $l >>, D);
-	$m -> parse_key(Rest, << SoFar/binary, $m >>, D);
-	$n -> parse_key(Rest, << SoFar/binary, $n >>, D);
-	$o -> parse_key(Rest, << SoFar/binary, $o >>, D);
-	$p -> parse_key(Rest, << SoFar/binary, $p >>, D);
-	$q -> parse_key(Rest, << SoFar/binary, $q >>, D);
-	$r -> parse_key(Rest, << SoFar/binary, $r >>, D);
-	$s -> parse_key(Rest, << SoFar/binary, $s >>, D);
-	$t -> parse_key(Rest, << SoFar/binary, $t >>, D);
-	$u -> parse_key(Rest, << SoFar/binary, $u >>, D);
-	$v -> parse_key(Rest, << SoFar/binary, $v >>, D);
-	$w -> parse_key(Rest, << SoFar/binary, $w >>, D);
-	$x -> parse_key(Rest, << SoFar/binary, $x >>, D);
-	$y -> parse_key(Rest, << SoFar/binary, $y >>, D);
-	$z -> parse_key(Rest, << SoFar/binary, $z >>, D);
-	$0 -> parse_key(Rest, << SoFar/binary, $0 >>, D);
-	$1 -> parse_key(Rest, << SoFar/binary, $1 >>, D);
-	$2 -> parse_key(Rest, << SoFar/binary, $2 >>, D);
-	$3 -> parse_key(Rest, << SoFar/binary, $3 >>, D);
-	$4 -> parse_key(Rest, << SoFar/binary, $4 >>, D);
-	$5 -> parse_key(Rest, << SoFar/binary, $5 >>, D);
-	$6 -> parse_key(Rest, << SoFar/binary, $6 >>, D);
-	$7 -> parse_key(Rest, << SoFar/binary, $7 >>, D);
-	$8 -> parse_key(Rest, << SoFar/binary, $8 >>, D);
-	$9 -> parse_key(Rest, << SoFar/binary, $9 >>, D);
-	$. -> parse_key(Rest, << SoFar/binary, $. >>, D);
+	$a -> parse_key(Rest, << SoFar/binary, $a >>);
+	$b -> parse_key(Rest, << SoFar/binary, $b >>);
+	$c -> parse_key(Rest, << SoFar/binary, $c >>);
+	$d -> parse_key(Rest, << SoFar/binary, $d >>);
+	$e -> parse_key(Rest, << SoFar/binary, $e >>);
+	$f -> parse_key(Rest, << SoFar/binary, $f >>);
+	$g -> parse_key(Rest, << SoFar/binary, $g >>);
+	$h -> parse_key(Rest, << SoFar/binary, $h >>);
+	$i -> parse_key(Rest, << SoFar/binary, $i >>);
+	$j -> parse_key(Rest, << SoFar/binary, $j >>);
+	$k -> parse_key(Rest, << SoFar/binary, $k >>);
+	$l -> parse_key(Rest, << SoFar/binary, $l >>);
+	$m -> parse_key(Rest, << SoFar/binary, $m >>);
+	$n -> parse_key(Rest, << SoFar/binary, $n >>);
+	$o -> parse_key(Rest, << SoFar/binary, $o >>);
+	$p -> parse_key(Rest, << SoFar/binary, $p >>);
+	$q -> parse_key(Rest, << SoFar/binary, $q >>);
+	$r -> parse_key(Rest, << SoFar/binary, $r >>);
+	$s -> parse_key(Rest, << SoFar/binary, $s >>);
+	$t -> parse_key(Rest, << SoFar/binary, $t >>);
+	$u -> parse_key(Rest, << SoFar/binary, $u >>);
+	$v -> parse_key(Rest, << SoFar/binary, $v >>);
+	$w -> parse_key(Rest, << SoFar/binary, $w >>);
+	$x -> parse_key(Rest, << SoFar/binary, $x >>);
+	$y -> parse_key(Rest, << SoFar/binary, $y >>);
+	$z -> parse_key(Rest, << SoFar/binary, $z >>);
+	$0 -> parse_key(Rest, << SoFar/binary, $0 >>);
+	$1 -> parse_key(Rest, << SoFar/binary, $1 >>);
+	$2 -> parse_key(Rest, << SoFar/binary, $2 >>);
+	$3 -> parse_key(Rest, << SoFar/binary, $3 >>);
+	$4 -> parse_key(Rest, << SoFar/binary, $4 >>);
+	$5 -> parse_key(Rest, << SoFar/binary, $5 >>);
+	$6 -> parse_key(Rest, << SoFar/binary, $6 >>);
+	$7 -> parse_key(Rest, << SoFar/binary, $7 >>);
+	$8 -> parse_key(Rest, << SoFar/binary, $8 >>);
+	$9 -> parse_key(Rest, << SoFar/binary, $9 >>);
+	$. -> parse_key(Rest, << SoFar/binary, $. >>);
 	C ->
 	    {error, {parse_error, invalid_key}}
     end.
 
-parse_value(<< $", Rest/bits >>, K, D) ->
-    parse_string(Rest, K, <<>>, D);
-parse_value(<< C, Rest/bits >>, K, D) ->
+parse_value(<< $", Rest/bits >>, K) ->
+    parse_string(Rest, K, <<>>);
+parse_value(<< C, Rest/bits >>, K) ->
     case C of
-	$0 -> parse_number(<< Rest/binary >>, << $0 >>, K, D);
-	$1 -> parse_number(<< Rest/binary >>, << $1 >>, K, D);
-	$2 -> parse_number(<< Rest/binary >>, << $2 >>, K, D);
-	$3 -> parse_number(<< Rest/binary >>, << $3 >>, K, D);
-	$4 -> parse_number(<< Rest/binary >>, << $4 >>, K, D);
-	$5 -> parse_number(<< Rest/binary >>, << $5 >>, K, D);
-	$6 -> parse_number(<< Rest/binary >>, << $6 >>, K, D);
-	$7 -> parse_number(<< Rest/binary >>, << $7 >>, K, D);
-	$8 -> parse_number(<< Rest/binary >>, << $8 >>, K, D);
-	$9 -> parse_number(<< Rest/binary >>, << $9 >>, K, D);
-	$+ -> parse_number(<< Rest/binary >>, << $+ >>, K, D);
-	$- -> parse_number(<< Rest/binary >>, << $- >>, K, D);
-	$. -> parse_float(<< Rest/binary >>, << $. >>, K, D);
+	$0 -> parse_number(<< Rest/binary >>, << $0 >>, K);
+	$1 -> parse_number(<< Rest/binary >>, << $1 >>, K);
+	$2 -> parse_number(<< Rest/binary >>, << $2 >>, K);
+	$3 -> parse_number(<< Rest/binary >>, << $3 >>, K);
+	$4 -> parse_number(<< Rest/binary >>, << $4 >>, K);
+	$5 -> parse_number(<< Rest/binary >>, << $5 >>, K);
+	$6 -> parse_number(<< Rest/binary >>, << $6 >>, K);
+	$7 -> parse_number(<< Rest/binary >>, << $7 >>, K);
+	$8 -> parse_number(<< Rest/binary >>, << $8 >>, K);
+	$9 -> parse_number(<< Rest/binary >>, << $9 >>, K);
+	$+ -> parse_number(<< Rest/binary >>, << $+ >>, K);
+	$- -> parse_number(<< Rest/binary >>, << $- >>, K);
+	$. -> parse_float(<< Rest/binary >>, << $. >>, K);
 	_ -> 
 	    {error, {parse_error, value}}
     end.
 
-parse_string(<< $", Rest/bits >>, K, V, D) ->
+parse_string(<< $", Rest/bits >>, K, V) ->
     Rest2 = parse_ws(Rest),
-    parse_string_end(Rest2, K, V, D);
-parse_string(<< C, Rest/bits >>, K, SoFar, D) ->
-    parse_string(Rest, K, << SoFar/binary, C >>, D).
+    parse_string_end(Rest2, K, V);
+parse_string(<< C, Rest/bits >>, K, SoFar) ->
+    parse_string(Rest, K, << SoFar/binary, C >>).
 
-parse_string_end(<<>>, Key, Value, Dict) ->
-    {ok, dict:store(Key, {string, Value}, Dict)};
-parse_string_end(<< $;, Rest/bits >>, Key, Value, Dict) ->
-    parse_key(parse_ws(Rest), <<>>, dict:store(Key, {string, Value}, Dict));
-parse_string_end(_, _, _, _) ->
-    {error, {parse_error, value}}.
+parse_string_end(<<>>, Key, Value) ->
+    {ok, Key, {string, Value}, <<>>};
+parse_string_end(<< $;, Rest/bits >>, Key, Value) ->
+    {ok, Key, {string, Value}, Rest};
+parse_string_end(_, _, _) ->
+    {error, value}.
 
-parse_number(<<>>, SoFar, Key, Dict) ->
-    {ok, dict:store(Key, {integer, binary_to_integer(SoFar)}, Dict)};
-parse_number(<< C, Rest/bits >>, SoFar, K, D) ->
+parse_number(<<>>, SoFar, Key) ->
+    {ok, Key, {integer, binary_to_integer(SoFar)}, <<>>};
+parse_number(<< C, Rest/bits >>, SoFar, K) ->
     case C of
-	$0 -> parse_number(<< Rest/binary >>, << SoFar/binary, $0 >>, K, D);
-	$1 -> parse_number(<< Rest/binary >>, << SoFar/binary, $1 >>, K, D);
-	$2 -> parse_number(<< Rest/binary >>, << SoFar/binary, $2 >>, K, D);
-	$3 -> parse_number(<< Rest/binary >>, << SoFar/binary, $3 >>, K, D);
-	$4 -> parse_number(<< Rest/binary >>, << SoFar/binary, $4 >>, K, D);
-	$5 -> parse_number(<< Rest/binary >>, << SoFar/binary, $5 >>, K, D);
-	$6 -> parse_number(<< Rest/binary >>, << SoFar/binary, $6 >>, K, D);
-	$7 -> parse_number(<< Rest/binary >>, << SoFar/binary, $7 >>, K, D);
-	$8 -> parse_number(<< Rest/binary >>, << SoFar/binary, $8 >>, K, D);
-	$9 -> parse_number(<< Rest/binary >>, << SoFar/binary, $9 >>, K, D);
-	$. -> parse_float(<< Rest/binary >>, << $. >>, K, D);
+	$0 -> parse_number(<< Rest/binary >>, << SoFar/binary, $0 >>, K);
+	$1 -> parse_number(<< Rest/binary >>, << SoFar/binary, $1 >>, K);
+	$2 -> parse_number(<< Rest/binary >>, << SoFar/binary, $2 >>, K);
+	$3 -> parse_number(<< Rest/binary >>, << SoFar/binary, $3 >>, K);
+	$4 -> parse_number(<< Rest/binary >>, << SoFar/binary, $4 >>, K);
+	$5 -> parse_number(<< Rest/binary >>, << SoFar/binary, $5 >>, K);
+	$6 -> parse_number(<< Rest/binary >>, << SoFar/binary, $6 >>, K);
+	$7 -> parse_number(<< Rest/binary >>, << SoFar/binary, $7 >>, K);
+	$8 -> parse_number(<< Rest/binary >>, << SoFar/binary, $8 >>, K);
+	$9 -> parse_number(<< Rest/binary >>, << SoFar/binary, $9 >>, K);
+	$. -> parse_float(<< Rest/binary >>, << $. >>, K);
 	$; ->
-	    parse_key(parse_ws(Rest), <<>>, dict:store(K, {integer, binary_to_integer(SoFar)}, D));
+	    {ok, K, {integer, binary_to_integer(SoFar)}, Rest};
 	$\s -> 
-	    parse_number(parse_ws(Rest), SoFar, K, D);
+	    parse_number(parse_ws(Rest), SoFar, K);
 	$\t ->
-	    parse_number(parse_ws(Rest), SoFar, K, D);
+	    parse_number(parse_ws(Rest), SoFar, K);
 	_ -> 
-	    {error, {parse_error, value}}
+	    {error, value}
     end.
 
-parse_float(<<>>, SoFar, Key, Dict) ->
-    {ok, dict:store(Key, {float, binary_to_float(SoFar)}, Dict)};
-parse_float(<< C, Rest/bits >>, SoFar, K, D) ->
+parse_float(<<>>, SoFar, Key) ->
+    {ok, Key, {float, binary_to_float(SoFar)}, <<>>};
+parse_float(<< C, Rest/bits >>, SoFar, K) ->
     case C of
-	$0 -> parse_float(<< Rest/binary >>, << SoFar/binary, $0 >>, K, D);
-	$1 -> parse_float(<< Rest/binary >>, << SoFar/binary, $1 >>, K, D);
-	$2 -> parse_float(<< Rest/binary >>, << SoFar/binary, $2 >>, K, D);
-	$3 -> parse_float(<< Rest/binary >>, << SoFar/binary, $3 >>, K, D);
-	$4 -> parse_float(<< Rest/binary >>, << SoFar/binary, $4 >>, K, D);
-	$5 -> parse_float(<< Rest/binary >>, << SoFar/binary, $5 >>, K, D);
-	$6 -> parse_float(<< Rest/binary >>, << SoFar/binary, $6 >>, K, D);
-	$7 -> parse_float(<< Rest/binary >>, << SoFar/binary, $7 >>, K, D);
-	$8 -> parse_float(<< Rest/binary >>, << SoFar/binary, $8 >>, K, D);
-	$9 -> parse_float(<< Rest/binary >>, << SoFar/binary, $9 >>, K, D);
+	$0 -> parse_float(<< Rest/binary >>, << SoFar/binary, $0 >>, K);
+	$1 -> parse_float(<< Rest/binary >>, << SoFar/binary, $1 >>, K);
+	$2 -> parse_float(<< Rest/binary >>, << SoFar/binary, $2 >>, K);
+	$3 -> parse_float(<< Rest/binary >>, << SoFar/binary, $3 >>, K);
+	$4 -> parse_float(<< Rest/binary >>, << SoFar/binary, $4 >>, K);
+	$5 -> parse_float(<< Rest/binary >>, << SoFar/binary, $5 >>, K);
+	$6 -> parse_float(<< Rest/binary >>, << SoFar/binary, $6 >>, K);
+	$7 -> parse_float(<< Rest/binary >>, << SoFar/binary, $7 >>, K);
+	$8 -> parse_float(<< Rest/binary >>, << SoFar/binary, $8 >>, K);
+	$9 -> parse_float(<< Rest/binary >>, << SoFar/binary, $9 >>, K);
 	$; -> 
-	    parse_key(parse_ws(Rest), <<>>, dict:store(K, {float, binary_to_float(SoFar)}, D));
+	    {ok, K, {float, binary_to_float(SoFar)}, Rest};
 	$\s -> 
-	    parse_float(parse_ws(Rest), SoFar, K, D);
+	    parse_float(parse_ws(Rest), SoFar, K);
 	$\t ->
-	    parse_float(parse_ws(Rest), SoFar, K, D);
+	    parse_float(parse_ws(Rest), SoFar, K);
 	_ ->
-	    {error, {parse_error, value}}
+	    {error, value}
     end.
 
 parse_ws(<<>>) ->

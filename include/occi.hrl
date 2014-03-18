@@ -55,7 +55,7 @@
 		    }).
 -type(occi_mixin() :: #occi_mixin{}).
 
--type(occi_category() :: occi_kind() | occi_mixin()).
+-type(occi_category() :: occi_kind() | occi_mixin() | occi_action()).
 
 -record(occi_action, {id                        :: #occi_cid{},
 		      title                     :: binary(),
@@ -91,6 +91,7 @@
 		    attributes = undefined :: dict(),   % orddict()
 		    source                 :: uri(),
 		    target                 :: uri(),
+		    target_cid = undefined :: occi_cid(),
 		    mixins     = undefined :: set()}).
 -type(occi_link() :: #occi_link{}).
 

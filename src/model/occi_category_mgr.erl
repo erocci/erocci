@@ -25,7 +25,6 @@
 -compile([{parse_transform, lager_transform}]).
 
 -include("occi.hrl").
--include("occi_xml.hrl").
 
 -behaviour(supervisor).
 
@@ -111,14 +110,23 @@ find(#uri{path=Path}) ->
 	    Other
     end;
 
-find(#occi_cid{}=Cid) ->
+find(#occi_cid{class=kind}=Cid) ->
+    ets:match_object(?CAT_TBL, #occi_kind{id=Cid, _='_'});
+
+find(#occi_cid{class=action}=Cid) ->
+    ets:match_object(?CAT_TBL, #occi_action{id=Cid, _='_'});
+
+find(#occi_cid{class=mixin}=Cid) ->
+    ets:match_object(?CAT_TBL, #occi_mixin{id=Cid, _='_'});
+
+find(#occi_cid{class='_'}=Cid) ->
     case ets:match_object(?CAT_TBL, #occi_kind{id=Cid, _='_'}) of
 	[] ->
 	    ets:match_object(?CAT_TBL, #occi_mixin{id=Cid, _='_'});
 	Res ->
 	    Res
     end;
-	    	    
+
 find(#occi_kind{}=Kind) ->
     ets:match_object(?CAT_TBL, Kind);
 

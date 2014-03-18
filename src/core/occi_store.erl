@@ -149,7 +149,36 @@ delete(#occi_node{id=#uri{path=Path}}=Node) ->
 	    {error, Err}
     end.
 
--spec find(occi_node() | occi_mixin()) -> {ok, [occi_node() | occi_mixin()]} | {error, term()}.
+-spec find(occi_node() | occi_cid() | occi_category()) -> {ok, [occi_node() | occi_category()]} | {error, term()}.
+find(#occi_cid{class=Cls}=Cid) ->
+    lager:debug("occi_store:find(~p)~n", [lager:pr(Cid, ?MODULE)]),
+    if
+	Cls == kind orelse Cls == action ->
+	    {ok, occi_category_mgr:find(Cid)};
+	Cls == mixin orelse Cls == '_' ->
+	    Merge = fun (#occi_node{id=#uri{path=Prefix}}, Mixins, Acc) ->
+			    lists:map(fun (Mixin) ->
+					      occi_mixin:add_prefix(Mixin, Prefix)
+				      end, Mixins) ++ Acc
+		    end,
+	    case fold(Merge, [], find, #occi_mixin{id=Cid, _='_'}) of
+		{ok, UMixins} ->
+		    {ok, occi_category_mgr:find(Cid) ++ UMixins};
+		{error, Err} ->
+		    {error, Err}
+	    end;
+	true ->
+	    {error, invalid_class}
+    end;
+
+find(#occi_kind{}=Kind) ->
+    lager:debug("occi_store:find(~p)~n", [lager:pr(Kind, ?MODULE)]),
+    occi_category_mgr:find(Kind);
+
+find(#occi_action{}=Action) ->
+    lager:debug("occi_store:find(~p)~n", [lager:pr(Action, ?MODULE)]),
+    occi_category_mgr:find(Action);
+
 find(#occi_mixin{location='_'}=Req) ->
     lager:debug("occi_store:find(~p)~n", [lager:pr(Req, ?MODULE)]),
     Merge = fun (#occi_node{id=#uri{path=Prefix}}, Mixins, Acc) ->

@@ -42,6 +42,8 @@
 	 set_title/2,
 	 get_target/1,
 	 set_target/2,
+	 get_target_cid/1,
+	 set_target_cid/2,
 	 get_source/1,
 	 set_source/2,
 	 add_prefix/2,
@@ -183,6 +185,14 @@ get_target(#occi_link{target=Uri}) ->
 -spec set_target(occi_link(), uri()) -> occi_link().
 set_target(#occi_link{}=Link, #uri{}=Uri) ->
     Link#occi_link{target=Uri}.
+
+-spec get_target_cid(occi_link()) -> occi_cid().
+get_target_cid(#occi_link{target_cid=C}) ->
+    C.
+
+-spec set_target_cid(occi_link(), occi_cid()) -> occi_cid().
+set_target_cid(#occi_link{}=L, #occi_cid{}=C) ->
+    L#occi_link{target_cid=C}.
 
 -spec reset(occi_link()) -> occi_link().
 reset(#occi_link{attributes=Attrs}=Link) ->
