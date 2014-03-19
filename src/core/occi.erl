@@ -25,6 +25,7 @@
 -export([start/0, 
 	 stop/0,
 	 config/1]).
+-export([ensure_started/1]).
 
 %% @spec start() -> ok
 %% @doc Start the occi server.
@@ -40,3 +41,11 @@ stop() ->
 
 config(Cfg) ->
     occi_config:load(Cfg).
+
+ensure_started(App) ->
+    case application:start(App) of
+	ok -> ok;
+	{error, {already_started, App}} -> ok;
+	{error, Err} -> {error, Err}
+    end.
+    

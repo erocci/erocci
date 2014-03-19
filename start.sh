@@ -5,6 +5,11 @@ export MNESIA_DIR="$HOME/.occi/"
 tempdir=$(mktemp -d)
 config=$tempdir/hello_occi.config
 
+ssldir=examples/hello_occi/priv/ssl
+cacertfile=$ssldir/cowboy-ca.crt
+certfile=$ssldir/server.crt
+keyfile=$ssldir/server.key
+
 _exit()
 {
     rm -rf $tempdir
@@ -13,10 +18,15 @@ _exit()
 trap _exit EXIT
 
 debug=info
-while getopts ":d" opt; do
+listener="{http, occi_http, [{port, 8080}]}"
+while getopts ":ds" opt; do
     case $opt in
 	d)
 	    debug=debug
+	    ;;
+	s)
+	    listener="{https, occi_https, [{port, 8443}, {cacertfile, \"$cacertfile\"}, {certfile, \"$certfile\"}, {keyfile, \"$keyfile\"}
+       ]}"
 	    ;;
 	*)
 	    ;;
@@ -26,14 +36,15 @@ done
 cat <<EOF > $config
 [
  {lager, [
-          {colored, true},
-	  {handlers, 
-	   [
-	    {lager_console_backend, $debug}
-	   ]
-	  }
-	 ]
- }
+   {colored, true},
+   {handlers, [
+     {lager_console_backend, $debug}
+    ]}
+  ]},
+ {occi, [
+    {name, "http://localhost:8080"},
+    {listeners, [$listener]}
+  ]}
 ].
 EOF
 

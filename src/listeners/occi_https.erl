@@ -1,6 +1,6 @@
 %%%-------------------------------------------------------------------
 %%% @author Jean Parpaillon <jean.parpaillon@free.fr>
-%%% @copyright (C) 2013, Jean Parpaillon
+%%% @copyright (C) 2014, Jean Parpaillon
 %%% 
 %%% This file is provided to you under the Apache License,
 %%% Version 2.0 (the "License"); you may not use this file
@@ -19,9 +19,9 @@
 %%% @doc
 %%%
 %%% @end
-%%% Created : 25 Mar 2013 by Jean Parpaillon <jean.parpaillon@free.fr>
+%%% Created : 18 Mar 2014 by Jean Parpaillon <jean.parpaillon@free.fr>
 %%%-------------------------------------------------------------------
--module(occi_http).
+-module(occi_https).
 -compile({parse_transform, lager_transform}).
 
 -behaviour(occi_listener).
@@ -31,9 +31,9 @@
 	 terminate/1]).
 
 start_link(Ref, Opts) ->
-    lager:info("Starting HTTP listener ~p~n", [Opts]),
+    lager:info("Starting HTTPS listener ~p~n", [Opts]),
     occi_http_common:start(),
-    cowboy:start_http(Ref, 100, validate_cfg(Opts), [{env, [{dispatch, occi_http_common:get_dispatch()}]}]).
+    cowboy:start_https(Ref, 100, validate_cfg(Opts), [{env, [{dispatch, occi_http_common:get_dispatch()}]}]).
 
 terminate(Ref) ->
     occi_http_common:stop(),
@@ -44,5 +44,17 @@ terminate(Ref) ->
 %%%
 validate_cfg(Opts) ->
     Address = proplists:get_value(ip, Opts, {0,0,0,0}),
-    Port = proplists:get_value(port, Opts, 8080),
-    [{ip, Address}, {port, Port}].
+    Port = proplists:get_value(port, Opts, 8443),
+    case proplists:is_defined(cacertfile, Opts) of
+	true -> ok;
+	false -> throw({missing_opt, cacertfile}) 
+    end,
+    case proplists:is_defined(certfile, Opts) of
+	true -> ok;
+	false -> throw({missing_opt, certfile}) 
+    end,
+    case proplists:is_defined(keyfile, Opts) of
+	true -> ok;
+	false -> throw({missing_opt, keyfile}) 
+    end,
+    [{ip, Address}, {port, Port}] ++ Opts.

@@ -23,8 +23,11 @@ start() ->
     ?TABLE = ets:new(?TABLE, [set, public, {keypos, 1}, named_table]),
     ok.
 
+%%% @doc Config is a proplist, which can be overriden by application env
+-spec load(list()) -> ok.
 load(Config) ->
-    load1(Config, []).
+    Env = application:get_all_env(occi),
+    setup(Env ++ Config).
 
 get(Name, Default) ->
     case ets:match_object(?TABLE, {Name, '_'}) of
@@ -49,32 +52,30 @@ gen_id(Prefix) when is_list(Prefix) ->
 %%%
 %%% Private
 %%%
-
-% First pass: some options must be parsed first
-load1([], Acc) ->
-    % 2nd pass
-    load2(Acc);
-load1([{name, Name}|Configs], Acc) ->
-    load_name(Name),
-    load1(Configs, Acc);
-load1([H|T], Acc) ->
-    load1(T, [H|Acc]).
-
-% Second pass
-load2([]) ->
-    ok;
-load2([{extensions, Extensions, Mapping}|Configs]) ->
-    load_extensions(Extensions, Mapping),
-    load2(Configs);
-load2([{backends, Backends}|Configs]) ->
-    load_backends(Backends),
-    load2(Configs);
-load2([{listeners, Listeners}|Configs]) ->
-    load_listeners(Listeners),
-    load2(Configs);
-load2([{handlers, Handlers}|Configs]) ->
-    load_handlers(Handlers),
-    load2(Configs).
+setup(Props) ->
+    lager:debug("setup(~p)~n", [Props]),
+    case proplists:get_value(name, Props) of
+	undefined ->
+	    throw({missing_config, name});
+	Name ->
+	    ets:insert(?TABLE, {name, occi_uri:parse(Name)})
+    end,
+    case proplists:get_value(extensions, Props) of
+	undefined -> ok;
+	{Ext, Map} -> load_extensions(Ext, Map)
+    end,
+    case proplists:get_value(backends, Props) of
+	undefined -> ok;	    
+	Backends -> load_backends(Backends)
+    end,
+    case proplists:get_value(listeners, Props) of
+	undefined -> ok;
+	Listeners -> load_listeners(Listeners)
+    end,
+    case proplists:get_value(handlers, Props) of
+	undefined -> ok;
+	Handlers -> load_handlers(Handlers)
+    end.
 
 load_extensions([], _) ->
     ok;
@@ -115,6 +116,3 @@ load_handlers([H|Handlers]) ->
 	{error, Err} ->
 	    {error, Err}
     end.
-
-load_name(Name) ->
-    ets:insert(?TABLE, {name, occi_uri:parse(Name)}).

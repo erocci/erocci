@@ -64,7 +64,7 @@ rest_init(Req, _Opts) ->
 allowed_methods(Req, State) ->
     Methods = [<<"GET">>, <<"DELETE">>, <<"POST">>, <<"OPTIONS">>],
     << ", ", Allow/binary >> = << << ", ", M/binary >> || M <- Methods >>,
-    {Methods, occi_http:set_cors(Req, Allow), State}.
+    {Methods, occi_http_common:set_cors(Req, Allow), State}.
 
 content_types_provided(Req, State) ->
     {[

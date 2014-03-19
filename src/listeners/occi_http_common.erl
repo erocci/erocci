@@ -1,0 +1,80 @@
+%%%-------------------------------------------------------------------
+%%% @author Jean Parpaillon <jean.parpaillon@free.fr>
+%%% @copyright (C) 2013, Jean Parpaillon
+%%% 
+%%% This file is provided to you under the Apache License,
+%%% Version 2.0 (the "License"); you may not use this file
+%%% except in compliance with the License.  You may obtain
+%%% a copy of the License at
+%%% 
+%%%   http://www.apache.org/licenses/LICENSE-2.0
+%%% 
+%%% Unless required by applicable law or agreed to in writing,
+%%% software distributed under the License is distributed on an
+%%% "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+%%% KIND, either express or implied.  See the License for the
+%%% specific language governing permissions and limitations
+%%% under the License.
+%%% 
+%%% @doc
+%%%
+%%% @end
+%%% Created : 25 Mar 2013 by Jean Parpaillon <jean.parpaillon@free.fr>
+%%%-------------------------------------------------------------------
+-module(occi_http_common).
+-compile({parse_transform, lager_transform}).
+
+-define(TBL, ?MODULE).
+
+% API
+-export([start/0,
+	 stop/0,
+	 set_cors/2,
+	 add_route/2,
+	 get_dispatch/0]).
+
+-define(ROUTE_QUERY,   {<<"/-/">>,                          occi_http_query,    []}).
+-define(ROUTE_QUERY2,  {<<"/.well-known/org/ogf/occi/-/">>, occi_http_query,    []}).
+-define(ROUTE_OCCI,    {<<"/[...]">>,                       occi_http_handler,  []}).
+
+start() ->
+    occi:ensure_started(cowlib),
+    occi:ensure_started(crypto),
+    occi:ensure_started(ranch),
+    occi:ensure_started(cowboy),
+    case ets:info(?TBL) of
+	undefined ->
+	    ?TBL = ets:new(?TBL, [set, public, {keypos, 1}, named_table]),
+	    ets:insert(?TBL, {routes, []});
+	_ -> ok
+    end.
+
+stop() ->
+    ok.
+
+% Convenience function for setting CORS headers
+set_cors(Req, Methods) ->
+    case cowboy_req:header(<<"origin">>, Req) of
+	{undefined, Req1} -> 
+	    Req1;
+	{Origin, Req1} ->
+	    Req2 = cowboy_req:set_resp_header(<<"access-control-allow-methods">>, Methods, Req1),
+	    cowboy_req:set_resp_header(<<"access-control-allow-origin">>, Origin, Req2)
+    end.
+
+-spec add_route(atom(), {binary(), atom(), list()}) -> ok | {error, term()}.
+add_route(Ref, Route) ->
+    Routes = ets:lookup_element(?TBL, routes, 2),
+    ets:insert(?TBL, {routes, [Route | Routes]}),
+    cowboy:set_env(Ref, dispatch, get_dispatch()).
+
+get_dispatch() ->
+    Routes = lists:flatten([?ROUTE_QUERY,
+			    ?ROUTE_QUERY2,
+			    ets:lookup_element(?TBL, routes, 2),
+			    ?ROUTE_OCCI]),
+    cowboy_router:compile([{'_', Routes}]).
+
+%%%
+%%% Private
+%%%
