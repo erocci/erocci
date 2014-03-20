@@ -46,11 +46,12 @@ render(#occi_node{type=dir}=Node, Env) ->
     {[Data, "\n"], Env};
 
 render(#occi_node{type=occi_resource, data=Res}, Env) ->
-    E = make_doc([?declared_occi_ns, ?declared_xlink_ns],
-		 ?occi_ns, resource,
-		 [exmpp_xml:attribute(<<"id">>, occi_uri:to_binary(occi_resource:get_id(Res))),
-		  exmpp_xml:attribute(<<"title">>, occi_resource:get_title(Res))], 
-		 [make_cid(kind, occi_resource:get_cid(Res))]),
+    E = make_ns([?declared_occi_ns, ?declared_xlink_ns],
+		exmpp_xml:element(
+		  ?occi_ns, resource,
+		  [exmpp_xml:attribute(<<"id">>, occi_uri:to_binary(occi_resource:get_id(Res))),
+		   exmpp_xml:attribute(<<"title">>, occi_resource:get_title(Res))], 
+		  [make_cid(kind, occi_resource:get_cid(Res))])),
     Data = render_xml(
 	     lists:foldl(
 	       fun (#uri{}=Link, Acc) -> 
@@ -68,17 +69,16 @@ render(#occi_node{type=occi_resource, data=Res}, Env) ->
     {[Data, "\n"], Env};
 
 render(#occi_node{type=occi_link, data=Link}, Env) ->
-    {render_xml(make_link(Link)), Env};
+    E = make_ns([?declared_occi_ns, ?declared_xlink_ns], make_link(Link)),
+    {render_xml(E), Env};
 
 render(#occi_node{type=occi_query, data={Kinds, Mixins, Actions}}, Env) ->
     Children = lists:map(fun render_kind/1, Kinds)
 	++ lists:map(fun render_mixin/1, Mixins)
 	++ lists:map(fun render_action/1, Actions),
     Data = render_xml(
-	     make_doc([?declared_occi_ns],
-		      ?occi_ns, component,
-		      [],
-		      Children)),
+	     make_ns([?declared_occi_ns],
+		     exmpp_xml:element(?occi_ns, component, [], Children))),
     {[Data, "\n"], Env};
 
 render(#occi_node{type=occi_user_mixin, data=Mixin}, Env) ->
@@ -87,13 +87,13 @@ render(#occi_node{type=occi_user_mixin, data=Mixin}, Env) ->
 	  
 render(#occi_node{type=occi_collection, data=Coll}, Env) ->
     Data = render_xml(
-	     make_doc([?declared_occi_ns, ?declared_xlink_ns],
-		      ?occi_ns, collection,
-		      [],
-		      [ exmpp_xml:element(
-			  ?occi_ns, entity,
-			  [exmpp_xml:attribute(?xlink_ns, <<"href">>, occi_uri:to_binary(Id))], []) || 
-			  Id <- occi_collection:get_entities(Coll) ])),
+	     make_ns([?declared_occi_ns, ?declared_xlink_ns],
+		     exmpp_xml:element(
+		       ?occi_ns, collection, [],
+		       [ exmpp_xml:element(
+			   ?occi_ns, entity,
+			   [exmpp_xml:attribute(?xlink_ns, <<"href">>, occi_uri:to_binary(Id))], []) || 
+			   Id <- occi_collection:get_entities(Coll) ]))),
     {[Data, "\n"], Env}.
 
 %%%
@@ -104,21 +104,20 @@ make_link(#occi_link{}=Link) ->
 		make_attribute('occi.core.target', occi_link:get_target(Link))],
     Children2 = case occi_link:get_source(Link) of
 		    undefined -> Children;
-		    #uri{}=Uri ->
-			make_attribute('occi.core.source', Uri)
+		    #uri{}=Uri -> [make_attribute('occi.core.source', Uri)]
 		end,
-    E = make_doc([?declared_occi_ns, ?declared_xlink_ns],
-		 ?occi_ns, link,
-		 [exmpp_xml:attribute(<<"id">>, occi_uri:to_string(occi_link:get_id(Link))),
-		  exmpp_xml:attribute(<<"title">>, occi_link:get_title(Link))],
-		 Children2),
+    E = exmpp_xml:element(?occi_ns, link,
+			  [exmpp_xml:attribute(<<"id">>, occi_uri:to_string(occi_link:get_id(Link))),
+			   exmpp_xml:attribute(<<"title">>, occi_link:get_title(Link))],
+			  Children2),
+    E2 = orddict:fold(
+	   fun (_Key, Attr, Acc) -> 
+		   render_attribute(Acc, Attr) 
+	   end, E, Link#occi_link.attributes),
     sets:fold(
-      fun (Mixin, Acc) -> render_cid(Acc, mixin, Mixin) end, 
-      lists:foldl(
-	fun (Attr, Acc) -> render_attribute(Acc, Attr) end,
-	E,
-	occi_link:get_attributes(Link)), 
-      occi_link:get_mixins(Link)).
+      fun (Mixin, Acc) -> 
+	      render_cid(Acc, mixin, Mixin) 
+      end, E2, occi_link:get_mixins(Link)).
 
 make_dir(#occi_node{id=Id, type=dir, data=Children}) ->
     exmpp_xml:element(?occi_ns, collection, 
@@ -234,17 +233,17 @@ make_attr_spec(#occi_attr{}=A) ->
     L7 = [exmpp_xml:attribute(<<"name">>, occi_attribute:get_id(A)) | L6],
     exmpp_xml:element(?occi_ns, attribute, L7, []).
 
+render_attribute(E, #occi_attr{value=undefined}) ->
+    E;
 render_attribute(E, #occi_attr{}=Attr) ->
-    exmpp_xml:append_child(E, make_attribute(Attr)).
-
-make_attribute(#occi_attr{}=Attr) ->
-    make_attribute(occi_attribute:get_id(Attr), occi_attribute:get_value(Attr)).
+    exmpp_xml:append_child(
+      E, 
+      make_attribute(occi_attribute:get_id(Attr), occi_attribute:get_value(Attr))).
 
 make_attribute(Name, #uri{}=Uri) ->
     exmpp_xml:element(?occi_ns, attribute, 
 		      [exmpp_xml:attribute(<<"name">>, Name),
-		       exmpp_xml:attribute(?xlink_ns,
-			 <<"href">>, occi_uri:to_binary(Uri))],
+		       exmpp_xml:attribute(?xlink_ns, <<"href">>, occi_uri:to_binary(Uri))],
 		      []);
 make_attribute(Name, Value) ->
     exmpp_xml:element(?occi_ns, attribute, 
@@ -265,15 +264,10 @@ render_xml(#xmlel{}=Doc) ->
 
 render_attr_value(Val) when is_float(Val) ->
     io_lib:format("~p", [Val]);
-render_attr_value(Val) when is_integer(Val) ->
-    io_lib:format("~p", [Val]);
 render_attr_value(#uri{}=Val) ->
     occi_uri:to_string(Val);
 render_attr_value(Val) ->
     Val.
-
-make_doc(DeclaredNS, NS, Name, Attrs, Children) ->
-    make_ns(DeclaredNS, exmpp_xml:element(NS, Name, Attrs, Children)).
 
 make_ns([], #xmlel{}=E) ->
     E;
