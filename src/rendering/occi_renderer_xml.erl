@@ -100,16 +100,19 @@ render(#occi_node{type=occi_collection, data=Coll}, Env) ->
 %%% Private
 %%%
 make_link(#occi_link{}=Link) ->
-    Children = [make_cid(kind, occi_link:get_cid(Link)),
-		make_attribute('occi.core.target', occi_link:get_target(Link))],
-    Children2 = case occi_link:get_source(Link) of
-		    undefined -> Children;
-		    #uri{}=Uri -> [make_attribute('occi.core.source', Uri)]
-		end,
+    C = [make_cid(kind, occi_link:get_cid(Link)),
+	 make_attribute('occi.core.target', occi_link:get_target(Link))],
+    C2 = case occi_link:get_source(Link) of
+	     undefined -> C;
+	     #uri{}=Uri -> [make_attribute('occi.core.source', Uri) | C]
+	 end,
+    A = case occi_link:get_title(Link) of
+	    undefined -> [];
+	     V -> [exmpp_xml:attribute(<<"title">>, V)]
+	end,
     E = exmpp_xml:element(?occi_ns, link,
-			  [exmpp_xml:attribute(<<"id">>, occi_uri:to_string(occi_link:get_id(Link))),
-			   exmpp_xml:attribute(<<"title">>, occi_link:get_title(Link))],
-			  Children2),
+			  [exmpp_xml:attribute(<<"id">>, occi_uri:to_string(occi_link:get_id(Link))) | A],
+			  C2),
     E2 = orddict:fold(
 	   fun (_Key, Attr, Acc) -> 
 		   render_attribute(Acc, Attr) 

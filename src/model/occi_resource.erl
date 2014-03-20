@@ -87,13 +87,13 @@ set_id(#occi_resource{}=Res, Id) when is_binary(Id) ->
     set_id(Res, occi_uri:parse(Id));
 set_id(#occi_resource{}=Res, Id) when is_list(Id) ->
     set_id(Res, occi_uri:parse(Id));
-set_id(#occi_resource{links=Links}=Res, #uri{}=Id) ->
-    L2 = sets:fold(fun (#uri{}, Acc) ->
-			   Acc;
-		       (#occi_link{}=Link, Acc) ->
-			   sets:add_element(occi_link:set_source(Link, Id), Acc)
-		   end, sets:new(), Links),
-    Res#occi_resource{id=Id, links=L2}.
+set_id(#occi_resource{}=Res, #uri{}=Id) ->
+    %% L2 = sets:fold(fun (#uri{}, Acc) ->
+    %% 			   Acc;
+    %% 		       (#occi_link{}=Link, Acc) ->
+    %% 			   sets:add_element(occi_link:set_source(Link, Id), Acc)
+    %% 		   end, sets:new(), Links),
+    Res#occi_resource{id=Id}.
 
 -spec get_cid(occi_resource()) -> occi_cid().
 get_cid(#occi_resource{cid=Cid}) ->
@@ -171,11 +171,11 @@ add_link(#occi_resource{links=Links}=Res, #uri{}=Link) ->
     Res#occi_resource{links=sets:add_element(Link, Links)};
 
 add_link(#occi_resource{links=Links}=Res, #occi_link{}=Link) ->
-    L2 = case get_id(Res) of
-	     undefined -> Link;
-	     #uri{}=Id -> occi_link:set_source(Link, Id)
-	 end,
-    Res#occi_resource{links=sets:add_element(L2, Links)}.
+    %% L2 = case get_id(Res) of
+    %% 	     undefined -> Link;
+    %% 	     #uri{}=Id -> occi_link:set_source(Link, Id)
+    %% 	 end,
+    Res#occi_resource{links=sets:add_element(Link, Links)}.
 
 -spec get_links(occi_resource()) -> [uri()].
 get_links(#occi_resource{links=Links}) ->

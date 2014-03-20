@@ -68,6 +68,7 @@
 	  collection                        :: occi_collection(),
 	  entity      = undefined           :: term(),
 	  entity_id   = undefined           :: uri(),
+	  link        = undefined           :: occi_link(),
 	  mixin       = undefined           :: term(),
 	  action      = undefined           :: occi_action(),
 	  prefixes,
@@ -286,6 +287,7 @@ resource(E=?kind, _From,
 	{error, Err} ->
 	    {reply, {error, Err}, eof, Ctx}
     end;
+
 resource(E=?kind, _From, 
 	 #parser{state=#state{entity=#occi_resource{cid=#occi_cid{scheme=Scheme, 
 								  term=Term, 
@@ -296,6 +298,15 @@ resource(E=?kind, _From,
 	{error, Err} ->
 	    {reply, {error, Err}, eof, Ctx}
     end;
+
+resource(E=?link, _From, #parser{state=#state{}=S}=Ctx) ->
+    try make_link(E, S#state{link=occi_link:new()}) of
+	#state{}=S2 -> push(link, ?set_state(Ctx, S2));
+	{error, Err} -> {reply, {error, Err}, eof, Ctx}
+    catch
+	throw:Err -> {reply, {error, Err}, eof, Ctx}
+    end;
+
 resource(?kindEnd, _From, Ctx) ->
     {reply, ok, resource, Ctx};
 resource(E=?mixin, _From, 
@@ -314,8 +325,10 @@ resource(E=?mixin, _From,
 	{error, Err} ->
 	    {reply, {error, Err}, eof, Ctx}
     end;
+
 resource(?mixinEnd, _From, Ctx) ->
     {reply, ok, resource, Ctx};
+
 resource(E=?attribute, _From, 
 	 #parser{state=#state{entity=#occi_resource{}=Res}=State}=Ctx) ->
 	case make_attribute(E, State) of
@@ -331,27 +344,47 @@ resource(E=?attribute, _From,
 	    {error, Err} ->
 		{reply, {error, Err}, eof, Ctx}
 	end;	
+
 resource(?attributeEnd, _From, Ctx) ->
     {reply, ok, resource, Ctx};
+
 resource(?resourceEnd, _From, #parser{state=#state{request=Req, entity=Res}}=Ctx) ->
     {reply, {eof, occi_request:add_entity(Req, Res)}, eof, Ctx};
+
 resource(E, _From, Ctx) ->
     other_event(E, Ctx, resource).
 
-link(E=?kind, _From, #parser{state=#state{entity=#occi_link{cid=undefined}=Link}=State}=Ctx) ->
+link(E=?kind, _From, 
+     #parser{state=#state{entity=#occi_resource{}, link=#occi_link{}=L}=S}=Ctx) ->
     case get_cid(E) of
 	#occi_cid{}=Cid ->
 	    C2 = Cid#occi_cid{class=kind},
 	    case occi_store:find(C2) of
 		{ok, [#occi_kind{parent=#occi_cid{term=link}}=Kind]} ->
-		    Link2 = occi_link:set_cid(Link, Kind),
-		    {reply, ok, link, ?set_state(Ctx, State#state{entity=Link2})};
+		    L2 = occi_link:set_cid(L, Kind),
+		    {reply, ok, link, ?set_state(Ctx, S#state{link=L2})};
 		_ ->
 		    {reply, {error, {invalid_cid, C2}}, eof, Ctx}
 	    end;
 	{error, Err} ->
 	    {reply, {error, Err}, eof, Ctx}
     end;
+
+link(E=?kind, _From, #parser{state=#state{entity=#occi_link{cid=undefined}=L}=S}=Ctx) ->
+    case get_cid(E) of
+	#occi_cid{}=Cid ->
+	    C2 = Cid#occi_cid{class=kind},
+	    case occi_store:find(C2) of
+		{ok, [#occi_kind{parent=#occi_cid{term=link}}=Kind]} ->
+		    L2 = occi_link:set_cid(L, Kind),
+		    {reply, ok, link, ?set_state(Ctx, S#state{entity=L2})};
+		_ ->
+		    {reply, {error, {invalid_cid, C2}}, eof, Ctx}
+	    end;
+	{error, Err} ->
+	    {reply, {error, Err}, eof, Ctx}
+    end;
+
 link(E=?kind, _From, 
      #parser{state=#state{entity=#occi_link{cid=#occi_cid{scheme=Scheme, term=Term, class=kind}}}}=Ctx) ->
     case get_cid(E) of
@@ -360,42 +393,75 @@ link(E=?kind, _From,
 	{error, Err} ->
 	    {reply, {error, Err}, eof, Ctx}
     end;
+
 link(?kindEnd, _From, Ctx) ->
     {reply, ok, link, Ctx};
-link(E=?mixin, _From, #parser{state=#state{entity=Link}=State}=Ctx) ->
+
+link(E=?mixin, _From, #parser{state=#state{entity=#occi_resource{}, link=L}=S}=Ctx) ->
     case get_cid(E) of
 	#occi_cid{}=Cid ->
 	    C2 = Cid#occi_cid{class=mixin},
 	    case occi_store:find(C2) of
 		{ok, [#occi_mixin{}=Mixin]} ->
-		    Link2 = occi_link:add_mixin(Link, Mixin),
-		    {reply, ok, link, 
-		     ?set_state(Ctx, State#state{entity=Link2})};
+		    L2 = occi_link:add_mixin(L, Mixin),
+		    {reply, ok, link, ?set_state(Ctx, S#state{link=L2})};
 		_ ->
 		    {reply, {error, {invalid_cid, C2}}, eof, Ctx}
 	    end;
-	{error, Err} ->
-	    {reply, {error, Err}, eof, Ctx}
+	{error, Err} -> {reply, {error, Err}, eof, Ctx}
     end;
+
+link(E=?mixin, _From, #parser{state=#state{entity=L}=S}=Ctx) ->
+    case get_cid(E) of
+	#occi_cid{}=Cid ->
+	    C2 = Cid#occi_cid{class=mixin},
+	    case occi_store:find(C2) of
+		{ok, [#occi_mixin{}=Mixin]} ->
+		    L2 = occi_link:add_mixin(L, Mixin),
+		    {reply, ok, link, ?set_state(Ctx, S#state{entity=L2})};
+		_ ->
+		    {reply, {error, {invalid_cid, C2}}, eof, Ctx}
+	    end;
+	{error, Err} -> {reply, {error, Err}, eof, Ctx}
+    end;
+
 link(?mixinEnd, _From, Ctx) ->
     {reply, ok, link, Ctx};
-link(E=?attribute, _From, #parser{state=#state{entity=#occi_link{}=Link}=State}=Ctx) ->
-    case make_attribute(E, State) of
+
+link(E=?attribute, _From, #parser{state=#state{entity=#occi_resource{}, link=#occi_link{}=L}=S}=Ctx) ->
+    case make_attribute(E, S) of
+	{ok, 'occi.core.source', _} ->
+	    % Inline link: source is enclosing resource
+	    {reply, {error, {invalid_attribute, 'occi.core.source'}}, eof, Ctx};
 	{ok, Key, Val} ->
-	    try occi_link:set_attr_value(Link, Key, Val) of
-		#occi_link{}=Link2 ->
-		    {reply, ok, link, ?set_state(Ctx, State#state{entity=Link2})}
-	    catch
-		_:Err ->
-		    {reply, {error, Err}, eof, Ctx}
+	    try occi_link:set_attr_value(L, Key, Val) of
+		#occi_link{}=L2 ->
+		    {reply, ok, link, ?set_state(Ctx, S#state{link=L2})}
+	    catch throw:Err -> {reply, {error, Err}, eof, Ctx}
 	    end;
-	{error, Err} ->
-	    {reply, {error, Err}, eof, Ctx}
+	{error, Err} -> {reply, {error, Err}, eof, Ctx}
     end;	
+
+link(E=?attribute, _From, #parser{state=#state{entity=#occi_link{}=L}=S}=Ctx) ->
+    case make_attribute(E, S) of
+	{ok, Key, Val} ->
+	    try occi_link:set_attr_value(L, Key, Val) of
+		#occi_link{}=L2 ->
+		    {reply, ok, link, ?set_state(Ctx, S#state{entity=L2})}
+	    catch throw:Err -> {reply, {error, Err}, eof, Ctx}
+	    end;
+	{error, Err} -> {reply, {error, Err}, eof, Ctx}
+    end;	
+
 link(?attributeEnd, _From, Ctx) ->
     {reply, ok, link, Ctx};
+
+link(?linkEnd, _From, #parser{state=#state{entity=#occi_resource{}=R, link=#occi_link{}=L}=S}=Ctx) ->
+    pop(?set_state(Ctx, S#state{entity=occi_resource:add_link(R, L), link=undefined}));
+
 link(?linkEnd, _From, #parser{state=#state{request=Req, entity=Link}}=Ctx) ->
     {reply, {eof, occi_request:add_entity(Req, Link)}, eof, Ctx};
+
 link(E, _From, Ctx) ->
     other_event(E, Ctx, link).
 
@@ -694,51 +760,62 @@ make_resource(E, #state{entity_id=undefined, entity=#occi_resource{id=undefined}
 	undefined ->
 	    State;
 	Id ->
-	    State#state{entity=occi_resource:set_id(Res, Id)}
+	    State#state{entity=occi_resource:set_id(Res, occi_uri:parse(Id))}
     end;
-make_resource(E, #state{entity_id=undefined, entity=#occi_resource{id=Id}}=State) ->
+make_resource(E, #state{entity_id=undefined, entity=#occi_resource{id=Uri}}=S) ->
     case get_attr_value(E, <<"id">>, undefined) of
-	undefined ->
-	    State;
+	undefined -> S;
 	Id ->
-	    State;
-	_ ->
-	    {error, invalid_id}
+	    try occi_uri:parse(Id) of
+		#uri{}=Uri -> S;
+		O -> {error, {invalid_id, O}}
+	    catch throw:Err -> {error, Err}
+	    end
     end;
-make_resource(E, #state{entity_id=Id}=State) ->
+make_resource(E, #state{entity_id=Uri}=S) ->
     case get_attr_value(E, <<"id">>, undefined) of
-	undefined ->
-	    State#state{entity_id=undefined, entity=occi_resource:new(Id)};
+	undefined -> S#state{entity_id=undefined, entity=occi_resource:new(Uri)};
 	Id ->
-	    State#state{entity_id=undefined, entity=occi_resource:new(Id)};
-	_ ->
-	    {error, invalid_id}
+	    try occi_uri:parse(Id) of
+		#uri{}=Uri -> S#state{entity_id=undefined, entity=occi_resource:new(Uri)};
+		O -> {error, {invalid_id, O}}
+	    catch throw:Err -> {error, Err}
+	    end
     end.
 
-make_link(E, #state{entity_id=undefined, entity=#occi_link{id=undefined}=Link}=State) ->
+make_link(E, #state{entity=#occi_resource{}, link=#occi_link{}=L}=S) ->
     case get_attr_value(E, <<"id">>, undefined) of
-	undefined ->
-	    State;
-	Id ->
-	    State#state{entity=occi_link:set_id(Link, Id)}
+	undefined -> S;
+	Id ->  S#state{link=occi_link:set_id(L, occi_uri:parse(Id))}
     end;
-make_link(E, #state{entity_id=undefined, entity=#occi_link{id=Id}}=State) ->
+
+make_link(E, #state{entity_id=undefined, entity=#occi_link{id=undefined}=L}=S) ->
     case get_attr_value(E, <<"id">>, undefined) of
-	undefined ->
-	    State;
-	Id ->
-	    State;
-	_ ->
-	    {error, invalid_id}
+	undefined -> S;
+	Id -> S#state{entity=occi_link:set_id(L, occi_uri:parse(Id))}
     end;
-make_link(E, #state{entity_id=Id}=State) ->
+
+make_link(E, #state{entity_id=undefined, entity=#occi_link{id=Uri}}=S) ->
+    case get_attr_value(E, <<"id">>, undefined) of
+	undefined -> S;
+	Id ->
+	    try occi_uri:parse(Id) of
+		Uri -> S;
+		O -> {error, {invalid_id, O}}
+	    catch throw:Err -> {error, Err}
+	    end
+    end;
+
+make_link(E, #state{entity_id=Uri}=State) ->
     case get_attr_value(E, <<"id">>, undefined) of
 	undefined ->
-	    State#state{entity_id=undefined, entity=occi_link:new(Id)};
+	    State#state{entity_id=undefined, entity=occi_link:new(Uri)};
 	Id ->
-	    State#state{entity_id=undefined, entity=occi_link:new(Id)};
-	_ ->
-	    {error, invalid_id}
+	    try occi_uri:parse(Id) of
+		#uri{}=Uri -> State#state{entity_id=undefined, entity=occi_link:new(Uri)};
+		O -> {error, {invalid_id, O}}
+	    catch throw:Err -> {error, Err}
+	    end
     end.
 
 make_kind(E, #state{extension=Ext}) ->
