@@ -1,3 +1,9 @@
+0.3 Jean Parpaillon <jean.parpaillon@free.fr>
+
+	* New protocol: HTTPS (example with start.sh -s)
+	* New rendering: text/plain, text/occi
+	* Handle inline links
+
 0.2 Jean Parpaillon <jean.parpaillon@free.fr>
 
 	* Add XML rendering
