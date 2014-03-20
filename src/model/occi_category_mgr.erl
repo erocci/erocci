@@ -32,7 +32,6 @@
 -export([start_link/0]).
 -export([find/1,
 	 find_all/0,
-	 get/1,
 	 register_extension/2,
 	 register_kind/1,
 	 register_mixin/1,
@@ -141,31 +140,6 @@ find_all() ->
     { find(#occi_kind{_='_'}),
       find(#occi_mixin{_='_'}),
       find(#occi_action{_='_'}) }.
-
--spec get(occi_cid()) -> occi_mixin().
-get(#occi_cid{class=mixin}=Cid) ->
-    case ets:match_object(?CAT_TBL, #occi_mixin{id=Cid, _='_'}) of
-	[Mixin] ->
-	    Mixin;
-	_ ->
-	    throw({error, {unknown_category, Cid}})
-    end;
-
-get(#occi_cid{class=kind}=Cid) ->
-    case ets:match_object(?CAT_TBL, #occi_kind{id=Cid, _='_'}) of
-	[Kind] ->
-	    Kind;
-	_ ->
-	    throw({error, {unknown_category, Cid}})
-    end;
-
-get(#occi_cid{class=action}=Cid) ->
-    case ets:match_object(?CAT_TBL, #occi_action{id=Cid, _='_'}) of
-	[Action] ->
-	    Action;
-	_ ->
-	    throw({error, {unknown_action, Cid}})
-    end.
 
 %%%===================================================================
 %%% Supervisor callbacks

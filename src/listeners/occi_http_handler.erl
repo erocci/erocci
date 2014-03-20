@@ -420,11 +420,13 @@ prepare_action(_Req, _State, Name) ->
     occi_action:new(#occi_cid{term=Name, class=action}).    
 
 prepare_entity(_Req, #occi_node{type=occi_collection, objid=Cid}) ->
-    case occi_category_mgr:get(Cid) of
-	#occi_kind{parent=#occi_cid{term=resource}}=Kind ->
+    case occi_store:find(Cid) of
+	{ok, [#occi_kind{parent=#occi_cid{term=resource}}=Kind]} ->
 	    occi_resource:new(Kind);
-	#occi_kind{parent=#occi_cid{term=link}}=Kind ->
-	    occi_link:new(Kind)
+	{ok, [#occi_kind{parent=#occi_cid{term=link}}=Kind]} ->
+	    occi_link:new(Kind);
+	_ ->
+	    throw({error, internal_error})
     end;
 
 prepare_entity(_Req, #occi_node{type=occi_resource}=Node) ->

@@ -86,6 +86,7 @@
 		collection                          :: occi_collection(),
 		entity         = undefined          :: term(),
 		entity_id      = undefined          :: uri(),
+		link           = undefined          :: occi_link(),
 		mixin          = undefined          :: term(),
 		action         = undefined          :: occi_action(),
 		attrNS         = []                 :: [string()]}).
@@ -319,29 +320,28 @@ resource(Token, _From, Ctx) ->
 
 resource_kind(#token{name=value, data=Val}, _From, 
 	    #parser{state=#state{entity=#occi_resource{cid=undefined}=Res}=State}=Ctx) ->
-    case parse_cid(Val) of
-	{Scheme, Term} ->
-	    Cid = #occi_cid{class=kind, scheme=Scheme, term=Term},
-	    case catch occi_category_mgr:get(Cid) of
-		{error, Err} ->
-		    {reply, {error, Err}, eof, Ctx};
-		#occi_kind{parent=#occi_cid{term=resource}}=Kind ->
+    try occi_cid:parse(Val) of
+	#occi_cid{}=Cid ->
+	    C2 = Cid#occi_cid{class=kind},
+	    case occi_store:find(C2) of
+		{ok, [#occi_kind{parent=#occi_cid{term=resource}}=Kind]} ->
 		    Res2 = occi_resource:set_cid(Res, Kind),
 		    {reply, ok, resource, 
 		     ?set_state(Ctx, State#state{entity=Res2})};
-		#occi_kind{} ->
-		    {reply, {error, {invalid_cid, Cid}}, eof, Ctx}
-	    end;
-	parse_error ->
-	    {reply, {error, {invalid_cid, Val}}, eof, Ctx}
+		_ ->
+		    {reply, {error, {invalid_cid, C2}}, eof, Ctx}
+	    end
+    catch
+	throw:Err -> {reply, {error, Err}, eof, Ctx}
     end;
 resource_kind(#token{name=value, data=Val}, _From, 
 	      #parser{state=#state{entity=#occi_resource{cid=#occi_cid{scheme=Scheme, term=Term}}}}=Ctx) ->
-    case parse_cid(Val) of
-	{Scheme, Term} ->
+    try occi_cid:parse(Val) of
+	#occi_cid{scheme=Scheme, term=Term} ->
 	    {reply, ok, resource, Ctx};
-	parse_error ->
+	_ ->
 	    {reply, {error, {invalid_cid, Val}}, eof, Ctx}
+    catch throw:Err -> {reply, {error, Err}, eof, Ctx}
     end;
 resource_kind(Token, _From, Ctx) ->
     occi_parser:parse_error(Token, Ctx).
@@ -355,19 +355,18 @@ resource_mixins(Token, _From, Ctx) ->
 
 resource_mixin(#token{name=value, data=Val}, _From, 
 	       #parser{state=#state{entity=Res}=State}=Ctx) ->
-    case parse_cid(Val) of
-	{Scheme, Term} ->
-	    Cid = #occi_cid{class=mixin, scheme=Scheme, term=Term},
-	    case catch occi_category_mgr:get(Cid) of
-		{error, Err} ->
-		    {reply, {error, Err}, eof, Ctx};
-		#occi_mixin{}=Mixin ->
+    try occi_cid:parse(Val) of
+	#occi_cid{}=Cid ->
+	    C2 = Cid#occi_cid{class=mixin},
+	    case occi_store:find(C2) of
+		{ok, [#occi_mixin{}=Mixin]} ->
 		    Res2 = occi_resource:add_mixin(Res, Mixin),
-		    {reply, ok, resource_mixins, 
-		     ?set_state(Ctx, State#state{entity=Res2})}
-	    end;
-	parse_error ->
-	    {reply, {error, {invalid_cid, Val}}, eof, Ctx}
+		    {reply, ok, resource_mixins, ?set_state(Ctx, State#state{entity=Res2})};
+		_ ->
+		    {reply, {error, {invalid_cid, C2}}, eof, Ctx}
+	    end
+    catch throw:Err ->
+	    {reply, {error, Err}, eof, Ctx}
     end;
 resource_mixin(Token, _From, Ctx) ->
     occi_parser:parse_error(Token, Ctx).
@@ -430,6 +429,8 @@ resource_links(Token, _From, Ctx) ->
 resource_link(#token{name=value, data=Val}, _From, #parser{state=#state{entity=Res}=State}=Ctx) ->
     {reply, ok, resource_links, 
      ?set_state(Ctx, State#state{entity=occi_resource:add_link(Res, Val)})};
+resource_link(#token{name=objBegin}, _From, #parser{state=#state{}=S}=Ctx) ->
+    {reply, ok, link, ?set_state(Ctx, S#state{link=occi_link:new()})};
 resource_link(Token, _From, Ctx) ->
     occi_parser:parse_error(Token, Ctx).
 
@@ -469,29 +470,29 @@ link(Token, _From, Ctx) ->
 
 link_kind(#token{name=value, data=Val}, _From, 
 	  #parser{state=#state{entity=#occi_link{cid=undefined}=Link}=State}=Ctx) ->
-    case parse_cid(Val) of
-	{Scheme, Term} ->
-	    Cid = #occi_cid{class=kind, scheme=Scheme, term=Term},
-	    case catch occi_category_mgr:get(Cid) of
-		{error, Err} ->
-		    {reply, {error, Err}, eof, Ctx};
-		#occi_kind{parent=#occi_cid{term=link}}=Kind ->
+    try occi_cid:parse(Val) of
+	#occi_cid{}=Cid ->
+	    C2 = Cid#occi_cid{class=kind},
+	    case occi_store:find(C2) of
+		{ok, [#occi_kind{parent=#occi_cid{term=link}}=Kind]} ->
 		    Link2 = occi_link:set_cid(Link, Kind),
 		    {reply, ok, link, 
 		     ?set_state(Ctx, State#state{entity=Link2})};
-		#occi_kind{} ->
-		    {reply, {error, {invalid_cid, Cid}}, eof, Ctx}
-	    end;
-	parse_error ->
-	    {reply, {error, {invalid_cid, Val}}, eof, Ctx}
+		{ok, [#occi_kind{}]} ->
+		    {reply, {error, {invalid_cid, C2}}, eof, Ctx};
+		_ ->
+		    {reply, {error, {invalid_cid, C2}}, eof, Ctx}
+	    end
+    catch throw:Err -> {reply, {error, Err}, eof, Ctx}
     end;
 link_kind(#token{name=value, data=Val}, _From, 
 	  #parser{state=#state{entity=#occi_link{cid=#occi_cid{scheme=Scheme, term=Term}}}}=Ctx) ->
-    case parse_cid(Val) of
-	{Scheme, Term} ->
+    try occi_cid:parse(Val) of
+	#occi_cid{scheme=Scheme, term=Term} ->
 	    {reply, ok, link, Ctx};
-	parse_error ->
-	    {reply, {error, {invalid_cid, Val}}, eof, Ctx}
+	Cid ->
+	    {reply, {error, {invalid_cid, Cid}}, eof, Ctx}
+    catch throw:Err -> {reply, {error, Err}, eof, Ctx}
     end;
 link_kind(Token, _From, Ctx) ->
     occi_parser:parse_error(Token, Ctx).
@@ -504,18 +505,18 @@ link_mixins(Token, _From, Ctx) ->
     occi_parser:parse_error(Token, Ctx).
 
 link_mixin(#token{name=value, data=Val}, _From, #parser{state=#state{entity=Link}=State}=Ctx) ->
-    case parse_cid(Val) of
-	{Scheme, Term} ->
-	    case catch occi_category_mgr:get(#occi_cid{class=mixin, scheme=Scheme, term=Term}) of
-		{error, Err} ->
-		    {reply, {error, Err}, eof, Ctx};
-		#occi_mixin{}=Mixin ->
+    try occi_cid:parse(Val) of
+	#occi_cid{}=Cid ->
+	    C2 = Cid#occi_cid{class=mixin},
+	    case occi_store:find(C2) of
+		{ok, [#occi_mixin{}=Mixin]} ->
 		    Link2 = occi_link:add_mixin(Link, Mixin),
 		    {reply, ok, link_mixins, 
-		     ?set_state(Ctx, State#state{entity=Link2})}
-	    end;
-	parse_error ->
-	    {reply, {error, {invalid_cid, Val}}, eof, Ctx}
+		     ?set_state(Ctx, State#state{entity=Link2})};
+		_ ->
+		    {reply, {error, {invalid_cid, C2}}, eof, Ctx}
+	    end
+    catch throw:Err -> {reply, {error, Err}, eof, Ctx}
     end;
 link_mixin(Token, _From, Ctx) ->
     occi_parser:parse_error(Token, Ctx).
@@ -642,18 +643,16 @@ mixin_depends(Token, _From, Ctx) ->
     occi_parser:parse_error(Token, Ctx).
 
 mixin_depend(#token{name=value, data=Val}, _From, #parser{state=#state{mixin=Mixin}=State}=Ctx) ->
-    case parse_cid(Val) of
-	{Scheme, Term} ->
-	    case check_cid(Scheme, Term) of
-		#occi_cid{}=Cid ->
-		    Mixin2 = occi_mixin:add_depends(Mixin, Cid),
-		    {reply, ok, mixin_depends, 
-		     ?set_state(Ctx, State#state{mixin=Mixin2})};
+    try occi_cid:parse(Val) of
+	#occi_cid{}=Cid ->
+	    case check_cid(Cid) of
+		#occi_cid{}=C2 ->
+		    Mixin2 = occi_mixin:add_depends(Mixin, C2),
+		    {reply, ok, mixin_depends, ?set_state(Ctx, State#state{mixin=Mixin2})};
 		error ->
-		    {reply, {error, {invalid_cid, Val}}, eof, Ctx}
-	    end;
-	parse_error ->
-	    {reply, {error, {invalid_cid, Val}}, eof, Ctx}
+		    {reply, {error, {invalid_cid, Cid}}, eof, Ctx}
+	    end
+    catch throw:Err -> {reply, {error, Err}, eof, Ctx}
     end;
 mixin_depend(Token, _From, Ctx) ->
     occi_parser:parse_error(Token, Ctx).
@@ -666,18 +665,15 @@ mixin_applies(Token, _From, Ctx) ->
     occi_parser:parse_error(Token, Ctx).
 
 mixin_apply(#token{name=value, data=Val}, _From, #parser{state=#state{mixin=Mixin}=State}=Ctx) ->
-    case parse_cid(Val) of
-	{Scheme, Term} ->
-	    case check_cid(Scheme, Term) of
-		#occi_cid{}=Cid ->
-		    Mixin2 = occi_mixin:add_applies(Mixin, Cid),
-		    {reply, ok, mixin_applies, 
-		     ?set_state(Ctx, State#state{mixin=Mixin2})};
-		error ->
-		    {reply, {error, {invalid_cid, Val}}, eof, Ctx}
-	    end;
-	parse_error ->
-	    {reply, {error, {invalid_cid, Val}}, eof, Ctx}
+    try occi_cid:parse(Val) of
+	#occi_cid{}=Cid ->
+	    case check_cid(Cid) of
+		#occi_cid{}=C2 ->
+		    Mixin2 = occi_mixin:add_applies(Mixin, C2),
+		    {reply, ok, mixin_applies, ?set_state(Ctx, State#state{mixin=Mixin2})};
+		error -> {reply, {error, {invalid_cid, Cid}}, eof, Ctx}
+	    end
+    catch throw:Err -> {reply, {error, Err}, eof, Ctx}
     end;
 mixin_apply(Token, _From, Ctx) ->
     occi_parser:parse_error(Token, Ctx).
@@ -707,17 +703,16 @@ collection(Token, _From, Ctx) ->
 
 action_req(#token{name=value, data=Val}, _From, 
 	   #parser{state=#state{action=#occi_action{id=#occi_cid{term=Term}}}=State}=Ctx) ->
-    case parse_cid(Val) of
-	{Scheme, Term} ->
-	    case occi_category_mgr:get(#occi_cid{class=action, scheme=Scheme, term=Term}) of
-		#occi_action{}=Action ->
-		    {reply, ok, action, 
-		    ?set_state(Ctx, State#state{action=Action})};
-		error ->
-		    {reply, {error, {invalid_cid, Val}}, eof, Ctx}
-	    end;
-	_ ->
-	    {reply, {error, {invalid_cid, Val}}, eof, Ctx}
+    try occi_cid:parse(Val) of
+	#occi_cid{term=Term}=Cid ->
+	    C2 = Cid#occi_cid{class=action},
+	    case occi_store:find(C2) of
+		{ok, [#occi_action{}=Action]} ->
+		    {reply, ok, action, ?set_state(Ctx, State#state{action=Action})};
+		_ ->
+		    {reply, {error, {invalid_cid, C2}}, eof, Ctx}
+	    end
+    catch throw:Err -> {reply, {error, Err}, eof, Ctx}
     end;
 action_req(#token{name=objEnd}, _From, 
 	   #parser{state=#state{request=Req, action=A}=State}=Ctx) ->
@@ -801,23 +796,12 @@ stop(#parser{id=Ref, src=#parser{mod=Mod}=Src}) ->
     Mod:stop(Src),
     gen_fsm:send_all_state_event(Ref, stop).
 
-parse_cid(Str) ->
-    case string:tokens(Str, "#") of
-	[Scheme, Term] ->
-	    {list_to_atom(Scheme++"#"), list_to_atom(Term)};
-	_ ->
-	    parse_error
-    end.
-
 build_attr_name(NS) ->
     list_to_atom(string:join(lists:reverse(NS), ".")).
 
-check_cid(Scheme, Term) ->
-    case occi_category_mgr:find(#occi_cid{scheme=Scheme, term=Term, _='_'}) of
-	[#occi_kind{id=Cid}] ->
-	    Cid;
-	[#occi_mixin{id=Cid}] ->
-	    Cid;
-	[] ->
-	    parse_error
+check_cid(#occi_cid{}=Cid) ->
+    case occi_store:find(Cid) of
+	{ok, [#occi_kind{id=C2}]} -> C2;
+	{ok, [#occi_mixin{id=C2}]} -> C2;
+	_ -> error
     end.

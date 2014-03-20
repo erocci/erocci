@@ -26,7 +26,7 @@
 
 -export([new/2,
 	 get_parent/1,
-	 set_parent/3,
+	 set_parent/2,
 	 get_actions/1,
 	 add_action/2,
 	 get_id/1,
@@ -85,8 +85,8 @@ add_action(#occi_kind{actions=Actions}=Kind, Action) ->
 get_parent(#occi_kind{parent=Parent}) ->
     Parent.
 
-set_parent(#occi_kind{}=Kind, Scheme, Term) ->
-    Kind#occi_kind{parent=#occi_cid{scheme=Scheme, term=Term}}.
+set_parent(#occi_kind{}=Kind, #occi_cid{}=Cid) ->
+    Kind#occi_kind{parent=Cid}.
 
 get_location(#occi_kind{location=Uri}) ->
     Uri.

@@ -462,20 +462,15 @@ get_mixin_t(#occi_cid{class=usermixin}=Cid) ->
 	[#occi_mixin{}=M] ->
 	    M;
 	[] ->
-	    try occi_category_mgr:get(Cid) of
-		#occi_mixin{}=Mixin ->
-		    Mixin
-	    catch
-		_:Err ->
-		    mnesia:abort({error, Err})
+	    case occi_store:find(Cid) of
+		{ok, [#occi_mixin{}=Mixin]} -> Mixin;
+		_ -> mnesia:abort({error, {invalid_cid, Cid}})
 	    end
     end;
 get_mixin_t(#occi_cid{}=Cid) ->
-    try occi_category_mgr:get(Cid) of
-	#occi_mixin{}=Mixin -> Mixin
-    catch
-	_:Err ->
-	    mnesia:abort({error, Err})
+    case occi_store:find(Cid) of
+	#occi_mixin{}=Mixin -> Mixin;
+	_ -> mnesia:abort({error, {invalid_cid, Cid}})
     end.
 
 check_entity_t(#uri{}=Id) ->
