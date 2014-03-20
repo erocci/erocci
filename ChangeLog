@@ -3,6 +3,7 @@
 	* New protocol: HTTPS (example with start.sh -s)
 	* New rendering: text/plain, text/occi
 	* Handle inline links
+	* Improved tests and bugfixes
 
 0.2 Jean Parpaillon <jean.parpaillon@free.fr>
 
