@@ -19,19 +19,26 @@ trap _exit EXIT
 
 debug=info
 listener="{http, occi_http, [{port, 8080}]}"
-while getopts ":ds" opt; do
+while getopts ":dsx:" opt; do
     case $opt in
 	d)
 	    debug=debug
 	    ;;
 	s)
-	    listener="{https, occi_https, [{port, 8443}, {cacertfile, \"$cacertfile\"}, {certfile, \"$certfile\"}, {keyfile, \"$keyfile\"}
-       ]}"
+	    listener="{https, occi_https, [{port, 8443}, {cacertfile, \"$cacertfile\"}, {certfile, \"$certfile\"}, {keyfile, \"$keyfile\"}]}"
+	    ;;
+	x)
+	    jid=$OPTARG
 	    ;;
 	*)
 	    ;;
     esac
 done
+
+if [ -n "$jid" ]; then
+    read -s -p "Password:" passwd
+    listener="{xmppc, occi_xmpp_client, [{jid, \"$jid\"}, {passwd, \"$passwd\"}]}"
+fi
 
 cat <<EOF > $config
 [

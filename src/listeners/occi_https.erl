@@ -28,14 +28,14 @@
 
 %% occi_listener callbacks
 -export([start_link/2,
-	 terminate/1]).
+	 terminate/2]).
 
 start_link(Ref, Opts) ->
     lager:info("Starting HTTPS listener ~p~n", [Opts]),
     occi_http_common:start(),
     cowboy:start_https(Ref, 100, validate_cfg(Opts), [{env, [{dispatch, occi_http_common:get_dispatch()}]}]).
 
-terminate(Ref) ->
+terminate(Ref, _Reason) ->
     occi_http_common:stop(),
     cowboy:stop_listener(Ref).
 
