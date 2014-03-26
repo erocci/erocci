@@ -49,11 +49,11 @@
 	  </xs:attribute>
 	</xs:complexType>
 
-	<xs:complexType name="componentType">
+	<xs:complexType name="capabilitiesType">
 	  <xs:sequence>
 	    <xs:element name="kind" type="occi:kindType" maxOccurs="unbounded" minOccurs="0" />
 	    <xs:element name="mixin" type="occi:mixinType" maxOccurs="unbounded" minOccurs="0" />
-	    <xs:element name="action" type="occi:actionSpecType" maxOccurs="unbounded" minOccurs="0"></xs:element>
+	    <xs:element name="action" type="occi:actionSpecType" maxOccurs="unbounded" minOccurs="0" />
 	  </xs:sequence>
 	</xs:complexType>
 

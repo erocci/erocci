@@ -78,7 +78,7 @@ render(#occi_node{type=occi_query, data={Kinds, Mixins, Actions}}, Env) ->
 	++ lists:map(fun render_action/1, Actions),
     Data = render_xml(
 	     make_ns([?declared_occi_ns],
-		     exmpp_xml:element(?occi_ns, component, [], Children))),
+		     exmpp_xml:element(?occi_ns, capabilities, [], Children))),
     {[Data, "\n"], Env};
 
 render(#occi_node{type=occi_user_mixin, data=Mixin}, Env) ->
