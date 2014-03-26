@@ -26,6 +26,8 @@
 
 -behaviour(gen_server).
 
+-include("occi.hrl").
+-include("occi_xml.hrl").
 -include_lib("exmpp/include/exmpp.hrl").
 -include_lib("exmpp/include/exmpp_client.hrl").
 
@@ -36,9 +38,13 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
 	 terminate/2, code_change/3]).
 
+-define(ns_roster, 'jabber:iq:roster').
+-define(ns_disco_info, 'http://jabber.org/protocol/disco#info').
+-define(ns_disco_items, 'http://jabber.org/protocol/disco#items').
+
 -define(TIMEOUT, 5000).
 
--record(state, {session}).
+-record(state, {session, jid}).
 
 %%%===================================================================
 %%% API
@@ -65,17 +71,7 @@ start_link(Ref, Props) ->
 %% @end
 %%--------------------------------------------------------------------
 init(Props) ->
-    case session(Props) of
-	{ok, Session} ->
-	    case auth(Session) of
-		{ok, Session} ->
-		    {ok, #state{session=Session}};
-		{error, Err} ->
-		    {stop, Err}
-	    end;
-	{error, Err} ->
-	    {stop, Err}
-    end.
+    session(Props).
 
 %%--------------------------------------------------------------------
 %% @private
@@ -120,6 +116,46 @@ handle_cast(Msg, State) ->
 %%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
+handle_info(#received_packet{packet_type=presence, from=From, type_attr=Type}, 
+	    #state{session=Session, jid=MyJID}=State) ->
+    JID = exmpp_jid:make(From),
+    case Type of
+	"subscribe" ->
+	    % TODO: do not always accept subscription
+	    presence_subscribed(Session, JID),
+	    presence_subscribe(Session, JID),
+	    {noreply, State};
+	"subscribed" ->
+	    % TODO: do not always accept subscription
+	    presence_subscribed(Session, JID),
+	    presence_subscribe(Session, JID),
+	    {noreply, State};
+	"available" ->
+	    lager:debug("Received presence available from ~p~n", [JID]),
+	    Iq = exmpp_client_disco:info(JID),
+	    exmpp_session:send_packet(Session, exmpp_stanza:set_sender(Iq, MyJID)),
+	    {noreply, State};
+	Other ->
+	    lager:debug("Received presence stanza from ~p: ~p~n", [JID, Other]),
+	    {noreply, State}
+    end;
+handle_info(#received_packet{packet_type=iq, from=From, raw_packet=Raw}, State) ->
+    try exmpp_iq:get_payload_ns_as_atom(Raw) of
+	?occi_ns ->
+	    handle_occi(From, Raw, State);
+	?ns_roster ->
+	    handle_roster(From, Raw, State);
+	?ns_disco_info ->
+	    handle_disco(From, Raw, State);
+	'jabber:client' ->
+	    {noreply, State};
+	_Other ->
+	    lager:debug("Unmanaged IQ from ~p: ~p~n", [From, Raw]),
+	    {noreply, State}
+    catch throw:_ ->
+	    lager:debug("Invalid IQ from: ~s~n", [exmpp_jid:to_binary(From)]),
+	    {noreply, State}
+    end;
 handle_info(Info, State) ->
     lager:debug("### <xmpp> receive: ~p~n", [Info]),
     {noreply, State}.
@@ -135,7 +171,8 @@ handle_info(Info, State) ->
 %% @spec terminate(Reason, State) -> void()
 %% @end
 %%--------------------------------------------------------------------
-terminate(_Reason, _State) ->
+terminate(_Reason, #state{session=Session}) ->
+    exmpp_session:stop(Session),
     ok.
 
 %%--------------------------------------------------------------------
@@ -161,7 +198,7 @@ validate_cfg(Props) ->
 			 [U, D] -> {U, D};
 			 _ -> throw({error, {invalid_jid, Str}})
 		     end,
-    P2 = [{jid, exmpp_jid:make(User, Domain, random)} | Props],
+    P2 = [{jid, exmpp_jid:make(User, Domain, <<"erocci">>)} | Props],
     P3 = case proplists:is_defined(server, Props) of
 	     false -> [{server, Domain} | P2];
 	     true -> P2
@@ -173,22 +210,71 @@ validate_cfg(Props) ->
 
 session(Props) ->
     Session = exmpp_session:start(),
-    exmpp_session:auth_basic_digest(Session,
-				    proplists:get_value(jid, Props),
-				    proplists:get_value(passwd, Props)),
+    Jid = proplists:get_value(jid, Props),
+    Passwd = proplists:get_value(passwd, Props),
+    exmpp_session:auth_basic_digest(Session, Jid, Passwd),
+    S = #state{jid=Jid},
     case exmpp_session:connect_TCP(Session, proplists:get_value(server, Props)) of
 	{ok, _SId} -> 
-	    {ok, Session};
+	    auth(S#state{session=Session});
 	{ok, _SId, _F} ->
-	    {ok, Session};
-	Other -> {error, Other}
+	    auth(S#state{session=Session});
+	Other -> {stop, {session_error, Other}}
     end.
 
-auth(Session) ->
+auth(#state{session=Session}=S) ->
     try exmpp_session:login(Session)
-    catch throw:Err -> {error, Err}
+    catch throw:Err -> {stop, Err}
     end,
     Status = exmpp_presence:set_status(
 	       exmpp_presence:available(), "erocci ready"),
     exmpp_session:send_packet(Session, Status),
-    {ok, Session}.
+    {ok, S}.
+
+presence_subscribed(Session, Recipient) ->
+    Presence_Subscribed = exmpp_presence:subscribed(),
+    Presence = exmpp_stanza:set_recipient(Presence_Subscribed, Recipient),
+    exmpp_session:send_packet(Session, Presence).
+
+presence_subscribe(Session, Recipient) ->
+    Presence_Subscribe = exmpp_presence:subscribe(),
+    Presence = exmpp_stanza:set_recipient(Presence_Subscribe, Recipient),
+    exmpp_session:send_packet(Session, Presence).
+
+handle_roster(From, Raw, State) ->
+    lager:debug("### ROSTER IQ from ~p: ~p~n", [From, Raw]),
+    {noreply, State}.
+
+handle_disco(From, Raw, #state{session=Session}=State) ->
+    case exmpp_iq:get_type(Raw) of
+	'get' ->
+	    lager:debug("Sending disco#info result to ~p~n", [From]),
+	    Res = exmpp_xml:append_children(
+	    	    exmpp_iq:result(Raw), get_disco_info()),
+	    exmpp_session:send_packet(Session, Res),
+	    {noreply, State};
+	'set' ->
+	    lager:debug("Unexpected set IQ: ~p~n", [?ns_disco_info]),
+	    {noreply, State};
+	'result' ->
+	    lager:debug("Unexpected set IQ: ~p~n", [?ns_disco_info]),
+	    {noreply, State};
+	'error' ->
+	    lager:debug("Unexpected set IQ: ~p~n", [?ns_disco_info]),
+	    {noreply, State}
+    end.
+
+handle_occi(From, Raw, State) ->
+    lager:debug("### OCCI IQ from ~p: ~p~n", [From, Raw]),
+    {noreply, State}.
+
+get_disco_info() ->
+    Id = exmpp_xml:element(?ns_disco_info, identity,
+			   [exmpp_xml:attribute(<<"category">>, <<"client">>),
+			    exmpp_xml:attribute(<<"type">>, <<"occi">>),
+			    exmpp_xml:attribute(<<"name">>, ?XMPP_CLIENT_ID)], 
+			   []),
+    Features = [exmpp_xml:element(?ns_disco_info, feature, 
+				  [exmpp_xml:attribute(<<"var">>, ?occi_ns)],
+				  [])],
+    [Id | Features].

@@ -7,6 +7,7 @@
 -type(occi_class() :: kind | mixin | action).
 
 -define(HTTP_SERVER_ID, "erocci OCCI/1.1").
+-define(XMPP_CLIENT_ID, "erocci client").
 
 %%%% URI and al.
 -record(uri, {scheme   = undefined    :: atom(),
