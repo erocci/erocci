@@ -8,6 +8,7 @@
 
 -define(HTTP_SERVER_ID, "erocci OCCI/1.1").
 -define(XMPP_CLIENT_ID, "erocci client").
+-define(XMPP_NODE_ID, "http://github.com/jeanparpaillon/erocci").
 
 %%%% URI and al.
 -record(uri, {scheme   = undefined    :: atom(),

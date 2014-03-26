@@ -39,6 +39,7 @@
 	 terminate/2, code_change/3]).
 
 -define(ns_roster, 'jabber:iq:roster').
+-define(ns_caps, 'http://jabber.org/protocol/caps').
 -define(ns_disco_info, 'http://jabber.org/protocol/disco#info').
 -define(ns_disco_items, 'http://jabber.org/protocol/disco#items').
 
@@ -226,8 +227,7 @@ auth(#state{session=Session}=S) ->
     try exmpp_session:login(Session)
     catch throw:Err -> {stop, Err}
     end,
-    Status = exmpp_presence:set_status(
-	       exmpp_presence:available(), "erocci ready"),
+    Status = get_initial_presence("erocci ready"),
     exmpp_session:send_packet(Session, Status),
     {ok, S}.
 
@@ -278,3 +278,13 @@ get_disco_info() ->
 				  [exmpp_xml:attribute(<<"var">>, ?occi_ns)],
 				  [])],
     [Id | Features].
+
+get_initial_presence(Str) ->
+    Pkt = exmpp_presence:set_status(exmpp_presence:available(), Str),
+    exmpp_xml:append_child(Pkt, exmpp_xml:element(?ns_caps, c,
+						  [exmpp_xml:attribute(<<"hash">>, <<"sha-1">>),
+						   exmpp_xml:attribute(<<"node">>, ?XMPP_NODE_ID),
+						   exmpp_xml:attribute(<<"ver">>, get_caps_version())],
+						  [])).
+get_caps_version() ->
+    crypto:hash(sha, list_to_binary(atom_to_list(?occi_ns))).
