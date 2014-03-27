@@ -1,9 +1,17 @@
+0.4 Jean Parpaillon <jean.parpaillon@free.fr>
+	* New protocol (beta): XMPP. Example with start.sh -x <jid>
+	* Update to new xmpp lib, erim
+
+	-- 2014-03-27 16:12:00 +0100
+
 0.3 Jean Parpaillon <jean.parpaillon@free.fr>
 
 	* New protocol: HTTPS (example with start.sh -s)
 	* New rendering: text/plain, text/occi
 	* Handle inline links
 	* Improved tests and bugfixes
+
+	-- 2014-03-20 15:47:12 +0100
 
 0.2 Jean Parpaillon <jean.parpaillon@free.fr>
 
@@ -12,6 +20,8 @@
 	* Multi-backends request are parallel
 	* Introduce test suite (bash)
 
+	-- 2014-02-15 12:05:56 +0100
+
 0.1.1  Jean Parpaillon  <jean.parpaillon@free.fr>
 
 	* Bug fixes:
@@ -19,7 +29,12 @@
 	  * commit occi_parser.erl file
 	* Add testsuite.sh for creating sample data
 
+	-- 2014-02-07 20:24:36 +0100
+
 0.1  Jean Parpaillon  <jean.parpaillon@free.fr>
 
 	* Initial release: implements full OCCI types on HTTP/JSON rendering
 	* Backend: mnesia
+
+	-- 2014-02-05 16:17:28 +0100
+
