@@ -57,7 +57,7 @@ start(normal, _Args) ->
     ensure_started(goldrush),
     ensure_started(lager),
     ensure_started(inets),
-    ensure_started(exmpp),
+    ensure_started(erim),
     Ret = occi_sup:start_link(),
     occi_config:start(),
     start(),
