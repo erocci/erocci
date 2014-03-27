@@ -4,10 +4,10 @@ erocci is a framework for building OCCI like API, with the following objectives:
 * 100% compliance with OCCI specifications (core and rendering)
 * scalability
 * clear separation between 
-  * rendering: text/occi, text/plain, application/occi+json, etc.
+  * rendering: text/occi, text/plain, application/occi+json, application/occi+xml, etc.
   * transport: HTTP, XMPP
   * backends: storage (Mnesia, etc.), "procci" to other APIs
-* small and heavily tested (planned.. but some unit tests already there)
+* small and heavily tested
 
 ## Architecture
 
@@ -52,3 +52,8 @@ This application will run the hello_occi application, which:
 ## Testing
 
 Run scripts/testsuite.sh to create sample resources and links.
+
+## Mailing lists
+
+* [erocci-info@ow2.org](mailto:erocci-info@ow2.org) - Subscribe [here](http://forge.ow2.org/mail/?group_id=429)
+* [erocci-dev@ow2.org](mailto:erocci-dev@ow2.org) - Subscribe [here](http://forge.ow2.org/mail/?group_id=429)
