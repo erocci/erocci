@@ -28,8 +28,8 @@
 
 -include("occi.hrl").
 -include("occi_xml.hrl").
--include_lib("exmpp/include/exmpp.hrl").
--include_lib("exmpp/include/exmpp_client.hrl").
+-include_lib("erim/include/exmpp.hrl").
+-include_lib("erim/include/exmpp_client.hrl").
 
 %% occi_listener callbacks
 -export([start_link/2]).

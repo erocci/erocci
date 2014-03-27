@@ -1,13 +1,12 @@
-# erOCCI
+# erocci
 
-erOCCI is a framework for building OCCI like API (similar to rOCCI or
-pyOCNI), with the following objectives:
+erocci is a framework for building OCCI like API, with the following objectives:
 * 100% compliance with OCCI specifications (core and rendering)
 * scalability
 * clear separation between 
   * rendering: text/occi, text/plain, application/occi+json, etc.
-  * transport: HTTP, etc (XMPP planned)
-  * backends: storage (Riak, etc.), "procci" to other APIs
+  * transport: HTTP, XMPP
+  * backends: storage (Mnesia, etc.), "procci" to other APIs
 * small and heavily tested (planned.. but some unit tests already there)
 
 ## Architecture
@@ -17,7 +16,7 @@ pyOCNI), with the following objectives:
 ## Dependancies
 
 erocci is written in erlang. It uses the very good rebar tool for
-compiling, getting dependancies, etc.  It uses the exmpp application
+compiling, getting dependancies, etc.  It uses the erim application
 for XML parsing and generation.  So, before running typing 'make',
 install the following dependancies (thanks Augusto Ciuffoletti for the
 notice):

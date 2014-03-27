@@ -26,8 +26,8 @@
 
 -include("occi.hrl").
 -include("occi_xml.hrl").
--include_lib("exmpp/include/exmpp.hrl").
--include_lib("exmpp/include/exmpp_jid.hrl").
+-include_lib("erim/include/exmpp.hrl").
+-include_lib("erim/include/exmpp_jid.hrl").
 
 -export([q/2,
 	 result/2]).

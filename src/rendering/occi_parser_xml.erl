@@ -28,7 +28,7 @@
 -include("occi.hrl").
 -include("occi_xml.hrl").
 -include("occi_parser.hrl").
--include_lib("exmpp/include/exmpp_xml.hrl").
+-include_lib("erim/include/exmpp_xml.hrl").
 
 %% API
 -export([load_extension/1,
