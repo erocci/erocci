@@ -140,10 +140,10 @@ handle_info(#received_packet{packet_type=presence, from=From, type_attr=Type},
 	    lager:debug("Received presence stanza from ~p: ~p~n", [JID, Other]),
 	    {noreply, State}
     end;
-handle_info(#received_packet{packet_type=iq, from=From, raw_packet=Raw}, State) ->
+handle_info(#received_packet{packet_type=iq, from=From, raw_packet=Raw}, #state{session=Session}=State) ->
     try exmpp_iq:get_payload_ns_as_atom(Raw) of
 	?occi_ns ->
-	    handle_occi(From, Raw, State);
+	    handle_occi(Raw, State);
 	?ns_roster ->
 	    handle_roster(From, Raw, State);
 	?ns_disco_info ->
@@ -152,9 +152,13 @@ handle_info(#received_packet{packet_type=iq, from=From, raw_packet=Raw}, State) 
 	    {noreply, State};
 	_Other ->
 	    lager:debug("Unmanaged IQ from ~p: ~p~n", [From, Raw]),
+	    Iq = exmpp_iq:error(Raw, 'feature-not-implemented'),
+	    exmpp_session:send_packet(Session, Iq),
 	    {noreply, State}
-    catch throw:_ ->
-	    lager:debug("Invalid IQ from: ~s~n", [exmpp_jid:to_binary(From)]),
+    catch throw:_Err ->
+	    lager:debug("Malformed IQ from ~s~n", [exmpp_jid:to_binary(From)]),
+	    Iq = exmpp_iq:error(Raw, 'bad-request'),
+	    exmpp_session:send_packet(Session, Iq),
 	    {noreply, State}
     end;
 handle_info(Info, State) ->
@@ -264,8 +268,40 @@ handle_disco(From, Raw, #state{session=Session}=State) ->
 	    {noreply, State}
     end.
 
-handle_occi(From, Raw, State) ->
-    lager:debug("### OCCI IQ from ~p: ~p~n", [From, Raw]),
+handle_occi(Raw, #state{session=Session}=State) ->
+    case exmpp_iq:get_type(Raw) of
+	'get' ->
+	    case occi_iq:get_node(Raw) of
+		{error, _Err} ->
+		    lager:error("Invalid OCCI IQ node: ~p~n", [_Err]),
+		    Iq = exmpp_iq:error(Raw, 'bad-request'),
+		    exmpp_session:send_packet(Session, Iq);
+		#occi_node{}=Node ->
+		    case occi_store:find(Node) of
+			{ok, [Res]} ->
+			    case occi_store:load(Res) of
+				{ok, Res2} ->
+				    Iq = occi_iq:result(Raw, Res2),
+				    exmpp_session:send_packet(Session, Iq);
+				{error, Err} ->
+				    lager:error("Internal error: ~p~n", [Err]),
+				    Iq = exmpp_iq:error(Raw, 'service-unavailable'),
+				    exmpp_session:send_packet(Session, Iq)
+			    end;
+			{ok, _Res} ->
+			    lager:error("OCCI IQ node: multiple answer: ~p~n", [_Res]),
+			    Iq = exmpp_iq:error(Raw, 'bad-request'),
+			    exmpp_session:send_packet(Session, Iq);
+			{error, _Err} ->
+			    lager:error("Internal error: ~p~n", [_Err]),
+			    Iq = exmpp_iq:error(Raw, 'service-unavailable'),
+			    exmpp_session:send_packet(Session, Iq)
+		    end
+	    end;
+	_ ->
+	    % TODO
+	    ok
+    end,
     {noreply, State}.
 
 get_disco_info() ->
@@ -287,4 +323,4 @@ get_initial_presence(Str) ->
 						   exmpp_xml:attribute(<<"ver">>, get_caps_version())],
 						  [])).
 get_caps_version() ->
-    crypto:hash(sha, list_to_binary(atom_to_list(?occi_ns))).
+    base64:encode(crypto:hash(sha, atom_to_list(?occi_ns))).
