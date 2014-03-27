@@ -469,7 +469,7 @@ get_mixin_t(#occi_cid{class=usermixin}=Cid) ->
     end;
 get_mixin_t(#occi_cid{}=Cid) ->
     case occi_store:find(Cid) of
-	#occi_mixin{}=Mixin -> Mixin;
+	{ok, [#occi_mixin{}=Mixin]} -> Mixin;
 	_ -> mnesia:abort({error, {invalid_cid, Cid}})
     end.
 
