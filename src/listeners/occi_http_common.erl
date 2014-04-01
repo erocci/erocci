@@ -24,10 +24,13 @@
 -module(occi_http_common).
 -compile({parse_transform, lager_transform}).
 
+-include("occi.hrl").
+-include_lib("kernel/include/inet.hrl").
+
 -define(TBL, ?MODULE).
 
 % API
--export([start/0,
+-export([start/1,
 	 stop/0,
 	 set_cors/2,
 	 add_route/2,
@@ -37,11 +40,12 @@
 -define(ROUTE_QUERY2,  {<<"/.well-known/org/ogf/occi/-/">>, occi_http_query,    []}).
 -define(ROUTE_OCCI,    {<<"/[...]">>,                       occi_http_handler,  []}).
 
-start() ->
+start(Props) ->
     occi:ensure_started(cowlib),
     occi:ensure_started(crypto),
     occi:ensure_started(ranch),
     occi:ensure_started(cowboy),
+    set_name(Props),
     case ets:info(?TBL) of
 	undefined ->
 	    ?TBL = ets:new(?TBL, [set, public, {keypos, 1}, named_table]),
@@ -78,3 +82,20 @@ get_dispatch() ->
 %%%
 %%% Private
 %%%
+set_name(Props) ->
+    Scheme = proplists:get_value(scheme, Props),
+    Port = proplists:get_value(port, Props),
+    Host = case proplists:get_value(ip, Props) of
+	       {0,0,0,0} ->
+		   case inet_res:gethostbyaddr({127,0,0,1}) of
+		       {ok, #hostent{h_name=S}} -> S;
+		       {error, Err} -> throw({error, Err})
+		   end;
+	       Ip ->
+		   case inet_res:gethostbyaddr(Ip) of
+		       {ok, #hostent{h_name=S}} -> S;
+		       {error, Err} -> throw({error, Err})
+		   end
+	   end,
+    Name = atom_to_list(Scheme)++"://"++Host++":"++integer_to_list(Port),
+    occi_config:set(name, occi_uri:parse(Name)).

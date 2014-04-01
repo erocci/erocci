@@ -98,6 +98,11 @@ start_link(Ref, Props) ->
 %% @end
 %%--------------------------------------------------------------------
 init(Props) ->
+    Jid = proplists:get_value(jid, Props),
+    Name = #uri{scheme='xmpp+occi', 
+		host=exmpp_jid:domain(Jid), 
+		userinfo=exmpp_jid:node(Jid)},
+    occi_config:set(name, Name),
     session(Props).
 
 %%--------------------------------------------------------------------

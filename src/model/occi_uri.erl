@@ -128,29 +128,18 @@ to_iolist(undefined) ->
     [];
 to_iolist(#uri{scheme=undefined}=Uri) ->
     to_iolist(occi_config:to_url(Uri));
+to_iolist(#uri{scheme='xmpp+occi', userinfo=U, host=H, path=P, 'query'=Q}) ->
+    ["xmpp+occi:", U, "@", H, P, Q];
 to_iolist(#uri{scheme=urn, path=Path}) ->
     ["urn:", Path];
 to_iolist(#uri{scheme=Scheme, userinfo=Auth, host=Host, port=Port, path=Path, query=Query}) ->
     uri:to_iolist({Scheme, Auth, Host, Port, Path, Query}).
 
-to_binary(undefined) ->
-    <<"">>;
-to_binary(#uri{scheme=undefined}=Uri) ->
-    to_binary(occi_config:to_url(Uri));
-to_binary(#uri{scheme=urn, path=Path}) ->
-    Bpath = list_to_binary(Path),
-    << "urn:", Bpath/binary>>;
-to_binary(#uri{scheme=Scheme, userinfo=Auth, host=Host, port=Port, path=Path, query=Query}) ->
-    uri:to_binary({Scheme, Auth, Host, Port, Path, Query}).
+to_binary(Uri) ->
+    iolist_to_binary(to_iolist(Uri)).
 
-to_string(undefined) ->
-    [];
-to_string(#uri{scheme=undefined}=Uri) ->
-    to_string(occi_config:to_url(Uri));
-to_string(#uri{scheme=urn, path=Path}) ->
-    "urn:"++Path;
-to_string(#uri{scheme=Scheme, userinfo=Auth, host=Host, port=Port, path=Path, query=Query}) ->
-    uri:to_string({Scheme, Auth, Host, Port, Path, Query}).
+to_string(Uri) ->
+    binary_to_list(to_binary(Uri)).
 
 %%%
 %%% Private
