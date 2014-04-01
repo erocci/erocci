@@ -49,7 +49,6 @@ cat <<EOF > $config
     ]}
   ]},
  {occi, [
-    {name, "http://localhost:8080"},
     {listeners, [$listener]}
   ]}
 ].

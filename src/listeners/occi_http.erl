@@ -32,8 +32,9 @@
 
 start_link(Ref, Opts) ->
     lager:info("Starting HTTP listener ~p~n", [Opts]),
-    occi_http_common:start(),
-    cowboy:start_http(Ref, 100, validate_cfg(Opts), [{env, [{dispatch, occi_http_common:get_dispatch()}]}]).
+    O2 = validate_cfg(Opts),
+    occi_http_common:start(O2),
+    cowboy:start_http(Ref, 100, O2, [{env, [{dispatch, occi_http_common:get_dispatch()}]}]).
 
 terminate(Ref, _Reason) ->
     occi_http_common:stop(),
@@ -45,4 +46,4 @@ terminate(Ref, _Reason) ->
 validate_cfg(Opts) ->
     Address = proplists:get_value(ip, Opts, {0,0,0,0}),
     Port = proplists:get_value(port, Opts, 8080),
-    [{ip, Address}, {port, Port}].
+    [{ip, Address}, {port, Port}, {scheme, http}].

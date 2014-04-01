@@ -10,7 +10,6 @@
 
 -include_lib("occi.hrl").
 
--define(BASE, <<"http://localhost:8080">>).
 -define(SCHEME_INFRA, 'http://schemas.ogf.org/occi/infrastructure#').
 -define(SCHEME_NET, 'http://schemas.ogf.org/occi/infrastructure/network#').
 -define(SCHEME_NET_IF, 'http://schemas.ogf.org/occi/infrastructure/networkinterface#').

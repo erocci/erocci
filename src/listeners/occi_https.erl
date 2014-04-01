@@ -32,8 +32,9 @@
 
 start_link(Ref, Opts) ->
     lager:info("Starting HTTPS listener ~p~n", [Opts]),
-    occi_http_common:start(),
-    cowboy:start_https(Ref, 100, validate_cfg(Opts), [{env, [{dispatch, occi_http_common:get_dispatch()}]}]).
+    O2 = validate_cfg(Opts),
+    occi_http_common:start(O2),
+    cowboy:start_https(Ref, 100, validate_cfg(O2), [{env, [{dispatch, occi_http_common:get_dispatch()}]}]).
 
 terminate(Ref, _Reason) ->
     occi_http_common:stop(),
@@ -57,4 +58,4 @@ validate_cfg(Opts) ->
 	true -> ok;
 	false -> throw({missing_opt, keyfile}) 
     end,
-    [{ip, Address}, {port, Port}] ++ Opts.
+    [{ip, Address}, {port, Port}, {scheme, https}] ++ Opts.

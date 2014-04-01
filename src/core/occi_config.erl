@@ -13,6 +13,7 @@
 -export([start/0,
 	 load/1,
 	 get/2,
+	 set/2,
 	 to_url/1,
 	 gen_id/1]).
 
@@ -37,9 +38,16 @@ get(Name, Default) ->
 	    Value
     end.
 
+set(Name, Value) ->
+    ets:insert(?TABLE, {Name, Value}).
+
 to_url(#uri{}=Uri) ->
-    Name = get(name, undefined),
-    Uri#uri{scheme=Name#uri.scheme, host=Name#uri.host, port=Name#uri.port}.
+    case get(name, undefined) of
+	undefined ->
+	    throw({error, undefined_name});
+	#uri{scheme=Scheme, host=Host, port=Port, userinfo=UserInfo} ->
+	    Uri#uri{scheme=Scheme, host=Host, port=Port, userinfo=UserInfo}
+    end.
 
 -spec gen_id(string() | binary()) -> uri().
 gen_id(Prefix) when is_binary(Prefix) ->
@@ -54,12 +62,6 @@ gen_id(Prefix) when is_list(Prefix) ->
 %%%
 setup(Props) ->
     lager:debug("setup(~p)~n", [Props]),
-    case proplists:get_value(name, Props) of
-	undefined ->
-	    throw({missing_config, name});
-	Name ->
-	    ets:insert(?TABLE, {name, occi_uri:parse(Name)})
-    end,
     case proplists:get_value(extensions, Props) of
 	undefined -> ok;
 	{Ext, Map} -> load_extensions(Ext, Map)
@@ -71,6 +73,11 @@ setup(Props) ->
     case proplists:get_value(listeners, Props) of
 	undefined -> ok;
 	Listeners -> load_listeners(Listeners)
+    end,
+    case proplists:get_value(name, Props) of
+	undefined -> ok;
+	Name ->
+	    ets:insert(?TABLE, {name, occi_uri:parse(Name)})
     end,
     case proplists:get_value(handlers, Props) of
 	undefined -> ok;
