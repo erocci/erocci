@@ -2,7 +2,7 @@
 
 . $(dirname $0)/../testenv.sh
 
-id=/compute/
+id=/store/compute/
 ct=( 'text/plain' 'text/uri-list' 'text/occi' 'application/json' 'application/xml' )
 
 for ct in "${ct[@]}"; do

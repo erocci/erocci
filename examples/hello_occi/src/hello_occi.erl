@@ -21,15 +21,15 @@
 start() ->
     application:start(occi),
     Mapping = [
-	       {#occi_cid{scheme=?SCHEME_INFRA, term='compute', class=kind}, "/compute/"},
-	       {#occi_cid{scheme=?SCHEME_INFRA, term='storage', class=kind}, "/storage/"},
-	       {#occi_cid{scheme=?SCHEME_INFRA, term='storagelink', class=kind}, "/storagelink/"},
-	       {#occi_cid{scheme=?SCHEME_INFRA, term='network', class=kind}, "/network/"},
-	       {#occi_cid{scheme=?SCHEME_INFRA, term='networkinterface', class=kind}, "/networkinterface/"},
-	       {#occi_cid{scheme=?SCHEME_NET, term='ipnetwork', class=mixin}, "/ipnetwork/"},
-	       {#occi_cid{scheme=?SCHEME_NET_IF, term='ipnetworkinterface', class=mixin}, "/ipnetworkinterface/"},
-	       {#occi_cid{scheme=?SCHEME_INFRA, term='os_tpl', class=mixin}, "/os_tpl/"},
-	       {#occi_cid{scheme=?SCHEME_INFRA, term='resource_tpl', class=mixin}, "/resource_tpl/"}
+	       {#occi_cid{scheme=?SCHEME_INFRA, term='compute', class=kind}, "/store/compute/"},
+	       {#occi_cid{scheme=?SCHEME_INFRA, term='storage', class=kind}, "/store/storage/"},
+	       {#occi_cid{scheme=?SCHEME_INFRA, term='storagelink', class=kind}, "/store/storagelink/"},
+	       {#occi_cid{scheme=?SCHEME_INFRA, term='network', class=kind}, "/store/network/"},
+	       {#occi_cid{scheme=?SCHEME_INFRA, term='networkinterface', class=kind}, "/store/networkinterface/"},
+	       {#occi_cid{scheme=?SCHEME_NET, term='ipnetwork', class=mixin}, "/store/ipnetwork/"},
+	       {#occi_cid{scheme=?SCHEME_NET_IF, term='ipnetworkinterface', class=mixin}, "/store/ipnetworkinterface/"},
+	       {#occi_cid{scheme=?SCHEME_INFRA, term='os_tpl', class=mixin}, "/store/os_tpl/"},
+	       {#occi_cid{scheme=?SCHEME_INFRA, term='resource_tpl', class=mixin}, "/store/resource_tpl/"}
 	      ],
     Extensions = {extensions, {[{xml, "schemas/occi-infrastructure.xml"}], Mapping}},
     Backends = {backends, 

@@ -10,4 +10,4 @@ content=$(cat <<EOF
 EOF
        )
 
-post 422 /os_tpl/ "application/xml" "$content"
+post 422 /store//os_tpl/ "application/xml" "$content"

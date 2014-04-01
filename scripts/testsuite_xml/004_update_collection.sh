@@ -2,7 +2,7 @@
 
 . $(dirname $0)/../testenv.sh
 
-entity=$(curl -s -H "accept: text/uri-list" ${occi_srv}/compute/ | head -1)
+entity=$(curl -s -H "accept: text/uri-list" ${occi_srv}/store/compute/ | head -1)
 content=$(cat <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <collection xmlns="http://schemas.ogf.org/occi" xmlns:xl="http://www.w3.org/2008/06/xlink" >
@@ -11,4 +11,4 @@ content=$(cat <<EOF
 EOF
        )
 
-post 204 /os_tpl/ "application/xml" "$content"
+post 204 /store/os_tpl/ "application/xml" "$content"

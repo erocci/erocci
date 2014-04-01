@@ -11,8 +11,9 @@ content=$(cat <<EOF
       <occi:kind scheme="http://schemas.ogf.org/occi/infrastructure#" term="network" />
       <occi:attribute name="occi.network.vlan" value="1" />
       <occi:attribute name="occi.network.label" value="mylan" />
+    </occi:resource>
   </query>
-</occi:resource>
+</iq>
 EOF
 	   )
 iq_set result ${id} "$content"
