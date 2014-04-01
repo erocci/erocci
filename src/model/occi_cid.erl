@@ -27,6 +27,8 @@
 -export([parse/1]).
 
 -spec parse(binary() | string()) -> occi_cid().
+parse(undefined) ->
+    throw({error, invalid_cid});
 parse(Str) when is_list(Str) ->
     case string:tokens(Str, "#") of
 	[Scheme, Term] ->

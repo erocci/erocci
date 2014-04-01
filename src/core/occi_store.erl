@@ -217,6 +217,22 @@ find(#occi_node{type=occi_query}=Req) ->
 	    {error, Err}
     end;
 
+find(#occi_node{type=occi_collection, objid=#occi_cid{}=Cid}=Req) ->
+    lager:debug("occi_store:find(~p)~n", [lager:pr(Req, ?MODULE)]),
+    case find(Cid) of
+	{ok, [#occi_kind{id=Id}]} -> 
+	    {ok, [Req#occi_node{objid=Id}]};
+	{ok, [#occi_mixin{id=Id}]} ->
+	    {ok, [Req#occi_node{objid=Id}]};
+	{ok, _} ->
+	    {ok, []};
+	{error, Err} ->
+	    {error, Err}
+    end;
+
+find(#occi_node{id=undefined, type=undefined}) ->
+    {ok, []};
+
 find(#occi_node{id=#uri{path=Path}=Id}=Req) ->
     lager:debug("occi_store:find(~p)~n", [lager:pr(Req, ?MODULE)]),
     case occi_category_mgr:find(Id) of
@@ -239,6 +255,9 @@ find(#occi_node{id=#uri{path=Path}=Id}=Req) ->
     end.
 
 -spec load(occi_node()) -> {ok, occi_node()} | {error, term()}.
+load(#occi_node{type=occi_query, data=undefined}=Req) ->
+    {ok, [Res]} = find(Req),
+    {ok, Res};
 load(#occi_node{id=#uri{path=Path}, type=dir}=Node) ->
     lager:debug("occi_store:load(~p)~n", [lager:pr(Node, ?MODULE)]),
     case get_backend(Path) of

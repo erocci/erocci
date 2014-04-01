@@ -59,9 +59,9 @@
 
 	<xs:complexType name="collectionType" >
 	  <xs:sequence>
-	    <xs:element name="collection" type="collectionType" maxOccurs="unbounded" minOccurs="0" />
 	    <xs:element name="entity" type="occi:entityType" />
 	  </xs:sequence>
+	  <xs:attributeGroup ref="occi:categoryGroup"></xs:attributeGroup>
 	</xs:complexType>
 	
 	<!-- 

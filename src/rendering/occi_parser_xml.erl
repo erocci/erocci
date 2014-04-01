@@ -32,6 +32,7 @@
 
 %% API
 -export([load_extension/1,
+	 parse_full/1,
 	 parse_action/3,
 	 parse_entity/3,
 	 parse_user_mixin/2,
@@ -80,6 +81,9 @@
 %%%===================================================================
 %%% API
 %%%===================================================================
+parse_full(Data) ->
+    parse_full(Data, #state{request=#occi_request{}}).
+
 load_extension(Path) ->
     {ok, Data} = file:read_file(Path),
     parse_extension(Data, []).
@@ -670,9 +674,19 @@ code_change(_OldVsn, StateName, State, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
-parse_full(Data) ->
-    parse_full(Data, #state{request=#occi_request{}}).
 
+parse_full(#xmlel{}=El, Ctx) ->
+    P = #parser{state=Ctx},
+    case gen_fsm:start(?MODULE, P, []) of
+	{ok, Ref} ->
+	    P0 = P#parser{id=Ref},
+	    Res = parse(P0, El),
+	    stop(P0),
+	    Res;
+	Err ->
+	    lager:error("Error starting xml parser: ~p~n", [Err]),
+	    {error, parser_error}
+    end;
 parse_full(<<>>, _) ->
     {error, invalid_request};
 parse_full(Data, Ctx) ->
@@ -681,7 +695,10 @@ parse_full(Data, Ctx) ->
     stop(P),
     Res.
 
--spec parse(parser(), binary()) -> parser_result().
+-spec parse(parser(), xmlel() | binary()) -> parser_result().
+parse(#parser{}=P, #xmlel{}=El) ->
+    Evts = lists:flatten(to_events(El)),
+    send_events(#parser{sink=P}, Evts);
 parse(#parser{src=#parser{id=Src}}=P, Data) ->
     Parser0 = #parser{sink=P},
     try exmpp_xml:parse_final(Src, Data) of
@@ -690,9 +707,15 @@ parse(#parser{src=#parser{id=Src}}=P, Data) ->
 	Events ->
 	    send_events(Parser0, Events)
     catch
-	Err ->
-	    {error, Err}
+	Err -> {error, Err}
     end.
+
+to_events(#xmlel{ns=NS, name=Name, children=undefined}=El) ->
+    [El, #xmlendtag{ns=NS, name=Name}];
+to_events(#xmlel{ns=NS, name=Name, children=Children}=El) ->
+    [El#xmlel{children=undefined}, 
+     lists:map(fun (#xmlel{}=Child) -> to_events(Child) end, Children),
+     #xmlendtag{ns=NS, name=Name}].
 
 start(Ctx) ->
     Parser = #parser{state=Ctx},
@@ -701,9 +724,12 @@ start(Ctx) ->
 	    Src = #parser{id=exmpp_xml:start_parser(?PARSER_OPTIONS)},
 	    Parser#parser{id=Ref, src=Src};
 	Err -> 
-	    lager:error("Error starting xml parser: ~p~n", [Err])
+	    lager:error("Error starting xml parser: ~p~n", [Err]),
+	    throw({error, parser_error})
     end.
 
+stop(#parser{id=Ref, src=undefined}) ->
+    gen_fsm:send_all_state_event(Ref, stop);
 stop(#parser{id=Ref, src=#parser{id=Src}}) ->
     exmpp_xml:stop_parser(Src),
     gen_fsm:send_all_state_event(Ref, stop).
@@ -755,14 +781,27 @@ make_extension(E, _State) ->
     lager:info("Load extension: ~s v~s~n", [Name, Version]),
     occi_extension:new(Name, Version).
 
-make_resource(E, #state{entity_id=undefined, entity=#occi_resource{id=undefined}=Res}=State) ->
+make_resource(E, #state{entity=undefined}=State) ->
+    make_resource_title(E, State#state{entity=occi_resource:new()});
+make_resource(E, #state{entity=#occi_resource{}}=State) ->
+    make_resource_title(E, State).
+
+make_resource_title(E, #state{entity=Res}=State) ->
+    case exmpp_xml:get_attribute(E, <<"title">>, undefined) of
+	undefined ->
+	    make_resource_id(E, State);
+	Title ->
+	    make_resource_id(E, State#state{entity=occi_resource:set_title(Res, Title)})
+    end.
+
+make_resource_id(E, #state{entity_id=undefined, entity=#occi_resource{id=undefined}=Res}=State) ->
     case get_attr_value(E, <<"id">>, undefined) of
 	undefined ->
 	    State;
 	Id ->
 	    State#state{entity=occi_resource:set_id(Res, occi_uri:parse(Id))}
     end;
-make_resource(E, #state{entity_id=undefined, entity=#occi_resource{id=Uri}}=S) ->
+make_resource_id(E, #state{entity_id=undefined, entity=#occi_resource{id=Uri}}=S) ->
     case get_attr_value(E, <<"id">>, undefined) of
 	undefined -> S;
 	Id ->
@@ -772,30 +811,43 @@ make_resource(E, #state{entity_id=undefined, entity=#occi_resource{id=Uri}}=S) -
 	    catch throw:Err -> {error, Err}
 	    end
     end;
-make_resource(E, #state{entity_id=Uri}=S) ->
+make_resource_id(E, #state{entity_id=Uri, entity=Res}=S) ->
     case get_attr_value(E, <<"id">>, undefined) of
-	undefined -> S#state{entity_id=undefined, entity=occi_resource:new(Uri)};
+	undefined -> S#state{entity_id=undefined, entity=occi_resource:set_id(Res, Uri)};
 	Id ->
 	    try occi_uri:parse(Id) of
-		#uri{}=Uri -> S#state{entity_id=undefined, entity=occi_resource:new(Uri)};
+		#uri{}=Uri -> S#state{entity_id=undefined, entity=occi_resource:set_id(Res, Uri)};
 		O -> {error, {invalid_id, O}}
 	    catch throw:Err -> {error, Err}
 	    end
     end.
 
-make_link(E, #state{entity=#occi_resource{}, link=#occi_link{}=L}=S) ->
+make_link(E, #state{entity=undefined}=State) ->
+    make_link_title(E, State#state{entity=occi_link:new()});
+make_link(E, #state{entity=#occi_link{}}=State) ->
+    make_link_title(E, State).
+
+make_link_title(E, #state{entity=Link}=State) ->
+    case exmpp_xml:get_attribute(E, <<"title">>, undefined) of
+	undefined ->
+	    make_link_id(E, State);
+	Title ->
+	    make_link_id(E, State#state{entity=occi_link:set_title(Link, Title)})
+    end.
+
+make_link_id(E, #state{entity=#occi_resource{}, link=#occi_link{}=L}=S) ->
     case get_attr_value(E, <<"id">>, undefined) of
 	undefined -> S;
 	Id ->  S#state{link=occi_link:set_id(L, occi_uri:parse(Id))}
     end;
 
-make_link(E, #state{entity_id=undefined, entity=#occi_link{id=undefined}=L}=S) ->
+make_link_id(E, #state{entity_id=undefined, entity=#occi_link{id=undefined}=L}=S) ->
     case get_attr_value(E, <<"id">>, undefined) of
 	undefined -> S;
 	Id -> S#state{entity=occi_link:set_id(L, occi_uri:parse(Id))}
     end;
 
-make_link(E, #state{entity_id=undefined, entity=#occi_link{id=Uri}}=S) ->
+make_link_id(E, #state{entity_id=undefined, entity=#occi_link{id=Uri}}=S) ->
     case get_attr_value(E, <<"id">>, undefined) of
 	undefined -> S;
 	Id ->
@@ -806,13 +858,13 @@ make_link(E, #state{entity_id=undefined, entity=#occi_link{id=Uri}}=S) ->
 	    end
     end;
 
-make_link(E, #state{entity_id=Uri}=State) ->
+make_link_id(E, #state{entity_id=Uri, entity=Link}=State) ->
     case get_attr_value(E, <<"id">>, undefined) of
 	undefined ->
-	    State#state{entity_id=undefined, entity=occi_link:new(Uri)};
+	    State#state{entity_id=undefined, entity=occi_link:set_id(Link, Uri)};
 	Id ->
 	    try occi_uri:parse(Id) of
-		#uri{}=Uri -> State#state{entity_id=undefined, entity=occi_link:new(Uri)};
+		#uri{}=Uri -> State#state{entity_id=undefined, entity=occi_link:set_id(Link, Uri)};
 		O -> {error, {invalid_id, O}}
 	    catch throw:Err -> {error, Err}
 	    end

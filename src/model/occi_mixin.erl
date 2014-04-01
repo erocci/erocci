@@ -47,6 +47,7 @@
 	 add_applies/2,
 	 get_depends/1,
 	 add_depends/2,
+	 is_user/1,
 	 is_valid/1,
 	 add_prefix/2,
 	 rm_prefix/2]).
@@ -140,6 +141,9 @@ get_depends(#occi_mixin{depends=Depends}) ->
 
 add_depends(#occi_mixin{depends=Depends}=Mixin, #occi_cid{}=Cid) ->
     Mixin#occi_mixin{depends=[Cid|Depends]}.
+
+is_user(#occi_mixin{user=User}) ->
+    User.
 
 is_valid(#occi_mixin{id=#occi_cid{class=kind}}) ->
     {false, invalid_class};
