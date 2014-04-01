@@ -122,7 +122,7 @@ get_node(#xmlel{children=[El]}=Iq) ->
 		    #occi_node{id=undefined, type=undefined, objid=undefined};
 		S ->
 		    Id = occi_uri:parse(S),
-		    #occi_node{id=Id#uri.path, objid=Id, _='_'}
+		    #occi_node{id=#uri{path=Id#uri.path}, objid=Id, type=undefined, _='_'}
 	    end
     end;
 get_node(_El) ->
