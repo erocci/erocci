@@ -5,7 +5,9 @@ basedir=$(dirname $0)
 suites=( $(
 	       cd $basedir &&
 	       for dir in $(find -name 'testsuite_*' -type d); do
-		   echo ${dir:12}
+		   if [ ! -e $dir/disable ]; then
+		       echo ${dir:12}
+		   fi
 	       done)
        )
 suiteslist=$( IFS="|"; echo "{${suites[*]}}" )

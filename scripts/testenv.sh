@@ -1,4 +1,5 @@
 export occi_srv=http://localhost:8080
+export occi_jid="user-1@localhost"
 export curl_opts="-s -w %{http_code} -f -o /dev/null "
 
 export RED="\033[31;1m"
@@ -136,4 +137,18 @@ delete() {
     else
 	fail "${ret}"
     fi
+}
+
+iq_get() {
+    node=${1}
+
+    echo "IQ get: ${node}"
+}
+
+iq_set() {
+    expect=${1}
+    node=${2}
+    content=${3}
+    
+    echo "IQ set: ${node}"
 }

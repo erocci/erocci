@@ -53,7 +53,8 @@
 		     depends     = []        :: [#occi_cid{}],
 		     applies     = []        :: [#occi_cid{}],
 		     attributes              :: dict(),        % orddict
-		     actions                 :: dict()         % orddict    
+		     actions                 :: dict(),         % orddict    
+		     user        = false     :: boolean()
 		    }).
 -type(occi_mixin() :: #occi_mixin{}).
 

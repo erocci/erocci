@@ -80,14 +80,16 @@ to_xmlel(#occi_node{type=occi_query, data={Kinds, Mixins, Actions}}) ->
 
 to_xmlel(#occi_node{type=occi_user_mixin, data=Mixin}) ->
     render_mixin(Mixin);
-	  
-to_xmlel(#occi_node{type=occi_collection, data=Coll}) ->
+
+to_xmlel(#occi_node{type=occi_collection, data=#occi_collection{cid=Cid}=Coll}) ->
     make_ns([?declared_occi_ns, ?declared_xlink_ns],
 	    exmpp_xml:element(
-	      ?occi_ns, collection, [],
-	      [ exmpp_xml:element(
-		  ?occi_ns, entity,
-		  [exmpp_xml:attribute(?xlink_ns, <<"href">>, occi_uri:to_binary(Id))], []) || 
+	      ?occi_ns, collection, 
+	      [exmpp_xml:attribute(<<"scheme">>, Cid#occi_cid.scheme),
+	       exmpp_xml:attribute(<<"term">>, Cid#occi_cid.term)],
+	      [exmpp_xml:element(
+		 ?occi_ns, entity,
+		 [exmpp_xml:attribute(?xlink_ns, <<"href">>, occi_uri:to_binary(Id))], []) || 
 		  Id <- occi_collection:get_entities(Coll) ])).
 
 %%%
@@ -122,6 +124,7 @@ make_dir(#occi_node{id=Id, type=dir, data=Children}) ->
 		      gb_sets:fold(fun (Child, Acc) ->
 					   [ make_dir(Child) | Acc ]
 				   end, [], Children));
+
 make_dir(#uri{}=Id) ->
     exmpp_xml:element(?occi_ns, entity,
 		      [exmpp_xml:attribute(?xlink_ns, <<"href">>, occi_uri:to_binary(Id))], 
@@ -144,6 +147,7 @@ render_category(#xmlel{}=E, #occi_kind{location=#uri{}=Uri}=Kind) ->
 		    occi_kind:get_term(Kind),
 		    occi_kind:get_title(Kind),
 		    occi_uri:to_binary(Uri));
+
 render_category(#xmlel{}=E, #occi_mixin{location=#uri{}=Uri}=Mixin) ->
     render_category(E, 
 		    occi_mixin:get_scheme(Mixin),

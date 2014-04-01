@@ -16,7 +16,27 @@
 %%% specific language governing permissions and limitations
 %%% under the License.
 %%% 
-%%% @doc
+%%% @doc List of callbacks for OCCI REST handler:
+%%% Except specified, return {ok, xmlel(), any()} | 
+%%%                          {error, xmlel() | atom(), any()} |
+%%%                          {halt, xmlel(), any()}
+%%%
+%%% Mandatory:
+%%%   init/2 -> {ok, xmlel(), any()}.
+%%%
+%%% Optionals:
+%%%   service_available/2
+%%%   known_methods/2
+%%%   allowed_method/2
+%%%   is_authorized/2
+%%%   forbidden/2
+%%%   resource_exists/2
+%%%   delete_resource/2
+%%%   is_conflict/2
+%%%   accept_resource/2
+%%%   update_resource/2
+%%%   get_resource/2
+%%%   terminate/2
 %%%
 %%% @end
 %%% Created : 20 Mar 2014 by Jean Parpaillon <jean.parpaillon@free.fr>
@@ -28,6 +48,7 @@
 
 -include("occi.hrl").
 -include("occi_xml.hrl").
+-include("occi_xmpp.hrl").
 -include_lib("erim/include/exmpp.hrl").
 -include_lib("erim/include/exmpp_client.hrl").
 
@@ -44,8 +65,13 @@
 -define(ns_disco_items, 'http://jabber.org/protocol/disco#items').
 
 -define(TIMEOUT, 5000).
+-define(HANDLER, occi_xmpp_rest).
 
--record(state, {session, jid}).
+-record(state, {session, 
+		jid,
+		handler,
+		handler_state,
+		exists   = false}).
 
 %%%===================================================================
 %%% API
@@ -140,14 +166,17 @@ handle_info(#received_packet{packet_type=presence, from=From, type_attr=Type},
 	    lager:debug("Received presence stanza from ~p: ~p~n", [JID, Other]),
 	    {noreply, State}
     end;
+
 handle_info(#received_packet{packet_type=iq, from=From, raw_packet=Raw}, #state{session=Session}=State) ->
     try exmpp_iq:get_payload_ns_as_atom(Raw) of
-	?occi_ns ->
+	?ns_occi_xmpp ->
 	    handle_occi(Raw, State);
 	?ns_roster ->
-	    handle_roster(From, Raw, State);
+	    handle_roster(From, Raw, State),
+	    {noreply, State};
 	?ns_disco_info ->
-	    handle_disco(From, Raw, State);
+	    handle_disco(From, Raw, State),
+	    {noreply, State};
 	'jabber:client' ->
 	    {noreply, State};
 	_Other ->
@@ -161,6 +190,7 @@ handle_info(#received_packet{packet_type=iq, from=From, raw_packet=Raw}, #state{
 	    exmpp_session:send_packet(Session, Iq),
 	    {noreply, State}
     end;
+
 handle_info(Info, State) ->
     lager:debug("### <xmpp> receive: ~p~n", [Info]),
     {noreply, State}.
@@ -218,7 +248,7 @@ session(Props) ->
     Jid = proplists:get_value(jid, Props),
     Passwd = proplists:get_value(passwd, Props),
     exmpp_session:auth_basic_digest(Session, Jid, Passwd),
-    S = #state{jid=Jid},
+    S = #state{jid=Jid, handler=?HANDLER},
     case exmpp_session:connect_TCP(Session, proplists:get_value(server, Props)) of
 	{ok, _SId} -> 
 	    auth(S#state{session=Session});
@@ -245,64 +275,23 @@ presence_subscribe(Session, Recipient) ->
     Presence = exmpp_stanza:set_recipient(Presence_Subscribe, Recipient),
     exmpp_session:send_packet(Session, Presence).
 
-handle_roster(From, Raw, State) ->
-    lager:debug("### ROSTER IQ from ~p: ~p~n", [From, Raw]),
-    {noreply, State}.
+handle_roster(From, Raw, _State) ->
+    lager:debug("### ROSTER IQ from ~p: ~p~n", [From, Raw]).
 
-handle_disco(From, Raw, #state{session=Session}=State) ->
+handle_disco(From, Raw, #state{session=Session}) ->
     case exmpp_iq:get_type(Raw) of
 	'get' ->
 	    lager:debug("Sending disco#info result to ~p~n", [From]),
 	    Res = exmpp_xml:append_children(
 	    	    exmpp_iq:result(Raw), get_disco_info()),
-	    exmpp_session:send_packet(Session, Res),
-	    {noreply, State};
+	    exmpp_session:send_packet(Session, Res);
 	'set' ->
-	    lager:debug("Unexpected set IQ: ~p~n", [?ns_disco_info]),
-	    {noreply, State};
+	    lager:debug("Unexpected set IQ: ~p~n", [?ns_disco_info]);
 	'result' ->
-	    lager:debug("Unexpected set IQ: ~p~n", [?ns_disco_info]),
-	    {noreply, State};
+	    lager:debug("Unexpected set IQ: ~p~n", [?ns_disco_info]);
 	'error' ->
-	    lager:debug("Unexpected set IQ: ~p~n", [?ns_disco_info]),
-	    {noreply, State}
+	    lager:debug("Unexpected set IQ: ~p~n", [?ns_disco_info])
     end.
-
-handle_occi(Raw, #state{session=Session}=State) ->
-    case exmpp_iq:get_type(Raw) of
-	'get' ->
-	    case occi_iq:get_node(Raw) of
-		{error, _Err} ->
-		    lager:error("Invalid OCCI IQ node: ~p~n", [_Err]),
-		    Iq = exmpp_iq:error(Raw, 'bad-request'),
-		    exmpp_session:send_packet(Session, Iq);
-		#occi_node{}=Node ->
-		    case occi_store:find(Node) of
-			{ok, [Res]} ->
-			    case occi_store:load(Res) of
-				{ok, Res2} ->
-				    Iq = occi_iq:result(Raw, Res2),
-				    exmpp_session:send_packet(Session, Iq);
-				{error, Err} ->
-				    lager:error("Internal error: ~p~n", [Err]),
-				    Iq = exmpp_iq:error(Raw, 'service-unavailable'),
-				    exmpp_session:send_packet(Session, Iq)
-			    end;
-			{ok, _Res} ->
-			    lager:error("OCCI IQ node: multiple answer: ~p~n", [_Res]),
-			    Iq = exmpp_iq:error(Raw, 'bad-request'),
-			    exmpp_session:send_packet(Session, Iq);
-			{error, _Err} ->
-			    lager:error("Internal error: ~p~n", [_Err]),
-			    Iq = exmpp_iq:error(Raw, 'service-unavailable'),
-			    exmpp_session:send_packet(Session, Iq)
-		    end
-	    end;
-	_ ->
-	    % TODO
-	    ok
-    end,
-    {noreply, State}.
 
 get_disco_info() ->
     Id = exmpp_xml:element(?ns_disco_info, identity,
@@ -324,3 +313,230 @@ get_initial_presence(Str) ->
 						  [])).
 get_caps_version() ->
     base64:encode(crypto:hash(sha, atom_to_list(?occi_ns))).
+
+%%%
+%%% REST like state machine for OCCI IQ
+%%%
+handle_occi(Req, #state{handler=H}=S) ->
+    try occi_iq:to_record(Req) of
+	Req2 -> 
+	    try H:init(Req2, S) of
+		{ok, Req3, HandlerState} ->
+		    service_available(Req3, S#state{handler_state=HandlerState})
+	    catch Class:Reason ->
+		    erlang:Class([
+			  {reason, Reason},
+			  {mfa, {H, init, 2}},
+			  {stacktrace, erlang:get_stacktrace()},
+			  {req, exmpp_xml:document_to_list(Req#occi_iq.raw)}
+			 ])
+	    end
+    catch throw:_ -> respond(Req, S, 'bad-request')
+    end.
+
+service_available(Req, State) ->
+    expect(Req, State, service_available, true, fun known_methods/2, 'service-unavailable').
+
+known_methods(#occi_iq{op=Op}=Req, State) ->
+    case call(Req, State, known_methods) of
+	no_call when Op =:= 'get'; Op =:= save; Op =:= update; Op =:= delete ->
+	    next(Req, State, fun allowed_methods/2);
+	no_call ->
+	    next(Req, State, 'feature-not-implemented');
+	{halt, Req2, HandlerState} ->
+	    rest_terminate(Req2, State#state{handler_state=HandlerState});
+	{List, Req2, HandlerState} ->
+	    State2 = State#state{handler_state=HandlerState},
+	    case lists:member(Op, List) of
+		true -> next(Req2, State2, fun allowed_methods/2);
+		false -> next(Req, State2, 'feature-not-implemented')
+	    end
+    end.
+
+allowed_methods(#occi_iq{op=Op}=Req, State) ->
+    case call(Req, State, allowed_methods) of
+	no_call when Op =:= 'get'; Op =:= save; Op =:= update; Op =:= delete ->
+	    next(Req, State, fun is_authorized/2);
+	no_call ->
+	    next(Req, State, 'not-allowed');
+	{halt, Req2, HandlerState} ->
+	    rest_terminate(Req2, State#state{handler_state=HandlerState});
+	{List, Req2, HandlerState} ->
+	    State2 = State#state{handler_state=HandlerState},
+	    case lists:member(Op, List) of
+		true ->
+		    next(Req2, State2, fun is_authorized/2);
+		false ->
+		    next(Req, State, 'not-allowed')
+	    end
+    end.
+
+%% is_authorized/2 should return true or false.
+is_authorized(Req, State) ->
+    case call(Req, State, is_authorized) of
+	no_call ->
+	    forbidden(Req, State);
+	{halt, Req2, HandlerState} ->
+	    rest_terminate(Req2, State#state{handler_state=HandlerState});
+	{true, Req2, HandlerState} ->
+	    forbidden(Req2, State#state{handler_state=HandlerState});
+	{false, Req2, HandlerState} ->
+	    respond(Req2, State#state{handler_state=HandlerState}, 'not-authorized')
+    end.
+
+forbidden(Req, State) ->
+    expect(Req, State, forbidden, false, fun resource_exists/2, 'forbidden').
+
+resource_exists(#occi_iq{op=save}=Req, State) ->
+    case call(Req, State, resource_exists) of
+	no_call ->
+	    next(Req, State, fun method/2);
+	{halt, Req2, HandlerState} ->
+	    rest_terminate(Req2, State#state{handler_state=HandlerState});
+	{true, Req2, HandlerState} ->
+	    next(Req2, State#state{exists=true, handler_state=HandlerState}, fun method/2);
+	{false, Req2, HandlerState} ->
+	    next(Req2, State#state{handler_state=HandlerState}, fun method/2)
+    end;
+
+resource_exists(Req, State) ->
+    expect(Req, State, resource_exists, true, fun method/2, 'item-not-found').
+
+method(#occi_iq{op=delete}=Req, State) ->
+    delete_resource(Req, State);
+method(#occi_iq{op=save}=Req, State) ->
+    is_conflict(Req, State);
+method(#occi_iq{op=update}=Req, State) ->
+    update_resource(Req, State);
+method(#occi_iq{op='get'}=Req, State) ->
+    set_resp_body(Req, State).
+
+%% delete_resource/2 should start deleting the resource and return.
+delete_resource(Req, State) ->
+    expect(Req, State, delete_resource, false, 500, fun delete_completed/2).
+
+%% delete_completed/2 indicates whether the resource has been deleted yet.
+delete_completed(Req, State) ->
+    next(Req, State, fun respond/2).
+
+is_conflict(Req, State) ->
+    expect(Req, State, is_conflict, false, fun accept_resource/2, 'conflict').
+
+accept_resource(Req, State) ->
+    try 
+	case call(Req, State, accept_resource) of
+	    {halt, Req2, HandlerState2} ->
+		rest_terminate(Req2, State#state{handler_state=HandlerState2});
+	    {true, Req2, HandlerState2} ->
+		State2 = State#state{handler_state=HandlerState2},
+		next(Req2, State2, fun respond/2);
+	    {false, Req2, HandlerState2} ->
+		State2 = State#state{handler_state=HandlerState2},
+		respond(Req2, State2, 'not-acceptable')
+	end 
+    catch Class:Reason = {case_clause, no_call} ->
+	    error_terminate(Req, State, Class, Reason, accept_resource)
+    end.
+
+update_resource(Req, State) ->
+    try 
+	case call(Req, State, update_resource) of
+	    {halt, Req2, HandlerState2} ->
+		rest_terminate(Req2, State#state{handler_state=HandlerState2});
+	    {true, Req2, HandlerState2} ->
+		State2 = State#state{handler_state=HandlerState2},
+		next(Req2, State2, fun respond/2);
+	    {false, Req2, HandlerState2} ->
+		State2 = State#state{handler_state=HandlerState2},
+		respond(Req2, State2, 'not-acceptable')
+	end 
+    catch Class:Reason = {case_clause, no_call} ->
+	    error_terminate(Req, State, Class, Reason, update_resource)
+    end.
+
+set_resp_body(Req, State) ->
+    try
+	case call(Req, State, get_resource) of
+	    {halt, Req2, HandlerState2} ->
+		rest_terminate(Req2, State#state{handler_state=HandlerState2});
+	    {Body, Req2, HandlerState2} ->
+		State2 = State#state{handler_state=HandlerState2},
+		Req3 = occi_iq:result(Req2, Body),
+		respond(Req3, State2)
+	end 
+    catch Class:Reason = {case_clause, no_call} ->
+	    error_terminate(Req, State, Class, Reason, get_resource)
+    end.
+
+%%% REST primitives
+expect(Req, State, Callback, Expected, OnTrue, OnFalse) ->
+    case call(Req, State, Callback) of
+	no_call ->
+	    next(Req, State, OnTrue);
+	{halt, Req2, HandlerState} ->
+	    State2 = State#state{handler_state=HandlerState},
+	    case occi_iq:is_error(Req) of
+		true ->
+		    respond(Req2, State2);
+		false ->
+		    Iq = occi_iq:error(Req, 'service-not-available'),
+		    respond(Iq, State2)
+	    end;
+	{Expected, Req2, HandlerState} ->
+	    next(Req2, State#state{handler_state=HandlerState}, OnTrue);
+	{_Unexpected, Req2, HandlerState} ->
+	    next(Req2, State#state{handler_state=HandlerState}, OnFalse)
+    end.
+
+call(Req, State=#state{handler=Handler, handler_state=HandlerState}, Callback) ->
+    case erlang:function_exported(Handler, Callback, 2) of
+	true ->
+	    try
+		Handler:Callback(Req, HandlerState)
+	    catch Class:Reason ->
+		    error_terminate(Req, State, Class, Reason, Callback)
+	    end;
+	false ->
+	    no_call
+    end.
+
+next(Req, State, Next) when is_function(Next) ->
+    Next(Req, State);
+next(Req, State, StatusCode) when is_atom(StatusCode) ->
+    respond(Req, State, StatusCode).
+
+respond(#occi_iq{raw=Raw}=Req, #state{session=Session}=State) ->
+    case exmpp_iq:get_type(Raw) of
+	result ->
+	    exmpp_session:send_packet(Session, Raw);
+	error ->
+	    exmpp_session:send_packet(Session, Raw);
+	_ ->
+	    Iq = occi_iq:result(Req),
+	    exmpp_session:send_packet(Session, Iq#occi_iq.raw)
+    end,
+    rest_terminate(Req, State).
+
+respond(#occi_iq{}=Req, #state{session=Session}=State, Code) ->
+    Iq = occi_iq:error(Req, Code),
+    exmpp_session:send_packet(Session, Iq#occi_iq.raw),
+    rest_terminate(Req, State).
+
+error_terminate(#occi_iq{}=Req, #state{session=Session, handler=Handler, handler_state=HandlerState},
+		Class, Reason, Callback) ->
+    Iq = occi_iq:error(Req, 'undefined-condition'),
+    exmpp_session:send_packet(Session, Iq#occi_iq.raw),
+    erlang:Class([
+		  {reason, Reason},
+		  {mfa, {Handler, Callback, 2}},
+		  {stacktrace, erlang:get_stacktrace()},
+		  {req, exmpp_xml:document_to_list(Req#occi_iq.raw)},
+		  {state, HandlerState}
+		 ]).
+
+rest_terminate(Req, #state{handler=Handler, handler_state=HandlerState}=State) ->
+    case erlang:function_exported(Handler, terminate, 2) of
+	true -> ok = Handler:terminate(Req, HandlerState);
+	false -> ok
+    end,
+    {noreply, State}.

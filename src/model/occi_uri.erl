@@ -42,6 +42,8 @@
 %%%
 %%% API
 %%%
+parse(undefined) ->
+    throw({error, invalid_uri});
 parse(Uri) when is_binary(Uri) ->
     parse(binary_to_list(Uri));
 parse([$u,$r,$n,$:|Uri]) ->

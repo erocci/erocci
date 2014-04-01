@@ -41,7 +41,7 @@ to_url(#uri{}=Uri) ->
     Name = get(name, undefined),
     Uri#uri{scheme=Name#uri.scheme, host=Name#uri.host, port=Name#uri.port}.
 
--spec gen_id(string() | binary()) -> binary().
+-spec gen_id(string() | binary()) -> uri().
 gen_id(Prefix) when is_binary(Prefix) ->
     gen_id(binary_to_list(Prefix));
 gen_id(Prefix) when is_list(Prefix) ->

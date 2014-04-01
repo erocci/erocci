@@ -152,6 +152,9 @@ from(Req, State, #content_type{parser=Parser}) ->
 		{<<"DELETE">>, _} ->
 		    case occi_store:find(#occi_mixin{id=Cid, _='_'}) of
 			{ok, []} ->
+			    {ok, Req3} = cowboy_req:reply(404, Req2),
+			    {halt, Req3, State};
+			{ok, [#occi_mixin{user=true}]} ->
 			    {ok, Req3} = cowboy_req:reply(403, Req2),
 			    {halt, Req3, State};
 			{ok, [Mixin2]} ->

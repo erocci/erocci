@@ -26,6 +26,7 @@
 
 -export([new/2,
 	 new_dir/2,
+	 get_objid/1,
 	 get_type/1,
 	 set_type/2,
 	 add_child/2,
@@ -71,6 +72,10 @@ new(#uri{path=Path}, Type) when is_atom(Type) ->
 -spec new_dir(uri(), [uri() | occi_node()]) -> occi_node().
 new_dir(#uri{path=Path}, Children) when is_list(Children) ->
     #occi_node{id=#uri{path=Path}, type=dir, data=gb_sets:from_list(Children)}.
+
+-spec get_objid(occi_node()) -> any().
+get_objid(#occi_node{objid=Id}) ->
+    Id.
 
 -spec get_type(occi_node()) -> occi_node_type().
 get_type(#occi_node{type=Type}) ->
