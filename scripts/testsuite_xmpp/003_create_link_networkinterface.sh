@@ -2,8 +2,8 @@
 
 . $(dirname $0)/../testenv.sh
 
-source=$(curl -s -H "accept: text/uri-list" ${occi_srv}/compute/ | head -1)
-target=$(curl -s -H "accept: text/uri-list" ${occi_srv}/network/ | head -1)
+source=$(curl -s -H "accept: text/uri-list" ${occi_srv}/store/compute/ | head -1)
+target=$(curl -s -H "accept: text/uri-list" ${occi_srv}/store/network/ | head -1)
 
 id=/store/mylinks/xmpp/networkinterfaces/id$(uuidgen)
 content=$(cat <<EOF
@@ -20,8 +20,9 @@ content=$(cat <<EOF
       <attribute name="occi.networkinterface.allocation" value="dynamic" />
       <attribute name="occi.core.target" xl:href="${target}" />
       <attribute name="occi.core.source" xl:href="${source}" />
+    </link>
   </query>
-</link>
+</iq>
 EOF
 	   )
 
