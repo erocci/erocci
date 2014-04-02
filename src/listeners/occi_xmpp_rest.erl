@@ -30,27 +30,18 @@
 -include_lib("erim/include/exmpp.hrl").
 
 -export([init/2,
-	 allowed_methods/2,
 	 resource_exists/2,
 	 is_conflict/2,
 	 delete_resource/2,
 	 get_resource/2,
-	 accept_resource/2]).
+	 accept_resource/2,
+	 update_resource/2]).
 
 -record(state, {}).
 
 -spec init(xmlel(), any()) -> {ok, xmlel(), any()}.
 init(Req, _S) ->
     {ok, Req, #state{}}.
-
-allowed_methods(#occi_iq{type=occi_query}=Req, State) ->
-    {['get', update, delete], Req, State};
-
-allowed_methods(#occi_iq{type=occi_collection}=Req, State) ->
-    {['get', update, delete], Req, State};
-
-allowed_methods(Req, State) ->
-    {['get', save, update, delete], Req, State}.
 
 resource_exists(#occi_iq{type=occi_query}=Req, State) ->
     {true, Req, State};
@@ -112,28 +103,11 @@ get_resource(#occi_iq{node=Node}=Req, State) ->
 	    {halt, Req, State}
     end.
 
-accept_resource(#occi_iq{type=occi_query, raw=Raw}=Req, State) ->
-    case exmpp_xml:get_child_elements(occi_iq:get_payload(Raw)) of
-	[] -> 
-	    lager:debug("Bad request: ~p~n", [lager:pr(Raw, ?MODULE)]),
-	    Req2 = occi_iq:error(Req, 'bad-request'),
-	    {false, Req2, State};
-	[El|_] ->
-	    case occi_parser_xml:parse_full(El) of
-		{ok, #occi_request{mixins=[#occi_mixin{}=Mixin]}} ->
-		    case occi_store:save(Mixin) of
-			ok ->
-			    {true, Req, State};
-			{error, Err} ->
-			    lager:error("Internal error: ~p~n", [Err]),
-		    {halt, Req, State}
-		    end;
-		Other ->
-		    lager:debug("Bad request: ~p~n", [Other]),
-		    Req2 = occi_iq:error(Req, 'bad-request'),
-		    {false, Req2, State}
-	    end
-    end;
+accept_resource(#occi_iq{type=occi_query}=Req, State) ->
+    update_resource(Req, State);
+
+accept_resource(#occi_iq{type=occi_collection}=Req, State) ->
+    update_resource(Req, State);
 
 accept_resource(#occi_iq{type=occi_entity, node=Node, raw=Raw}=Req, State) ->
     case exmpp_xml:get_child_elements(occi_iq:get_payload(Raw)) of
@@ -176,6 +150,54 @@ accept_resource(#occi_iq{type=occi_entity, node=Node, raw=Raw}=Req, State) ->
 		    lager:debug("Bad request: ~p~n", [lager:pr(Raw, ?MODULE)]),
 		    Req2 = occi_iq:error(Req, 'bad-request'),
 		    {false, Req2, State}   
+	    end
+    end.
+
+update_resource(#occi_iq{type=occi_query, raw=Raw}=Req, State) ->
+    case exmpp_xml:get_child_elements(occi_iq:get_payload(Raw)) of
+	[] -> 
+	    lager:debug("Bad request: ~p~n", [lager:pr(Raw, ?MODULE)]),
+	    Req2 = occi_iq:error(Req, 'bad-request'),
+	    {false, Req2, State};
+	[El|_] ->
+	    case occi_parser_xml:parse_full(El) of
+		{ok, #occi_request{mixins=[#occi_mixin{}=Mixin]}} ->
+		    case occi_store:save(Mixin) of
+			ok ->
+			    {true, Req, State};
+			{error, Err} ->
+			    lager:error("Internal error: ~p~n", [Err]),
+		    {halt, Req, State}
+		    end;
+		Other ->
+		    lager:debug("Bad request: ~p~n", [Other]),
+		    Req2 = occi_iq:error(Req, 'bad-request'),
+		    {false, Req2, State}
+	    end
+    end;
+
+update_resource(#occi_iq{type=occi_collection, node=#occi_node{objid=Cid}=Node, raw=Raw}=Req,
+		State) ->
+    case exmpp_xml:get_child_elements(occi_iq:get_payload(Raw)) of
+	[] ->
+	    lager:debug("Bad request: ~p~n", [lager:pr(Raw, ?MODULE)]),
+	    Req2 = occi_iq:error(Req, 'bad-request'),
+	    {false, Req2, State};
+	[El|_] ->
+	    case occi_parser_xml:parse_full(El) of
+		{ok, #occi_request{collection=Coll}} ->
+		    C2 = occi_collection:new(Cid, occi_collection:get_entities(Coll)),
+		    case occi_store:update(Node#occi_node{data=C2}) of
+			ok ->
+			    {true, Req, State};
+			{error, Err} ->
+			    lager:error("Internal error: ~p~n", [Err]),
+			    {halt, Req, State}
+		    end;
+		Other ->
+		    lager:debug("Bad request: ~p~n", [Other]),
+		    Req2 = occi_iq:error(Req, 'bad-request'),
+		    {false, Req2, State}
 	    end
     end.
 
