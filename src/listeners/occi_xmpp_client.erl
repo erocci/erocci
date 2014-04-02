@@ -336,7 +336,9 @@ handle_occi(Req, #state{handler=H}=S) ->
 			  {req, exmpp_xml:document_to_list(Req#occi_iq.raw)}
 			 ])
 	    end
-    catch throw:_ -> respond(Req, S, 'bad-request')
+    catch throw:Err ->
+	    lager:debug("Malformed IQ: ~p~n", [Err]),
+	    respond(Req, S, 'bad-request')
     end.
 
 service_available(Req, State) ->
@@ -522,10 +524,14 @@ respond(#occi_iq{raw=Raw}=Req, #state{session=Session}=State) ->
     end,
     rest_terminate(Req, State).
 
-respond(#occi_iq{}=Req, #state{session=Session}=State, Code) ->
-    Iq = occi_iq:error(Req, Code),
-    exmpp_session:send_packet(Session, Iq#occi_iq.raw),
-    rest_terminate(Req, State).
+respond(#xmlel{}=Iq, #state{session=Session}=State, Code) ->
+    Err = exmpp_iq:error(Iq, Code),
+    exmpp_session:send_packet(Session, Err),
+    rest_terminate(Iq, State);
+respond(#occi_iq{}=Iq, #state{session=Session}=State, Code) ->
+    Err = occi_iq:error(Iq, Code),
+    exmpp_session:send_packet(Session, Err#occi_iq.raw),
+    rest_terminate(Iq, State).
 
 error_terminate(#occi_iq{}=Req, #state{session=Session, handler=Handler, handler_state=HandlerState},
 		Class, Reason, Callback) ->

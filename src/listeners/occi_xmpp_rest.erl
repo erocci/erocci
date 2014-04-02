@@ -30,7 +30,7 @@
 -include_lib("erim/include/exmpp.hrl").
 
 -export([init/2,
-	 allowed_method/2,
+	 allowed_methods/2,
 	 resource_exists/2,
 	 is_conflict/2,
 	 delete_resource/2,
@@ -43,13 +43,13 @@
 init(Req, _S) ->
     {ok, Req, #state{}}.
 
-allowed_method(#occi_iq{type=occi_query}=Req, State) ->
+allowed_methods(#occi_iq{type=occi_query}=Req, State) ->
     {['get', update, delete], Req, State};
 
-allowed_method(#occi_iq{type=occi_collection}=Req, State) ->
+allowed_methods(#occi_iq{type=occi_collection}=Req, State) ->
     {['get', update, delete], Req, State};
 
-allowed_method(Req, State) ->
+allowed_methods(Req, State) ->
     {['get', save, update, delete], Req, State}.
 
 resource_exists(#occi_iq{type=occi_query}=Req, State) ->
