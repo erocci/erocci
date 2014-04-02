@@ -5,7 +5,7 @@
 content=$(cat <<EOF
 <iq to="${occi_jid}" type="set" >
   <query xmlns="http://schemas.ogf.org/occi-xmpp" 
-         type="caps" />
+         type="caps" op="update" >
     <mixin xmlns="http://schemas.ogf.org/occi" 
         term="xmlmixin" scheme="http://schemas.example.org/occi#" 
         location="/store/usermixins/xmlmixin/" />
@@ -15,5 +15,4 @@ EOF
        )
 
 iq_set result /-/ "$content"
-
 
