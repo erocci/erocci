@@ -824,7 +824,7 @@ make_resource_id(E, #state{entity_id=Uri, entity=Res}=S) ->
 
 make_link(E, #state{entity=undefined}=State) ->
     make_link_title(E, State#state{entity=occi_link:new()});
-make_link(E, #state{entity=#occi_link{}}=State) ->
+make_link(E, #state{}=State) ->
     make_link_title(E, State).
 
 make_link_title(E, #state{entity=Link}=State) ->
@@ -878,7 +878,15 @@ make_kind(E, #state{extension=Ext}) ->
     Title = get_attr_value(E, <<"title">>, undefined),
     occi_kind:set_title(Kind, Title).
 
-make_mixin(E, #state{mixin=#occi_mixin{id=#occi_cid{class=usermixin}}}) ->
+make_mixin(E, #state{extension=#occi_extension{}=Ext}) ->
+    Scheme = to_atom(get_attr_value(E, <<"scheme">>, Ext#occi_extension.scheme)),
+    Term = to_atom(get_attr_value(E, <<"term">>)),
+    lager:info("Load mixin: ~s~s~n", [Scheme, Term]),
+    Mixin = occi_mixin:new(Scheme, Term),
+    Title = get_attr_value(E, <<"title">>, undefined),
+    occi_mixin:set_title(Mixin, Title);
+
+make_mixin(E, _S) ->
     Id = #occi_cid{scheme=to_atom(get_attr_value(E, <<"scheme">>)), 
 		   term=to_atom(get_attr_value(E, <<"term">>)),
 		   class=usermixin},
@@ -886,15 +894,7 @@ make_mixin(E, #state{mixin=#occi_mixin{id=#occi_cid{class=usermixin}}}) ->
       occi_mixin:set_location(
 	occi_mixin:new(Id),
 	get_attr_value(E, <<"location">>)), 
-      get_attr_value(E, <<"title">>, undefined));
-
-make_mixin(E, #state{extension=Ext}) ->
-    Scheme = to_atom(get_attr_value(E, <<"scheme">>, Ext#occi_extension.scheme)),
-    Term = to_atom(get_attr_value(E, <<"term">>)),
-    lager:info("Load mixin: ~s~s~n", [Scheme, Term]),
-    Mixin = occi_mixin:new(Scheme, Term),
-    Title = get_attr_value(E, <<"title">>, undefined),
-    occi_mixin:set_title(Mixin, Title).
+      get_attr_value(E, <<"title">>, undefined)).    
 
 make_collection(_E, #state{}=State) ->
     State#state{collection=occi_collection:new()}.
