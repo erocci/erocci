@@ -146,7 +146,7 @@ get_op(#xmlel{children=[El]}=Iq) ->
     case exmpp_iq:get_type(Iq) of
 	'get' -> get;
 	'set' ->
-	    case exmpp_xml:get_attribute(El, <<"action">>, <<"save">>) of
+	    case exmpp_xml:get_attribute(El, <<"op">>, <<"save">>) of
 		<<"save">> -> save;
 		<<"update">> -> update;
 		<<"delete">> -> delete;
