@@ -370,7 +370,6 @@ allowed_methods(#occi_iq{op=Op}=Req, State) ->
 	    rest_terminate(Req2, State#state{handler_state=HandlerState});
 	{List, Req2, HandlerState} ->
 	    State2 = State#state{handler_state=HandlerState},
-	    lager:debug("### check op: ~p in ~p~n", [Op, List]),
 	    case lists:member(Op, List) of
 		true ->
 		    next(Req2, State2, fun is_authorized/2);
