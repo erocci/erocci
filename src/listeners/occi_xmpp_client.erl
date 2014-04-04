@@ -323,7 +323,7 @@ get_caps_version() ->
 %%% REST like state machine for OCCI IQ
 %%%
 handle_occi(Req, #state{handler=H}=S) ->
-    try occi_iq:to_record(Req) of
+    try occi_iq:to_record(exmpp_xml:remove_whitespaces_deeply(Req)) of
 	Req2 -> 
 	    try H:init(Req2, S) of
 		{ok, Req3, HandlerState} ->
