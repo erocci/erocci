@@ -41,7 +41,8 @@
 	 update/1,
 	 delete/1,
 	 find/1,
-	 load/1]).
+	 load/1,
+	 action/2]).
 
 %% supervisor callbacks
 -export([init/1]).
@@ -99,12 +100,7 @@ save(#occi_mixin{location=#uri{path=Path}}=Mixin) ->
 
 save(#occi_node{type=occi_collection}=Node) ->
     lager:debug("occi_store:save(~p)~n", [lager:pr(Node, ?MODULE)]),
-    Merge = fun (_B, ok, ok) -> ok;
-		(_B, _, {error, Err}) -> {error, Err};
-		(_B, {error, Err}, _) -> {error, Err}
-	    end,
-    Reqs = filter_collection(Node),
-    fold(Merge, ok, save, Reqs);    
+    cast(save, filter_collection(Node));
 
 save(#occi_node{id=#uri{path=Path}}=Node) ->
     lager:debug("occi_store:save(~p)~n", [lager:pr(Node, ?MODULE)]),
@@ -118,8 +114,7 @@ save(#occi_node{id=#uri{path=Path}}=Node) ->
 -spec update(occi_node()) -> ok | {error, term()}.
 update(#occi_node{type=occi_collection}=Node) ->
     lager:debug("occi_store:update(~p)~n", [lager:pr(Node, ?MODULE)]),
-    Tags = cast(update, filter_collection(Node)),
-    wait_response(Tags);
+    cast(update, filter_collection(Node));
 
 update(#occi_node{id=#uri{path=Path}}=Node) ->
     lager:debug("occi_store:update(~p)~n", [lager:pr(Node, ?MODULE)]),
@@ -304,6 +299,46 @@ load(#occi_node{data=_}=Node) ->
     lager:debug("occi_store:load(~p)~n", [lager:pr(Node, ?MODULE)]),
     {ok, Node}.
 
+action(#occi_node{type=occi_query}=_N, _A) ->
+    lager:debug("occi_store:action(~p, ~p)~n", [lager:pr(_N, ?MODULE), lager:pr(_A, ?MODULE)]),
+    {error, unsupported_node};
+
+action(#occi_node{type=occi_user_mixin}=_N, _A) ->
+    lager:debug("occi_store:action(~p, ~p)~n", [lager:pr(_N, ?MODULE), lager:pr(_A, ?MODULE)]),
+    {error, unsupported_node};
+
+action(#occi_node{type=occi_collection, data=undefined}=Node, A) ->
+    lager:debug("occi_store:action(~p, ~p)~n", [lager:pr(Node, ?MODULE), lager:pr(A, ?MODULE)]),
+    case load(Node) of
+	{ok, N2} -> action(N2, A);
+	{error, Err} -> {error, Err}
+    end;
+
+action(#occi_node{type=occi_collection, data=#occi_collection{entities=E}}=_N, #occi_action{}=A) ->
+    lager:debug("occi_store:action(~p, ~p)~n", [lager:pr(_N, ?MODULE), lager:pr(A, ?MODULE)]),
+    Reqs = ordsets:fold(fun (#uri{path=Path}=Uri, Acc) ->
+				case get_backend(Path) of
+				    {error, Err} -> throw({error, Err});
+				    {ok, #occi_node{id=#uri{path=Prefix}}=Backend} ->
+					Req = {occi_uri:rm_prefix(Uri, Prefix), A},
+					[{Backend, Req} | Acc]
+				end
+			end, [], E),
+    cast(action, Reqs);
+
+action(#occi_node{type=dir}=Node, #occi_action{}=A) ->
+    lager:debug("occi_store:action(~p, ~p)~n", [lager:pr(Node, ?MODULE), lager:pr(A, ?MODULE)]),
+    Reqs = build_dir_reqs(Node, A),
+    cast(action, Reqs);
+
+action(#occi_node{objid=#uri{path=Path}=Id}=_N, #occi_action{}=A) ->
+    lager:debug("occi_store:action(~p, ~p)~n", [lager:pr(_N, ?MODULE), lager:pr(A, ?MODULE)]),
+    case get_backend(Path) of
+	{error, Err} -> throw({error, Err});
+	{ok, #occi_node{id=#uri{path=Prefix}, objid=Ref}} ->
+	    occi_backend:action(Ref, occi_uri:rm_prefix(Id, Prefix), A)
+    end.
+
 %%%===================================================================
 %%% supervisor callbacks
 %%%===================================================================
@@ -373,35 +408,25 @@ fold(Merge, Res, Op, Req) ->
     Reqs = gb_sets:fold(fun (Backend, Acc) ->
 				[{Backend, Req}|Acc]
 			end, [], get_mounts()),
-    Tags = cast(Op, Reqs),
-    wait_response(Merge, Res, Tags).
+    cast(Merge, Res, Op, Reqs).
 
 cast(Op, Reqs) ->
-    lists:foldl(fun ({#occi_node{objid=Ref}=Backend, Req}, Acc) ->
-			gb_trees:insert(occi_backend:cast(Ref, Op, Req), Backend, Acc)
-		end, gb_trees:empty(), Reqs).
+    cast(noop, [], Op, Reqs).
 
-wait_response(Tags) ->
-    receive 
-	{Tag, ok} ->
-	    Tags2 = gb_trees:delete(Tag, Tags),
-	    case gb_trees:is_empty(Tags2) of
-		true -> 
-		    ok;
-		false ->
-		    wait_response(Tags2)
-	    end;
-	{_Tag, {error, Err}} ->
-	    cancel_response(gb_trees:next(gb_trees:iterator(Tags))),
-	    {error, Err}
-    after 
-	5000 ->
-	    cancel_response(gb_trees:next(gb_trees:iterator(Tags))),
-	    {error, timeout}
-    end.
+cast(Merge, Res, Op, Reqs) ->
+    Tags = lists:foldl(fun ({#occi_node{objid=Ref}=Backend, Req}, Acc) ->
+			       gb_trees:insert(occi_backend:cast(Ref, Op, Req), Backend, Acc)
+		       end, gb_trees:empty(), Reqs),
+    wait_response(Merge, Res, Tags).
 
 wait_response(Merge, Acc, Tags) ->
     receive
+	{Tag, ok} ->
+	    Tags2 = gb_trees:delete(Tag, Tags),
+	    case gb_trees:is_empty(Tags2) of
+		true -> ok;
+		false -> wait_response(Merge, Acc, Tags2)
+	    end;
 	{Tag, {ok, Res}} ->
 	    Acc2 = Merge(gb_trees:get(Tag, Tags), Res, Acc),
 	    Tags2 = gb_trees:delete(Tag, Tags),
@@ -413,9 +438,12 @@ wait_response(Merge, Acc, Tags) ->
 	    end;
 	{_Tag, {error, Err}} ->
 	    cancel_response(gb_trees:next(gb_trees:iterator(Tags))),
-	    {error, Err}
+	    {error, Err};
+	_O ->
+	    cancel_response(gb_trees:next(gb_trees:iterator(Tags))),
+	    {error, {unexpected_message, _O}}
     after 
-	5000 ->
+	occi_config:get(backend_timeout, 5000) ->
 	    cancel_response(gb_trees:next(gb_trees:iterator(Tags))),
 	    {error, timeout}
     end.
@@ -427,7 +455,7 @@ cancel_response({Tag, #occi_node{objid=Ref}, It}) ->
     cancel_response(gb_trees:next(It)).
 
 %%%
-%%% return list of {#occi_node{type=occi_collection}, mountpoint}
+%%% return list of {mountpoint, #occi_node{type=occi_collection}}
 %%% each collection only contains entities related to the mountpoint
 %%%
 filter_collection(#occi_node{type=occi_collection, data=#occi_collection{cid=Cid, entities=E}}=Node) ->
@@ -446,3 +474,14 @@ filter_collection(#occi_node{type=occi_collection, data=#occi_collection{cid=Cid
 		end
 	end,
     gb_trees:to_list(ordsets:fold(F, gb_trees:empty(), E)).
+
+build_dir_reqs(#occi_node{type=dir, data=Children}, A) ->
+    gb_sets:fold(fun (#occi_node{type=dir}=Child, Acc) ->
+			 Acc ++ build_dir_reqs(Child, A);
+		     (#uri{path=Path}=Uri, Acc) ->
+			 case get_backend(Path) of
+			     {error, Err} -> throw({error, Err});
+			     {ok, #occi_node{id=#uri{path=Prefix}}=Backend} ->
+				 [{Backend, {occi_uri:rm_prefix(Uri, Prefix), A}} | Acc]
+			 end
+		 end, [], Children).

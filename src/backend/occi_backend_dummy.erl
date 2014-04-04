@@ -33,7 +33,8 @@
 	 save/2,
 	 delete/2,
 	 find/2,
-	 load/2]).
+	 load/2,
+	 action/2]).
 
 -record(state, {id             :: atom(),
 		wait           :: integer()}).
@@ -75,6 +76,10 @@ load(#occi_node{}=Req, #state{id=Id, wait=Wait}=State) ->
     lager:info("[~p] load(~p)~n", [Id, lager:pr(Req, ?MODULE)]),
     timer:sleep(Wait),
     {{ok, Req}, State}.
+
+action({#uri{}=Id, #occi_action{}=A}, State) ->
+    lager:info("[~p] action(~p, ~p)~n", [?MODULE, Id, A]),
+    {ok, State}.
 
 %%%===================================================================
 %%% Internal functions

@@ -12,6 +12,7 @@
 
 -export([start/0,
 	 load/1,
+	 get/1,
 	 get/2,
 	 set/2,
 	 to_url/1,
@@ -29,6 +30,9 @@ start() ->
 load(Config) ->
     Env = application:get_all_env(occi),
     setup(Env ++ Config).
+
+get(Name) ->
+    get(Name, undefined).
 
 get(Name, Default) ->
     case ets:match_object(?TABLE, {Name, '_'}) of
@@ -78,6 +82,14 @@ setup(Props) ->
 	undefined -> ok;
 	Name ->
 	    ets:insert(?TABLE, {name, occi_uri:parse(Name)})
+    end,
+    case proplists:get_value(backend_timeout, Props, 5000) of
+	5000 -> 
+	    ets:insert(?TABLE, {backend_timeout, 5000});
+	V when is_integer(V) ->
+	    ets:insert(?TABLE, {backend_timeout, V});
+	V when is_list(V) ->
+	    ets:insert(?TABLE, {backend_timeout, list_to_integer(V)})
     end,
     case proplists:get_value(handlers, Props) of
 	undefined -> ok;
