@@ -261,7 +261,7 @@ save_node_t(#occi_node{id=Id}=Node) ->
 
 add_to_dir_t(none, _) ->
     ok;
-add_to_dir_t(#uri{}=Parent, Child) ->
+add_to_dir_t(#uri{path=Path}=Parent, Child) ->
     lager:debug("add_to_dir_t(~p, ~p)~n", [Parent, Child]),
     case mnesia:wread({occi_node, Parent}) of
 	[] ->
@@ -272,7 +272,9 @@ add_to_dir_t(#uri{}=Parent, Child) ->
 	[#occi_node{}] ->
 	    mnesia:abort({not_a_dir, Parent})
     end,
-    add_to_dir_t(occi_uri:get_parent(Parent), Parent).
+    if Path == [] -> ok;
+       true -> add_to_dir_t(occi_uri:get_parent(Parent), Parent)
+    end.
 
 update_t(#occi_node{type=occi_collection, data=#occi_collection{cid=Cid}=Coll}) ->
     Mixin = get_mixin_t(Cid),
