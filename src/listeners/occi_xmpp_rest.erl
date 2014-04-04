@@ -117,13 +117,13 @@ action_resource(#occi_iq{type=occi_action, raw=Raw, node=#occi_node{}=Node}=Req,
 	    Req2 = occi_iq:error(Req, 'bad-request'),
 	    {false, Req2, State};
 	[El|_] ->
-	    case occi_parser_xml:parse_full(El) of
+	    case occi_parser_xml:parse_el(El) of
 		{ok, #occi_request{action=#occi_action{}=A}} ->
 		    case occi_store:action(Node, A) of
 			ok ->
 			    {true, Req, State};
 			{error, Err} ->
-			    lager:error("Bad request: ~p~n", [Err]),
+			    lager:debug("Bad request: ~p~n", [Err]),
 			    {false, Req, State}
 		    end;
 		Other ->
@@ -140,7 +140,7 @@ accept_resource(#occi_iq{type=occi_collection, node=#occi_node{objid=Cid}=Node, 
 	    Req2 = occi_iq:error(Req, 'bad-request'),
 	    {false, Req2, State};
 	[El|_] ->
-	    case occi_parser_xml:parse_full(El) of
+	    case occi_parser_xml:parse_el(El) of
 		{ok, #occi_request{collection=Coll}} ->
 		    C2 = occi_collection:new(Cid, occi_collection:get_entities(Coll)),
 		    case occi_store:save(Node#occi_node{data=C2}) of
@@ -163,9 +163,9 @@ accept_resource(#occi_iq{type=occi_entity, node=Node, raw=Raw}=Req, State) ->
 	    Req2 = occi_iq:error(Req, 'bad-request'),
 	    {false, Req2, State};
 	[El|_] ->
-	    case occi_parser_xml:parse_full(El) of
+	    case occi_parser_xml:parse_el(El) of
 		{error, {parse_error, Err}} ->
-		    lager:error("Error processing request: ~p~n", [Err]),
+		    lager:debug("Error processing request: ~p~n", [Err]),
 		    {false, Req, State};
 		{error, Err} ->
 		    lager:error("Internal error: ~p~n", [Err]),
@@ -212,7 +212,7 @@ update_resource(#occi_iq{type=occi_query, raw=Raw}=Req, State) ->
 	    Req2 = occi_iq:error(Req, 'bad-request'),
 	    {false, Req2, State};
 	[El|_] ->
-	    case occi_parser_xml:parse_full(El) of
+	    case occi_parser_xml:parse_el(El) of
 		{ok, #occi_request{mixins=[#occi_mixin{}=Mixin]}} ->
 		    case occi_store:save(Mixin) of
 			ok ->
@@ -236,7 +236,7 @@ update_resource(#occi_iq{type=occi_collection, node=#occi_node{objid=Cid}=Node, 
 	    Req2 = occi_iq:error(Req, 'bad-request'),
 	    {false, Req2, State};
 	[El|_] ->
-	    case occi_parser_xml:parse_full(El) of
+	    case occi_parser_xml:parse_el(El) of
 		{ok, #occi_request{collection=Coll}} ->
 		    C2 = occi_collection:new(Cid, occi_collection:get_entities(Coll)),
 		    case occi_store:update(Node#occi_node{data=C2}) of

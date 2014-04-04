@@ -28,6 +28,7 @@
 	<xs:enumeration value="caps" />
 	<xs:enumeration value="col" />
 	<xs:enumeration value="entity" />
+	<xs:enumeration value="action" />
       </xs:restriction>
     </xs:attribute>
     <xs:attribute name="op" default="save" >
