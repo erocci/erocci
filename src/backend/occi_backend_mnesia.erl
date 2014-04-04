@@ -33,7 +33,8 @@
 	 save/2,
 	 delete/2,
 	 find/2,
-	 load/2]).
+	 load/2,
+	 action/2]).
 
 -record(state, {}).
 
@@ -121,6 +122,10 @@ load(#occi_node{}=Req, State) ->
 	{aborted, Reason} ->
 	    {{error, Reason}, State}
     end.
+
+action({#uri{}=Id, #occi_action{}=A}, State) ->
+    lager:info("[~p] action(~p, ~p)~n", [?MODULE, Id, A]),
+    {ok, State}.
 
 %%%===================================================================
 %%% Internal functions

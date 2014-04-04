@@ -32,6 +32,7 @@
 	 delete/2,
 	 find/2,
 	 load/2,
+	 action/3,
 	 cast/3,
 	 cancel/2]).
 
@@ -71,6 +72,10 @@
     {{ok, occi_node()}, term()} |
     {{error, Reason :: term()}, State :: term()}.
 
+-callback action({Id :: uri(), Action :: occi_action()}, State :: term()) ->
+    {ok, term()} |
+    {{error, Reason :: term()}, State :: term()}.
+
 %%%
 %%% API
 %%% 
@@ -93,6 +98,9 @@ find(Ref, Request) ->
 
 load(Ref, Request) ->
     gen_server:call(Ref, {load, Request}).
+
+action(Ref, Id, Action) ->
+    gen_server:call(Ref, {action, {Id, Action}}).
 
 cast(Ref, Op, Req) ->
     gen_server:call(Ref, {cast, Op, Req}).
