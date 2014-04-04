@@ -32,6 +32,7 @@
 
 %% API
 -export([load_extension/1,
+	 parse_el/1,
 	 parse_full/1,
 	 parse_action/3,
 	 parse_entity/3,
@@ -81,6 +82,14 @@
 %%%===================================================================
 %%% API
 %%%===================================================================
+parse_el(#xmlel{}=El) ->
+    case parse_full(El, #state{}) of
+	{ok, Res} -> {ok, Res};
+	{error, Reason} ->
+	    lager:error("Error parsing xml: ~p~n", [Reason]),
+	    {error, {parse_error, Reason}}
+    end.    
+
 parse_full(Data) ->
     parse_full(Data, #state{request=#occi_request{}}).
 
