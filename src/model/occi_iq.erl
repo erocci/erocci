@@ -36,7 +36,8 @@
 	 error/2]).
 
 -export([is_error/1,
-	 to_record/1]).
+	 to_record/1,
+	 to_xmlel/1]).
 
 -export([has_node/1,
 	 get_node/1,
@@ -88,6 +89,10 @@ to_record(#xmlel{children=[_El]}=Iq) ->
 to_record(_) ->
     throw({error, invalid_occi_iq}).
 
+-spec to_xmlel(occi_iq()) -> xmlel().
+to_xmlel(#occi_iq{raw=Raw}) ->
+    Raw.
+
 -spec is_error(#xmlel{} | occi_iq()) -> boolean().
 is_error(#xmlel{}=Iq) ->
     exmpp_iq:is_error(Iq);
@@ -123,6 +128,14 @@ get_node(#xmlel{children=[El]}=Iq) ->
 		S ->
 		    Id = occi_uri:parse(S),
 		    #occi_node{id=#uri{path=Id#uri.path}, objid=Id, type=undefined, _='_'}
+	    end;
+	occi_action ->
+	    case exmpp_xml:get_attribute(El, <<"node">>, undefined) of
+		undefined ->
+		    #occi_node{id=undefined, type=undefined, objid=undefined};
+		S ->
+		    Id = occi_uri:parse(S),
+		    #occi_node{id=#uri{path=Id#uri.path}, objid=Id, type=undefined, _='_'}
 	    end
     end;
 get_node(_El) ->
@@ -135,6 +148,7 @@ get_type(#xmlel{children=[El]}) ->
 	<<"caps">> -> occi_query;
 	<<"col">> -> occi_collection;
 	<<"entity">> -> occi_entity;
+	<<"action">> -> occi_action;
 	_ -> throw({error, invalid_type})
     end;
 get_type(_El) ->
@@ -146,11 +160,15 @@ get_op(#xmlel{children=[El]}=Iq) ->
     case exmpp_iq:get_type(Iq) of
 	'get' -> get;
 	'set' ->
-	    case exmpp_xml:get_attribute(El, <<"op">>, <<"save">>) of
-		<<"save">> -> save;
-		<<"update">> -> update;
-		<<"delete">> -> delete;
-		_ -> throw({error, invalid_op})
+	    case get_type(Iq) of
+		occi_action -> action;
+		_ ->		    
+		    case exmpp_xml:get_attribute(El, <<"op">>, <<"save">>) of
+			<<"save">> -> save;
+			<<"update">> -> update;
+			<<"delete">> -> delete;
+			_ -> throw({error, invalid_op})
+		    end
 	    end
     end;
 get_op(_El) ->

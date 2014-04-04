@@ -42,7 +42,7 @@
 	 get_attributes/1,
 	 get_attr_list/1,
 	 get_actions/1,
-	 add_action/2,	 
+	 add_action/2,
 	 get_applies/1,
 	 add_applies/2,
 	 get_depends/1,
