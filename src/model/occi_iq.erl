@@ -115,8 +115,10 @@ get_node(#xmlel{children=[El]}=Iq) ->
 	    case exmpp_xml:get_attribute(El, <<"node">>, undefined) of
 		undefined ->
 		    #occi_node{type=occi_query, data=undefined, _='_'};
-		Cid ->
-		    #occi_node{type=occi_user_mixin, objid=occi_cid:parse(Cid), _='_'}
+		S ->
+		    Cid = occi_cid:parse(S),
+		    Cid2 = Cid#occi_cid{class=usermixin},
+		    #occi_node{objid=Cid2, data=#occi_mixin{id=Cid2, _='_'}}
 	    end;
         occi_collection ->
 	    Cid = occi_cid:parse(exmpp_xml:get_attribute(El, <<"node">>, undefined)),

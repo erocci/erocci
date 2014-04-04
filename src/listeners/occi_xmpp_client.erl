@@ -438,11 +438,11 @@ action_resource(Req, State) ->
 
 %% delete_resource/2 should start deleting the resource and return.
 delete_resource(Req, State) ->
-    expect(Req, State, delete_resource, true, 500, fun delete_completed/2).
+    expect(Req, State, delete_resource, true, fun delete_completed/2, 'internal-server-error').
 
 %% delete_completed/2 indicates whether the resource has been deleted yet.
 delete_completed(Req, State) ->
-    next(Req, State, fun respond/2).
+    expect(Req, State, delete_completed, true, fun respond/2, 'internal-server-error').
 
 is_conflict(Req, State) ->
     expect(Req, State, is_conflict, false, fun accept_resource/2, 'conflict').
@@ -504,7 +504,7 @@ expect(Req, State, Callback, Expected, OnTrue, OnFalse) ->
 		true ->
 		    respond(Req2, State2);
 		false ->
-		    Iq = occi_iq:error(Req, 'service-not-available'),
+		    Iq = occi_iq:error(Req, 'service-unavailable'),
 		    respond(Iq, State2)
 	    end;
 	{Expected, Req2, HandlerState} ->

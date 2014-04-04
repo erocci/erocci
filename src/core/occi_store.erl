@@ -213,7 +213,6 @@ find(#occi_node{type=occi_query}=Req) ->
     end;
 
 find(#occi_node{type=occi_collection, objid=#occi_cid{}=Cid}=Req) ->
-    lager:debug("occi_store:find(~p)~n", [lager:pr(Req, ?MODULE)]),
     case find(Cid) of
 	{ok, [#occi_kind{id=Id}]} -> 
 	    {ok, [Req#occi_node{objid=Id}]};
