@@ -34,6 +34,7 @@
 	 resource_exists/2,
 	 is_conflict/2,
 	 delete_resource/2,
+	 delete_completed/2,
 	 get_resource/2,
 	 accept_resource/2,
 	 update_resource/2,
@@ -74,22 +75,26 @@ is_conflict(#occi_iq{type=occi_entity, node=#occi_node{type=Type}}=Req, State)
 is_conflict(Req, State) ->
     {true, Req, State}.
 
-delete_resource(#occi_iq{type=occi_query, node=Node}=Req, State) ->
-    case occi_store:find(Node) of
+delete_resource(#occi_iq{type=occi_query, node=#occi_node{data=Mixin}}=Req, 
+		State) ->
+    case occi_store:find(Mixin) of
 	{ok, []} ->
 	    Req2 = occi_iq:error(Req, 'item-not-found'),
 	    {halt, Req2, State};
-	{ok, [#occi_mixin{user=false}]} ->
-	    Req2 = occi_iq:error(Req, 'forbidden'),
-	    {halt, Req2, State};
-	{ok, [#occi_mixin{}=Mixin]} ->
-	    case occi_store:delete(Mixin) of
+	{ok, [#occi_mixin{id=#occi_cid{class=usermixin}}=M2]} ->
+	    case occi_store:delete(M2) of
 		{error, Err} ->
 		    lager:debug("Error deleting user mixin: ~p~n", [Err]),
 		    {false, Req, State};
 		ok ->
 		    {true, Req, State}
-	    end
+	    end;
+	{ok, [#occi_mixin{}]} ->
+	    Req2 = occi_iq:error(Req, 'forbidden'),
+	    {halt, Req2, State};
+	_Other ->
+	    lager:error("Unexpected error: ~p~n", [_Other]),
+	    {false, Req, State}
     end;
 	    
 delete_resource(#occi_iq{node=Node}=Req, State) ->
@@ -100,6 +105,9 @@ delete_resource(#occi_iq{node=Node}=Req, State) ->
 	ok ->
 	    {true, Req, State}
     end.
+
+delete_completed(Req, State) ->
+    {true, Req, State}.
 
 get_resource(#occi_iq{node=Node}=Req, State) ->
     case occi_store:load(Node) of
@@ -213,8 +221,8 @@ update_resource(#occi_iq{type=occi_query, raw=Raw}=Req, State) ->
 	    {false, Req2, State};
 	[El|_] ->
 	    case occi_parser_xml:parse_el(El) of
-		{ok, #occi_request{mixins=[#occi_mixin{}=Mixin]}} ->
-		    case occi_store:save(Mixin) of
+		{ok, #occi_request{mixins=[#occi_mixin{id=Cid}=Mixin]}} ->
+		    case occi_store:save(Mixin#occi_mixin{id=Cid#occi_cid{class=usermixin}}) of
 			ok ->
 			    {true, Req, State};
 			{error, Err} ->
