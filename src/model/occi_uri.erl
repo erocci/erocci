@@ -119,7 +119,7 @@ get_parent(#uri{path=Path}=Uri) ->
     case lists:reverse(filename:split(Path)) of
 	[_|[]] ->
 	    % root's parent
-	    none;
+	    Uri#uri{path=[]};
 	[_|Parent] ->
 	    Uri#uri{path=filename:join(lists:reverse(Parent))}
     end.
