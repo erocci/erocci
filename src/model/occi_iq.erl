@@ -126,18 +126,18 @@ get_node(#xmlel{children=[El]}=Iq) ->
 	occi_entity ->
 	    case exmpp_xml:get_attribute(El, <<"node">>, undefined) of
 		undefined ->
-		    #occi_node{id=undefined, type=undefined, objid=undefined};
+		    #occi_node{id=undefined, objid=undefined, _='_'};
 		S ->
 		    Id = occi_uri:parse(S),
-		    #occi_node{id=#uri{path=Id#uri.path}, objid=Id, type=undefined, _='_'}
+		    #occi_node{id=#uri{path=Id#uri.path}, objid=Id, _='_'}
 	    end;
 	occi_action ->
 	    case exmpp_xml:get_attribute(El, <<"node">>, undefined) of
 		undefined ->
-		    #occi_node{id=undefined, type=undefined, objid=undefined};
+		    #occi_node{id=undefined, objid=undefined, _='_'};
 		S ->
 		    Id = occi_uri:parse(S),
-		    #occi_node{id=#uri{path=Id#uri.path}, objid=Id, type=undefined, _='_'}
+		    #occi_node{id=#uri{path=Id#uri.path}, objid=Id, _='_'}
 	    end
     end;
 get_node(_El) ->

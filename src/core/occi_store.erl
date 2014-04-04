@@ -224,7 +224,7 @@ find(#occi_node{type=occi_collection, objid=#occi_cid{}=Cid}=Req) ->
 	    {error, Err}
     end;
 
-find(#occi_node{id=undefined, type=undefined}) ->
+find(#occi_node{id=undefined}) ->
     {ok, []};
 
 find(#occi_node{id=#uri{path=Path}=Id}=Req) ->
