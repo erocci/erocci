@@ -4,7 +4,7 @@
 
 id=/store/mylinks/xml/networkinterfaces/id$(uuidgen)
 content=$(cat <<EOF
-<iq to="${occi_jid} type="set" >
+<iq to="${occi_jid}" type="set" >
   <query xmlns="http://schemas.ogf.org/occi-xmpp" node="${id}" >
    <link xmlns="http://schemas.ogf.org/occi" 
           xmlns:xl="http://www.w3.org/2008/06/xlink" >
