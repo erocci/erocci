@@ -333,7 +333,7 @@ handle_occi(Req, #state{handler=H}=S) ->
 			  {reason, Reason},
 			  {mfa, {H, init, 2}},
 			  {stacktrace, erlang:get_stacktrace()},
-			  {req, exmpp_xml:document_to_list(Req#occi_iq.raw)}
+			  {req, exmpp_xml:document_to_list(occi_iq:to_xmlel(Req))}
 			 ])
 	    end
     catch throw:Err ->
@@ -346,7 +346,7 @@ service_available(Req, State) ->
 
 known_methods(#occi_iq{op=Op}=Req, State) ->
     case call(Req, State, known_methods) of
-	no_call when Op =:= 'get'; Op =:= save; Op =:= update; Op =:= delete ->
+	no_call when Op =:= 'get'; Op =:= save; Op =:= update; Op =:= delete; Op =:= action ->
 	    next(Req, State, fun allowed_methods/2);
 	no_call ->
 	    next(Req, State, 'feature-not-implemented');
@@ -362,7 +362,7 @@ known_methods(#occi_iq{op=Op}=Req, State) ->
 
 allowed_methods(#occi_iq{op=Op}=Req, State) ->
     case call(Req, State, allowed_methods) of
-	no_call when Op =:= 'get'; Op =:= save; Op =:= update; Op =:= delete ->
+	no_call when Op =:= 'get'; Op =:= save; Op =:= update; Op =:= delete; Op =:= action ->
 	    next(Req, State, fun is_authorized/2);
 	no_call ->
 	    next(Req, State, 'not-allowed');
@@ -416,11 +416,29 @@ method(#occi_iq{op=save}=Req, State) ->
 method(#occi_iq{op=update}=Req, State) ->
     update_resource(Req, State);
 method(#occi_iq{op='get'}=Req, State) ->
-    set_resp_body(Req, State).
+    set_resp_body(Req, State);
+method(#occi_iq{op=action}=Req, State) ->
+    action_resource(Req, State).
+
+action_resource(Req, State) ->
+    try
+	case call(Req, State, action_resource) of
+	    {halt, Req2, HandlerState2} ->
+		rest_terminate(Req2, State#state{handler_state=HandlerState2});
+	    {true, Req2, HandlerState2} ->
+		State2 = State#state{handler_state=HandlerState2},
+		next(Req2, State2, fun respond/2);
+	    {false, Req2, HandlerState2} ->
+		State2 = State#state{handler_state=HandlerState2},
+		respond(Req2, State2, 'bad-request')
+	end
+    catch Class:Reason = {case_clause, no_call} ->
+	    error_terminate(Req, State, Class, Reason, action_resource)
+    end.
 
 %% delete_resource/2 should start deleting the resource and return.
 delete_resource(Req, State) ->
-    expect(Req, State, delete_resource, false, 500, fun delete_completed/2).
+    expect(Req, State, delete_resource, true, 500, fun delete_completed/2).
 
 %% delete_completed/2 indicates whether the resource has been deleted yet.
 delete_completed(Req, State) ->
@@ -520,7 +538,7 @@ respond(#occi_iq{raw=Raw}=Req, #state{session=Session}=State) ->
 	    exmpp_session:send_packet(Session, Raw);
 	_ ->
 	    Iq = occi_iq:result(Req),
-	    exmpp_session:send_packet(Session, Iq#occi_iq.raw)
+	    exmpp_session:send_packet(Session, occi_iq:to_xmlel(Iq))
     end,
     rest_terminate(Req, State).
 
@@ -530,18 +548,18 @@ respond(#xmlel{}=Iq, #state{session=Session}=State, Code) ->
     rest_terminate(Iq, State);
 respond(#occi_iq{}=Iq, #state{session=Session}=State, Code) ->
     Err = occi_iq:error(Iq, Code),
-    exmpp_session:send_packet(Session, Err#occi_iq.raw),
+    exmpp_session:send_packet(Session, occi_iq:to_xmlel(Err)),
     rest_terminate(Iq, State).
 
 error_terminate(#occi_iq{}=Req, #state{session=Session, handler=Handler, handler_state=HandlerState},
 		Class, Reason, Callback) ->
     Iq = occi_iq:error(Req, 'undefined-condition'),
-    exmpp_session:send_packet(Session, Iq#occi_iq.raw),
+    exmpp_session:send_packet(Session, occi_iq:to_xmlel(Iq)),
     erlang:Class([
 		  {reason, Reason},
 		  {mfa, {Handler, Callback, 2}},
 		  {stacktrace, erlang:get_stacktrace()},
-		  {req, exmpp_xml:document_to_list(Req#occi_iq.raw)},
+		  {req, exmpp_xml:document_to_list(occi_iq:to_xmlel(Req))},
 		  {state, HandlerState}
 		 ]).
 

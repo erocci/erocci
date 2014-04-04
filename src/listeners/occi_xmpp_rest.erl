@@ -36,7 +36,8 @@
 	 delete_resource/2,
 	 get_resource/2,
 	 accept_resource/2,
-	 update_resource/2]).
+	 update_resource/2,
+	 action_resource/2]).
 
 -record(state, {}).
 
@@ -47,7 +48,7 @@ init(Req, _S) ->
 allowed_methods(#occi_iq{type=occi_query}=Req, State) ->
     {['get', update, delete], Req, State};
 allowed_methods(Req, State) ->
-    {['get', save, update, delete], Req, State}.
+    {['get', save, update, delete, action], Req, State}.
 
 resource_exists(#occi_iq{type=occi_query}=Req, State) ->
     {true, Req, State};
@@ -109,6 +110,28 @@ get_resource(#occi_iq{node=Node}=Req, State) ->
 	    {halt, Req, State}
     end.
 
+action_resource(#occi_iq{type=occi_action, raw=Raw, node=#occi_node{}=Node}=Req, State) ->
+    case exmpp_xml:get_child_elements(occi_iq:get_payload(Raw)) of
+	[] ->
+	    lager:debug("Bad request: ~p~n", [lager:pr(Raw, ?MODULE)]),
+	    Req2 = occi_iq:error(Req, 'bad-request'),
+	    {false, Req2, State};
+	[El|_] ->
+	    case occi_parser_xml:parse_full(El) of
+		{ok, #occi_request{action=#occi_action{}=A}} ->
+		    case occi_store:action(Node, A) of
+			ok ->
+			    {true, Req, State};
+			{error, Err} ->
+			    lager:error("Bad request: ~p~n", [Err]),
+			    {false, Req, State}
+		    end;
+		Other ->
+		    lager:debug("Bad request: ~p~n", [Other]),
+		    {false, Req, State}
+	    end
+    end.    
+
 accept_resource(#occi_iq{type=occi_collection, node=#occi_node{objid=Cid}=Node, raw=Raw}=Req, 
 		State) ->
     case exmpp_xml:get_child_elements(occi_iq:get_payload(Raw)) of
@@ -129,8 +152,7 @@ accept_resource(#occi_iq{type=occi_collection, node=#occi_node{objid=Cid}=Node, 
 		    end;
 		Other ->
 		    lager:debug("Bad request: ~p~n", [Other]),
-		    Req2 = occi_iq:error(Req, 'bad-request'),
-		    {false, Req2, State}
+		    {false, Req, State}
 	    end
     end;
 
@@ -176,7 +198,12 @@ accept_resource(#occi_iq{type=occi_entity, node=Node, raw=Raw}=Req, State) ->
 		    Req2 = occi_iq:error(Req, 'bad-request'),
 		    {false, Req2, State}   
 	    end
-    end.
+    end;
+
+accept_resource(Iq, State) ->
+    lager:debug("Bad request: ~p~n", [lager:pr(Iq, ?MODULE)]),
+    Err = occi_iq:error(Iq, 'bad-request'),
+    {false, Err, State}.
 
 update_resource(#occi_iq{type=occi_query, raw=Raw}=Req, State) ->
     case exmpp_xml:get_child_elements(occi_iq:get_payload(Raw)) of
@@ -224,7 +251,13 @@ update_resource(#occi_iq{type=occi_collection, node=#occi_node{objid=Cid}=Node, 
 		    Req2 = occi_iq:error(Req, 'bad-request'),
 		    {false, Req2, State}
 	    end
-    end.
+    end;
+
+update_resource(Iq, State) ->
+    lager:debug("Bad request: ~p~n", [lager:pr(Iq, ?MODULE)]),
+    Err = occi_iq:error(Iq, 'bad-request'),
+    {false, Err, State}.
+
 
 %%%
 %%% Priv

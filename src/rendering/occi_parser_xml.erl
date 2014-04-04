@@ -214,9 +214,6 @@ init(E=?mixin, _From, #parser{state=State}=Ctx) ->
 	    {reply, {error, Err}, eof, Ctx}
     end;
 
-init(_E=?action, _From, #parser{state=#state{action=undefined}}=Ctx) ->
-    {reply, {error, {invalid_element, action}}, eof, Ctx};
-
 init(E=?action, _From, #parser{state=State}=Ctx) ->
     try make_action(E, State) of
 	#state{}=State2 ->
@@ -935,6 +932,19 @@ make_attribute(E, _State) ->
 make_action(E, #state{action=#occi_action{id=#occi_cid{term=Term}}}=State) ->
     case get_cid(E) of
 	#occi_cid{term=Term}=Cid ->
+	    C2 = Cid#occi_cid{class=action},
+	    case occi_store:find(C2) of
+		{ok, [#occi_action{}=Action]} ->
+		    State#state{action=Action};
+		_ ->
+		    {error, {invalid_cid, C2}}
+	    end;
+	{error, Err} -> {error, Err}
+    end;
+
+make_action(E, State) ->
+    case get_cid(E) of
+	#occi_cid{}=Cid ->
 	    C2 = Cid#occi_cid{class=action},
 	    case occi_store:find(C2) of
 		{ok, [#occi_action{}=Action]} ->
