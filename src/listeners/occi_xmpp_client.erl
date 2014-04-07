@@ -444,6 +444,10 @@ delete_resource(Req, State) ->
 delete_completed(Req, State) ->
     expect(Req, State, delete_completed, true, fun respond/2, 'internal-server-error').
 
+
+is_conflict(Req, #state{exists=false}=State) ->
+    next(Req, State, fun accept_resource/2);
+
 is_conflict(Req, State) ->
     expect(Req, State, is_conflict, false, fun accept_resource/2, 'conflict').
 
