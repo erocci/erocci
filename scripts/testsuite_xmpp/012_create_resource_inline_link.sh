@@ -2,12 +2,12 @@
 
 . $(dirname $0)/../testenv.sh
 
-target=$(curl -s -H "accept: text/uri-list" ${occi_srv}/network/ | head -1)
+target=$(curl -s -H "accept: text/uri-list" ${occi_srv}/store/network/ | head -1)
 
 id=/store/myresources/xml/compute/$(uuidgen)
 linkid=$(uuidgen)
 content=$(cat <<EOF
-<iq to="${occi_jid} type="set" >
+<iq to="${occi_jid}" type="set" >
   <query xmlns="http://schemas.ogf.org/occi-xmpp" node="${id}" >
     <occi:resource xmlns:occi="http://schemas.ogf.org/occi" xmlns:xl="http://www.w3.org/2008/06/xlink"
           title="Machine a toto" >
