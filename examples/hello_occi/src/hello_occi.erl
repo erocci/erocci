@@ -21,8 +21,8 @@
 start() ->
     application:start(occi),
     Mapping = [
-	       {#occi_cid{scheme=?SCHEME_INFRA, term='compute', class=kind}, "/store/compute/"},
-	       {#occi_cid{scheme=?SCHEME_INFRA, term='storage', class=kind}, "/store/storage/"},
+	       {"http://schemas.ogf.org/occi/infrastructure#compute", "/store/compute/"},
+	       {"http://schemas.ogf.org/occi/infrastructure#storage", "/store/storage/"},
 	       {#occi_cid{scheme=?SCHEME_INFRA, term='storagelink', class=kind}, "/store/storagelink/"},
 	       {#occi_cid{scheme=?SCHEME_INFRA, term='network', class=kind}, "/store/network/"},
 	       {#occi_cid{scheme=?SCHEME_INFRA, term='networkinterface', class=kind}, "/store/networkinterface/"},
