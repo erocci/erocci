@@ -169,7 +169,15 @@ init([]) ->
 %%%===================================================================
 get_uri(_Id, []) ->
     none;
-get_uri(Id, [{Id, Uri}|_Tail]) ->
+get_uri(#occi_cid{scheme=Scheme, term=Term}, [{#occi_cid{scheme=Scheme, term=Term}, Uri}|_Tail]) ->
     occi_uri:parse(Uri);
+get_uri(#occi_cid{scheme=Scheme, term=Term}=Id, [{Str, Uri}|Tail]) when is_list(Str) ->
+    try occi_cid:parse(Str) of
+	#occi_cid{scheme=Scheme, term=Term} ->
+	    occi_uri:parse(Uri);
+	_ ->
+	    get_uri(Id, Tail)
+    catch throw:Err -> throw(Err)
+    end;
 get_uri(Id, [_H|Tail]) ->
     get_uri(Id, Tail).
