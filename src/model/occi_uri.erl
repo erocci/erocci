@@ -183,7 +183,7 @@ add_prefix_test_() ->
      ?_assert(add_prefix(AbsUri, "/a/prefix") =:= AbsUri),
      ?_assert(add_prefix(RelUri, "/a/prefix") =:= #uri{path="/a/prefix/path/to/a/resource"}),
      ?_assert(add_prefix(RelUri, "/a/prefix/") =:= #uri{path="/a/prefix/path/to/a/resource"}),
-     ?_assert(add_prefix(RelUri, "/a/prefix//") =:= #uri{path="/a/prefix/path/to/a/resource"}),
+     ?_assert(add_prefix(RelUri, "/a/prefix//") =:= #uri{path="/a/prefix/path/to/a/resource"})
     ].
 
 rm_prefix_tesst_() ->
