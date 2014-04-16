@@ -57,3 +57,7 @@ Run scripts/testsuite.sh to create sample resources and links.
 
 * [erocci-info@ow2.org](mailto:erocci-info@ow2.org) - Subscribe [here](http://forge.ow2.org/mail/?group_id=429)
 * [erocci-dev@ow2.org](mailto:erocci-dev@ow2.org) - Subscribe [here](http://forge.ow2.org/mail/?group_id=429)
+
+## CI
+
+Visit CI results on http://travis-ci.org/jeanparpaillon/erocci
