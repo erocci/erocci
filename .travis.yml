@@ -1,3 +1,8 @@
+branches:
+  only:
+    - master
+    - next
+  
 language: erlang
 otp_release:
 # Test on all supported releases accepted by the `require_otp_vsn` in rebar.config

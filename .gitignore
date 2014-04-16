@@ -10,4 +10,7 @@ logs/
 src/rendering/occi_scanner.erl
 src/rendering/occi_scanner_json.erl
 test/*.beam
-/doc
+/doc/*.html
+/doc/edoc-info
+/doc/erlang.png
+/doc/stylesheet.css
