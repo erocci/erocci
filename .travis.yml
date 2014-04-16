@@ -11,7 +11,9 @@ otp_release:
   - R15B03
   - R15B02
 
-install: "sudo apt-get install libssl-dev libxml2-dev libexpat1-dev"
+install:
+  - "sudo apt-get install libssl-dev libxml2-dev libexpat1-dev"
+  - "rebar get-deps"
 
 notifications:
   email:
