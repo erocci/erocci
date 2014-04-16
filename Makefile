@@ -1,9 +1,10 @@
 topdir=.
 
 ERL ?= erl
-REBAR=$(topdir)/rebar
+REBAR=$(shell which rebar)
+APP=occi
 
-.PHONY: alll deps clean distclean docs exmpp-deps tests tests-all
+.PHONY: all deps clean distclean doc doc-clean exmpp-deps tests tests-all
 
 all: deps
 	@$(REBAR) compile
@@ -11,7 +12,7 @@ all: deps
 deps:
 	@$(REBAR) get-deps
 
-clean:
+clean: doc-clean
 	find -name '*~' -exec rm {} \;
 	rm -f erl_crash.dump
 	@$(REBAR) clean
@@ -19,8 +20,11 @@ clean:
 distclean: clean
 	@$(REBAR) delete-deps
 
-docs:
-	@erl -noshell -run edoc_run application '$(APP)' '"."' '[]'
+doc:
+	@$(REBAR) skip_deps=true doc
+
+doc-clean:
+	rm -f doc/*.html doc/edoc-info doc/erlang.png doc/stylesheet.css
 
 tests:
 	@$(REBAR) eunit recursive=false skip_deps=true

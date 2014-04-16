@@ -9,6 +9,8 @@ erocci is a framework for building OCCI like API, with the following objectives:
   * backends: storage (Mnesia, etc.), "procci" to other APIs
 * small and heavily tested
 
+[Travis-CI](http://travis-ci.org/jeanparpaillon/erocci) :: ![Travis-CI](https://secure.travis-ci.org/jeanparpaillon/erocci.png)
+
 ## Architecture
 
 <img src="https://raw.github.com/jeanparpaillon/erocci/master/doc/erocci.png" alt="erocci Architectrue diagram" />
