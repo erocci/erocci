@@ -4,17 +4,18 @@ branches:
     - next
   
 language: erlang
-otp_release:
+# Let discover with rebar.config
+#otp_release:
 # Test on all supported releases accepted by the `require_otp_vsn` in rebar.config
-  - 17.0
-  - R16B03-1
-# - R16B03 this version is broken!
-  - R16B02
-  - R16B01
-  - R16B
-# - R15B03-1 not available on travis
-  - R15B03
-  - R15B02
+#  - 17.0
+#  - R16B03-1
+#  - R16B03 this version is broken!
+#  - R16B02
+#  - R16B01
+#  - R16B
+#  - R15B03-1 not available on travis
+#  - R15B03
+#  - R15B02
 
 install:
   - "sudo apt-get install libssl-dev libxml2-dev libexpat1-dev"
