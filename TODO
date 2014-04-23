@@ -1,8 +1,4 @@
-# Resources with inline links: 
+# Move OCCI schemas declaration to backends
 
-## Create resources with links with user mixins (check all renderings)
-## Check rendering of resources with inline links
-
-# Mixin association
-
-## Handle depends and applies
+Storage backends (like mnesia) are generic and then can get schema
+from user, but this is special case.
