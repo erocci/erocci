@@ -80,6 +80,8 @@ register({Ref, Mod, Opts, [ $/ | Path ]}) ->
 	{ok, Pid} ->
 	    add_backend(Mp),
 	    {ok, Pid};
+	{error, {already_started, Pid}} ->
+	    {ok, Pid};
 	{error, Err} ->
 	    {error, Err}
     end;

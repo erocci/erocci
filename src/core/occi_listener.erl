@@ -67,6 +67,8 @@ register({Ref, Module, Opts}) ->
     case supervisor:start_child(?SUPERVISOR, ChildSpec) of
 	{ok, Pid} ->
 	    {ok, Pid};
+	{error, {already_started, Pid}} ->
+	    {ok, Pid};
 	{error, Err} ->
 	    throw({error, Err})
     end.

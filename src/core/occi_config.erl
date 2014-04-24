@@ -38,7 +38,7 @@
 start() ->
     lager:info("Starting OCCI config manager"),
     ?TABLE = ets:new(?TABLE, [set, public, {keypos, 1}, named_table]),
-    ok.
+    load([]).
 
 %%% @doc Config is a proplist, which can be overriden by application env
 -spec load(list()) -> ok.
