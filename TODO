@@ -2,3 +2,8 @@
 
 Storage backends (like mnesia) are generic and then can get schema
 from user, but this is special case.
+
+# Backend/store:
+ Optimize multiple backend requests: backends declare their
+ categories, so store could be able to know which backend needs to be
+ requested.
