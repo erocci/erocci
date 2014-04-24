@@ -20,26 +20,15 @@
 
 start() ->
     application:start(occi),
-    Mapping = [
-	       {"http://schemas.ogf.org/occi/infrastructure#compute", "/store/compute/"},
-	       {"http://schemas.ogf.org/occi/infrastructure#storage", "/store/storage/"},
-	       {#occi_cid{scheme=?SCHEME_INFRA, term='storagelink', class=kind}, "/store/storagelink/"},
-	       {#occi_cid{scheme=?SCHEME_INFRA, term='network', class=kind}, "/store/network/"},
-	       {#occi_cid{scheme=?SCHEME_INFRA, term='networkinterface', class=kind}, "/store/networkinterface/"},
-	       {#occi_cid{scheme=?SCHEME_NET, term='ipnetwork', class=mixin}, "/store/ipnetwork/"},
-	       {#occi_cid{scheme=?SCHEME_NET_IF, term='ipnetworkinterface', class=mixin}, "/store/ipnetworkinterface/"},
-	       {#occi_cid{scheme=?SCHEME_INFRA, term='os_tpl', class=mixin}, "/store/os_tpl/"},
-	       {#occi_cid{scheme=?SCHEME_INFRA, term='resource_tpl', class=mixin}, "/store/resource_tpl/"}
-	      ],
-    Extensions = {extensions, {[{xml, "schemas/occi-infrastructure.xml"}], Mapping}},
+    Schemas = {schemas, [{xml, "schemas/occi-infrastructure.xml"}]},
     Backends = {backends, 
 		[{dummy1, occi_backend_dummy, [], "/"},
-		 {mnesia, occi_backend_mnesia, [], "/store"},
+		 {mnesia, occi_backend_mnesia, [Schemas], "/store"},
 		 {dummy2, occi_backend_dummy, [], "/dummy1/with/a/long/path"},
 		 {dummy3, occi_backend_dummy, [], "/dummy2"}]},
     Handlers = {handlers, 
 		[{pid, self()}]},
-    occi:config([Extensions, Backends, Handlers]),
+    occi:config([Backends, Handlers]),
     register(?MODULE, self()),
     loop().
 

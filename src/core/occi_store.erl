@@ -72,9 +72,9 @@ start_link() ->
 -spec register(backend_desc()) -> {ok, pid()} | ignore | {error, term()}.
 register({Ref, Mod, Opts, [ $/ | Path ]}) ->
     lager:info("Registering backend: ~p~n", [Ref]),
-    Mp = occi_node:new(occi_uri:parse([$/ | Path]), 
-		       #occi_backend{ref=Ref, mod=Mod, opts=Opts}),
-    Def = {Ref, {occi_backend, start_link, [Mp, Opts]}, 
+    Backend = #occi_backend{ref=Ref, mod=Mod, opts=Opts},
+    Mp = occi_node:new(occi_uri:parse([$/ | Path]), Backend),
+    Def = {Ref, {occi_backend, start_link, [Backend]}, 
 	   permanent, 5000, worker, [occi_backend, Mod]},
     case supervisor:start_child(occi_store, Def) of
 	{ok, Pid} ->

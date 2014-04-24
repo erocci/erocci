@@ -1,7 +1,20 @@
 %%% @author Jean Parpaillon <jean.parpaillon@free.fr>
 %%% @copyright (C) 2014, Jean Parpaillon
-%%% @doc
+%%% @doc Config has 2 sources:
+%%%  - application env
+%%%  - load/1 arg
+%%% Application env override load/1 env
 %%%
+%%% Config properties:
+%%%  - backends: a list of backends, loaded with occi_store:register/1
+%%%  - name: base URI of the server. Normally, listeners are responsible for discovering name 
+%%%          (e.g.: http://localhost:8080)
+%%%  - listeners: a list of listeners, loaded with occi_listener:register/1.
+%%%  - backend_timeout: timeout after which a backend is considered dead. Default to 5000 (ms)
+%%%  - categories_map: a function for mapping category id (occi_cid()) to an URI. Default to 
+%%%                    occi_category_mgr:hash/1
+%%%
+%%% All other properties are stored in the config manager and accessible with get/1 and get/2.
 %%% @end
 %%% Created : 20 Jan 2014 by Jean Parpaillon <jean.parpaillon@free.fr>
 
@@ -66,24 +79,38 @@ gen_id(Prefix) when is_list(Prefix) ->
 %%%
 setup(Props) ->
     lager:debug("setup(~p)~n", [Props]),
-    case proplists:get_value(extensions, Props) of
-	undefined -> ok;
-	{Ext, Map} -> load_extensions(Ext, Map)
+    P2 = case proplists:get_value(categories_map, Props) of
+	     undefined ->
+		 ets:insert(?TABLE, {categories_map, {occi_category_mgr, hash}}),
+		 Props;
+	     {Mod, Fun} ->
+		 case erlang:function_exported(Mod, Fun, 1) of
+		     true -> 
+			 ets:insert(?TABLE, {categories_map, {Mod, Fun}}),
+			 proplists:delete(categories_map, Props);
+		     false -> 
+			 throw({error, {invalid_conf, categories_map}})
+		 end
+	 end,
+    P3 = case proplists:get_value(backends, P2) of
+	undefined -> P2;
+	Backends -> 
+		 load_backends(Backends),
+		 proplists:delete(backends, P2)
     end,
-    case proplists:get_value(backends, Props) of
-	undefined -> ok;	    
-	Backends -> load_backends(Backends)
-    end,
-    case proplists:get_value(listeners, Props) of
-	undefined -> ok;
-	Listeners -> load_listeners(Listeners)
-    end,
-    case proplists:get_value(name, Props) of
-	undefined -> ok;
-	Name ->
-	    ets:insert(?TABLE, {name, occi_uri:parse(Name)})
-    end,
-    case proplists:get_value(backend_timeout, Props, 5000) of
+    P4 = case proplists:get_value(name, P3) of
+	     undefined -> P3;
+	     Name ->
+		 ets:insert(?TABLE, {name, occi_uri:parse(Name)}),
+		 proplists:delete(name, P3)
+	 end,
+    P5 = case proplists:get_value(listeners, P4) of
+	     undefined -> P4;
+	     Listeners -> 
+		 load_listeners(Listeners),
+		 proplists:delete(listeners, P4)
+	 end,
+    case proplists:get_value(backend_timeout, P5, 5000) of
 	5000 -> 
 	    ets:insert(?TABLE, {backend_timeout, 5000});
 	V when is_integer(V) ->
@@ -91,20 +118,19 @@ setup(Props) ->
 	V when is_list(V) ->
 	    ets:insert(?TABLE, {backend_timeout, list_to_integer(V)})
     end,
-    case proplists:get_value(handlers, Props) of
-	undefined -> ok;
-	Handlers -> load_handlers(Handlers)
-    end.
+    P6 = proplists:delete(backend_timeout, P5),
+    P7 = case proplists:get_value(handlers, P6) of
+	     undefined -> P6;
+	     Handlers -> 
+		 load_handlers(Handlers),
+		 proplists:delete(handlers, P6)
+	 end,
+    store(P7).
 
-load_extensions([], _) ->
-    ok;
-load_extensions([E|Extensions], Mapping) ->
-    case occi_category_mgr:register_extension(E, Mapping) of
-	ok ->
-	    load_extensions(Extensions, Mapping);
-	{error, Err} ->
-	    throw({error, Err})
-    end.
+store(Props) ->
+    lists:foreach(fun (Key) ->
+			  ets:insert(?TABLE, {Key, proplists:get_value(Key, Props)})
+		  end, proplists:get_keys(Props)).
 
 load_backends([]) ->
     ok;

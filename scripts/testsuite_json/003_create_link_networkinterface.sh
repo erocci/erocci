@@ -2,8 +2,8 @@
 
 . $(dirname $0)/../testenv.sh
 
-source=$(curl -s -H "accept: text/uri-list" ${occi_srv}/store/compute/ | head -1)
-target=$(curl -s -H "accept: text/uri-list" ${occi_srv}/store/network/ | head -1)
+source=$(curl -s -H "accept: text/uri-list" ${occi_srv}/collections/compute/ | head -1)
+target=$(curl -s -H "accept: text/uri-list" ${occi_srv}/collections/network/ | head -1)
 
 id=/store/mylinks/json/networkinterfaces/$(uuidgen)
 content=$(cat <<EOF

@@ -2,7 +2,7 @@
 
 . $(dirname $0)/../testenv.sh
 
-target=$(curl -s -H "accept: text/uri-list" ${occi_srv}/store/network/ | head -1)
+target=$(curl -s -H "accept: text/uri-list" ${occi_srv}/collections/network/ | head -1)
 
 id=/store/myresources/xml/compute/$(uuidgen)
 linkid=$(uuidgen)

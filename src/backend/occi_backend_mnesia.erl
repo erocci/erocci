@@ -27,7 +27,7 @@
 -include("occi.hrl").
 
 %% occi_backend callbacks
--export([init/2,
+-export([init/1,
 	 terminate/1]).
 -export([update/2,
 	 save/2,
@@ -41,7 +41,19 @@
 %%%===================================================================
 %%% occi_backend callbacks
 %%%===================================================================
-init(_, _) ->
+init(#occi_backend{ref=Ref, opts=Opts}) ->
+    init_db(),
+    case proplists:get_value(schemas, Opts) of
+	undefined -> ok;
+	Schemas ->
+	    case occi_category_mgr:load_schemas(Ref, Schemas) of
+		ok -> ok;
+		{error, Err} -> throw({error, Err})
+	    end
+    end,
+    {ok, #state{}}.
+
+init_db() ->
     case mnesia:system_info(extra_db_nodes) of
 	[] ->
 	    mnesia:create_schema([node()]);
@@ -65,8 +77,7 @@ init(_, _) ->
 		       [{disc_copies, [node()]},
 			{attributes, record_info(fields, occi_node)}]),
     mnesia:wait_for_tables([occi_collection, occi_resource, occi_link, occi_mixin, occi_node],
-			   infinite),
-    {ok, #state{}}.
+			   infinite).
 
 terminate(#state{}) ->
     ok.
