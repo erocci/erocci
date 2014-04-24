@@ -110,7 +110,7 @@ get_title(#occi_link{title=Title}) ->
 set_title(#occi_link{}=Res, Title) when is_binary(Title) ->
     Res#occi_link{title=Title}.
 
--spec get_mixins(occi_link()) -> set().
+-spec get_mixins(occi_link()) -> sets:set().
 get_mixins(#occi_link{mixins=undefined}) ->
     sets:new();
 get_mixins(#occi_link{mixins=Mixins}) ->

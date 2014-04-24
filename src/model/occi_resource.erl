@@ -114,7 +114,7 @@ get_title(#occi_resource{title=Title}) ->
 set_title(#occi_resource{}=Res, Title) when is_binary(Title) ->
     Res#occi_resource{title=Title}.
 
--spec get_mixins(occi_resource()) -> set().
+-spec get_mixins(occi_resource()) -> sets:set().
 get_mixins(#occi_resource{mixins=undefined}) ->
     sets:new();
 get_mixins(#occi_resource{mixins=Mixins}) ->
