@@ -144,7 +144,8 @@ find_all() ->
 %% @end
 %%--------------------------------------------------------------------
 hash(Cid) ->
-    hash1(Cid, 0).
+    Prefix = occi_config:get(categories_prefix, "/collections"),
+    hash1(Cid, Prefix, 0).
 
 %%%===================================================================
 %%% Supervisor callbacks
@@ -176,19 +177,19 @@ get_uri(Id) ->
     {M, F} = occi_config:get(categories_map),
     M:F(Id).
 
-hash1(#occi_cid{term=Term}=Cid, 0) ->
-    U = #uri{path=lists:flatten(io_lib:format("/collections/~s/", [atom_to_list(Term)]))},
+hash1(#occi_cid{term=Term}=Cid, Prefix, 0) ->
+    U = #uri{path=lists:flatten(io_lib:format("~s/~s/", [Prefix, atom_to_list(Term)]))},
     case find(U) of
 	[] -> U;
 	_ ->
 	    % Conflict !
-	    hash1(Cid, 1)
+	    hash1(Cid, Prefix, 1)
     end;
-hash1(#occi_cid{term=Term}=Cid, I) ->
-    U = #uri{path=lists:flatten(io_lib:format("/collections/~s~.b/", [atom_to_list(Term), I]))},
+hash1(#occi_cid{term=Term}=Cid, Prefix, I) ->
+    U = #uri{path=lists:flatten(io_lib:format("~s/~s~.b/", [Prefix, atom_to_list(Term), I]))},
     case find(U) of
 	[] -> U;
 	_ ->
 	    % Conflict !
-	    hash1(Cid, I+1)
+	    hash1(Cid, Prefix, I+1)
     end.    

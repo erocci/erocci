@@ -13,6 +13,8 @@
 %%%  - backend_timeout: timeout after which a backend is considered dead. Default to 5000 (ms)
 %%%  - categories_map: a function for mapping category id (occi_cid()) to an URI. Default to 
 %%%                    occi_category_mgr:hash/1
+%%%  - categories_prefix: prefix for collections, for the occi_category_mgr:hash/1 function. 
+%%%                       Default: /collections
 %%%
 %%% All other properties are stored in the config manager and accessible with get/1 and get/2.
 %%% @end
@@ -92,11 +94,19 @@ setup(Props) ->
 			 throw({error, {invalid_conf, categories_map}})
 		 end
 	 end,
-    P3 = case proplists:get_value(backends, P2) of
-	undefined -> P2;
+    P21 = case proplists:get_value(categories_prefix, P2) of
+	      undefined -> P2;
+	      [$/ | Prefix ] ->
+		  ets:insert(?TABLE, {categories_prefix, [$/ | Prefix]}),
+		  proplists:delete(categories_prefix, P2);
+	      _ ->
+		  throw({error, {invalid_conf, categories_prefix}})
+	  end,
+    P3 = case proplists:get_value(backends, P21) of
+	undefined -> P21;
 	Backends -> 
 		 load_backends(Backends),
-		 proplists:delete(backends, P2)
+		 proplists:delete(backends, P21)
     end,
     P4 = case proplists:get_value(name, P3) of
 	     undefined -> P3;
