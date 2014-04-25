@@ -1,25 +1,24 @@
-#!/bin/bash
+#!/bin/bash -x
 cd `dirname $0`
-export MNESIA_DIR="$HOME/.occi/"
 
-tempdir=$(mktemp -d)
-config=$tempdir/hello_occi.config
+usage() {
+    echo "Usage: $0 [-d] [-s] [-x <jid>] [-c <config>] [-h]"
+    echo -e "\t-d           Print debug messages"
+    echo -e "\t-s           Start HTTPS listener (default: HTTP)"
+    echo -e "\t-x <jid>     Start XMPP listener with given JID"
+    echo -e "\t-c <config>  Set alternate config file (default: example.config)"
+    echo -e "\t-h           Print this help"
+}
 
-ssldir=examples/hello_occi/priv/ssl
+ssldir=priv/ssl
 cacertfile=$ssldir/cowboy-ca.crt
 certfile=$ssldir/server.crt
 keyfile=$ssldir/server.key
 
-_exit()
-{
-    rm -rf $tempdir
-}
-
-trap _exit EXIT
-
 debug=info
+config=priv/example.config
 listener="{http, occi_http, [{port, 8080}]}"
-while getopts ":dsx:" opt; do
+while getopts ":hdsc:x:" opt; do
     case $opt in
 	d)
 	    debug=debug
@@ -30,7 +29,16 @@ while getopts ":dsx:" opt; do
 	x)
 	    jid=$OPTARG
 	    ;;
+	c)
+	    config=$OPTARG
+	    ;;
+	h)
+	    usage
+	    exit 0
+	    ;;
 	*)
+	    usage
+	    exit 1
 	    ;;
     esac
 done
@@ -40,30 +48,26 @@ if [ -n "$jid" ]; then
     listener="{xmppc, occi_xmpp_client, [{jid, \"$jid\"}, {passwd, \"$passwd\"}]}"
 fi
 
-cat <<EOF > $config
-[
- {lager, [
-   {colored, true},
-   {handlers, [
-     {lager_console_backend, $debug}
-    ]}
-  ]},
- {occi, [
-    {listeners, [$listener]}
-  ]}
-].
-EOF
-
 if [ -d $PWD/deps ]; then
     depsbin=$PWD/deps
 else
     depsbin=$PWD/..
 fi
 
+case $debug in
+    debug)
+	debug_app="-s reloader"
+	;;
+    *)
+	debug_app=
+	;;
+esac
+
 exec erl -pa $PWD/ebin \
     $depsbin/*/ebin \
     -boot start_sasl \
     -config $config \
     -kernel error_logger silent \
-    -s reloader \
-    -s hello_occi
+    -lager handlers "[{lager_console_backend, $debug}]" \
+    -occi listeners "[$listener]" \
+    $debug_app -s occi

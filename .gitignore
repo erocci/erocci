@@ -3,10 +3,8 @@ erl_crash.dump
 ebin
 .eunit
 deps/
-priv/
 Mnesia.nonode@nohost/
-log/
-logs/
+/log/
 src/rendering/occi_scanner.erl
 src/rendering/occi_scanner_json.erl
 test/*.beam
