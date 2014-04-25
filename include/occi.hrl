@@ -29,7 +29,7 @@
 -type(occi_extension() :: #occi_extension{}).
 
 -record(occi_collection, {cid                    :: occi_cid(),
-			  entities  = undefined  :: ordsets:ordset()}).    % ordset
+			  entities  = undefined  :: term()}). % ordset()
 -type(occi_collection() :: #occi_collection{}).
 
 %%% OCCI Category ID
@@ -42,8 +42,8 @@
 		    title               :: binary(),
 		    location            :: uri(),
 		    parent              :: #occi_cid{},
-		    attributes          :: orddict:orddict(),
-		    actions             :: orddict:orddict()
+		    attributes          :: term(), % orddict()
+		    actions             :: term()  % orddict()
 		   }).
 -type(occi_kind() :: #occi_kind{}).
 
@@ -52,8 +52,8 @@
 		     location    = undefined :: uri(),
 		     depends     = []        :: [#occi_cid{}],
 		     applies     = []        :: [#occi_cid{}],
-		     attributes              :: orddict:orddict(),
-		     actions                 :: orddict:orddict(),
+		     attributes              :: term(), % orddict()
+		     actions                 :: term(), % orddict()
 		     user        = false     :: boolean()
 		    }).
 -type(occi_mixin() :: #occi_mixin{}).
@@ -63,7 +63,7 @@
 -record(occi_action, {id                        :: #occi_cid{},
 		      title                     :: binary(),
 		      location    = undefined   :: uri(),
-		      attributes                :: orddict:orddict()
+		      attributes                :: term() % orddict()
 		     }).
 -type(occi_action() :: #occi_action{}).
 
@@ -82,20 +82,20 @@
 			cid        = undefined :: occi_cid(),
 			title      = undefined :: binary(),
 		        summary    = undefined :: binary(),
-			attributes = undefined :: orddict:orddict(),
-			links                  :: sets:set(),
-			mixins     = undefined :: sets:set()}).
+			attributes = undefined :: term(),       % orddict()
+			links                  :: term(),       % set()
+			mixins     = undefined :: term()}).     % set()
 -type(occi_resource() :: #occi_resource{}).
 
 %%% OCCI Link
 -record(occi_link, {id         = undefined :: uri(),
 		    cid        = undefined :: occi_cid(),
 		    title      = undefined :: binary(),
-		    attributes = undefined :: orddict:orddict(),
+		    attributes = undefined :: term(),           % orddict()
 		    source                 :: uri(),
 		    target                 :: uri(),
 		    target_cid = undefined :: occi_cid(),
-		    mixins     = undefined :: sets:set()}).
+		    mixins     = undefined :: term()}).         % set()
 -type(occi_link() :: #occi_link{}).
 
 %%% OCCI Entity
