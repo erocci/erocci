@@ -80,47 +80,90 @@ gen_id(Prefix) when is_list(Prefix) ->
 %%% Private
 %%%
 setup(Props) ->
-    lager:debug("setup(~p)~n", [Props]),
-    P2 = case proplists:get_value(categories_map, Props) of
-	     undefined ->
-		 ets:insert(?TABLE, {categories_map, {occi_category_mgr, hash}}),
-		 Props;
-	     {Mod, Fun} ->
-		 case erlang:function_exported(Mod, Fun, 1) of
-		     true -> 
-			 ets:insert(?TABLE, {categories_map, {Mod, Fun}}),
-			 proplists:delete(categories_map, Props);
-		     false -> 
-			 throw({error, {invalid_conf, categories_map}})
-		 end
-	 end,
-    P21 = case proplists:get_value(categories_prefix, P2) of
-	      undefined -> P2;
-	      [$/ | Prefix ] ->
-		  ets:insert(?TABLE, {categories_prefix, [$/ | Prefix]}),
-		  proplists:delete(categories_prefix, P2);
-	      _ ->
-		  throw({error, {invalid_conf, categories_prefix}})
-	  end,
-    P3 = case proplists:get_value(backends, P21) of
-	undefined -> P21;
-	Backends -> 
-		 load_backends(Backends),
-		 proplists:delete(backends, P21)
-    end,
-    P4 = case proplists:get_value(name, P3) of
-	     undefined -> P3;
-	     Name ->
-		 ets:insert(?TABLE, {name, occi_uri:parse(Name)}),
-		 proplists:delete(name, P3)
-	 end,
-    P5 = case proplists:get_value(listeners, P4) of
-	     undefined -> P4;
-	     Listeners -> 
-		 load_listeners(Listeners),
-		 proplists:delete(listeners, P4)
-	 end,
-    case proplists:get_value(backend_timeout, P5, 5000) of
+    P2 = opt_categories_map(Props),
+    P3 = opt_categories_prefix(P2),
+    P4 = opt_backends(P3),
+    P5 = opt_name(P4),
+    P6 = opt_listeners(P5),
+    P7 = opt_backend_timeout(P6),
+    P8 = opt_handlers(P7),
+    opt_store(P8).
+
+%%%
+%%% Option handlers
+%%%
+
+opt_categories_map(Props) ->
+    case proplists:get_value(categories_map, Props) of
+	undefined ->
+	    ets:insert(?TABLE, {categories_map, {occi_category_mgr, hash}}),
+	    Props;
+	{Mod, Fun} ->
+	    case erlang:function_exported(Mod, Fun, 1) of
+		true -> 
+		    ets:insert(?TABLE, {categories_map, {Mod, Fun}}),
+		    proplists:delete(categories_map, Props);
+		false -> 
+		    throw({error, {invalid_conf, categories_map}})
+	    end
+    end.
+
+opt_categories_prefix(Props) ->
+    case proplists:get_value(categories_prefix, Props) of
+	undefined -> Props;
+	[$/ | Prefix ] ->
+	    ets:insert(?TABLE, {categories_prefix, [$/ | Prefix]}),
+	    proplists:delete(categories_prefix, Props);
+	_ ->
+	    throw({error, {invalid_conf, categories_prefix}})
+    end.
+
+opt_backends(Props) ->
+    case proplists:get_value(backends, Props) of
+	undefined -> Props;
+	Backends ->
+	    F = fun ([], _) ->
+			ok;
+		    ([B|Tail], Fun) ->
+			case occi_store:register(B) of
+			    {ok, _Pid} ->
+				Fun(Tail, Fun);
+			    {error, Err} ->
+				throw({error, Err})
+			end
+		end,
+	    F(Backends, F),
+	    proplists:delete(backends, Props)
+    end.
+
+opt_name(Props) ->
+    case proplists:get_value(name, Props) of
+	undefined -> Props;
+	Name ->
+	    ets:insert(?TABLE, {name, occi_uri:parse(Name)}),
+	    proplists:delete(name, Props)
+    end.
+
+opt_listeners(Props) ->
+    case proplists:get_value(listeners, Props) of
+	undefined -> Props;
+	Listeners -> 
+	    F = fun ([], _) ->
+			ok;
+		    ([L|Tail], Fun) ->
+			case occi_listener:register(L) of
+			    {ok, _Pid} ->
+				Fun(Tail, Fun);
+			    {error, Err} ->
+				{error, Err}
+			end
+		end,
+	    F(Listeners, F),
+	    proplists:delete(listeners, Props)
+    end.
+
+opt_backend_timeout(Props) ->
+    case proplists:get_value(backend_timeout, Props, 5000) of
 	5000 -> 
 	    ets:insert(?TABLE, {backend_timeout, 5000});
 	V when is_integer(V) ->
@@ -128,46 +171,28 @@ setup(Props) ->
 	V when is_list(V) ->
 	    ets:insert(?TABLE, {backend_timeout, list_to_integer(V)})
     end,
-    P6 = proplists:delete(backend_timeout, P5),
-    P7 = case proplists:get_value(handlers, P6) of
-	     undefined -> P6;
-	     Handlers -> 
-		 load_handlers(Handlers),
-		 proplists:delete(handlers, P6)
-	 end,
-    store(P7).
+    proplists:delete(backend_timeout, Props).
 
-store(Props) ->
+opt_handlers(Props) ->
+    case proplists:get_value(handlers, Props) of
+	undefined -> Props;
+	Handlers -> 
+	    F = fun([], _) ->
+			ok;
+		   ([H|Tail], Fun) ->
+			case occi_hook:register(H) of
+			    ok ->
+				Fun(Tail, Fun);
+			    {error, Err} ->
+				{error, Err}
+			end
+		end,
+	    F(Handlers, F),
+	    proplists:delete(handlers, Props)
+    end.
+
+% All remaining options are stored in the table
+opt_store(Props) ->
     lists:foreach(fun (Key) ->
 			  ets:insert(?TABLE, {Key, proplists:get_value(Key, Props)})
 		  end, proplists:get_keys(Props)).
-
-load_backends([]) ->
-    ok;
-load_backends([B|Backends]) ->
-    case occi_store:register(B) of
-	{ok, _Pid} ->
-	    load_backends(Backends);
-	{error, Err} ->
-	    throw({error, Err})
-    end.
-
-load_listeners([]) ->
-    ok;
-load_listeners([L|Listeners]) ->
-    case occi_listener:register(L) of
-	{ok, _Pid} ->
-	    load_listeners(Listeners);
-	{error, Err} ->
-	    {error, Err}
-    end.
-
-load_handlers([]) ->
-    ok;
-load_handlers([H|Handlers]) ->
-    case occi_hook:register(H) of
-	ok ->
-	    load_handlers(Handlers);
-	{error, Err} ->
-	    {error, Err}
-    end.
