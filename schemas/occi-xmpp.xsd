@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema targetNamespace="http://schemas.ogf.org/occi-xmpp"
+	   elementFormDefault="qualified" version="0.1"
+	   xmlns:xs="http://www.w3.org/2001/XMLSchema"
+	   xmlns:xl="http://www.w3.org/2008/06/xlink"
+	   xmlns:occi="http://schemas.ogf.org/occi"
+	   xmlns="http://schemas.ogf.org/occi-xmpp">
+  
+  <xs:import schemaLocation="occi.xsd"
+	     namespace="http://schemas.ogf.org/occi"></xs:import>
+  
+  <xs:annotation>
+    <xs:documentation xml:lang="en">
+      Schema for OCCI over XMPP iq messages
+    </xs:documentation>
+  </xs:annotation>
+
+  <xs:element name="query" type="queryType" ></xs:element>
+
+  <xs:complexType name="queryType" >
+    <xs:sequence>
+      <!-- TODO: extend xmpp iq -->
+      <xs:anyElement />
+    </xs:sequence>
+    <xs:attribute name="node" type="xs:anyURI" />
+    <xs:attribute name="type" default="entity" >
+      <xs:restriction base="xs:string" >
+	<xs:enumeration value="caps" />
+	<xs:enumeration value="col" />
+	<xs:enumeration value="entity" />
+	<xs:enumeration value="action" />
+      </xs:restriction>
+    </xs:attribute>
+    <xs:attribute name="op" default="save" >
+      <xs:restriction base="xs:string" >
+	<xs:enumeration value="save" />
+	<xs:enumeration value="update" />
+	<xs:enumeration value="delete" />
+      </xs:restriction>
+    </xs:attribute>
+  </xs:complexType>
+  
+</xs:schema>
