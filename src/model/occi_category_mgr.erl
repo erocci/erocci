@@ -26,10 +26,8 @@
 
 -include("occi.hrl").
 
--behaviour(supervisor).
-
 %% API
--export([start_link/0,
+-export([init/0,
 	 hash/1]).
 -export([find/1,
 	 find_all/0,
@@ -38,25 +36,17 @@
 	 register_mixin/1,
 	 register_action/1]).
 
-%% Supervisor callbacks
--export([init/1]).
-
--define(SERVER, ?MODULE).
 -define(CAT_TBL, ?MODULE).
 
 %%%===================================================================
 %%% API functions
 %%%===================================================================
-
-%%--------------------------------------------------------------------
-%% @doc
-%% Starts the supervisor
-%%
-%% @spec start_link() -> {ok, Pid} | ignore | {error, Error}
-%% @end
-%%--------------------------------------------------------------------
-start_link() ->
-    supervisor:start_link({local, ?SERVER}, ?MODULE, []).
+-spec init() -> ok.
+init() ->
+    lager:info("Starting OCCI categories manager"),
+    ?CAT_TBL = ets:new(?CAT_TBL, 
+		       [ordered_set, public, {keypos, 2}, named_table, {read_concurrency, true}]),
+    ok.
 
 -spec load_schemas(Backend :: atom(), Schemas :: list()) -> ok | {error, term()}.
 load_schemas(_, []) ->
@@ -146,29 +136,6 @@ find_all() ->
 hash(Cid) ->
     Prefix = occi_config:get(categories_prefix, "/collections"),
     hash1(Cid, Prefix, 0).
-
-%%%===================================================================
-%%% Supervisor callbacks
-%%%===================================================================
-
-%%--------------------------------------------------------------------
-%% @private
-%% @doc
-%% Whenever a supervisor is started using supervisor:start_link/[2,3],
-%% this function is called by the new process to find out about
-%% restart strategy, maximum restart frequency and child
-%% specifications.
-%%
-%% @spec init(Args) -> {ok, {SupFlags, [ChildSpec]}} |
-%%                     ignore |
-%%                     {error, Reason}
-%% @end
-%%--------------------------------------------------------------------
-init([]) ->
-    lager:info("Starting OCCI categories manager"),
-    ?CAT_TBL = ets:new(?CAT_TBL, 
-		       [ordered_set, public, {keypos, 2}, named_table, {read_concurrency, true}]),
-    {ok, {{one_for_one, 10, 10}, []}}.
 
 %%%===================================================================
 %%% Internal functions

@@ -59,6 +59,7 @@ start(normal, _Args) ->
     ensure_started(inets),
     ensure_started(erim),
     Ret = occi_sup:start_link(),
+    occi_category_mgr:init(),
     occi_config:start(),
     start(),
     Ret;
