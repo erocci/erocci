@@ -1,3 +1,9 @@
+0.5 Jean Parpaillon <jean.parpaillon@free.fr>
+	* Basic XMPP transport ok: CRUD operations
+	* 0-code mode: framework can be run with only config file. See start.sh script
+
+	-- 2014-04-30 18:10:00 +0100
+
 0.4 Jean Parpaillon <jean.parpaillon@free.fr>
 	* New protocol (beta): XMPP. Example with start.sh -x <jid>
 	* Update to new xmpp lib, erim
