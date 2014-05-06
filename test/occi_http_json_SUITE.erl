@@ -15,11 +15,6 @@
 
 -include("occi.hrl").
 
--define(BASE, <<"http://localhost:8080">>).
--define(SCHEME_INFRA, 'http://schemas.ogf.org/occi/infrastructure#').
--define(SCHEME_NET, 'http://schemas.ogf.org/occi/infrastructure/network#').
--define(SCHEME_NET_IF, 'http://schemas.ogf.org/occi/infrastructure/networkinterface#').
-
 %%--------------------------------------------------------------------
 %% @spec suite() -> Info
 %% Info = [tuple()]
@@ -37,30 +32,14 @@ suite() ->
 %%--------------------------------------------------------------------
 init_per_suite(Config) ->
     application:start(occi),
-    DataDir = proplists:lookup(data_dir, Config),
-    Mapping = [
-	       {#occi_cid{scheme=?SCHEME_INFRA, term='compute', class=kind}, "/compute/"},
-	       {#occi_cid{scheme=?SCHEME_INFRA, term='storage', class=kind}, "/storage/"},
-	       {#occi_cid{scheme=?SCHEME_INFRA, term='storagelink', class=kind}, "/storagelink/"},
-	       {#occi_cid{scheme=?SCHEME_INFRA, term='network', class=kind}, "/network/"},
-	       {#occi_cid{scheme=?SCHEME_INFRA, term='networkinterface', class=kind}, "/networkinterface/"},
-	       {#occi_cid{scheme=?SCHEME_NET, term='ipnetwork', class=mixin}, "/ipnetwork/"},
-	       {#occi_cid{scheme=?SCHEME_NET_IF, term='ipnetworkinterface', class=mixin}, "/ipnetworkinterface/"},
-	       {#occi_cid{scheme=?SCHEME_INFRA, term='os_tpl', class=mixin}, "/os_tpl/"},
-	       {#occi_cid{scheme=?SCHEME_INFRA, term='resource_tpl', class=mixin}, "/resource_tpl/"}
-	      ],
-    Extensions = {extensions,
-		  [{xml, DataDir ++ "/occi-infrastructure.xml"}], 
-		  Mapping},
+    DataDir = proplists:get_value(data_dir, Config),
+    Schemas = {schemas, [{xml, DataDir ++ "occi-infrastructure.xml"}]},
     Backends = {backends, 
-		[{mnesia, occi_backend_mnesia, [], "/"}]},
+		[{mnesia, occi_backend_mnesia, [Schemas], "/"}]},
     Listeners = {listeners, 
 		 [{http, occi_http, [{port, 8080}]}]
 		},
-    occi:config([{name, "http://localhost:8080"},
-		 Extensions, 
-		 Backends,
-		 Listeners]),
+    occi:config([{name, "http://localhost:8080"}, Backends, Listeners]),
     Config.
 
 %%--------------------------------------------------------------------

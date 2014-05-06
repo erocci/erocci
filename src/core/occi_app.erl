@@ -100,5 +100,7 @@ ensure_started(App) ->
         ok ->
             ok;
         {error, {already_started, App}} ->
-            ok
+            ok;
+	{error, Err} ->
+	    throw({error, Err})
     end.
