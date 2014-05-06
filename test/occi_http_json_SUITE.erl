@@ -1,5 +1,6 @@
 %%%-------------------------------------------------------------------
 %%% @author Jean Parpaillon <jean.parpaillon@free.fr>
+%%% @author Lei Zhao <leizhao0515@gmail.com>
 %%% @copyright (C) 2014, Jean Parpaillon
 %%% @doc
 %%%
