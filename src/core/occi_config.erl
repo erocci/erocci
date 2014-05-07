@@ -139,6 +139,7 @@ opt_backends(Props) ->
 opt_name(Props) ->
     case proplists:get_value(name, Props) of
 	undefined -> Props;
+	"" -> proplists:delete(name,Props);
 	Name ->
 	    ets:insert(?TABLE, {name, occi_uri:parse(Name)}),
 	    proplists:delete(name, Props)
