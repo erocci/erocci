@@ -76,5 +76,5 @@ exec erl -pa $PWD/ebin \
     -kernel error_logger silent \
     -lager handlers "[{lager_console_backend, $debug}]" \
     -occi listeners "[$listener]" \
-    -occi name "$name" \
+    -occi name "\"$name\"" \
     $debug_app -s occi
