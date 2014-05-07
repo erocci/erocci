@@ -56,6 +56,7 @@ start(Props) ->
 stop() ->
     ok.
 
+
 % Convenience function for setting CORS headers
 set_cors(Req, Methods) ->
     case cowboy_req:header(<<"origin">>, Req) of
@@ -99,3 +100,11 @@ set_name(Props) ->
 	   end,
     Name = atom_to_list(Scheme)++"://"++Host++":"++integer_to_list(Port),
     occi_config:set(name, occi_uri:parse(Name)).
+
+pattern_name(Props) ->
+    case proplists:get_value(name,Props) of
+	undefined ->
+	    set_name(Props);
+	_Name ->
+	    ok
+    end.
