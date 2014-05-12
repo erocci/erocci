@@ -1,6 +1,6 @@
 export occi_srv=http://localhost:8080
 export occi_jid="user-1@localhost"
-export curl_opts="-s -w %{http_code} -f -o /dev/null "
+export curl_opts="-s -w %{http_code} -f -o /dev/null"
 
 export RED="\033[31;1m"
 export GREEN="\033[32;1m"
@@ -53,7 +53,7 @@ post() {
 
     echo -n "POST ${url}... "
     
-    ret=$(echo -e "${content}" | curl ${curl_opts} -X POST --data-binary @- -H "content-type: ${ct}" ${url})
+    ret=$(echo -e "${content}" | curl ${curl_opts} ${CURL_OPTS} -X POST --data-binary @- -H "content-type: ${ct}" ${url})
     echo -n ${ret}
     if [ "${ret}" = "${expect}" ]; then
 	ok
@@ -70,7 +70,7 @@ put() {
 
     echo -n "PUT ${url}... "
 
-    ret=$(echo -e "${content}" | curl ${curl_opts} -X PUT --data-binary @- -H "content-type: ${ct}" ${url})
+    ret=$(echo -e "${content}" | curl ${curl_opts} ${CURL_OPTS} -X PUT --data-binary @- -H "content-type: ${ct}" ${url})
     echo -n ${ret}
     if [ "${ret}" = "${expect}" ]; then
 	ok
@@ -88,7 +88,7 @@ put_h() {
     echo -n "PUT ${url}... "
     
     ret=$(echo -e "${content}" \
-	  | curl ${curl_opts} -X PUT \
+	  | curl ${curl_opts} ${CURL_OPTS} -X PUT \
 		 -H "content-type: ${ct}" \
 		 $(for line in "${content[@]}"; do echo '-H' "${line}"; done) \
 		 ${url})
@@ -107,7 +107,7 @@ get() {
 
     echo -n "GET ${url}... "
     
-    ret=$(curl ${curl_opts} -H "accept: ${ct}" ${url})
+    ret=$(curl ${curl_opts} ${CURL_OPTS} -H "accept: ${ct}" ${url})
     echo -n ${ret}
     if [ "${ret}" = "${expect}" ]; then
 	ok
@@ -123,12 +123,12 @@ delete() {
     echo -n "DELETE ${url}... "
     
     if [ -z "$3" ]; then
-       ret=$(curl ${curl_opts} -X DELETE ${url})
+       ret=$(curl ${curl_opts} ${CURL_OPTS} -X DELETE ${url})
     else
 	ct=$3
 	content=$4
 	
-	ret=$(echo -e "${content}" | curl ${curl_opts} -X DELETE --data-binary @- -H "content-type: ${ct}" ${url})
+	ret=$(echo -e "${content}" | curl ${curl_opts} ${CURL_OPTS} -X DELETE --data-binary @- -H "content-type: ${ct}" ${url})
     fi
 
     echo -n ${ret}
