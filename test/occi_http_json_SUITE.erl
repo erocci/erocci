@@ -10,6 +10,7 @@
 -module(occi_http_json_SUITE).
 
 -compile(export_all).
+-compile([{parse_transform,lager_transform}]).
 
 -include_lib("common_test/include/ct.hrl").
 
@@ -80,7 +81,8 @@ end_per_group(_GroupName, _Config) ->
 %% Reason = term()
 %% @end
 %%--------------------------------------------------------------------
-init_per_testcase(_TestCase, Config) ->
+init_per_testcase(get_resource, Config) ->
+    
     Config.
 
 %%--------------------------------------------------------------------
@@ -91,7 +93,7 @@ init_per_testcase(_TestCase, Config) ->
 %% Reason = term()
 %% @end
 %%--------------------------------------------------------------------
-end_per_testcase(_TestCase, _Config) ->
+end_per_testcase(get_resource, _Config) ->    
     ok.
 
 %%--------------------------------------------------------------------
@@ -120,39 +122,16 @@ groups() ->
 %%--------------------------------------------------------------------
 all() -> 
     [
-     put_resource_new,
-     put_resource,
-     put_link_new,
-     put_link,
-     put_kind,
-     put_mixin,
-     put_query,
-     put_dir,
-     post_resource_new,
-     post_resource,
-     post_link_new,
-     post_link,
-     post_kind,
-     post_mixin,
-     post_query,
-     post_dir,
-     delete_resource,
-     delete_link,
-     delete_kind,
-     delete_mixin,
-     delete_query,
-     delete_dir,
-     get_resource,
-     get_link,
-     get_kind,
-     get_mixin,
      get_query
-    ].    
+    ].   
+get_resource(_Config) ->
+    ok. 
 
 put_resource_new(_Config) ->
     ok.
 
 put_resource(_Config) ->
+    lager:info("###### Ok  "),
     ok.
 
 put_link_new(_Config) ->
@@ -215,8 +194,7 @@ delete_query(_Config) ->
 delete_dir(_Config) ->
     ok.
 
-get_resource(_Config) ->
-    ok.
+
 
 get_link(_Config) ->
     ok.
@@ -227,5 +205,7 @@ get_kind(_Config) ->
 get_mixin(_Config) ->
     ok.
 
-get_query(_Config) -> 
-    ok.
+get_query(_Config) ->
+    ?assertMatch({ok,{{_Protocol,200,_Status},Headers,_Body}},
+		 httpc:request(get,{"http/::localhost:8080/-/",[{"accept","application/json",{},[],[]}]})),
+    ?assert(lists:member({"content-type","application/json"},Headers)).
