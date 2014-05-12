@@ -1,5 +1,5 @@
-#!/bin/bash -x
-cd `dirname $0`
+#!/bin/bash
+basedir=$(dirname $0)
 
 usage() {
     echo "Usage: $0 [-d] [-s] [-x <jid>] [-c <config>] [-h] [-n <name>]"
@@ -12,14 +12,14 @@ usage() {
 
 }
 
-ssldir=priv/ssl
+ssldir=${basedir}/priv/ssl
 cacertfile=$ssldir/cowboy-ca.crt
 certfile=$ssldir/server.crt
 keyfile=$ssldir/server.key
 
 name=
 debug=info
-config=priv/example.config
+config=${basedir}/priv/example.config
 listener="{http, occi_http, [{port, 8080}]}"
 while getopts ":hdsc:x:n:" opt; do
     case $opt in
@@ -28,6 +28,7 @@ while getopts ":hdsc:x:n:" opt; do
 	    ;;
 	d)
 	    debug=debug
+	    set -x
 	    ;;
 	s)
 	    listener="{https, occi_https, [{port, 8443}, {cacertfile, \"$cacertfile\"}, {certfile, \"$certfile\"}, {keyfile, \"$keyfile\"}]}"
@@ -36,7 +37,7 @@ while getopts ":hdsc:x:n:" opt; do
 	    jid=$OPTARG
 	    ;;
 	c)
-	    config=$OPTARG
+	    config=`pwd`/$OPTARG
 	    ;;
 	h)
 	    usage
@@ -54,10 +55,10 @@ if [ -n "$jid" ]; then
     listener="{xmppc, occi_xmpp_client, [{jid, \"$jid\"}, {passwd, \"$passwd\"}]}"
 fi
 
-if [ -d $PWD/deps ]; then
-    depsbin=$PWD/deps
+if [ -d ${basedir}/deps ]; then
+    depsbin=${basedir}/deps
 else
-    depsbin=$PWD/..
+    depsbin=${basedir}/..
 fi
 
 case $debug in
@@ -69,6 +70,7 @@ case $debug in
 	;;
 esac
 
+cd ${basedir}
 exec erl -pa $PWD/ebin \
     $depsbin/*/ebin \
     -boot start_sasl \
