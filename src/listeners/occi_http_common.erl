@@ -104,9 +104,7 @@ set_name(Props) ->
 pattern_name(Props) ->
     case occi_config:get(name) of
 	undefined ->
-	    lager:debug("### NAME undefined ~n"),
 	    set_name(Props);
 	_Name ->
-	    lager:debug("### NAME defined ~p~n",[_Name]),
 	    ok
     end.

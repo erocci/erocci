@@ -115,7 +115,6 @@ render_ejson(#occi_resource{}=Res) ->
 					    [render_cid_uri(Id)|Acc]
 				    end, [], occi_resource:get_mixins(Res))}
 		,{attributes, render_attribute_values(occi_resource:get_attributes(Res))}
-		,{id, occi_uri:to_binary(occi_resource:get_id(Res))}
 		,{links, lists:map(fun (#uri{}=Link) ->
 					   occi_uri:to_binary(Link);
 				       (#occi_link{}=Link) ->
@@ -129,9 +128,6 @@ render_ejson(#occi_link{}=Link) ->
 					    [render_cid_uri(Id)|Acc]
 				    end, [], occi_link:get_mixins(Link))}
 		,{attributes, render_attribute_values(occi_link:get_attributes(Link))}
-		,{id, occi_uri:to_binary(occi_link:get_id(Link))}
-		,{source, occi_uri:to_binary(occi_link:get_source(Link))}
-		,{target, occi_uri:to_binary(occi_link:get_target(Link))}		
 	       ]);
 
 render_ejson(#occi_cid{}=Cid) ->
@@ -172,6 +168,8 @@ render_attribute_values([#occi_attr{}=Attr|Tail], Acc) ->
     case occi_attribute:get_value(Attr) of
 	undefined ->
 	    render_attribute_values(Tail, Acc);
+	#uri{}=U ->
+	    render_attribute_values(Tail, insert_attr(Id, occi_uri:to_binary(U), Acc));
 	Value when is_list(Value) ->
 	    render_attribute_values(Tail, insert_attr(Id, list_to_binary(Value), Acc));
 	Value ->

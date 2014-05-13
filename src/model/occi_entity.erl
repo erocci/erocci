@@ -33,6 +33,8 @@
 	 set_id/2,
 	 add_mixin/2,
 	 set_attr_value/3]).
+-export([merge_attrs/2,
+	rm_attrs/2]).
 
 -spec new(occi_kind()) -> occi_resource() | occi_link().
 new(#occi_kind{}=Kind) ->
@@ -54,9 +56,9 @@ new(Id, #occi_kind{}=Kind) ->
 
 -spec set_id(occi_resource() | occi_link(), uri()) -> occi_resource() | occi_link().
 set_id(#occi_resource{}=R, Id) ->
-    occi_resource:set_id(R, Id);
+    occi_resource:set_attr_value(R, 'occi.core.id', Id);
 set_id(#occi_link{}=L, Id) ->
-    occi_link:set_id(L, Id).
+    occi_link:set_attr_value(L, 'occi.core.id', Id).
 
 -spec add_mixin(occi_resource() | occi_link(), occi_mixin()) -> occi_resource() | occi_link().
 add_mixin(#occi_resource{}=Res, Mixin) ->
@@ -69,3 +71,17 @@ set_attr_value(#occi_resource{}=Res, Name, Value) ->
     occi_resource:set_attr_value(Res, Name, Value);
 set_attr_value(#occi_link{}=Link, Name, Value) ->
     occi_link:set_attr_value(Link, Name, Value).
+
+merge_attrs(#occi_kind{}=Kind, Attrs) ->
+    orddict:merge(fun (_Key, _Val1, Val2) ->
+			  Val2
+		  end, Attrs, occi_kind:get_attributes(Kind));
+merge_attrs(#occi_mixin{}=Mixin, Attrs) ->
+    orddict:merge(fun (_Key, _Val1, Val2) ->
+			  Val2
+		  end, Attrs, occi_mixin:get_attributes(Mixin)).
+
+rm_attrs(#occi_mixin{attributes=MixinAttrs}, Attrs) ->
+    lists:foldl(fun (Key, Acc) ->
+			orddict:erase(Key, Acc)
+		end, Attrs, orddict:fetch_keys(MixinAttrs)).

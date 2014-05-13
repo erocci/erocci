@@ -80,7 +80,6 @@
 %%% OCCI Resource
 -record(occi_resource, {id         = undefined :: uri(),
 			cid        = undefined :: occi_cid(),
-			title      = undefined :: binary(),
 		        summary    = undefined :: binary(),
 			attributes = undefined :: term(),       % orddict()
 			links                  :: term(),       % set()
@@ -90,7 +89,6 @@
 %%% OCCI Link
 -record(occi_link, {id         = undefined :: uri(),
 		    cid        = undefined :: occi_cid(),
-		    title      = undefined :: binary(),
 		    attributes = undefined :: term(),           % orddict()
 		    source                 :: uri(),
 		    target                 :: uri(),
