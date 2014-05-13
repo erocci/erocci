@@ -123,11 +123,14 @@ render_ejson(#occi_resource{}=Res) ->
 	       ]);
 
 render_ejson(#occi_link{}=Link) ->
+    Attrs = [ occi_link:get_attr(Link, 'occi.core.source'), 
+	      occi_link:get_attr(Link, 'occi.core.target') 
+	      | occi_link:get_attributes(Link)],
     strip_list([{kind, render_cid_uri(occi_link:get_cid(Link))}
 		,{mixins, sets:fold(fun (Id, Acc) ->
 					    [render_cid_uri(Id)|Acc]
 				    end, [], occi_link:get_mixins(Link))}
-		,{attributes, render_attribute_values(occi_link:get_attributes(Link))}
+		,{attributes, render_attribute_values(Attrs)}
 	       ]);
 
 render_ejson(#occi_cid{}=Cid) ->

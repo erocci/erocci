@@ -102,7 +102,10 @@ render_resource(#occi_resource{}=Res, Acc) ->
 render_link(#occi_link{}=Link, Acc) ->
     Acc2 = render_cid(occi_link:get_cid(Link), Acc),
     Acc3 = sets:fold(fun render_cid/2, Acc2, occi_link:get_mixins(Link)),
-    Acc4 = lists:foldl(fun render_attribute/2, Acc3, occi_link:get_attributes(Link)),
+    Attrs = [ occi_link:get_attr(Link, 'occi.core.source'), 
+	      occi_link:get_attr(Link, 'occi.core.target') 
+	      | occi_link:get_attributes(Link)],
+    Acc4 = lists:foldl(fun render_attribute/2, Acc3, Attrs),
     render_location(occi_link:get_id(Link), Acc4).
 
 render_inline_link(#uri{}=Uri, Acc) ->
