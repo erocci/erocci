@@ -93,12 +93,7 @@ content_types_accepted(Req, State) ->
      Req, State}.
 
 allow_missing_post(Req, State) ->
-    case cowboy_req:method(Req) of
-	{<<"POST">>, _} ->
-	    {false, Req, State};
-	{<<"PUT">>, _} ->
-	    {true, Req, State}
-    end.
+    {false, Req, State}.
 
 resource_exists(Req, State) ->
     {Path, _} = cowboy_req:path(Req),
