@@ -1,11 +1,11 @@
 {
     "resources": [
         {
-            "kind": "http://schemas.ogf.org/occi/infrastructure#compute",
+            
             "attributes": {
                 "occi":{
 			"compute":{
-				"speed": 1,
+				"speed": 2,
                   		"memory": 2,
                 		"cores": 1
             		}

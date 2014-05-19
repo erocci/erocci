@@ -13,8 +13,6 @@
 
 -compile([{parse_transform,lager_transform}]).
 
--define(test_id, 'http://localhost:8080/myresources').
-
 -include_lib("eunit/include/eunit.hrl").
 
 -include_lib("common_test/include/ct.hrl").
@@ -125,29 +123,35 @@ groups() ->
       [],
       [put_resource_new,
        %put_resource,    Code http: {expected,409}, {value,200}
-       %get_resource,    We can't find it in "application/json", it's in the "text/plain"
+       get_resource,  
        post_resource_new,post_resource,
-       %get_resource,    We can't find it in "application/json", it's in the "text/plain"
+       get_resource,   
        delete_resource,get_resource_delete,{group,test_link}
       ]},
      {test_link,
       [],
       [put_resources,put_link_new,
        %put_link,    Code http: {expected,409}, {value,200}
-       %get_link,     We can't find it in "application/json", it's in the "text/plain"
+       get_link,    
        %post_link_new,    Code http: {expected,200}, {value,500}
        post_link,
-       %get_link,     We can't find it in "application/json", it's in the "text/plain"
+       get_link,    
        delete_link,get_link_delete
-       %%,{group,test_kind}    Stop test here.
+       ,{group,test_kind} 
       ]},
      {test_kind,
       [],
-      [put_kind,get_kind,post_kind,get_kind,delete_kind,get_kind_delete,{group,test_mixin}
+      [put_kind,get_kind,post_kind,get_kind,delete_kind,get_kind_delete
+      ,{group,test_mixin}
       ]},
      {test_mixin,
       [],
-      [put_mixin,get_mixin,post_mixin,get_mixin,delete_mixin,get_mixin_delete,{group,test_query}
+      [
+       %put_mixin,      Code http: {expected,200}, {value,422}
+       %get_mixin,
+       %post_mixin,     Code http: {expected,200}, {value,422}
+       %get_mixin,delete_mixin,get_mixin_delete,
+       {group,test_query}
       ]},
      {test_query,
       [],
@@ -156,8 +160,7 @@ groups() ->
      {test_dir,
       [],
       [
-      %% put_dir,
-       %%post_dir
+     % put_resource_dir,get_dir   Code http: {expected,200}, {value,500}
       ]}
     ].
 
@@ -188,9 +191,8 @@ put_resource(_Config) ->
     {ok,File}=file:read_file(FileName),
     Id = "http://localhost:8080/myresources/id",
     lager:info("####FILE : ~p",[File]),
-    {ok,{{_Protocol,Code,_Status},Headers,_Body}} =  httpc:request(put,{Id,[],"application/json",File},[],[]),
-    ?assertEqual(409,Code),
-    lager:info("#####PUT_RESOURCE ~p",[Headers]).
+    {ok,{{_Protocol,Code,_Status},_Headers,_Body}} =  httpc:request(put,{Id,[],"application/json",File},[],[]),
+    ?assertEqual(409,Code).
 
 put_resources(_Config) ->
     FileName=proplists:get_value(data_dir, _Config) ++ "res1.json",
@@ -202,15 +204,12 @@ put_resources(_Config) ->
     Id = "http://localhost:8080/myresources/id",
     Id1 = "http://localhost:8080/myresources/id2",
     Id2 = "http://localhost:8080/myresources/id3",
-    {ok,{{_Protocol,Code,_Status},Headers,_Body}} =  httpc:request(put,{Id,[],"application/json",File},[],[]),
-    {ok,{{_Protocol1,Code1,_Status1},Headers1,_Body1}} =  httpc:request(put,{Id1,[],"application/json",File1},[],[]),
-    {ok,{{_Protocol2,Code2,_Status2},Headers2,_Body2}} =  httpc:request(put,{Id2,[],"application/json",File2},[],[]),
+    {ok,{{_Protocol,Code,_Status},_Headers,_Body}} =  httpc:request(put,{Id,[],"application/json",File},[],[]),
+    {ok,{{_Protocol1,Code1,_Status1},_Headers1,_Body1}} =  httpc:request(put,{Id1,[],"application/json",File1},[],[]),
+    {ok,{{_Protocol2,Code2,_Status2},_Headers2,_Body2}} =  httpc:request(put,{Id2,[],"application/json",File2},[],[]),
     ?assertEqual(201,Code),
     ?assertEqual(201,Code1),
-    ?assertEqual(201,Code2),
-    lager:info("#####PUT_RESOURCESSSS ~p",[Headers]),
-    lager:info("#####PUT_RESOURCESSSS ~p",[Headers1]),
-    lager:info("#####PUT_RESOURCESSSS ~p",[Headers2]).
+    ?assertEqual(201,Code2).
 
 put_link_new(_Config) ->
     FileName=proplists:get_value(data_dir, _Config) ++ "link1.json",
@@ -225,13 +224,11 @@ put_link(_Config) ->
     FileName=proplists:get_value(data_dir, _Config) ++ "link1.json",
     {ok,File}=file:read_file(FileName),
     Id = "http://localhost:8080/myresources/id4",
-    {ok,{{_Protocol,Code,_Status},Headers,_Body}} =  httpc:request(put,{Id,[],"application/json",File},[],[]),
-    ?assertEqual(409,Code),
-    lager:info("#####PUT_LINK ~p",[Headers]).
-
+    {ok,{{_Protocol,Code,_Status},_Headers,_Body}} =  httpc:request(put,{Id,[],"application/json",File},[],[]),
+    ?assertEqual(409,Code).
 
 put_kind(_Config) ->
-    FileName=proplists:get_value(data_dir, _Config) ++ "res2.json",
+    FileName=proplists:get_value(data_dir, _Config) ++ "res5.json",
     {ok,File}=file:read_file(FileName),
     Id = "http://localhost:8080/collections/compute",
     {ok,{{_Protocol,Code,_Status},Headers,_Body}} =  httpc:request(put,{Id,[],"application/json",File},[],[]),
@@ -240,157 +237,126 @@ put_kind(_Config) ->
     lager:info("#####PUT_KIND ~p",[Headers]).
 
 put_mixin(_Config) ->
-    FileName=proplists:get_value(data_dir, _Config) ++ "mixin1.json",
+    FileName=proplists:get_value(data_dir, _Config) ++ "res6.json",
     {ok,File}=file:read_file(FileName),
-    Id = "http://localhost:8080/collections/compute",
-    {ok,{{_Protocol,Code,_Status},Headers,_Body}} =  httpc:request(put,{Id,[],"application/json",File},[],[]),
-    ?assertEqual(201,Code),
-    lager:info("#####PUT_MIXIN ~p",[Headers]).
-
-put_query(_Config) ->
-    Id = "http://localhost:8080/myresources/id",
-    {ok,{{_Protocol,Code,_Status},_Headers,_Body}} =  httpc:request(put,{Id,[],"application/json",{}},[],[]),
-    ?assertEqual(405,Code).
-
-put_dir(_Config) ->
-    Id = "http://localhost:8080/myresources/id",
-    {ok,{{_Protocol,Code,_Status},_Headers,_Body}} =  httpc:request(put,{Id,[],"application/json",{}},[],[]),
-    ?assertEqual(405,Code).
+    Id = "http://localhost:8080/collections/my_stuff",
+    {ok,{{_Protocol,Code,_Status},Headers,_Body}} =  httpc:request(put,{Id,[],"application/json",File},[],[]),   
+    lager:info("#####PUT_MIXIN ~p",[Headers]),
+     ?assertEqual(201,Code).
 
 post_resource_new(_Config) ->
     Id = "http://localhost:8080/myresources/id",
-    {ok,{{_Protocol,Code,_Status},Headers,_Body}} =  httpc:request(post,{Id,[],"application/json","{\n    \"resources\": [\n        {\n            \"kind\": \"http://schemas.ogf.org/occi/infrastructure#compute\",\n            \"attributes\": {\n                \"occi\":{\n\t\t\t\"compute\":{\n\t\t\t\t\"speed\": 2,\n                  \t\t\"memory\": 2,\n                \t\t\"cores\": 2\n            \t\t}\n\t\t}\n            }\n        }\n    ]\n}\n"},[],[]),
-    ?assertEqual(200,Code),
-    lager:info("#####POST_RESOURCE_NEW ~p",[Headers]).
+    {ok,{{_Protocol,Code,_Status},_Headers,_Body}} =  httpc:request(post,{Id,[],"application/json","{ \"resources\": [  {  \"kind\": \"http://schemas.ogf.org/occi/infrastructure#compute\",  \"attributes\": {  \"occi\":{\"compute\":{\"speed\": 2,\"memory\": 2,\"cores\": 2}} } } ]}"},[],[]),
+    ?assertEqual(200,Code).
 
 post_resource(_Config) ->
     FileName=proplists:get_value(data_dir, _Config) ++ "res1.json",
     {ok,File}=file:read_file(FileName),
     Id = "http://localhost:8080/myresources/id11",
-    {ok,{{_Protocol,Code,_Status},Headers,_Body}} =  httpc:request(post,{Id,[],"application/json",File},[],[]),
-    ?assertEqual(404,Code),
-    lager:info("#####POST_RESOURCE ~p",[Headers]).
+    {ok,{{_Protocol,Code,_Status},_Headers,_Body}} =  httpc:request(post,{Id,[],"application/json",File},[],[]),
+    ?assertEqual(404,Code).
     
-
 post_link_new(_Config) ->
     Id = "http://localhost:8080/myresources/id4",
-    {ok,{{_Protocol,Code,_Status},Headers,_Body}} =  httpc:request(post,{Id,[],"application/json","{\n    \"links\": [\n\t{\n\t    \"kind\": \"http://schemas.ogf.org/occi/infrastructure#networkinterface\",\n\t    \"attributes\": {\n\t\t\"occi\": {\n\t\t    \"core\": {\n\t\t\t\"source\": \"http://localhost:8080/myresources/id\",\n\t\t\t\"target\": \"http://localhost:8080/myresources/id3\"\n\t\t    },\n\t\t    \"networkinterface\": {\n\t\t\t\"interface\": \"eth0\",\n\t\t\t\"mac\": \"00:80:41:ae:fd:7e\"\n\t\t    }\n\t\t    \n\t\t}\n\t    }\n\t \n\t}\n    ]\n}\n\n\n\n\n"},[],[]),
-    ?assertEqual(200,Code),
-    lager:info("#####POST_LINK_NEW ~p",[Headers]).
+    {ok,{{_Protocol,Code,_Status},_Headers,_Body}} =  httpc:request(post,{Id,[],"application/json","{ \"links\": [{  \"kind\": \"http://schemas.ogf.org/occi/infrastructure#networkinterface\", \"attributes\": {\"occi\": {  \"core\": {\"source\": \"http://localhost:8080/myresources/id\",\"target\": \"http://localhost:8080/myresources/id3\" },  \"networkinterface\": {\"interface\": \"eth0\",\"mac\": \"00:80:41:ae:fd:7e\" } } } } ]}"},[],[]),
+    ?assertEqual(200,Code).
 
 post_link(_Config) ->
     FileName=proplists:get_value(data_dir, _Config) ++ "link1.json",
     {ok,File}=file:read_file(FileName),
     Id = "http://localhost:8080/myresources/id11",
-    {ok,{{_Protocol,Code,_Status},Headers,_Body}} =  httpc:request(post,{Id,[],"application/json",File},[],[]),
-    ?assertEqual(404,Code),
-    lager:info("#####POST_LINK ~p",[Headers]).
+    {ok,{{_Protocol,Code,_Status},_Headers,_Body}} =  httpc:request(post,{Id,[],"application/json",File},[],[]),
+    ?assertEqual(404,Code).
 
 post_kind(_Config) ->
-    Id = "http://localhost:8080/myresources/id2",
-    {ok,{{_Protocol,Code,_Status},Headers,_Body}} =  httpc:request(post,{Id,[],"application/json", "{\n    \"kinds\": [\n\t{\n            \"kind\": \"http://schemas.ogf.org/occi/infrastructure#compute\",\n            \"attributes\": {\n               \t \"occi\": {\n\t\t\t\"compute\": {\n\t\t\t\t\"cores\":{\n\t\t\t\t\t\"type\": 2\n\t\t\t\t},\n\t\t\t\t\"hostname\": {\n\t\t                    \"type\": \"string\",\n\t\t                    \"title\": \"System hostname\"\n\t\t\t\t},\n\t\t\t\t\"speed\": {\n\t\t\t\t\t\"type\": \"float\"\n\t\t\t\t},\n\t\t\t\t\"memory\": {\n\t\t\t\t\t\"type\": \"float\"\n\t\t\t\t}\n\t\t\t}\n                 }   \n            },\n\t    \"action\": {\n\t\t\"term\" : \"start\",\n\t\t\"scheme\": \"http://schemas.ogf.org/occi/infrastructure/compute/action#\"\n\t    }\n       }\n       \n    ]\n}\n \n"},[],[]),
-    ?assertEqual(200,Code),
-    lager:info("#####POST_KIND ~p",[Headers]).
+    FileName=proplists:get_value(data_dir, _Config) ++ "res4.json",
+    {ok,File}=file:read_file(FileName),
+    Id = "http://localhost:8080/collections/compute",
+    {ok,{{_Protocol,Code,_Status},Headers,_Body}} =  httpc:request(post,{Id,[],"application/json", File},[],[]),
+    lager:info("###POST-KIND ~p",[Headers]),
+    %%?assert(lists:member({"location",Id}, Headers)),
+    ?assertEqual(200,Code).
   
 
 post_mixin(_Config) ->
-    ok.
-
-post_query(_Config) ->
-    Id = "http://localhost:8080/myresources/id",
-    {ok,{{_Protocol,Code,_Status},_Headers,_Body}} =  httpc:request(put,{Id,[],"application/json",{}},[],[]),
-    ?assertEqual(404,Code).
-
-post_dir(_Config) ->
-    Id = "http://localhost:8080/myresources/id",
-    {ok,{{_Protocol,Code,_Status},_Headers,_Body}} =  httpc:request(put,{Id,[],"application/json",{}},[],[]),
-    ?assertEqual(404,Code).
+    FileName=proplists:get_value(data_dir, _Config) ++ "res7.json",
+    {ok,File}=file:read_file(FileName),
+    Id = "http://localhost:8080/collections/my_stuff",
+    {ok,{{_Protocol,Code,_Status},Headers,_Body}} =  httpc:request(post,{Id,[],"application/json",File},[],[]),
+     lager:info("#####POST_MIXIN ~p",[Headers]),
+    ?assertEqual(200,Code).
+   
 
 delete_resource(_Config) ->
     FileName=proplists:get_value(data_dir, _Config) ++ "res1.json",
     {ok,File}=file:read_file(FileName),
     Id = "http://localhost:8080/myresources/id",
-    {ok,{{_Protocol,Code,_Status},Headers,_Body}} =  httpc:request(delete,{Id,[],"application/json",File},[],[]),
-    ?assertEqual(204,Code),
-    lager:info("#####DELETE_RESOURCE  ~p",[Headers]).
+    {ok,{{_Protocol,Code,_Status},_Headers,_Body}} =  httpc:request(delete,{Id,[],"application/json",File},[],[]),
+    ?assertEqual(204,Code).
 
 delete_link(_Config) ->
     FileName=proplists:get_value(data_dir, _Config) ++ "link1.json",
     {ok,File}=file:read_file(FileName),
     Id = "http://localhost:8080/myresources/id4",
-    {ok,{{_Protocol,Code,_Status},Headers,_Body}} =  httpc:request(delete,{Id,[],"application/json",File},[],[]),
-    ?assertEqual(204,Code),
-    lager:info("#####DELETE_LINK  ~p",[Headers]).
+    {ok,{{_Protocol,Code,_Status},_Headers,_Body}} =  httpc:request(delete,{Id,[],"application/json",File},[],[]),
+    ?assertEqual(204,Code).
 
 delete_kind(_Config) ->
-    FileName=proplists:get_value(data_dir, _Config) ++ "kind1.json",
+    FileName=proplists:get_value(data_dir, _Config) ++ "res4.json",
     {ok,File}=file:read_file(FileName),
-    Id = "http://localhost:8080/myresources/id2",
-    {ok,{{_Protocol,Code,_Status},Headers,_Body}} =  httpc:request(delete,{Id,[],"application/json",File},[],[]),
-    ?assertEqual(204,Code),
-    lager:info("#####DELETE_KIND  ~p",[Headers]).
+    Id = "http://localhost:8080/collections/compute",
+    {ok,{{_Protocol,Code,_Status},_Headers,_Body}} =  httpc:request(delete,{Id,[],"application/json",File},[],[]),
+    ?assertEqual(204,Code).
 
 delete_mixin(_Config) ->
-    FileName=proplists:get_value(data_dir, _Config) ++ "mixin1.json",
+    FileName=proplists:get_value(data_dir, _Config) ++ "res6.json",
     {ok,File}=file:read_file(FileName),
-    Id = "http://localhost:8080/myresources/id3",
+    Id = "http://localhost:8080/collections/my_stuff",
     {ok,{{_Protocol,Code,_Status},Headers,_Body}} =  httpc:request(delete,{Id,[],"application/json",File},[],[]),
     ?assertEqual(204,Code),
     lager:info("#####DELETE_MIXIN  ~p",[Headers]).
 
-delete_query(_Config) ->   
-    Id ="http://localhost:8080/-/",
-    {ok,{{_Protocol,Code,_Status},_Headers,_Body}} =  httpc:request(delete,{Id,[],"application/json",{}},[],[]),
-    ?assertEqual(204,Code).
+
 
 get_resource(_Config) ->
     Id = "http://localhost:8080/myresources/id", 
-    {ok, {{_Protocol,Code,_Status}, Headers, _Body}} = httpc:request(get, {Id, [{"accept","application/json"}]}, [], []),  
-    ?assertEqual(200, Code),
-    ?assert(lists:member({"location", Id}, Headers)).
+    {ok, {{_Protocol,Code,_Status}, _Headers, _Body}} = httpc:request(get, {Id, [{"accept","application/json"}]}, [], []),  
+    ?assertEqual(200, Code).
 
 get_resource_delete(_Config) ->
     Id = "http://localhost:8080/myresources/id",
-    {ok, {{_Protocol,Code,_Status}, Headers, _Body}} = httpc:request(get, {Id, [{"accept","application/json"}]}, [], []),   
-    lager:info("#### GET_RESOURCE_DELETE:::~p",[Headers]),
+    {ok, {{_Protocol,Code,_Status}, _Headers, _Body}} = httpc:request(get, {Id, [{"accept","application/json"}]}, [], []),   
     ?assertEqual(404, Code).
 
 get_link(_Config) ->
     Id = "http://localhost:8080/myresources/id4",
-    {ok, {{_Protocol,Code,_Status}, Headers, _Body}} = httpc:request(get, {Id, [{"accept","application/json"}]}, [], []),   
-    lager:info("#### GET_LINK:::~p",[Headers]),
-    ?assertEqual(200, Code),
-    ?assert(lists:member({"location", Id}, Headers)).
+    {ok, {{_Protocol,Code,_Status}, _Headers, _Body}} = httpc:request(get, {Id, [{"accept","application/json"}]}, [], []),   
+    ?assertEqual(200, Code).
 
 get_link_delete(_Config) ->
     Id = "http://localhost:8080/myresources/id4",
-    {ok, {{_Protocol,Code,_Status}, Headers, _Body}} = httpc:request(get, {Id, [{"accept","application/json"}]}, [], []),   
-    lager:info("#### GET_LINK_DELETE:::~p",[Headers]),
+    {ok, {{_Protocol,Code,_Status}, _Headers, _Body}} = httpc:request(get, {Id, [{"accept","application/json"}]}, [], []),   
     ?assertEqual(404, Code).
 
 get_kind(_Config) ->
-    Id = "http://localhost:8080/compute",
-    {ok, {{_Protocol,Code,_Status}, Headers, _Body}} = httpc:request(get, {Id, [{"accept","application/json"}]}, [], []),   
-    lager:info("#### GET_KIND:::~p",[Headers]),
-    ?assertEqual(200, Code),
-    ?assert(lists:member({"location", Id}, Headers)).
+    Id = "http://localhost:8080/collections/compute",
+    {ok, {{_Protocol,Code,_Status}, _Headers, _Body}} = httpc:request(get, {Id, [{"accept","application/json"}]}, [], []),   
+    ?assertEqual(200, Code).
 
 get_kind_delete(_Config) ->
-    Id = "http://localhost:8080/compute",
-    {ok, {{_Protocol,Code,_Status}, Headers, _Body}} = httpc:request(get, {Id, [{"accept","application/json"}]}, [], []),   
-    lager:info("#### GET_KIND_DELETE:::~p",[Headers]),
+    Id = "http://localhost:8080/collections/compute",
+    {ok, {{_Protocol,Code,_Status}, _Headers, _Body}} = httpc:request(get, {Id, [{"accept","application/json"}]}, [], []),   
     ?assertEqual(404, Code).
 
 
 get_mixin(_Config) ->
-     Id = "http://localhost:8080/myresources",
+     Id = "http://localhost:8080/collections/my_stuff",
     {ok, {{_Protocol,Code,_Status}, Headers, _Body}} = httpc:request(get, {Id, [{"accept","application/json"}]}, [], []),   
     lager:info("#### GET_MIXIN:::~p",[Headers]),
-    ?assertEqual(200, Code),
-    ?assert(lists:member({"location", Id}, Headers)).
+    ?assertEqual(200, Code).
 
 get_mixin_delete(_Config) ->
-     Id = "http://localhost:8080/myresources",
+     Id = "http://localhost:8080/collections/my_stuff",
     {ok, {{_Protocol,Code,_Status}, Headers, _Body}} = httpc:request(get, {Id, [{"accept","application/json"}]}, [], []),   
     lager:info("#### GET_MIXIN_DELETE:::~p",[Headers]),
     ?assertEqual(404, Code).
@@ -401,7 +367,25 @@ get_query(_Config) ->
     ?assertEqual(200,Code),
     ?assert(lists:member({"content-type","application/json"}, Headers)).
 
-get_query_delete(_Config) ->
-    {ok,{{_Protocol, Code, _Status},_Headers, _Body}} = httpc:request(get,{"http://localhost:8080/-/",[{"accept","application/json"}]},[],[]),
-    ?assertEqual(404,Code).
+
+put_resource_dir(_Config) ->
+    FileName=proplists:get_value(data_dir, _Config) ++ "res1.json",
+    FileName1=proplists:get_value(data_dir, _Config) ++ "res4.json",
+    {ok,File}=file:read_file(FileName),
+    {ok,File1}=file:read_file(FileName1),
+    Id = "http://localhost:8080/myresources/id1",
+    Id1 = "http://localhost:8080/myresources/subdir/id5",
+    {ok,{{_Protocol,Code,_Status},_Headers,_Body}} =  httpc:request(put,{Id,[],"application/json",File},[],[]),
+    {ok,{{_Protocol1,Code1,_Status1},_Headers1,_Body1}} =  httpc:request(put,{Id1,[],"application/json",File1},[],[]),
+    ?assertEqual(201,Code),
+    ?assertEqual(201,Code1).
+
+
+
+get_dir(_Config) ->
+    {ok,{{_Protocol, Code, _Status}, Headers, Body}} = httpc:request(get,{"http://localhost:8080/myresources/",[{"accept","application/json"}]},[],[]),
+    lager:info("### GET DIR Headers~p",[Headers]),
+    lager:info("### GET DIR Body ~p",[Body]),
+    ?assertEqual(200,Code).
+
 

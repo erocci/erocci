@@ -3,11 +3,14 @@
         {
             "kind": "http://schemas.ogf.org/occi/infrastructure#compute",
             "attributes": {
-                "occi.compute.speed": 1,
-                "occi.compute.memory": 2,
-                "occi.compute.cores": 2
-            },
-        
+                "occi":{
+			"compute":{
+				"speed": 1,
+                  		"memory": 2,
+                		"cores": 2
+            		}
+		}
+            }
         }
     ]
 }
