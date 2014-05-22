@@ -134,6 +134,7 @@
 
 -record(occi_backend, {ref            :: atom(),
 		       mod            :: atom(),
+		       mountpoint     :: uri(),
 		       opts           :: term()}).
 -type(occi_backend() :: #occi_backend{}).
 
