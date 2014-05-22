@@ -88,8 +88,7 @@ end_per_group(_GroupName, _Config) ->
 %% Reason = term()
 %% @end
 %%--------------------------------------------------------------------
-init_per_testcase(TestCase, Config) ->
-    
+init_per_testcase(_TestCase, Config) ->    
     Config.
 
 %%--------------------------------------------------------------------
@@ -100,7 +99,7 @@ init_per_testcase(TestCase, Config) ->
 %% Reason = term()
 %% @end
 %%--------------------------------------------------------------------
-end_per_testcase(TestCase, _Config) ->    
+end_per_testcase(_TestCase, _Config) ->    
     ok.
 
 %%--------------------------------------------------------------------
