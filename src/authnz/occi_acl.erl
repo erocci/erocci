@@ -49,6 +49,8 @@ check_acls([ Acl | Acls ], Action) ->
 	{true, Policy} -> Policy
     end.
 
+match({P, '_', '_',            '_'},         {_, _,            _}) ->
+    {true, P};
 match({P, O,   capabilities,   U},           {O, capabilities, U}) -> 
     {true, P};
 match({P, O,   capabilities,   '_'},         {O, capabilities, _}) -> 
