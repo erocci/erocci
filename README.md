@@ -24,11 +24,12 @@ install the following dependancies (thanks Augusto Ciuffoletti for the
 notice):
 
 * erlang/OTP, version 15b1 or greater
+* rebar
 * openssl and headers
 * libxml2 and headers
 * libexpat and headers
 
-Debian and Ubuntu: apt-get install erlang libssl-dev libexpat1-dev libxml2-dev
+Debian and Ubuntu: apt-get install erlang rebar libssl-dev libexpat1-dev libxml2-dev
 
 ## Compiling
 
