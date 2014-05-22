@@ -25,6 +25,8 @@
 -compile({parse_transform, lager_transform}).
 
 -include("occi.hrl").
+-include("occi_http.hrl").
+-include("occi_acl.hrl").
 -include_lib("kernel/include/inet.hrl").
 
 -define(TBL, ?MODULE).
@@ -34,7 +36,10 @@
 	 stop/0,
 	 set_cors/2,
 	 add_route/2,
-	 get_dispatch/0]).
+	 get_dispatch/0,
+	 get_acl_user/1,
+	 get_acl_op/1,
+	 get_auth/0]).
 
 -define(ROUTE_QUERY,   {<<"/-/">>,                          occi_http_query,    []}).
 -define(ROUTE_QUERY2,  {<<"/.well-known/org/ogf/occi/-/">>, occi_http_query,    []}).
@@ -55,7 +60,6 @@ start(Props) ->
 
 stop() ->
     ok.
-
 
 % Convenience function for setting CORS headers
 set_cors(Req, Methods) ->
@@ -79,6 +83,24 @@ get_dispatch() ->
 			    ets:lookup_element(?TBL, routes, 2),
 			    ?ROUTE_OCCI]),
     cowboy_router:compile([{'_', Routes}]).
+
+-spec get_acl_user(term()) -> {ok, acl_user()} | {error, term()}.
+get_acl_user(_Req) ->
+    {ok, anonymous}.
+
+-spec get_acl_op(term()) -> acl_op().
+get_acl_op(Req) ->
+    case cowboy_req:method(Req) of
+	{<<"GET">>, _} -> read;
+	{<<"PUT">>, _} -> create;
+	{<<"POST">>, _} -> update;
+	{<<"DELETE">>, _} -> delete;
+	{<<"OPTIONS">>, _} -> read
+    end.
+
+-spec get_auth() -> iodata().
+get_auth() ->
+    "basic realm=\"" ++ ?SERVER_ID ++ "\"".
 
 %%%
 %%% Private
