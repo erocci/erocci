@@ -45,7 +45,7 @@ start(Props) ->
     occi:ensure_started(crypto),
     occi:ensure_started(ranch),
     occi:ensure_started(cowboy),
-    set_name(Props),
+    pattern_name(Props),
     case ets:info(?TBL) of
 	undefined ->
 	    ?TBL = ets:new(?TBL, [set, public, {keypos, 1}, named_table]),
@@ -55,6 +55,7 @@ start(Props) ->
 
 stop() ->
     ok.
+
 
 % Convenience function for setting CORS headers
 set_cors(Req, Methods) ->
@@ -99,3 +100,13 @@ set_name(Props) ->
 	   end,
     Name = atom_to_list(Scheme)++"://"++Host++":"++integer_to_list(Port),
     occi_config:set(name, occi_uri:parse(Name)).
+
+pattern_name(Props) ->
+    case occi_config:get(name) of
+	undefined ->
+	    lager:debug("### NAME undefined ~n"),
+	    set_name(Props);
+	_Name ->
+	    lager:debug("### NAME defined ~p~n",[_Name]),
+	    ok
+    end.

@@ -1,0 +1,25 @@
+{
+    "links": [
+	{
+	    "kind": "http://schemas.ogf.org/occi/infrastructure#networkinterface",
+	    "attributes": {
+		"occi": {
+		    "core": {
+			"source": "http://localhost:8080/myresources/id2",
+			"target": "http://localhost:8080/myresources/id3"
+		    },
+		    "networkinterface": {
+			"interface": "eth0",
+			"mac": "00:80:41:ae:fd:7e"
+		    }
+		    
+		}
+	    }
+	 
+	}
+    ]
+}
+
+
+
+
