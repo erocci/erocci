@@ -61,7 +61,7 @@ register({Ref, Module, Opts}) ->
     ChildSpec = {Ref,
 		 {Module, start_link, [Ref, Opts]},
 		 permanent,
-		 brutal_kill,
+		 2000,
 		 worker,
 		 [Module]},
     case supervisor:start_child(?SUPERVISOR, ChildSpec) of
