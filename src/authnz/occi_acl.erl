@@ -35,7 +35,7 @@ check(Op, capabilities, User) ->
     check_acls(Acls, {Op, capabilities, User});
 check(Op, #uri{path=Path}, User) ->
     Acls = occi_config:get(acl, []),
-    check_acls(Acls, {Op, Path, User}).
+    check_acls(Acls, {Op, list_to_binary(Path), User}).
 
 %%%
 %%% Priv
@@ -49,16 +49,57 @@ check_acls([ Acl | Acls ], Action) ->
 	{true, Policy} -> Policy
     end.
 
-match({P, O,   N,   U},           {O, N, U}) -> {true, P};
-match({P, O,   N,   '_'},         {O, N, _}) -> {true, P};
-match({P, O,   N,   anonymous},   {O, N, _}) -> {true, P};
-match({P, O,   '_', U},           {O, _, U}) -> {true, P};
-match({P, O,   '_', '_'},         {O, _, _}) -> {true, P};
-match({P, O,   '_', anonymous},   {O, _, _}) -> {true, P};
-match({P, '_', N,   U},           {_, N, U}) -> {true, P};
-match({P, '_', N,   '_'},         {_, N, _}) -> {true, P};
-match({P, '_', N,   anonymous},   {_, N, _}) -> {true, P};
-match({P, '_', '_', U},           {_, _, U}) -> {true, P};
-match({P, '_', '_', '_'},         _)         -> {true, P};
-match({P, '_', '_', anonymous},   _)         -> {true, P};
-match(_,                          _)         -> false.
+match({P, O,   capabilities,   U},           {O, capabilities, U}) -> 
+    {true, P};
+match({P, O,   capabilities,   '_'},         {O, capabilities, _}) -> 
+    {true, P};
+match({P, O,   capabilities,   anonymous},   {O, capabilities, _}) -> 
+    {true, P};
+match({P, O,   Prefix,         U},           {O, Path,         U}) -> 
+    match_path(Prefix, Path, P);
+match({P, O,   Prefix,         '_'},         {O, Path,         _}) -> 
+    match_path(Prefix, Path, P);
+match({P, O,   Prefix,         anonymous},   {O, Path,         _}) -> 
+    match_path(Prefix, Path, P);
+match({P, O,   '_',            U},           {O, _,            U}) -> 
+    {true, P};
+match({P, O,   '_',            '_'},         {O, _,            _}) -> 
+    {true, P};
+match({P, O,   '_',            anonymous},   {O, _,            _}) -> 
+    {true, P};
+match({P, '_', capabilities,   U},           {_, capabilities, U}) -> 
+    {true, P};
+match({P, '_', capabilities,   '_'},         {_, capabilities, _}) -> 
+    {true, P};
+match({P, '_', capabilities,   anonymous},   {_, capabilities, _}) -> 
+    {true, P};
+match({P, '_', Prefix,         U},           {_, Path,         U}) -> 
+    match_path(Prefix, Path, P);
+match({P, '_', Prefix,         '_'},         {_, Path,         _}) -> 
+    match_path(Prefix, Path, P);
+match({P, '_', Prefix,         anonymous},   {_, Path,         _}) -> 
+    match_path(Prefix, Path, P);
+match({P, '_', '_',            U},           {_, _,            U}) -> 
+    {true, P};
+match({P, '_', '_',            '_'},         _)                    -> 
+    {true, P};
+match({P, '_', '_',            anonymous},   _)                    -> 
+    {true, P};
+match(_,                                     _)                    -> 
+    false.
+
+match_path(Prefix, Path, P) ->
+    match_path2(filename:split(Prefix), filename:split(Path), P).
+
+match_path2([], _Path, P) ->
+    lager:debug("### match path: [] -> ~p : true~n", [_Path]),
+    {true, P};
+match_path2(_Prefix, [], _P) ->
+    lager:debug("### match path: ~p -> [] : false~n", [_Prefix]),
+    false;
+match_path2([ H | Prefix ], [ H | Path ], P) ->
+    lager:debug("### match path: [ ~p | ~p ] -> [ ~p | ~p ] : next~n", [H, Prefix, H, Path]),
+    match_path2(Prefix, Path, P);
+match_path2([ _H1 | _Prefix ], [ _H2 | _Path ], _P) ->
+    lager:debug("### match path: [ ~p | ~p ] -> [ ~p | ~p ] : false~n", [_H1, _Prefix, _H2, _Path]),
+    false.
