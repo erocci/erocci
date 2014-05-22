@@ -122,7 +122,7 @@ groups() ->
      {test_resource,
       [],
       [put_resource_new,
-       %put_resource,    Code http: {expected,409}, {value,200}
+       %put_resource,      % Code http: {expected,409}, {value,200}
        get_resource,  
        post_resource_new,post_resource,
        get_resource,   
@@ -131,26 +131,28 @@ groups() ->
      {test_link,
       [],
       [put_resources,put_link_new,
-       %put_link,    Code http: {expected,409}, {value,200}
+       %put_link,         %Code http: {expected,409}, {value,200}
        get_link,    
-       %post_link_new,    Code http: {expected,200}, {value,500}
+       %post_link_new,    %Code http: {expected,200}, {value,500}
        post_link,
        get_link,    
        delete_link,get_link_delete
-       ,{group,test_kind} 
+       ,{group,test_kind_col} 
       ]},
-     {test_kind,
+     {test_kind_col,
       [],
-      [put_kind,get_kind,post_kind,get_kind,delete_kind,get_kind_delete
-      ,{group,test_mixin}
+      [put_kind_col,get_kind_col,post_kind_col,get_kind_col,delete_kind_col,get_kind_col_delete
+      ,{group,test_mixin_col}
       ]},
-     {test_mixin,
+     {test_mixin_col,
       [],
       [
-       %put_mixin,      Code http: {expected,200}, {value,422}
-       %get_mixin,
-       %post_mixin,     Code http: {expected,200}, {value,422}
-       %get_mixin,delete_mixin,get_mixin_delete,
+       %put_mixin_col,       %Code http: {expected,200}, {value,500}
+       %get_mixin_col,
+       %post_mixin_col,      %Code http: {expected,200}, {value,500}
+       %get_mixin_col,
+       %delete_mixin_col,    %Code http: {expected,200}, {value,500}
+       %get_mixin_col_delete, %Code http: {expected,404}, {value,200}
        {group,test_query}
       ]},
      {test_query,
@@ -160,7 +162,7 @@ groups() ->
      {test_dir,
       [],
       [
-     % put_resource_dir,get_dir   Code http: {expected,200}, {value,500}
+      %put_resource_dir,get_dir  %Code http: {expected,200}, {value,500}
       ]}
     ].
 
@@ -227,7 +229,7 @@ put_link(_Config) ->
     {ok,{{_Protocol,Code,_Status},_Headers,_Body}} =  httpc:request(put,{Id,[],"application/json",File},[],[]),
     ?assertEqual(409,Code).
 
-put_kind(_Config) ->
+put_kind_col(_Config) ->
     FileName=proplists:get_value(data_dir, _Config) ++ "res5.json",
     {ok,File}=file:read_file(FileName),
     Id = "http://localhost:8080/collections/compute",
@@ -236,10 +238,10 @@ put_kind(_Config) ->
     lager:info("####FILE_KIND : ~p",[File]),
     lager:info("#####PUT_KIND ~p",[Headers]).
 
-put_mixin(_Config) ->
+put_mixin_col(_Config) ->
     FileName=proplists:get_value(data_dir, _Config) ++ "res6.json",
     {ok,File}=file:read_file(FileName),
-    Id = "http://localhost:8080/collections/my_stuff",
+    Id = "http://localhost:8080/collections/os_tpl/",
     {ok,{{_Protocol,Code,_Status},Headers,_Body}} =  httpc:request(put,{Id,[],"application/json",File},[],[]),   
     lager:info("#####PUT_MIXIN ~p",[Headers]),
      ?assertEqual(201,Code).
@@ -268,7 +270,7 @@ post_link(_Config) ->
     {ok,{{_Protocol,Code,_Status},_Headers,_Body}} =  httpc:request(post,{Id,[],"application/json",File},[],[]),
     ?assertEqual(404,Code).
 
-post_kind(_Config) ->
+post_kind_col(_Config) ->
     FileName=proplists:get_value(data_dir, _Config) ++ "res4.json",
     {ok,File}=file:read_file(FileName),
     Id = "http://localhost:8080/collections/compute",
@@ -278,10 +280,10 @@ post_kind(_Config) ->
     ?assertEqual(200,Code).
   
 
-post_mixin(_Config) ->
+post_mixin_col(_Config) ->
     FileName=proplists:get_value(data_dir, _Config) ++ "res7.json",
     {ok,File}=file:read_file(FileName),
-    Id = "http://localhost:8080/collections/my_stuff",
+    Id = "http://localhost:8080/collections/os_tpl/",
     {ok,{{_Protocol,Code,_Status},Headers,_Body}} =  httpc:request(post,{Id,[],"application/json",File},[],[]),
      lager:info("#####POST_MIXIN ~p",[Headers]),
     ?assertEqual(200,Code).
@@ -301,17 +303,17 @@ delete_link(_Config) ->
     {ok,{{_Protocol,Code,_Status},_Headers,_Body}} =  httpc:request(delete,{Id,[],"application/json",File},[],[]),
     ?assertEqual(204,Code).
 
-delete_kind(_Config) ->
+delete_kind_col(_Config) ->
     FileName=proplists:get_value(data_dir, _Config) ++ "res4.json",
     {ok,File}=file:read_file(FileName),
     Id = "http://localhost:8080/collections/compute",
     {ok,{{_Protocol,Code,_Status},_Headers,_Body}} =  httpc:request(delete,{Id,[],"application/json",File},[],[]),
     ?assertEqual(204,Code).
 
-delete_mixin(_Config) ->
+delete_mixin_col(_Config) ->
     FileName=proplists:get_value(data_dir, _Config) ++ "res6.json",
     {ok,File}=file:read_file(FileName),
-    Id = "http://localhost:8080/collections/my_stuff",
+    Id = "http://localhost:8080/collections/os_tpl/",
     {ok,{{_Protocol,Code,_Status},Headers,_Body}} =  httpc:request(delete,{Id,[],"application/json",File},[],[]),
     ?assertEqual(204,Code),
     lager:info("#####DELETE_MIXIN  ~p",[Headers]).
@@ -338,25 +340,25 @@ get_link_delete(_Config) ->
     {ok, {{_Protocol,Code,_Status}, _Headers, _Body}} = httpc:request(get, {Id, [{"accept","application/json"}]}, [], []),   
     ?assertEqual(404, Code).
 
-get_kind(_Config) ->
+get_kind_col(_Config) ->
     Id = "http://localhost:8080/collections/compute",
     {ok, {{_Protocol,Code,_Status}, _Headers, _Body}} = httpc:request(get, {Id, [{"accept","application/json"}]}, [], []),   
     ?assertEqual(200, Code).
 
-get_kind_delete(_Config) ->
+get_kind_col_delete(_Config) ->
     Id = "http://localhost:8080/collections/compute",
     {ok, {{_Protocol,Code,_Status}, _Headers, _Body}} = httpc:request(get, {Id, [{"accept","application/json"}]}, [], []),   
     ?assertEqual(404, Code).
 
 
-get_mixin(_Config) ->
-     Id = "http://localhost:8080/collections/my_stuff",
+get_mixin_col(_Config) ->
+     Id = "http://localhost:8080/collections/os_tpl/",
     {ok, {{_Protocol,Code,_Status}, Headers, _Body}} = httpc:request(get, {Id, [{"accept","application/json"}]}, [], []),   
     lager:info("#### GET_MIXIN:::~p",[Headers]),
     ?assertEqual(200, Code).
 
-get_mixin_delete(_Config) ->
-     Id = "http://localhost:8080/collections/my_stuff",
+get_mixin_col_delete(_Config) ->
+     Id = "http://localhost:8080/collections/os_tpl/",
     {ok, {{_Protocol,Code,_Status}, Headers, _Body}} = httpc:request(get, {Id, [{"accept","application/json"}]}, [], []),   
     lager:info("#### GET_MIXIN_DELETE:::~p",[Headers]),
     ?assertEqual(404, Code).
