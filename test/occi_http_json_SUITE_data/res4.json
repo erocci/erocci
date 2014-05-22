@@ -1,0 +1,16 @@
+{
+    "resources": [
+        {
+            
+            "attributes": {
+                "occi":{
+			"compute":{
+				"speed": 2,
+                  		"memory": 2,
+                		"cores": 1
+            		}
+		}
+            }
+        }
+    ]
+}
