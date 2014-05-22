@@ -743,7 +743,6 @@ stop(#parser{id=Ref, src=#parser{id=Src}}) ->
 send_events(_P, []) ->
     {error, {parse_error, incomplete}};
 send_events(#parser{}=P, [E|T]) ->
-    lager:debug("send_event: ~p~n", [lager:pr(E, ?MODULE)]),
     case occi_parser:send_event(E, ok, P) of
 	{reply, {error, Err}, _, _} ->
 	    {error, Err};
