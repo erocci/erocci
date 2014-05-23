@@ -180,14 +180,23 @@ all() ->
      {group,test_json}
     ].   
 
-
+%
+% @doc Test creation of a new resource on a new ID. 
+% expect: 201
+% %end
+%
 put_resource_new(_Config) ->
     FileName=proplists:get_value(data_dir, _Config) ++ "res1.json",
     {ok,File}=file:read_file(FileName),
     Id = ?NAME ++ "/myresources/id",
     {ok,{{_Protocol,Code,_Status},_Headers,_Body}} =  httpc:request(put,{Id,[],"application/json",File},[],[]),
     ?assertEqual(201,Code).
-    
+
+%
+% @doc Test creation of a resource on existing ID
+% expect: 409 (conflict)
+% @end
+%
 put_resource(_Config) ->
     FileName=proplists:get_value(data_dir, _Config) ++ "res1.json",
     {ok,File}=file:read_file(FileName),
