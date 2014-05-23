@@ -5,7 +5,7 @@ branches:
   
 language: erlang
 otp_release:
-#   - 17.0-rc1  broken due to goldrush (lager's dep)
+   - 17.0-rc1
    - R16B03-1
    - R16B03
    - R16B02
@@ -18,7 +18,7 @@ otp_release:
 #   - R14B02
 
 install:
-  - "sudo apt-get install libssl-dev libxml2-dev libexpat1-dev"
+  - "sudo apt-get install rebar libssl-dev libxml2-dev libexpat1-dev"
   - "rebar get-deps"
 
 notifications:
