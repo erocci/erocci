@@ -38,6 +38,7 @@ suite() ->
 %% @end
 %%--------------------------------------------------------------------
 init_per_suite(Config) ->
+    application:set_env(lager, handlers, [{lager_console_backend, debug}]),
     application:start(occi),
     DataDir = proplists:get_value(data_dir, Config),
     Schemas = {schemas, [{xml, DataDir ++ "occi-infrastructure.xml"}]},
@@ -165,8 +166,7 @@ groups() ->
      {test_dir,
       [],
       [
-       put_resource_dir
-       %,get_dir              %Code http: {expected,200}, {value,500}
+       put_resource_dir, get_dir
       ]}
     ].
 
@@ -317,8 +317,12 @@ post_resource(_Config) ->
 % end
 %  
 post_link_new(_Config) ->
-    Id = "http://localhost:8080/myresources/id4",
-    Content = "{ \"links\": [{  \"kind\": \"http://schemas.ogf.org/occi/infrastructure#networkinterface\", \"attributes\": {\"occi\": {  \"core\": {\"source\": \"http://localhost:8080/myresources/id\",\"target\": \"http://localhost:8080/myresources/id3\" },  \"networkinterface\": {\"interface\": \"eth0\",\"mac\": \"00:80:41:ae:fd:7e\" } } } } ]}",
+    Id = ?NAME ++ "/myresources/id4",
+    Content = "{ \"links\": [{  \"kind\": \"http://schemas.ogf.org/occi/infrastructure#networkinterface\", "
+	++ "\"attributes\": {\"occi\": {  \"core\": {\"source\": \"" 
+	++ ?NAME ++ "/myresources/id\",\"target\": \"" 
+	++ ?NAME ++ "/myresources/id3\" },  \"networkinterface\": {\"interface\": \"eth0\",\"mac\": "
+	++ "\"00:80:41:ae:fd:7e\" } } } } ]}",
     {ok, {{_Protocol, Code, _Status}, _Headers, _Body}} =  
 	httpc:request(post, {Id, [], "application/json", Content}, [], []),
     ?assertEqual(204, Code).
