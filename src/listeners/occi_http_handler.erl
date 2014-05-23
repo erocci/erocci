@@ -136,7 +136,7 @@ is_authorized(Req, #state{op=Op, url=Url}=State) ->
     end.
 
 delete_resource(Req, #state{node=Node}=State) ->
-    case occi_store:delete(Node#occi_node.id) of
+    case occi_store:delete(Node) of
 	{error, undefined_backend} ->
 	    lager:error("Internal error deleting node: ~p~n", [lager:pr(Node#occi_node.id, ?MODULE)]),
 	    {ok, Req2} = cowboy_req:reply(500, Req),

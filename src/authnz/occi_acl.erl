@@ -49,6 +49,8 @@ check_acls([ Acl | Acls ], Action) ->
 	{true, Policy} -> Policy
     end.
 
+match({P, '_', '_',            '_'},         {_, _,            _}) ->
+    {true, P};
 match({P, O,   capabilities,   U},           {O, capabilities, U}) -> 
     {true, P};
 match({P, O,   capabilities,   '_'},         {O, capabilities, _}) -> 
@@ -92,14 +94,10 @@ match_path(Prefix, Path, P) ->
     match_path2(filename:split(Prefix), filename:split(Path), P).
 
 match_path2([], _Path, P) ->
-    lager:debug("### match path: [] -> ~p : true~n", [_Path]),
     {true, P};
 match_path2(_Prefix, [], _P) ->
-    lager:debug("### match path: ~p -> [] : false~n", [_Prefix]),
     false;
 match_path2([ H | Prefix ], [ H | Path ], P) ->
-    lager:debug("### match path: [ ~p | ~p ] -> [ ~p | ~p ] : next~n", [H, Prefix, H, Path]),
     match_path2(Prefix, Path, P);
 match_path2([ _H1 | _Prefix ], [ _H2 | _Path ], _P) ->
-    lager:debug("### match path: [ ~p | ~p ] -> [ ~p | ~p ] : false~n", [_H1, _Prefix, _H2, _Path]),
     false.

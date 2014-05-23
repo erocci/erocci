@@ -14,15 +14,12 @@
 -compile([{parse_transform,lager_transform}]).
 
 -include_lib("eunit/include/eunit.hrl").
-
 -include_lib("common_test/include/ct.hrl").
-
 -include_lib("kernel/include/file.hrl").
 
 -include("occi.hrl").
 
 -define(PORT,8080).
-
 -define(NAME,"http://localhost:8080").
 
 %%--------------------------------------------------------------------
@@ -49,7 +46,8 @@ init_per_suite(Config) ->
     Listeners = {listeners, 
 		 [{http, occi_http, [{port, ?PORT}]}]
 		},
-    occi:config([{name, ?NAME}, Backends, Listeners]),
+    Acls = {acl, [{allow, '_', '_', '_'}]},
+    occi:config([{name, ?NAME}, Backends, Listeners, Acls]),
     Config.
 
 %%--------------------------------------------------------------------
@@ -90,8 +88,7 @@ end_per_group(_GroupName, _Config) ->
 %% Reason = term()
 %% @end
 %%--------------------------------------------------------------------
-init_per_testcase(TestCase, Config) ->
-    
+init_per_testcase(_TestCase, Config) ->    
     Config.
 
 %%--------------------------------------------------------------------
@@ -102,7 +99,7 @@ init_per_testcase(TestCase, Config) ->
 %% Reason = term()
 %% @end
 %%--------------------------------------------------------------------
-end_per_testcase(TestCase, _Config) ->    
+end_per_testcase(_TestCase, _Config) ->    
     ok.
 
 %%--------------------------------------------------------------------
@@ -199,7 +196,7 @@ put_resource_new(_Config) ->
 % @doc Test creation of a resource on existing ID
 % expect: 409 (conflict)
 % @end
-%    
+%
 put_resource(_Config) ->
     FileName=proplists:get_value(data_dir, _Config) ++ "res1.json",
     {ok,File}=file:read_file(FileName),
