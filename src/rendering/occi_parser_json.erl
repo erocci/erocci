@@ -389,7 +389,9 @@ resource_attribute(#token{name=value, data=Val}, _From,
     Name = build_attr_name([H|T]),
     try occi_resource:set_attr_value(Res, Name, Val) of
 	#occi_resource{}=Res2 ->
-	    {reply, ok, resource_attribute, ?set_state(Ctx, State#state{attrNS=T, entity=Res2})}
+	    {reply, ok, resource_attribute, ?set_state(Ctx, State#state{attrNS=T, entity=Res2})};
+	{error, Err} ->
+	    {reply, {error, Err}, eof, Ctx}
     catch
 	throw:Err ->
 	    lager:error("Error parsing resource: ~p~n", [Err]),
