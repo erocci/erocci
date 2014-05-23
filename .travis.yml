@@ -5,7 +5,6 @@ branches:
   
 language: erlang
 otp_release:
-   - 17.0-rc1
    - R16B03-1
    - R16B03
    - R16B02
@@ -17,11 +16,11 @@ otp_release:
 #   - R14B03
 #   - R14B02
 
-install:
+before_install:
   - "sudo apt-get install rebar libssl-dev libxml2-dev libexpat1-dev"
-  - "rebar get-deps"
 
-script: rebar compile && rebar skip_deps=true eunit && rebar skip_deps=true ct
+after_script:
+  - "rebar skip_deps=true ct"
 
 notifications:
   email:
