@@ -17,7 +17,7 @@ otp_release:
 #   - R14B02
 
 before_install:
-  - "sudo apt-get install rebar libssl-dev libxml2-dev libexpat1-dev"
+  - "sudo apt-get install libssl-dev libxml2-dev libexpat1-dev"
 
 after_script:
   - "rebar skip_deps=true ct"
