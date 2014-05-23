@@ -797,7 +797,7 @@ make_resource_title(E, #state{entity=Res}=State) ->
 	undefined ->
 	    make_resource_id(E, State);
 	Title ->
-	    make_resource_id(E, State#state{entity=occi_resource:set_title(Res, Title)})
+	    make_resource_id(E, State#state{entity=occi_resource:set_attr_value(Res, 'occi.core.title', Title)})
     end.
 
 make_resource_id(E, #state{entity_id=undefined, entity=#occi_resource{id=undefined}=Res}=State) ->

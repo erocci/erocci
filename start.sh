@@ -1,5 +1,5 @@
 #!/bin/bash
-basedir=$(dirname $0)
+basedir=$(cd $(dirname $0) && pwd)
 
 usage() {
     echo "Usage: $0 [-d] [-s] [-x <jid>] [-c <config>] [-h] [-n <name>]"

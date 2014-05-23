@@ -52,7 +52,7 @@ to_xmlel(#occi_node{type=occi_resource, data=Res}) ->
 		exmpp_xml:element(
 		  ?occi_ns, resource,
 		  [exmpp_xml:attribute(<<"id">>, occi_uri:to_binary(occi_resource:get_id(Res))),
-		   exmpp_xml:attribute(<<"title">>, occi_resource:get_title(Res))], 
+		   exmpp_xml:attribute(<<"title">>, occi_resource:get_attr_value(Res, 'occi.core.title'))], 
 		  [make_cid(kind, occi_resource:get_cid(Res))])),
    lists:foldl(
      fun (#uri{}=Link, Acc) -> 
@@ -102,7 +102,7 @@ make_link(#occi_link{}=Link) ->
 	     undefined -> C;
 	     #uri{}=Uri -> [make_attribute('occi.core.source', Uri) | C]
 	 end,
-    A = case occi_link:get_title(Link) of
+    A = case occi_link:get_attr_value(Link, 'occi.core.title') of
 	    undefined -> [];
 	     V -> [exmpp_xml:attribute(<<"title">>, V)]
 	end,
@@ -235,6 +235,8 @@ make_attr_spec(#occi_attr{}=A) ->
     exmpp_xml:element(?occi_ns, attribute, L7, []).
 
 render_attribute(E, #occi_attr{value=undefined}) ->
+    E;
+render_attribute(E, #occi_attr{id='occi.core.id'}) ->
     E;
 render_attribute(E, #occi_attr{}=Attr) ->
     exmpp_xml:append_child(

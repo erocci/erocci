@@ -38,12 +38,20 @@ get({?xmlschema_ns, integer}) ->
 get({?xmlschema_ns, float}) ->
     fun to_float/1;
 
+get({?xmlschema_ns, anyURI}) ->
+    fun to_uri/1;
+
 get(_) ->
     {error, invalid_type}.
 
 %%%
 %%% Priv
 %%%
+to_uri(#uri{} = X) ->
+    X;
+to_uri(X) ->
+    occi_uri:parse(X).
+
 to_string(X) when is_list(X) ->
     X;
 to_string(X) when is_binary(X) ->

@@ -23,6 +23,7 @@
 -compile([{parse_transform, lager_transform}]).
 
 -include("occi.hrl").
+-include("occi_xml.hrl").
 
 -export([new/1,
 	 get_id/1,
@@ -39,7 +40,14 @@
 	 get_value/1,
 	 set_title/2,
 	 get_title/1,
-	 check/1]).
+	 check/1,
+	 add_prefix/2,
+	 rm_prefix/2]).
+-export([core_id/0,
+	 core_title/0,
+	 core_summary/0,
+	 core_src/0,
+	 core_target/0]).
 
 -export([reset/1]).
 
@@ -105,3 +113,50 @@ check(#occi_attr{value=undefined}=A) ->
     end;
 check(#occi_attr{}=_A) ->
     ok.
+
+add_prefix(#occi_attr{value=undefined}=A, _) ->
+    A;
+add_prefix(#occi_attr{value=#uri{}=V}=A, Prefix) ->
+    A#occi_attr{value=occi_uri:add_prefix(V, Prefix)};
+add_prefix(_, _) ->
+    throw({error, invalid_type}).
+
+rm_prefix(#occi_attr{value=undefined}=A, _) ->
+    A;
+rm_prefix(#occi_attr{value=#uri{}=V}=A, Prefix) ->
+    A#occi_attr{value=occi_uri:rm_prefix(V, Prefix)};
+rm_prefix(_, _) ->
+    throw({error, invalid_type}).
+
+%%%
+%%% OCCI Core attributes
+%%%
+core_id() ->
+    Props = dict:from_list([{immutable, true},
+			    {required, true},
+			    {default, undefined}]),
+    #occi_attr{id='occi.core.id', properties=Props, f=occi_type:get({?xmlschema_ns, anyURI})}.
+
+core_title() ->
+    Props = dict:from_list([{immutable, false},
+			    {required, false},
+			    {default, undefined}]),
+    #occi_attr{id='occi.core.title', properties=Props, f=occi_type:get({?xmlschema_ns, string})}.
+
+core_summary() ->
+    Props = dict:from_list([{immutable, false},
+			    {required, false},
+			    {default, undefined}]),
+    #occi_attr{id='occi.core.summary', properties=Props, f=occi_type:get({?xmlschema_ns, string})}.
+    
+core_src() ->
+    Props = dict:from_list([{immutable, false},
+			    {required, true},
+			    {default, undefined}]),
+    #occi_attr{id='occi.core.source', properties=Props, f=occi_type:get({?xmlschema_ns, anyURI})}.
+    
+core_target() ->
+    Props = dict:from_list([{immutable, false},
+			    {required, true},
+			    {default, undefined}]),
+    #occi_attr{id='occi.core.target', properties=Props, f=occi_type:get({?xmlschema_ns, anyURI})}.

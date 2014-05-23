@@ -102,14 +102,11 @@ render_resource(#occi_resource{}=Res, Acc) ->
 render_link(#occi_link{}=Link, Acc) ->
     Acc2 = render_cid(occi_link:get_cid(Link), Acc),
     Acc3 = sets:fold(fun render_cid/2, Acc2, occi_link:get_mixins(Link)),
-    Acc4 = lists:foldl(fun render_attribute/2, Acc3, occi_link:get_attributes(Link)),
-    Acc5 = add_header_value(<<"x-occi-attribute">>, 
-			    render_kv("occi.core.source", occi_uri:to_iolist(occi_link:get_source(Link))),
-			    Acc4),
-    Acc6 = add_header_value(<<"x-occi-attribute">>, 
-			    render_kv("occi.core.target", occi_uri:to_iolist(occi_link:get_target(Link))),
-			    Acc5),
-    render_location(occi_link:get_id(Link), Acc6).
+    Attrs = [ occi_link:get_attr(Link, 'occi.core.source'), 
+	      occi_link:get_attr(Link, 'occi.core.target') 
+	      | occi_link:get_attributes(Link)],
+    Acc4 = lists:foldl(fun render_attribute/2, Acc3, Attrs),
+    render_location(occi_link:get_id(Link), Acc4).
 
 render_inline_link(#uri{}=Uri, Acc) ->
     add_header_value(<<"link">>, occi_uri:to_iolist(Uri), Acc);
@@ -154,6 +151,8 @@ render_action_specs(Actions) ->
 render_action_spec(#occi_action{id=Id}) ->
     render_cid_uri(Id).
 
+render_attribute(#occi_attr{id='occi.core.id'}, Acc) ->
+    Acc;
 render_attribute(#occi_attr{}=Attr, Acc) ->
     add_header_value(<<"x-occi-attribute">>, build_attribute(Attr), Acc).
 
@@ -172,6 +171,8 @@ format_value(V) when is_integer(V) ->
     integer_to_list(V);
 format_value(V) when is_float(V) ->
     io_lib:format("~g", [V]);
+format_value(#uri{}=U) ->
+    occi_uri:to_iolist(U);
 format_value(V) ->
     V.
 

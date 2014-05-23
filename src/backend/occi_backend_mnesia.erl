@@ -497,16 +497,14 @@ check_entity_t(#uri{}=Id) ->
 	    case mnesia:wread({occi_resource, Id}) of
 		[] ->
 		    case mnesia:wread({occi_link, Id}) of
-			[] -> mnesia:abort({unknown_entity, Id});
-					      _ -> ok
+			[] -> false;
+			_ -> true
 		    end;
-		_ -> ok
+		_ -> true
 	    end;
 	false ->
 	    case occi_store:find(#occi_node{id=Id, _='_'}) of
-		{ok, []} ->
-		    mnesia:abort({unknown_entity, Id});
-		{ok, [_]} ->
-		    ok
+		{ok, []} -> false;
+		{ok, [_]} -> true
 	    end
     end.

@@ -21,12 +21,14 @@
 -compile({parse_transform, lager_transform}).
 
 -include("occi.hrl").
+-include("occi_http.hrl").
 
 %% REST Callbacks
 -export([init/3, 
 	 rest_init/2,
 	 allowed_methods/2,
 	 allow_missing_post/2,
+	 is_authorized/2,
 	 resource_exists/2,
 	 delete_resource/2,
 	 content_types_provided/2,
@@ -42,6 +44,8 @@
 	 from_occi/2,
 	 from_json/2,
 	 from_xml/2]).
+
+-record(state, {op, url, node, ct}).
 
 -record(content_type, {parser   :: atom(),
 		       renderer :: atom(),
@@ -62,7 +66,11 @@ init(_Transport, _Req, []) ->
     {upgrade, protocol, cowboy_rest}.
 
 rest_init(Req, _Opts) ->
-    {ok, cowboy_req:set_resp_header(<<"server">>, ?HTTP_SERVER_ID, Req), #occi_node{}}.
+    Op = occi_http_common:get_acl_op(Req),
+    {Path, _} = cowboy_req:path(Req),
+    Url = occi_uri:parse(Path),
+    {ok, cowboy_req:set_resp_header(<<"server">>, ?SERVER_ID, Req), 
+     #state{op=Op, node=#occi_node{}, url=Url}}.
 
 allowed_methods(Req, State) ->
     Methods = [<<"GET">>, <<"DELETE">>, <<"OPTIONS">>, <<"POST">>, <<"PUT">>],
@@ -93,17 +101,10 @@ content_types_accepted(Req, State) ->
      Req, State}.
 
 allow_missing_post(Req, State) ->
-    case cowboy_req:method(Req) of
-	{<<"POST">>, _} ->
-	    {false, Req, State};
-	{<<"PUT">>, _} ->
-	    {true, Req, State}
-    end.
+    {false, Req, State}.
 
-resource_exists(Req, State) ->
-    {Path, _} = cowboy_req:path(Req),
-    Id = occi_uri:parse(Path),
-    case occi_store:find(#occi_node{id=#uri{path=Id#uri.path}, _='_'}) of
+resource_exists(Req, #state{url=Url}=State) ->
+    case occi_store:find(#occi_node{id=#uri{path=Url#uri.path}, _='_'}) of
 	{ok, []} ->
 	    {false, Req, State};
 	{ok, [#occi_node{type=occi_collection, objid=#occi_cid{class=kind}}=Node]} ->
@@ -113,218 +114,203 @@ resource_exists(Req, State) ->
 		    {halt, Req2, State};
 		{_, _} ->
 		    lager:debug("Resource: ~p~n", [lager:pr(Node, ?MODULE)]),
-		    {true, Req, Node}
+		    {true, Req, State#state{node=Node}}
 	    end;
 	{ok, [#occi_node{}=Node]} ->
 	    lager:debug("Resource: ~p~n", [lager:pr(Node, ?MODULE)]),
-	    {true, Req, Node}
+	    {true, Req, State#state{node=Node}}
     end.
 
-delete_resource(Req, #occi_node{id=Id}=Node) ->
-    case occi_store:delete(Node) of
+is_authorized(Req, #state{op=Op, url=Url}=State) ->
+    case occi_http_common:get_acl_user(Req) of
+	{ok, User} ->
+	    case occi_acl:check(Op, Url, User) of
+		allow ->
+		    {true, Req, State};
+		deny ->
+		    {{false, occi_http_common:get_auth()}, Req, State}
+	    end;
+	{error, Error} ->
+	    lager:debug("Authentication error: ~p~n", [Error]),
+	    {{false, occi_http_common:get_auth()}, Req, State}
+    end.
+
+delete_resource(Req, #state{node=Node}=State) ->
+    case occi_store:delete(Node#occi_node.id) of
 	{error, undefined_backend} ->
-	    lager:error("Internal error deleting node: ~p~n", [lager:pr(Id, ?MODULE)]),
+	    lager:error("Internal error deleting node: ~p~n", [lager:pr(Node#occi_node.id, ?MODULE)]),
 	    {ok, Req2} = cowboy_req:reply(500, Req),
-	    {halt, Req2, Node};
+	    {halt, Req2, State};
 	{error, Reason} ->
 	    lager:error("Error deleting node: ~p~n", [Reason]),
-	    {false, Req, Node};
+	    {false, Req, State};
 	ok ->
-	    {true, Req, Node}
+	    {true, Req, State}
     end.
 
-to_occi(Req, #occi_node{}=Node) ->
-    render(Req, Node, ?ct_occi).
 
-to_plain(Req, #occi_node{}=Node) ->
-    render(Req, Node, ?ct_plain).
+to_occi(Req, State) ->
+    render(Req, State#state{ct=?ct_occi}).
 
-to_uri_list(Req, #occi_node{type=occi_collection}=Node) ->
-    render(Req, Node, ?ct_uri_list);
-to_uri_list(Req, #occi_node{type=dir}=Node) ->
-    render(Req, Node, ?ct_uri_list);
+to_plain(Req, State) ->
+    render(Req, State#state{ct=?ct_plain}).
+
+to_uri_list(Req, #state{node=#occi_node{type=occi_collection}}=State) ->
+    render(Req, State#state{ct=?ct_uri_list});
+to_uri_list(Req, #state{node=#occi_node{type=dir}}=State) ->
+    render(Req, State#state{ct=?ct_uri_list});
 to_uri_list(Req, State) ->
     {ok, Req2} = cowboy_req:reply(400, Req),
     {halt, Req2, State}.
 
-to_json(Req, #occi_node{}=Node) ->
-    render(Req, Node, ?ct_json).
+to_json(Req, State) ->
+    render(Req, State#state{ct=?ct_json}).
 
-to_xml(Req, #occi_node{}=Node) ->
-    render(Req, Node, ?ct_xml).
+to_xml(Req, State) ->
+    render(Req, State#state{ct=?ct_xml}).
 
 from_plain(Req, State) ->
-    from(Req, State, ?ct_plain).
+    save_or_update(Req, State#state{ct=?ct_plain}).
 
 from_occi(Req, State) ->
-    from(Req, State, ?ct_occi).
+    save_or_update(Req, State#state{ct=?ct_occi}).
 
 from_json(Req, State) ->
-    from(Req, State, ?ct_json).
+    save_or_update(Req, State#state{ct=?ct_json}).
 
 from_xml(Req, State) ->
-    from(Req, State, ?ct_xml).
+    save_or_update(Req, State#state{ct=?ct_xml}).
 
 %%%
 %%% Private
 %%%
-from(Req, #occi_node{type=occi_collection, objid=#occi_cid{class=kind}}=State, CT) ->
+save_or_update(Req, #state{op=create}=State) ->
+    save(Req, State);
+save_or_update(Req, #state{op=update}=State) ->
     case cowboy_req:qs_val(<<"action">>, Req) of
 	{undefined, Req2} ->
-	    save_entity(Req2, State, CT);
+	    update(Req2, State);
 	{Action, Req2} ->
-	    action(Req2, State, Action, CT)
+	    action(Req2, State, Action)
+    end.
+
+save(Req, #state{node=#occi_node{type=occi_collection, objid=#occi_cid{class=Cls}}}=State) ->
+    case Cls of
+	kind ->
+	    save_entity(Req, State);
+	_ ->
+	    save_collection(Req, State)
     end;
 
-from(Req, #occi_node{type=occi_collection, objid=#occi_cid{class=mixin}}=State, CT) ->
-    case cowboy_req:method(Req) of
-	{<<"PUT">>, _} ->
-	    save_collection(Req, State, CT);
-	{<<"POST">>, _} ->
-	    case cowboy_req:qs_val(<<"action">>, Req) of
-		{undefined, Req2} ->
-		    update_collection(Req2, State, CT);
-		{Action, Req2} ->
-		    action(Req2, State, Action, CT)
-	    end
-    end;
+save(Req, #state{node=#occi_node{type=occi_user_mixin}}=State) ->
+    save_collection(Req, State);
 
-from(Req, #occi_node{type=occi_collection, objid=#occi_cid{class=usermixin}}=State, CT) ->
-    case cowboy_req:method(Req) of
-	{<<"PUT">>, _} ->
-	    save_collection(Req, State, CT);
-	{<<"POST">>, _} ->
-	    case cowboy_req:qs_val(<<"action">>, Req) of
-		{undefined, Req2} ->
-		    update_collection(Req2, State, CT);
-		{Action, Req2} ->
-		    action(Req2, State, Action, CT)
-	    end
-    end;
+save(Req, #state{node=#occi_node{type=occi_resource}}=State) ->
+    save_entity(Req, State);
 
-from(Req, #occi_node{type=occi_user_mixin}=State, CT) ->
-    case cowboy_req:method(Req) of
-	{<<"PUT">>, _} ->
-	    save_collection(Req, State, CT);
-	{<<"POST">>, _} ->
-	    case cowboy_req:qs_val(<<"action">>, Req) of
-		{undefined, Req2} ->
-		    update_collection(Req2, State, CT);
-		{Action, Req2} ->
-		    action(Req2, State, Action, CT)
-	    end
-    end;
+save(Req, #state{node=#occi_node{type=occi_link}}=State) ->
+    save_entity(Req, State);
 
-from(Req, #occi_node{type=occi_resource}=State, CT) ->
-    case cowboy_req:method(Req) of
-	{<<"PUT">>, _} ->
-	    save_entity(Req, State, CT);
-	{<<"POST">>, _} ->
-	    case cowboy_req:qs_val(<<"action">>, Req) of
-		{undefined, Req2} ->
-		    update_entity(Req2, State, CT);
-		{Action, Req2} ->
-		    action(Req2, State, Action, CT)
-	    end
-    end;
-
-from(Req, #occi_node{type=occi_link}=State, CT) ->
-    case cowboy_req:method(Req) of
-	{<<"PUT">>, _} ->
-	    save_entity(Req, State, CT);
-	{<<"POST">>, _} ->
-	    case cowboy_req:qs_val(<<"action">>, Req) of
-		{undefined, Req2} ->
-		    update_entity(Req2, State, CT);
-		{Action, Req2} ->
-		    action(Req2, State, Action, CT)
-	    end
-    end;
-
-from(Req, #occi_node{type=dir}=State, _) ->
+save(Req, #state{node=#occi_node{type=dir}}=State) ->
     {ok, Req2} = cowboy_req:reply(405, Req),
     {halt, Req2, State};
 
-from(Req, #occi_node{type=undefined}=State, CT) ->
-    save_entity(Req, State, CT).
+save(Req, #state{node=#occi_node{type=undefined}}=State) ->
+    save_entity(Req, State).
 
-render(Req, State, #content_type{renderer=Renderer}) ->
-    case occi_store:load(State) of
-	{ok, Node} ->
-	    {Body, Req2} = Renderer:render(Node, Req),
-	    {Body, Req2, Node};
+update(Req, #state{node=#occi_node{type=occi_collection, objid=#occi_cid{class=mixin}}}=State) ->
+    update_collection(Req, State);
+
+update(Req, #state{node=#occi_node{type=occi_collection, objid=#occi_cid{class=usermixin}}}=State) ->
+    update_collection(Req, State);
+
+update(Req, #state{node=#occi_node{type=occi_user_mixin}}=State) ->
+    update_collection(Req, State);
+
+update(Req, #state{node=#occi_node{type=occi_resource}}=State) ->
+    update_entity(Req, State);
+
+update(Req, #state{node=#occi_node{type=occi_link}}=State) ->
+    update_entity(Req, State);
+
+update(Req, #state{node=#occi_node{type=dir}}=State) ->
+    {ok, Req2} = cowboy_req:reply(405, Req),
+    {halt, Req2, State};
+
+update(Req, #state{node=#occi_node{type=undefined}}=State) ->
+    update_entity(Req, State).
+
+render(Req, #state{node=Node, ct=#content_type{renderer=Renderer}}=State) ->
+    case occi_store:load(Node) of
+	{ok, Node2} ->
+	    {Body, Req2} = Renderer:render(Node2, Req),
+	    {Body, Req2, State};
 	{error, Err} ->
 	    lager:error("Error loading object: ~p~n", [Err]),
 	    {ok, Req2} = cowboy_req:reply(500, Req),
 	    {halt, Req2, State}
     end.
 
-save_entity(Req, State, #content_type{parser=Parser}) ->
+save_entity(Req, #state{node=Node, ct=#content_type{parser=Parser}}=State) ->
     {ok, Body, Req2} = cowboy_req:body(Req),
-    Entity = prepare_entity(Req, State),
+    Entity = prepare_entity(Req, Node),
     case Parser:parse_entity(Body, Req2, Entity) of
 	{error, {parse_error, Err}} ->
 	    lager:error("Error processing request: ~p~n", [Err]),
 	    {false, Req2, State};
 	{error, Err} ->
 	    lager:error("Internal error: ~p~n", [Err]),
-	    {ok, Req3} = cowboy_req:reply(500, Req2),
-	    {false, Req3, State};	    
+	    {false, Req2, State};
 	{ok, #occi_resource{}=Res} ->
-	    Node = create_resource_node(Req2, Res),
-	    case occi_store:save(Node) of
+	    Node2 = create_resource_node(Req2, Res),
+	    case occi_store:save(Node2) of
 		ok ->
 		    Req3 = cowboy_req:set_resp_body("OK\n", Req2),
-		    {true, set_location_header(Node, Req3), State};
+		    {true, set_location_header(Node2, Req3), State};
 		{error, Reason} ->
 		    lager:error("Error creating resource: ~p~n", [Reason]),
-		    {ok, Req3} = cowboy_req:reply(500, Req2),
-		    {halt, Req3, State}
+		    {halt, Req2, State}
 	    end;
 	{ok, #occi_link{}=Link} ->
-	    Node = create_link_node(Req2, Link),
-	    case occi_store:save(Node) of
+	    Node2 = create_link_node(Req2, Link),
+	    case occi_store:save(Node2) of
 		ok ->
 		    Req3 = cowboy_req:set_resp_body("OK\n", Req2),
-		    {true, set_location_header(Node, Req3), State};
+		    {true, set_location_header(Node2, Req3), State};
 		{error, Reason} ->
 		    lager:error("Error creating link: ~p~n", [Reason]),
-		    {ok, Req3} = cowboy_req:reply(500, Req2),
-		    {halt, Req3, State}
+		    {halt, Req2, State}
 	    end
     end.
 
-update_entity(Req, State, #content_type{parser=Parser}) ->
+update_entity(Req, #state{node=Node, ct=#content_type{parser=Parser}}=State) ->
     {ok, Body, Req2} = cowboy_req:body(Req),
-    case occi_store:load(State) of
-	{ok, #occi_node{data=Entity}=Node} ->
+    case occi_store:load(Node) of
+	{ok, #occi_node{data=Entity}=Node2} ->
 	    case Parser:parse_entity(Body, Req2, Entity) of
 		{error, {parse_error, Err}} ->
 		    lager:error("Error processing request: ~p~n", [Err]),
 		    {false, Req2, State};
 		{error, Err} ->
 		    lager:error("Internal error: ~p~n", [Err]),
-		    {ok, Req3} = cowboy_req:reply(500, Req2),
-		    {false, Req3, State};	    
+		    {halt, Req2, State};	    
 		{ok, #occi_resource{}=Res} ->
-		    Node2 = occi_node:set_data(Node, Res),
-		    case occi_store:update(Node2) of
+		    Node3 = occi_node:set_data(Node2, Res),
+		    case occi_store:update(Node3) of
 			ok ->
 			    {true, cowboy_req:set_resp_body("OK\n", Req2), State};
 			{error, Reason} ->
 			    lager:error("Error updating resource: ~p~n", [Reason]),
-			    {ok, Req3} = cowboy_req:reply(500, Req2),
-			    {halt, Req3, State}
+			    {halt, Req2, State}
 		    end;
 		{ok, #occi_link{}=Link} ->
-		    Node2 = occi_node:set_data(Node, Link),
-		    case occi_store:update(Node2) of
+		    Node3 = occi_node:set_data(Node2, Link),
+		    case occi_store:update(Node3) of
 			ok ->
 			    {true, cowboy_req:set_resp_body("OK\n", Req2), State};
 			{error, Reason} ->
 			    lager:error("Error updating link: ~p~n", [Reason]),
-			    {ok, Req3} = cowboy_req:reply(500, Req2),
-			    {halt, Req3, State}
+			    {halt, Req2, State}
 		    end
 	    end;	    
 	{error, Err} ->
@@ -333,7 +319,8 @@ update_entity(Req, State, #content_type{parser=Parser}) ->
 	    {halt, Req2, State}
     end.
 
-save_collection(Req, #occi_node{objid=Cid}=State, #content_type{parser=Parser}) ->
+save_collection(Req, #state{ct=#content_type{parser=Parser},
+			    node=#occi_node{objid=Cid}=Node}=State) ->
     {ok, Body, Req2} = cowboy_req:body(Req),
     case Parser:parse_collection(Body, Req2) of
 	{error, {parse_error, Err}} ->
@@ -341,24 +328,22 @@ save_collection(Req, #occi_node{objid=Cid}=State, #content_type{parser=Parser}) 
 	    {false, Req2, State};
 	{error, Err} ->
 	    lager:error("Internal error: ~p~n", [Err]),
-	    {ok, Req3} = cowboy_req:reply(500, Req2),
-	    {halt, Req3, State};	    
+	    {halt, Req2, State};	    
 	{ok, #occi_collection{}=C} ->
 	    Coll = occi_collection:new(Cid, occi_collection:get_entities(C)),
-	    case occi_store:save(State#occi_node{type=occi_collection, data=Coll}) of
+	    case occi_store:save(Node#occi_node{type=occi_collection, data=Coll}) of
 		ok ->
 		    {true, Req, State};
 		{error, {no_such_entity, Uri}} ->
 		    lager:debug("Invalid entity: ~p~n", [occi_uri:to_string(Uri)]),
-			    {false, Req2, State};
+		    {false, Req2, State};
 		{error, Reason} ->
 		    lager:error("Error saving collection: ~p~n", [Reason]),
-		    {ok, Req3} = cowboy_req:reply(500, Req2),
-		    {halt, Req3, State}
+		    {halt, Req2, State}
 	    end
     end.
 
-update_collection(Req, #occi_node{objid=Cid}=State, #content_type{parser=Parser}) ->
+update_collection(Req, #state{ct=#content_type{parser=Parser}, node=#occi_node{objid=Cid}=Node}=State) ->
     {ok, Body, Req2} = cowboy_req:body(Req),
     case Parser:parse_collection(Body, Req2) of
 	{error, {parse_error, Err}} ->
@@ -366,12 +351,11 @@ update_collection(Req, #occi_node{objid=Cid}=State, #content_type{parser=Parser}
 	    {false, Req2, State};
 	{error, Err} ->
 	    lager:error("Internal error: ~p~n", [Err]),
-	    {ok, Req3} = cowboy_req:reply(500, Req2),
-	    {halt, Req3, State};	    
+	    {halt, Req2, State};	    
 	{ok, #occi_collection{}=C} ->
 	    Coll = occi_collection:new(Cid, occi_collection:get_entities(C)),
-	    Node = State#occi_node{type=occi_collection, data=Coll},
-	    case occi_store:update(Node) of
+	    Node2 = Node#occi_node{type=occi_collection, data=Coll},
+	    case occi_store:update(Node2) of
 		ok ->
 		    {true, Req, State};
 		{error, {no_such_entity, Uri}} ->
@@ -379,35 +363,32 @@ update_collection(Req, #occi_node{objid=Cid}=State, #content_type{parser=Parser}
 		    {false, Req2, State};
 		{error, Reason} ->
 		    lager:error("Error updating collection: ~p~n", [Reason]),
-		    {ok, Req3} = cowboy_req:reply(500, Req2),
-		    {halt, Req3, State}
+		    {halt, Req2, State}
 	    end
     end.
 
-action(Req, Node, ActionName, #content_type{parser=Parser}) ->
+action(Req, #state{ct=#content_type{parser=Parser}, node=Node}=State, ActionName) ->
     {ok, Body, Req2} = cowboy_req:body(Req),
     case Parser:parse_action(Body, Req2, prepare_action(Req2, Node, ActionName)) of
 	{error, {parse_error, Err}} ->
 	    lager:error("Error processing action: ~p~n", [Err]),
-	    {false, Req2, Node};
+	    {false, Req2, State};
 	{error, Err} ->
 	    lager:error("Internal error: ~p~n", [Err]),
-	    {ok, Req3} = cowboy_req:reply(500, Req2),
-	    {halt, Req3, Node};	    
+	    {halt, Req2, State};	    
 	{ok, #occi_action{}=Action} ->
 	    case occi_store:action(Node, Action) of
 		ok ->
-		    {true, Req2, Node};
+		    {true, Req2, State};
 		{error, Err} ->
 		    lager:error("Error triggering action: ~p~n", [Err]),
-		    {ok, Req3} = cowboy_req:reply(500, Req2),
-		    {halt, Req3, Node}
+		    {halt, Req2, Node}
 	    end
     end.
 
-prepare_action(Req, State, Name) when is_binary(Name)->
-    prepare_action(Req, State, list_to_atom(binary_to_list(Name)));
-prepare_action(_Req, _State, Name) ->
+prepare_action(Req, Node, Name) when is_binary(Name)->
+    prepare_action(Req, Node, list_to_atom(binary_to_list(Name)));
+prepare_action(_Req, _Node, Name) ->
     occi_action:new(#occi_cid{term=Name, class=action}).
 
 prepare_entity(_Req, #occi_node{type=occi_collection, objid=Cid}) ->
