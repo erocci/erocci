@@ -369,9 +369,8 @@ del_dir_t(#occi_node{id=Id, type=dir, data=Children}) ->
 		 end, ok, Children),
     mnesia:delete({occi_node, Id}).
 
-del_from_parent_t(#occi_node{parent=undefined}) ->
-    ok;
-del_from_parent_t(#occi_node{id=Id, parent=ParentId}) ->
+del_from_parent_t(#occi_node{id=Id}) ->
+    ParentId = occi_uri:get_parent(Id),
     case mnesia:wread({occi_node, ParentId}) of
 	[] ->
 	    mnesia:abort({no_such_dir, ParentId});
