@@ -21,8 +21,7 @@ install:
   - "sudo apt-get install rebar libssl-dev libxml2-dev libexpat1-dev"
   - "rebar get-deps"
 
-script:
-    rebar compile && rebar skip_deps=true eunit && rebar skip_deps=true ct
+script: rebar compile && rebar skip_deps=true eunit && rebar skip_deps=true ct
 
 notifications:
   email:
