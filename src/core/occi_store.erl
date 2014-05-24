@@ -469,9 +469,9 @@ filter_collection(#occi_node{type=occi_collection, data=#occi_collection{cid=Cid
 			    none ->
 				C = occi_collection:new(Cid, [occi_uri:rm_prefix(Uri, Prefix)]),
 				gb_trees:insert(Backend, Node#occi_node{data=C}, Acc);
-			    {value, #occi_collection{}=C} ->
+			    {value, #occi_node{data=#occi_collection{}=C}} ->
 				C2 = occi_collection:add_entity(C, occi_uri:rm_prefix(Uri, Prefix)),
-				gb_trees:insert(Backend, Node#occi_node{data=C2}, Acc)
+				gb_trees:update(Backend, Node#occi_node{data=C2}, Acc)
 			end
 		end
 	end,

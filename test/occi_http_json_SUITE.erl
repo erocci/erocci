@@ -149,11 +149,7 @@ groups() ->
       ]},
      {test_mixin_col,
       [],
-      [
-       %put_mixin_col,       %Code http: {expected,201}, {value,500}
-       get_mixin_col,
-       %post_mixin_col,      %Code http: {expected,200}, {value,500}
-       get_mixin_col,
+      [ put_mixin_col, get_mixin_col, post_mixin_col, get_mixin_col,
        %delete_mixin_col,    %Code http: {expected,204}, {value,500}
        {group,test_query}
       ]},
@@ -282,7 +278,7 @@ put_mixin_col(_Config) ->
     Id = ?NAME ++ "/collections/os_tpl/",
     {ok, {{_Protocol, Code, _Status}, _Headers, _Body}} =  
 	httpc:request(put, {Id, [], "application/json", File}, [], []),   
-    ?assertEqual(201, Code).
+    ?assertEqual(204, Code).
 
 %
 % @doc Test updating of an existing resource 
@@ -362,8 +358,8 @@ post_mixin_col(_Config) ->
     Id = ?NAME ++ "/collections/os_tpl/",
     {ok, {{_Protocol, Code, _Status}, _Headers, _Body}} = 
 	httpc:request(post, {Id, [], "application/json", File}, [], []),
-    ?assertEqual(200, Code).
-   
+    ?assertEqual(204, Code).
+
 %
 % @doc Test deletion of URL
 % expect: 204(no content)
