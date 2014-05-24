@@ -143,9 +143,7 @@ groups() ->
       ]},
      {test_kind_col,
       [],
-      [put_kind_col,get_kind_col,
-       %post_kind_col,       %Code http: {expected,200}, {value,500}
-       get_kind_col,
+      [put_kind_col, get_kind_col, post_kind_col, get_kind_col,
        %delete_kind_col,     %Code http: {expected,204}, {value,500}
        {group,test_mixin_col}
       ]},

@@ -218,6 +218,9 @@ save(Req, #state{node=#occi_node{type=dir}}=State) ->
 save(Req, #state{node=#occi_node{type=undefined}}=State) ->
     save_entity(Req, State).
 
+update(Req, #state{node=#occi_node{type=occi_collection, objid=#occi_cid{class=kind}}}=State) ->
+    save_entity(Req, State);
+
 update(Req, #state{node=#occi_node{type=occi_collection, objid=#occi_cid{class=mixin}}}=State) ->
     update_collection(Req, State);
 
