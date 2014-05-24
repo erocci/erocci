@@ -138,6 +138,15 @@ delete(#occi_mixin{location=#uri{path=Path}}=Mixin) ->
 	    {error, Err}
     end;
 
+delete(#occi_node{type=occi_collection, data=undefined}=Node) ->
+    case load(Node) of
+	{ok, Node2} -> delete(Node2);
+	{error, Err} -> {error, Err}
+    end;
+delete(#occi_node{type=occi_collection}=Node) ->
+    lager:debug("occi_store:delete(~p)~n", [lager:pr(Node, ?MODULE)]),
+    cast(delete, filter_collection(Node));
+
 delete(#occi_node{id=#uri{path=Path}}=Node) ->
     lager:debug("occi_store:delete(~p)~n", [lager:pr(Node, ?MODULE)]),
     case get_backend(Path) of
