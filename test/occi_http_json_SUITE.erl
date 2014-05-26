@@ -122,14 +122,12 @@ groups() ->
      {test_json, [],
       [{group,test_resource}]},
      {test_resource, [],
-      [ put_resource_new,
-        %put_resource,       %Code http: {expected,409}, {value,200}
-        get_resource, post_resource_new, post_resource, get_resource, delete_resource, get_resource_delete, 
+      [ put_resource_new, put_resource, get_resource, post_resource_new, post_resource, 
+	get_resource, delete_resource, get_resource_delete, 
 	{group, test_link} ]},
      {test_link, [],
-      [ {group, create_test_resources}, 
-        %put_link,           %Code http: {expected,409}, {value,200}
-        get_link, post_link_new, post_link, get_link, delete_link, get_link_delete, 
+      [ {group, create_test_resources}, put_link, get_link, post_link_new, post_link, 
+	get_link, delete_link, get_link_delete, 
 	{group, test_kind_col} ]},
      {test_kind_col, [],
       [ put_kind_col, get_kind_col, post_kind_col, get_kind_col, delete_kind_col, 

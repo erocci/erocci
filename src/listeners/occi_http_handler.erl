@@ -30,6 +30,7 @@
 	 allow_missing_post/2,
 	 is_authorized/2,
 	 resource_exists/2,
+	 is_conflict/2,
 	 delete_resource/2,
 	 content_types_provided/2,
 	 content_types_accepted/2]).
@@ -134,6 +135,13 @@ is_authorized(Req, #state{op=Op, url=Url}=State) ->
 	    lager:debug("Authentication error: ~p~n", [Error]),
 	    {{false, occi_http_common:get_auth()}, Req, State}
     end.
+
+is_conflict(Req, #state{node=#occi_node{id=#uri{}, type=occi_resource}}=State) ->
+    {true, Req, State};
+is_conflict(Req, #state{node=#occi_node{id=#uri{}, type=occi_link}}=State) ->
+    {true, Req, State};
+is_conflict(Req, State) ->
+    {false, Req, State}.
 
 delete_resource(Req, #state{node=Node}=State) ->
     case occi_store:delete(Node) of
