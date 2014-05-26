@@ -118,50 +118,30 @@ end_per_testcase(_TestCase, _Config) ->
 %%--------------------------------------------------------------------
 groups() ->
     [
-     {test_json,
-      [],
+     {create_test_resources, [], [ put_resources, put_link_new ]},
+     {test_json, [],
       [{group,test_resource}]},
-     {test_resource,
-      [],
-      [put_resource_new,
-       %put_resource,       %Code http: {expected,409}, {value,200}
-       get_resource,  
-       post_resource_new,post_resource,
-       get_resource,   
-       delete_resource,get_resource_delete,{group,test_link}
-      ]},
-     {test_link,
-      [],
-      [put_resources,put_link_new,
-       %put_link,           %Code http: {expected,409}, {value,200}
-       get_link,    
-       post_link_new,   
-       post_link,
-       get_link,    
-       delete_link,get_link_delete
-       ,{group,test_kind_col} 
-      ]},
-     {test_kind_col,
-      [],
-      [put_kind_col, get_kind_col, post_kind_col, get_kind_col,
-       %delete_kind_col,     %Code http: {expected,204}, {value,500}
-       {group,test_mixin_col}
-      ]},
-     {test_mixin_col,
-      [],
-      [ put_mixin_col, get_mixin_col, post_mixin_col, get_mixin_col,
-       %delete_mixin_col,    %Code http: {expected,204}, {value,500}
-       {group,test_query}
-      ]},
-     {test_query,
-      [],
-      [get_query,{group,test_dir}
-      ]},
-     {test_dir,
-      [],
-      [
-       put_resource_dir, get_dir
-      ]}
+     {test_resource, [],
+      [ put_resource_new,
+        %put_resource,       %Code http: {expected,409}, {value,200}
+        get_resource, post_resource_new, post_resource, get_resource, delete_resource, get_resource_delete, 
+	{group, test_link} ]},
+     {test_link, [],
+      [ {group, create_test_resources}, 
+        %put_link,           %Code http: {expected,409}, {value,200}
+        get_link, post_link_new, post_link, get_link, delete_link, get_link_delete, 
+	{group, test_kind_col} ]},
+     {test_kind_col, [],
+      [ put_kind_col, get_kind_col, post_kind_col, get_kind_col, delete_kind_col, 
+	{group,test_mixin_col} ]},
+     {test_mixin_col, [],
+      [ {group, create_test_resources}, put_mixin_col, get_mixin_col, post_mixin_col, 
+	get_mixin_col, delete_mixin_col, {group,test_query} ]},
+     {test_query, [],
+      [ get_query, 
+	{group, test_dir} ]},
+     {test_dir, [],
+      [ put_resource_dir, get_dir ]}
     ].
 
 %%--------------------------------------------------------------------
@@ -287,7 +267,8 @@ put_mixin_col(_Config) ->
 %
 post_resource_new(_Config) ->
     Id = ?NAME ++ "/myresources/id",
-    Content = "{ \"resources\": [  {  \"kind\": \"http://schemas.ogf.org/occi/infrastructure#compute\",  \"attributes\": {  \"occi\":{\"compute\":{\"speed\": 2,\"memory\": 2,\"cores\": 2}} } } ]}",
+    Content = "{ \"resources\": [  {  \"kind\": \"http://schemas.ogf.org/occi/infrastructure#compute\", "
+	++ " \"attributes\": {  \"occi\":{\"compute\":{\"speed\": 2,\"memory\": 2,\"cores\": 2}} } } ]}",
     {ok, {{_Protocol, Code, _Status}, _Headers, _Body}} =  
 	httpc:request(post, {Id, [],"application/json", Content}, [], []),
     ?assertEqual(200, Code).
