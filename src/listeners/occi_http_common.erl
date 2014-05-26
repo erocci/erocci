@@ -93,7 +93,11 @@ get_acl_op(Req) ->
     case cowboy_req:method(Req) of
 	{<<"GET">>, _} -> read;
 	{<<"PUT">>, _} -> create;
-	{<<"POST">>, _} -> update;
+	{<<"POST">>, _} ->
+	    case cowboy_req:qs_val(<<"action">>, Req) of
+		{undefined, _} -> update;
+		{Action, _} -> {action, Action}
+	    end;
 	{<<"DELETE">>, _} -> delete;
 	{<<"OPTIONS">>, _} -> read
     end.

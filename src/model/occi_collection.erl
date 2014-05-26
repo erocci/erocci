@@ -32,6 +32,7 @@
 	 del_entity/2,
 	 del_entities/2,
 	 get_entities/1,
+	 is_empty/1,
 	 merge/2,
 	 fold/2,
 	 add_prefix/2,
@@ -40,11 +41,16 @@
 new() ->
     #occi_collection{entities=ordsets:new()}.
 
-new(#occi_cid{}=Cid) ->
-    #occi_collection{cid=Cid, entities=ordsets:new()}.
+new(#uri{}=Id) ->
+    #occi_collection{id=Id, entities=ordsets:new()};
 
+new(#occi_cid{}=Cid) ->
+    #occi_collection{id=Cid, entities=ordsets:new()}.
+
+new(#uri{}=Id, Elements) when is_list(Elements) ->
+    #occi_collection{id=Id, entities=ordsets:from_list(Elements)};
 new(#occi_cid{}=Cid, Elements) when is_list(Elements) ->
-    #occi_collection{cid=Cid, entities=ordsets:from_list(Elements)}.
+    #occi_collection{id=Cid, entities=ordsets:from_list(Elements)}.
 
 add_entity(#occi_collection{entities=E}=C, #occi_link{id=Id}) ->
     C#occi_collection{entities=ordsets:add_element(Id, E)};
@@ -65,10 +71,16 @@ del_entities(#occi_collection{entities=E}=C, Uris) ->
 get_entities(#occi_collection{entities=E}) ->
     ordsets:to_list(E).
 
+is_empty(#occi_collection{entities=E}) ->
+    case ordsets:size(E) of
+	0 -> true;
+	_ -> false
+    end.
+
 merge(#occi_collection{}=C, undefined) ->
     C;
-merge(#occi_collection{cid=Cid, entities=E1}=C1,
-      #occi_collection{cid=Cid, entities=E2}) ->
+merge(#occi_collection{id=Id, entities=E1}=C1,
+      #occi_collection{id=Id, entities=E2}) ->
     C1#occi_collection{entities=ordsets:union(E1, E2)};
 merge(_C1, _C2) ->
     throw({error, merge_collection_failed}).

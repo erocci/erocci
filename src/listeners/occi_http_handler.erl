@@ -70,13 +70,19 @@ rest_init(Req, _Opts) ->
     Op = occi_http_common:get_acl_op(Req),
     {Path, _} = cowboy_req:path(Req),
     Url = occi_uri:parse(Path),
+    Node = case occi_store:find(#occi_node{id=#uri{path=Url#uri.path}, _='_'}) of
+	       {ok, []} -> #occi_node{};
+	       {ok, [#occi_node{}=N]} -> N
+	   end,
     {ok, cowboy_req:set_resp_header(<<"server">>, ?SERVER_ID, Req), 
-     #state{op=Op, node=#occi_node{}, url=Url}}.
+     #state{op=Op, node=Node, url=Url}}.
 
+allowed_methods(Req, #state{node=#occi_node{objid=#uri{}, type=occi_collection}}=State) ->
+    set_allowed_methods([<<"GET">>, <<"DELETE">>, <<"OPTIONS">>], Req, State);
+allowed_methods(Req, #state{node=#occi_node{objid=#occi_cid{class=kind}, type=occi_collection}}=State) ->
+    set_allowed_methods([<<"GET">>, <<"DELETE">>, <<"OPTIONS">>, <<"POST">>], Req, State);
 allowed_methods(Req, State) ->
-    Methods = [<<"GET">>, <<"DELETE">>, <<"OPTIONS">>, <<"POST">>, <<"PUT">>],
-    << ", ", Allow/binary >> = << << ", ", M/binary >> || M <- Methods >>,
-    {Methods, occi_http_common:set_cors(Req, Allow), State}.
+    set_allowed_methods([<<"GET">>, <<"DELETE">>, <<"OPTIONS">>, <<"POST">>, <<"PUT">>], Req, State).
 
 content_types_provided(Req, State) ->
     {[
@@ -104,23 +110,10 @@ content_types_accepted(Req, State) ->
 allow_missing_post(Req, State) ->
     {false, Req, State}.
 
-resource_exists(Req, #state{url=Url}=State) ->
-    case occi_store:find(#occi_node{id=#uri{path=Url#uri.path}, _='_'}) of
-	{ok, []} ->
-	    {false, Req, State};
-	{ok, [#occi_node{type=occi_collection, objid=#occi_cid{class=kind}}=Node]} ->
-	    case cowboy_req:method(Req) of
-		{<<"PUT">>, _} ->
-		    {ok, Req2} = cowboy_req:reply(405, Req),
-		    {halt, Req2, State};
-		{_, _} ->
-		    lager:debug("Resource: ~p~n", [lager:pr(Node, ?MODULE)]),
-		    {true, Req, State#state{node=Node}}
-	    end;
-	{ok, [#occi_node{}=Node]} ->
-	    lager:debug("Resource: ~p~n", [lager:pr(Node, ?MODULE)]),
-	    {true, Req, State#state{node=Node}}
-    end.
+resource_exists(Req, #state{node=#occi_node{id=undefined}}=State) ->
+    {false, Req, State};
+resource_exists(Req, State) ->
+    {true, Req, State}.
 
 is_authorized(Req, #state{op=Op, url=Url}=State) ->
     case occi_http_common:get_acl_user(Req) of
@@ -156,7 +149,6 @@ delete_resource(Req, #state{node=Node}=State) ->
 	    {true, Req, State}
     end.
 
-
 to_occi(Req, State) ->
     render(Req, State#state{ct=?ct_occi}).
 
@@ -164,8 +156,6 @@ to_plain(Req, State) ->
     render(Req, State#state{ct=?ct_plain}).
 
 to_uri_list(Req, #state{node=#occi_node{type=occi_collection}}=State) ->
-    render(Req, State#state{ct=?ct_uri_list});
-to_uri_list(Req, #state{node=#occi_node{type=dir}}=State) ->
     render(Req, State#state{ct=?ct_uri_list});
 to_uri_list(Req, State) ->
     {ok, Req2} = cowboy_req:reply(400, Req),
@@ -195,12 +185,9 @@ from_xml(Req, State) ->
 save_or_update(Req, #state{op=create}=State) ->
     save(Req, State);
 save_or_update(Req, #state{op=update}=State) ->
-    case cowboy_req:qs_val(<<"action">>, Req) of
-	{undefined, Req2} ->
-	    update(Req2, State);
-	{Action, Req2} ->
-	    action(Req2, State, Action)
-    end.
+    update(Req, State);
+save_or_update(Req, #state{op={action, Action}}=State) ->
+    action(Req, State, Action).
 
 save(Req, #state{node=#occi_node{type=occi_collection, objid=#occi_cid{class=Cls}}}=State) ->
     case Cls of
@@ -218,10 +205,6 @@ save(Req, #state{node=#occi_node{type=occi_resource}}=State) ->
 
 save(Req, #state{node=#occi_node{type=occi_link}}=State) ->
     save_entity(Req, State);
-
-save(Req, #state{node=#occi_node{type=dir}}=State) ->
-    {ok, Req2} = cowboy_req:reply(405, Req),
-    {halt, Req2, State};
 
 save(Req, #state{node=#occi_node{type=undefined}}=State) ->
     save_entity(Req, State).
@@ -243,10 +226,6 @@ update(Req, #state{node=#occi_node{type=occi_resource}}=State) ->
 
 update(Req, #state{node=#occi_node{type=occi_link}}=State) ->
     update_entity(Req, State);
-
-update(Req, #state{node=#occi_node{type=dir}}=State) ->
-    {ok, Req2} = cowboy_req:reply(405, Req),
-    {halt, Req2, State};
 
 update(Req, #state{node=#occi_node{type=undefined}}=State) ->
     update_entity(Req, State).
@@ -449,3 +428,7 @@ create_link_node(_Req, #occi_link{}=Link) ->
 set_location_header(#occi_node{objid=Id}, Req) ->
     cowboy_req:set_resp_header(<<"location">>,
 			       occi_uri:to_binary(Id), Req).
+
+set_allowed_methods(Methods, Req, State) ->
+    << ", ", Allow/binary >> = << << ", ", M/binary >> || M <- Methods >>,
+    {Methods, occi_http_common:set_cors(Req, Allow), State}.

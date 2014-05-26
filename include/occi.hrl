@@ -4,7 +4,7 @@
 %%%
 %%% @end
 %%% Created : 14 Mar 2013 by Jean Parpaillon <jean.parpaillon@free.fr>
--type(occi_class() :: kind | mixin | action).
+-type(occi_class() :: kind | mixin | usermixin | action).
 
 %%%% URI and al.
 -record(uri, {scheme   = undefined    :: atom(),
@@ -24,7 +24,7 @@
 			}).
 -type(occi_extension() :: #occi_extension{}).
 
--record(occi_collection, {cid                    :: occi_cid(),
+-record(occi_collection, {id                     :: uri() | occi_cid(),
 			  entities  = undefined  :: term()}). % ordset()
 -type(occi_collection() :: #occi_collection{}).
 
@@ -116,8 +116,7 @@
 
 -type(occi_node_id() :: uri()).
 -type(occi_node_objid() :: atom() | uri() | occi_cid()).
--type(occi_node_type() :: dir | 
-			  mountpoint |
+-type(occi_node_type() :: mountpoint |
 			  occi_query |
 			  occi_resource | 
 			  occi_link |
@@ -126,7 +125,6 @@
 -record(occi_node, {id                     :: occi_node_id(),
 		    objid     = undefined  :: occi_node_objid(),
 		    type      = undefined  :: occi_node_type(),
-		    parent    = undefined  :: occi_node_id(),
 		    data      = undefined  :: term(),
 		    etag      = undefined  :: term(),
 		    acl       = []         :: occi_acl()}).

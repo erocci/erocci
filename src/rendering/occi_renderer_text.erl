@@ -32,10 +32,6 @@
 %%%===================================================================
 %%% API
 %%%===================================================================
-render(#occi_node{type=dir}=Node, Req, Renderer) ->
-    Headers = render_dir(Node, orddict:from_list([{<<"x-occi-location">>, []}])),
-    Renderer(Headers, Req);
-
 render(#occi_node{type=occi_resource, data=Res}, Req, Renderer) ->
     Headers = render_resource(Res, orddict:new()),
     Renderer(Headers, Req);
@@ -84,13 +80,6 @@ render_category(#occi_action{}=Action, Hdr) ->
 
 render_cid(#occi_cid{}=Cid, Acc) ->
     add_header_value(<<"category">>, build_cid(Cid), Acc).
-
-render_dir(#occi_node{type=dir, data=Children}, Acc) ->
-    gb_sets:fold(fun (#occi_node{type=dir}=Child, Acc2) ->
-			 render_dir(Child, Acc2);
-		     (#uri{}=ChildId, Acc2) ->
-			 add_header_value(<<"x-occi-location">>, occi_uri:to_iolist(ChildId), Acc2)
-		 end, Acc, Children).
 
 render_resource(#occi_resource{}=Res, Acc) ->
     Acc2 = render_cid(occi_resource:get_cid(Res), Acc),

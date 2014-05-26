@@ -101,7 +101,7 @@ save(#occi_mixin{location=#uri{path=Path}}=Mixin) ->
 	    {error, Err}
     end;
 
-save(#occi_node{type=occi_collection}=Node) ->
+save(#occi_node{type=occi_collection, objid=#occi_cid{}}=Node) ->
     lager:debug("occi_store:save(~p)~n", [lager:pr(Node, ?MODULE)]),
     cast(save, filter_collection(Node));
 
@@ -115,7 +115,7 @@ save(#occi_node{id=#uri{path=Path}}=Node) ->
     end.
 
 -spec update(occi_node()) -> ok | {error, term()}.
-update(#occi_node{type=occi_collection}=Node) ->
+update(#occi_node{type=occi_collection, objid=#occi_cid{}}=Node) ->
     lager:debug("occi_store:update(~p)~n", [lager:pr(Node, ?MODULE)]),
     cast(update, filter_collection(Node));
 
@@ -138,12 +138,13 @@ delete(#occi_mixin{location=#uri{path=Path}}=Mixin) ->
 	    {error, Err}
     end;
 
-delete(#occi_node{type=occi_collection, data=undefined}=Node) ->
+delete(#occi_node{type=occi_collection, objid=#occi_cid{}, data=undefined}=Node) ->
     case load(Node) of
-	{ok, Node2} -> delete(Node2);
+	{ok, N2} -> delete(N2);
 	{error, Err} -> {error, Err}
     end;
-delete(#occi_node{type=occi_collection}=Node) ->
+
+delete(#occi_node{type=occi_collection, objid=#occi_cid{}}=Node) ->
     lager:debug("occi_store:delete(~p)~n", [lager:pr(Node, ?MODULE)]),
     cast(delete, filter_collection(Node));
 
@@ -469,7 +470,7 @@ cancel_response({Tag, #occi_node{objid=Ref}, It}) ->
 %%% return list of {mountpoint, #occi_node{type=occi_collection}}
 %%% each collection only contains entities related to the mountpoint
 %%%
-filter_collection(#occi_node{type=occi_collection, data=#occi_collection{cid=Cid, entities=E}}=Node) ->
+filter_collection(#occi_node{type=occi_collection, data=#occi_collection{id=Cid, entities=E}}=Node) ->
     F = fun (#uri{path=Path}=Uri, Acc) ->
 		case get_backend(Path) of
 		    {error, Err} -> throw({error, Err});

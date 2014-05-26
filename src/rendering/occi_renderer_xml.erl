@@ -81,16 +81,20 @@ to_xmlel(#occi_node{type=occi_query, data={Kinds, Mixins, Actions}}) ->
 to_xmlel(#occi_node{type=occi_user_mixin, data=Mixin}) ->
     render_mixin(Mixin);
 
-to_xmlel(#occi_node{type=occi_collection, data=#occi_collection{cid=Cid}=Coll}) ->
+to_xmlel(#occi_node{type=occi_collection, objid=Id, data=Coll}) ->
+    Attrs = case Id of
+		#occi_cid{} -> 
+		    [ exmpp_xml:attribute(<<"scheme">>, Id#occi_cid.scheme),
+		      exmpp_xml:attribute(<<"term">>, Id#occi_cid.term) ];
+		#uri{} -> []
+	    end,
     make_ns([?declared_occi_ns, ?declared_xlink_ns],
 	    exmpp_xml:element(
-	      ?occi_ns, collection, 
-	      [exmpp_xml:attribute(<<"scheme">>, Cid#occi_cid.scheme),
-	       exmpp_xml:attribute(<<"term">>, Cid#occi_cid.term)],
+	      ?occi_ns, collection, Attrs,
 	      [exmpp_xml:element(
 		 ?occi_ns, entity,
-		 [exmpp_xml:attribute(?xlink_ns, <<"href">>, occi_uri:to_binary(Id))], []) || 
-		  Id <- occi_collection:get_entities(Coll) ])).
+		 [exmpp_xml:attribute(?xlink_ns, <<"href">>, occi_uri:to_binary(Uri))], []) || 
+		  Uri <- occi_collection:get_entities(Coll) ])).
 
 %%%
 %%% Private
