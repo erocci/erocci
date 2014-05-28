@@ -141,7 +141,7 @@ action({#uri{}=Id, #occi_action{}=A}, State) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
-find_node_t(#occi_node{type=occi_query}) ->
+find_node_t(#occi_node{type=capabilities}) ->
     mnesia:match_object(#occi_mixin{_='_'});
 
 find_node_t(#occi_mixin{}=Mixin) ->

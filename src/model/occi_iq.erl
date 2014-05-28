@@ -111,10 +111,10 @@ has_node(_) ->
 -spec get_node(xmlel()) -> occi_node().
 get_node(#xmlel{children=[El]}=Iq) ->
     case get_type(Iq) of
-	occi_query ->
+	capabilities ->
 	    case exmpp_xml:get_attribute(El, <<"node">>, undefined) of
 		undefined ->
-		    #occi_node{type=occi_query, data=undefined, _='_'};
+		    #occi_node{type=capabilities, data=undefined, _='_'};
 		S ->
 		    Cid = occi_cid:parse(S),
 		    Cid2 = Cid#occi_cid{class=usermixin},
@@ -144,10 +144,10 @@ get_node(_El) ->
     lager:error("Invalid OCCI IQ: ~p~n", [lager:pr(_El, ?MODULE)]),
     throw({error, invalid_occi_iq}).
 
--spec get_type(xmlel()) -> occi_entity | occi_query | occi_collection.
+-spec get_type(xmlel()) -> occi_entity | capabilities | occi_collection.
 get_type(#xmlel{children=[El]}) ->
     case exmpp_xml:get_attribute(El, <<"type">>, <<"entity">>) of
-	<<"caps">> -> occi_query;
+	<<"caps">> -> capabilities;
 	<<"col">> -> occi_collection;
 	<<"entity">> -> occi_entity;
 	<<"action">> -> occi_action;

@@ -71,7 +71,7 @@ to_xmlel(#occi_node{type=occi_resource, data=Res}) ->
 to_xmlel(#occi_node{type=occi_link, data=Link}) ->
     make_ns([?declared_occi_ns, ?declared_xlink_ns], make_link(Link));
 
-to_xmlel(#occi_node{type=occi_query, data={Kinds, Mixins, Actions}}) ->
+to_xmlel(#occi_node{type=capabilities, data={Kinds, Mixins, Actions}}) ->
     Children = lists:map(fun render_kind/1, Kinds)
 	++ lists:map(fun render_mixin/1, Mixins)
 	++ lists:map(fun render_action/1, Actions),

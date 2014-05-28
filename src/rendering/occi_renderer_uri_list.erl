@@ -41,7 +41,7 @@ render(#occi_node{type=occi_collection, data=Coll}, Env) ->
     Data = occi_renderer:join([ occi_uri:to_iolist(Id) || Id <- occi_collection:get_entities(Coll) ], <<"\n">>),
     {Data, Env};
 
-render(#occi_node{type=occi_query, data={Kinds, Mixins, Actions}}, Env) ->
+render(#occi_node{type=capabilities, data={Kinds, Mixins, Actions}}, Env) ->
     Data = occi_renderer:join(
 	     lists:reverse(
 	       lists:foldl(fun (#occi_kind{location=#uri{}=Uri}, Acc) ->

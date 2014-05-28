@@ -124,7 +124,7 @@
 -type(occi_node_id() :: uri()).
 -type(occi_node_objid() :: atom() | uri() | occi_cid()).
 -type(occi_node_type() :: mountpoint |
-			  occi_query |
+			  capabilities |
 			  occi_resource | 
 			  occi_link |
 			  occi_user_mixin |
@@ -144,3 +144,11 @@
 -type(occi_backend() :: #occi_backend{}).
 
 -type(occi_object() :: occi_node() | occi_entity() | occi_category() | occi_collection()).
+
+-type(acl() :: {acl_policy(), acl_op(), acl_node(), acl_user()}).
+
+-type(acl_policy() :: allow | deny).
+-type(acl_op() :: create | read | update | {action, binary() } | delete | '_').
+-type(acl_node() :: capabilities | binary()).
+-type(acl_url() :: binary()).
+-type(acl_user() :: anonymous | authenticated | admin | owner | group | '_').

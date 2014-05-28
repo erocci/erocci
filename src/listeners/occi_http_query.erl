@@ -65,19 +65,19 @@ init(_Transport, _Req, []) ->
 rest_init(Req, _Opts) ->
     Op = occi_http_common:get_acl_op(Req),
     {ok, cowboy_req:set_resp_header(<<"server">>, ?SERVER_ID, Req), 
-     #state{op=Op, node=#occi_node{type=occi_query}}}.
+     #state{op=Op, node=#occi_node{type=capabilities}}}.
 
 allowed_methods(Req, State) ->
     Methods = [<<"GET">>, <<"DELETE">>, <<"POST">>, <<"OPTIONS">>],
     << ", ", Allow/binary >> = << << ", ", M/binary >> || M <- Methods >>,
     {Methods, occi_http_common:set_cors(Req, Allow), State}.
 
-is_authorized(Req, #state{op=Op}=State) ->
+is_authorized(Req, #state{op=Op, node=Node}=State) ->
     case occi_http_common:auth(Req) of
 	{true, User} ->
 	    {true, Req, State#state{user=User}};
 	false ->
-	    case occi_acl:check(Op, capabilities, anonymous) of
+	    case occi_acl:check(Op, Node, anonymous) of
 		allow ->
 		    {true, Req, State#state{user=anonymous}};
 		deny ->

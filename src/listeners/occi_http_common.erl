@@ -26,7 +26,6 @@
 
 -include("occi.hrl").
 -include("occi_http.hrl").
--include("occi_acl.hrl").
 -include_lib("kernel/include/inet.hrl").
 
 -define(HTPASSWD, "priv/htpasswd").

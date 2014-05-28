@@ -40,7 +40,7 @@ render(#occi_node{type=occi_link, data=Link}, Req, Renderer) ->
     Headers = render_link(Link, orddict:new()),
     Renderer(Headers, Req);
 
-render(#occi_node{type=occi_query, data={Kinds, Mixins, Actions}}, Req, Renderer) ->
+render(#occi_node{type=capabilities, data={Kinds, Mixins, Actions}}, Req, Renderer) ->
     Headers = lists:foldl(fun (Cat, Acc) ->
 				  render_category(Cat, Acc)
 			  end, orddict:from_list([{<<"category">>, []}]), Kinds ++ Mixins ++ Actions),

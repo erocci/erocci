@@ -48,7 +48,7 @@ render(#occi_node{type=occi_link, data=Link}, Env) ->
     Content = {<<"links">>, [render_ejson(Link)]},
     {jiffy:encode({[Content]}, [pretty]), Env};
 
-render(#occi_node{type=occi_query, data={Kinds, Mixins, Actions}}, Env) ->
+render(#occi_node{type=capabilities, data={Kinds, Mixins, Actions}}, Env) ->
     KindsJson = {<<"kinds">>, lists:map(fun(Obj) -> 
 						render_ejson(Obj) 
 					end, Kinds)},

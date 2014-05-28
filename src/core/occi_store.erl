@@ -210,7 +210,7 @@ find(#occi_mixin{location=#uri{path=Path}}=Req) ->
 	    {error, Err}
     end;
 
-find(#occi_node{type=occi_query}=Req) ->
+find(#occi_node{type=capabilities}=Req) ->
     lager:debug("occi_store:find(~p)~n", [lager:pr(Req, ?MODULE)]),
     {K, M, A} = occi_category_mgr:find_all(),
     Merge = fun (#occi_node{id=#uri{path=Prefix}}, Mixins, Acc) ->
@@ -262,7 +262,7 @@ find(#occi_node{id=#uri{path=Path}=Id}=Req) ->
     end.
 
 -spec load(occi_node()) -> {ok, occi_node()} | {error, term()}.
-load(#occi_node{type=occi_query, data=undefined}=Req) ->
+load(#occi_node{type=capabilities, data=undefined}=Req) ->
     {ok, [Res]} = find(Req),
     {ok, Res};
 load(#occi_node{id=#uri{path=Path}, type=dir}=Node) ->
@@ -311,7 +311,7 @@ load(#occi_node{data=_}=Node) ->
     lager:debug("occi_store:load(~p)~n", [lager:pr(Node, ?MODULE)]),
     {ok, Node}.
 
-action(#occi_node{type=occi_query}=_N, _A) ->
+action(#occi_node{type=capabilities}=_N, _A) ->
     lager:debug("occi_store:action(~p, ~p)~n", [lager:pr(_N, ?MODULE), lager:pr(_A, ?MODULE)]),
     {error, unsupported_node};
 

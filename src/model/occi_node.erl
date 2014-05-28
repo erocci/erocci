@@ -58,7 +58,14 @@ new(#uri{path=Path}, #occi_collection{id=Id}=Coll) ->
     #occi_node{id=#uri{path=Path}, objid=Id, type=occi_collection, data=Coll};
 
 new(#uri{path=Path}, Type) when is_atom(Type) ->
-    #occi_node{id=#uri{path=Path}, type=Type}.
+    #occi_node{id=#uri{path=Path}, type=Type};
+
+new(#occi_resource{id=#uri{path=Path}=Id}=Data, Owner) ->
+    #occi_node{id=#uri{path=Path}, objid=Id, type=occi_resource, owner=Owner, data=Data};
+
+new(#occi_link{id=#uri{path=Path}=Id}=Data, Owner) ->
+    #occi_node{id=#uri{path=Path}, objid=Id, type=occi_link, owner=Owner, data=Data}.
+
 
 -spec get_objid(occi_node()) -> any().
 get_objid(#occi_node{objid=Id}) ->

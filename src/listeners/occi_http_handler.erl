@@ -47,7 +47,7 @@
 	 from_json/2,
 	 from_xml/2]).
 
--record(state, {op, url, node, ct, user}).
+-record(state, {op, node, ct, user}).
 
 -record(content_type, {parser   :: atom(),
 		       renderer :: atom(),
@@ -72,11 +72,11 @@ rest_init(Req, _Opts) ->
     {Path, _} = cowboy_req:path(Req),
     Url = occi_uri:parse(Path),
     Node = case occi_store:find(#occi_node{id=#uri{path=Url#uri.path}, _='_'}) of
-	       {ok, []} -> #occi_node{};
+	       {ok, []} -> #occi_node{id=Url};
 	       {ok, [#occi_node{}=N]} -> N
 	   end,
     {ok, cowboy_req:set_resp_header(<<"server">>, ?SERVER_ID, Req), 
-     #state{op=Op, node=Node, url=Url}}.
+     #state{op=Op, node=Node}}.
 
 allowed_methods(Req, #state{node=#occi_node{objid=#uri{}, type=occi_collection}}=State) ->
     set_allowed_methods([<<"GET">>, <<"DELETE">>, <<"OPTIONS">>], Req, State);
@@ -111,17 +111,17 @@ content_types_accepted(Req, State) ->
 allow_missing_post(Req, State) ->
     {false, Req, State}.
 
-resource_exists(Req, #state{node=#occi_node{id=undefined}}=State) ->
+resource_exists(Req, #state{node=#occi_node{objid=undefined}}=State) ->
     {false, Req, State};
 resource_exists(Req, State) ->
     {true, Req, State}.
 
-is_authorized(Req, #state{op=Op, url=Url}=State) ->
+is_authorized(Req, #state{op=Op, node=Node}=State) ->
     case occi_http_common:auth(Req) of
 	{true, User} ->
 	    {true, Req, State#state{user=User}};
 	false ->
-	    case occi_acl:check(Op, Url, anonymous) of
+	    case occi_acl:check(Op, Node, anonymous) of
 		allow ->
 		    {true, Req, State#state{user=anonymous}};
 		deny ->
@@ -131,8 +131,8 @@ is_authorized(Req, #state{op=Op, url=Url}=State) ->
 
 forbidden(Req, #state{user=anonymous}=State) ->
     {false, Req, State};
-forbidden(Req, #state{op=Op, url=Url, user=User}=State) ->
-    case occi_acl:check(Op, Url, User) of
+forbidden(Req, #state{op=Op, node=Node, user=User}=State) ->
+    case occi_acl:check(Op, Node, User) of
 	allow ->
 	    {false, Req, State};
 	deny ->
@@ -254,32 +254,42 @@ render(Req, #state{node=Node, ct=#content_type{renderer=Renderer}}=State) ->
     end.
 
 
-save_entity(Req, #state{node=Node, ct=#content_type{parser=Parser}}=State) ->
+save_entity(Req, #state{user=User, node=Node, ct=#content_type{parser=Parser}}=State) ->
     {ok, Body, Req2} = cowboy_req:body(Req),
-    Entity = prepare_entity(Req, Node),
+    Entity = prepare_entity(Node),
     case Parser:parse_entity(Body, Req2, Entity) of
 	{error, {parse_error, Err}} ->
 	    lager:error("Error processing request: ~p~n", [Err]),
 	    {false, Req2, State};
 	{error, Err} ->
 	    lager:error("Internal error: ~p~n", [Err]),
-	    {false, Req2, State};
+	    {halt, Req2, State};
 	{ok, #occi_resource{}=Res} ->
-	    Node2 = create_resource_node(Req2, Res),
+	    Node2 = occi_node:new(Res, User),
 	    case occi_store:save(Node2) of
 		ok ->
 		    Req3 = cowboy_req:set_resp_body("OK\n", Req2),
-		    {true, set_location_header(Node2, Req3), State};
+		    case Node#occi_node.type of
+			occi_collection ->
+			    {true, set_location_header(Node2, Req3), State};
+			_ ->
+			    {true, Req3, State}
+		    end;
 		{error, Reason} ->
 		    lager:error("Error creating resource: ~p~n", [Reason]),
 		    {halt, Req2, State}
 	    end;
 	{ok, #occi_link{}=Link} ->
-	    Node2 = create_link_node(Req2, Link),
+	    Node2 = occi_node:new(Link, User),
 	    case occi_store:save(Node2) of
 		ok ->
 		    Req3 = cowboy_req:set_resp_body("OK\n", Req2),
-		    {true, set_location_header(Node2, Req3), State};
+		    case Node#occi_node.type of
+			occi_collection ->
+			    {true, set_location_header(Node2, Req3), State};
+			_ ->
+			    {true, Req3, State}
+		    end;
 		{error, Reason} ->
 		    lager:error("Error creating link: ~p~n", [Reason]),
 		    {halt, Req2, State}
@@ -319,7 +329,6 @@ update_entity(Req, #state{node=Node, ct=#content_type{parser=Parser}}=State) ->
 	    end;	    
 	{error, Err} ->
 	    lager:error("Error loading object: ~p~n", [Err]),
-	    {ok, Req2} = cowboy_req:reply(500, Req),
 	    {halt, Req2, State}
     end.
 
@@ -401,17 +410,18 @@ prepare_action(_Req, _Node, Name) ->
     occi_action:new(#occi_cid{term=Name, class=action}).
 
 
-prepare_entity(_Req, #occi_node{type=occi_collection, objid=Cid}) ->
+prepare_entity(#occi_node{id=#uri{path=Prefix}, type=occi_collection, objid=Cid}) ->
+    Id = occi_config:gen_id(Prefix),
     case occi_store:find(Cid) of
 	{ok, [#occi_kind{parent=#occi_cid{term=resource}}=Kind]} ->
-	    occi_resource:new(Kind);
+	    occi_resource:new(Id, Kind);
 	{ok, [#occi_kind{parent=#occi_cid{term=link}}=Kind]} ->
-	    occi_link:new(Kind);
+	    occi_link:new(Id, Kind);
 	_ ->
 	    throw({error, internal_error})
     end;
 
-prepare_entity(_Req, #occi_node{type=occi_resource}=Node) ->
+prepare_entity(#occi_node{type=occi_resource}=Node) ->
     case occi_store:load(Node) of
 	{ok, #occi_node{data=Res}} ->
 	    occi_resource:reset(Res);
@@ -419,7 +429,7 @@ prepare_entity(_Req, #occi_node{type=occi_resource}=Node) ->
 	    throw({error, Err})
     end;
 
-prepare_entity(_Req, #occi_node{type=occi_link}=Node) ->
+prepare_entity(#occi_node{type=occi_link}=Node) ->
     case occi_store:load(Node) of
 	{ok, #occi_node{data=Link}} ->
 	    occi_link:reset(Link);
@@ -427,27 +437,8 @@ prepare_entity(_Req, #occi_node{type=occi_link}=Node) ->
 	    throw({error, Err})
     end;
 
-prepare_entity(Req, #occi_node{type=undefined}) ->
-    {Path, _} = cowboy_req:path(Req),
-    #occi_entity{id=occi_config:to_url(occi_uri:parse(Path))}.
-
-
-create_resource_node(Req, #occi_resource{id=undefined}=Res) ->
-    {Prefix, _} = cowboy_req:path(Req),
-    Id = occi_config:gen_id(Prefix),
-    occi_node:new(Id, occi_resource:set_id(Res, Id));
-
-create_resource_node(_Req, #occi_resource{}=Res) ->
-    occi_node:new(occi_resource:get_id(Res), Res).
-
-
-create_link_node(Req, #occi_link{id=undefined}=Link) ->
-    {Prefix, _} = cowboy_req:path(Req),
-    Id = occi_config:gen_id(Prefix),
-    occi_node:new(Id, occi_link:set_id(Link, Id));
-
-create_link_node(_Req, #occi_link{}=Link) ->
-    occi_node:new(occi_link:get_id(Link), Link).
+prepare_entity(#occi_node{id=Id, type=undefined}) ->
+    #occi_entity{id=Id}.
 
 
 set_location_header(#occi_node{objid=Id}, Req) ->
