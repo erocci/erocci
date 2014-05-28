@@ -51,42 +51,48 @@ check_acls([ Acl | Acls ], Action) ->
 
 match({P, '_', '_',            '_'},         {_, _,            _}) ->
     {true, P};
-match({P, O,   capabilities,   U},           {O, capabilities, U}) -> 
+match({P, '_', '_',            anonymous},   _)                    -> 
     {true, P};
-match({P, O,   capabilities,   '_'},         {O, capabilities, _}) -> 
+
+match({P, '_', '_',            U},           {_, _,            U}) -> 
     {true, P};
-match({P, O,   capabilities,   anonymous},   {O, capabilities, _}) -> 
-    {true, P};
-match({P, O,   Prefix,         U},           {O, Path,         U}) -> 
-    match_path(Prefix, Path, P);
-match({P, O,   Prefix,         '_'},         {O, Path,         _}) -> 
-    match_path(Prefix, Path, P);
-match({P, O,   Prefix,         anonymous},   {O, Path,         _}) -> 
-    match_path(Prefix, Path, P);
-match({P, O,   '_',            U},           {O, _,            U}) -> 
-    {true, P};
-match({P, O,   '_',            '_'},         {O, _,            _}) -> 
-    {true, P};
-match({P, O,   '_',            anonymous},   {O, _,            _}) -> 
-    {true, P};
-match({P, '_', capabilities,   U},           {_, capabilities, U}) -> 
-    {true, P};
+
 match({P, '_', capabilities,   '_'},         {_, capabilities, _}) -> 
     {true, P};
 match({P, '_', capabilities,   anonymous},   {_, capabilities, _}) -> 
     {true, P};
-match({P, '_', Prefix,         U},           {_, Path,         U}) -> 
-    match_path(Prefix, Path, P);
 match({P, '_', Prefix,         '_'},         {_, Path,         _}) -> 
     match_path(Prefix, Path, P);
 match({P, '_', Prefix,         anonymous},   {_, Path,         _}) -> 
     match_path(Prefix, Path, P);
-match({P, '_', '_',            U},           {_, _,            U}) -> 
+
+match({P, O,   '_',            '_'},         {O, _,            _}) -> 
     {true, P};
-match({P, '_', '_',            '_'},         _)                    -> 
+match({P, O,   '_',            anonymous},   {O, _,            _}) -> 
     {true, P};
-match({P, '_', '_',            anonymous},   _)                    -> 
+
+match({P, '_', capabilities,   U},           {_, capabilities, U}) -> 
     {true, P};
+match({P, '_', Prefix,         U},           {_, Path,         U}) -> 
+    match_path(Prefix, Path, P);
+
+match({P, O,   '_',            U},           {O, _,            U}) -> 
+    {true, P};
+
+match({P, O,   capabilities,   '_'},         {O, capabilities, _}) -> 
+    {true, P};
+match({P, O,   Prefix,         anonymous},   {O, Path,         _}) -> 
+    match_path(Prefix, Path, P);
+match({P, O,   Prefix,         '_'},         {O, Path,         _}) -> 
+    match_path(Prefix, Path, P);
+match({P, O,   capabilities,   anonymous},   {O, capabilities, _}) -> 
+    {true, P};
+
+match({P, O,   capabilities,   U},           {O, capabilities, U}) -> 
+    {true, P};
+match({P, O,   Prefix,         U},           {O, Path,         U}) -> 
+    match_path(Prefix, Path, P);
+
 match(_,                                     _)                    -> 
     false.
 
