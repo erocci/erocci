@@ -16,12 +16,13 @@ ssldir=${basedir}/priv/ssl
 cacertfile=$ssldir/cowboy-ca.crt
 certfile=$ssldir/server.crt
 keyfile=$ssldir/server.key
+htpasswd=${basedir}/priv/htpasswd
 
 name=
 debug=info
 config=${basedir}/priv/example.config
 listener="{http, occi_http, [{port, 8080}]}"
-while getopts ":hdsc:x:n:" opt; do
+while getopts ":hdsc:x:n:p:" opt; do
     case $opt in
 	n)
 	    name=$OPTARG
@@ -38,6 +39,9 @@ while getopts ":hdsc:x:n:" opt; do
 	    ;;
 	c)
 	    config=`pwd`/$OPTARG
+	    ;;
+	p)
+	    htpasswd=$OPTARG
 	    ;;
 	h)
 	    usage
@@ -77,6 +81,7 @@ exec erl -pa $PWD/ebin \
     -config $config \
     -kernel error_logger silent \
     -lager handlers "[{lager_console_backend, $debug}]" \
+    -epasswd mod "{htpasswd, \"$htpasswd\"}" \
     -occi listeners "[$listener]" \
     -occi name "\"$name\"" \
     $debug_app -s occi

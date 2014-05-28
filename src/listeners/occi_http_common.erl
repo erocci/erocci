@@ -29,6 +29,7 @@
 -include("occi_acl.hrl").
 -include_lib("kernel/include/inet.hrl").
 
+-define(HTPASSWD, "priv/htpasswd").
 -define(TBL, ?MODULE).
 
 % API
@@ -37,7 +38,7 @@
 	 set_cors/2,
 	 add_route/2,
 	 get_dispatch/0,
-	 get_acl_user/1,
+	 auth/1,
 	 get_acl_op/1,
 	 get_auth/0]).
 
@@ -50,6 +51,7 @@ start(Props) ->
     occi:ensure_started(crypto),
     occi:ensure_started(ranch),
     occi:ensure_started(cowboy),
+    occi:ensure_started(epasswd),
     pattern_name(Props),
     case ets:info(?TBL) of
 	undefined ->
@@ -84,9 +86,22 @@ get_dispatch() ->
 			    ?ROUTE_OCCI]),
     cowboy_router:compile([{'_', Routes}]).
 
--spec get_acl_user(term()) -> {ok, acl_user()} | {error, term()}.
-get_acl_user(_Req) ->
-    {ok, anonymous}.
+-spec auth(term()) -> {true, occi_user()} | false.
+auth(Req) ->
+    case cowboy_req:header(<<"authorization">>, Req) of
+	{undefined, _} -> false;
+	{Value, _} -> 
+	    case parse_auth(Value) of
+		{basic, Auth} ->
+		    get_basic_user(Auth);
+		{digest, _Auth} ->
+		    lager:info("Unsupported authentication method: digest"),
+		    false;
+		{error, Err} ->
+		    lager:debug("Parse error: ~p~n", [Err]),
+		    false
+	    end
+    end.
 
 -spec get_acl_op(term()) -> acl_op().
 get_acl_op(Req) ->
@@ -133,4 +148,74 @@ pattern_name(Props) ->
 	    set_name(Props);
 	_Name ->
 	    ok
+    end.
+
+get_basic_user(Auth) ->
+    case binary:split(base64:decode(Auth), [<<":">>]) of
+	[User, Passwd] -> 
+	    case epasswd:auth({User, Passwd}) of
+		true -> {true, User};
+		false -> false
+	    end;
+	_ -> false
+    end.
+
+-spec parse_auth(binary()) -> {basic | digest | error, term()}.
+parse_auth(Bin) ->
+    parse_method(parse_next(Bin)).
+
+parse_method({Method, Rest}) ->
+    case to_lower(Method) of
+	<<"basic">> -> parse_basic_hash(Rest);
+	<<"digest">> -> parse_digest(Rest);
+	M -> {error, {invalid_method, M}}
+    end.
+
+parse_basic_hash(Bin) ->
+    {basic, Bin}.
+
+parse_digest(Bin) ->
+    {digest, Bin}.
+
+parse_next(Bin) ->
+    case binary:split(Bin, <<" ">>, [trim]) of
+	[<<>>, Rest] -> parse_next(Rest);
+	[Next, Rest] -> {Next, Rest};
+	[Next] -> {Next, <<>>}
+    end.
+
+to_lower(Bin) ->
+    to_lower(Bin, <<>>).
+
+to_lower(<<>>, Acc) ->
+    Acc;
+to_lower(<< C, Rest/bits >>, Acc) ->
+    case C of
+	$A -> to_lower(Rest, << Acc/binary, $a >>);
+	$B -> to_lower(Rest, << Acc/binary, $b >>);
+	$C -> to_lower(Rest, << Acc/binary, $c >>);
+	$D -> to_lower(Rest, << Acc/binary, $d >>);
+	$E -> to_lower(Rest, << Acc/binary, $e >>);
+	$F -> to_lower(Rest, << Acc/binary, $f >>);
+	$G -> to_lower(Rest, << Acc/binary, $g >>);
+	$H -> to_lower(Rest, << Acc/binary, $h >>);
+	$I -> to_lower(Rest, << Acc/binary, $i >>);
+	$J -> to_lower(Rest, << Acc/binary, $j >>);
+	$K -> to_lower(Rest, << Acc/binary, $k >>);
+	$L -> to_lower(Rest, << Acc/binary, $l >>);
+	$M -> to_lower(Rest, << Acc/binary, $m >>);
+	$N -> to_lower(Rest, << Acc/binary, $n >>);
+	$O -> to_lower(Rest, << Acc/binary, $o >>);
+	$P -> to_lower(Rest, << Acc/binary, $p >>);
+	$Q -> to_lower(Rest, << Acc/binary, $q >>);
+	$R -> to_lower(Rest, << Acc/binary, $r >>);
+	$S -> to_lower(Rest, << Acc/binary, $s >>);
+	$T -> to_lower(Rest, << Acc/binary, $t >>);
+	$U -> to_lower(Rest, << Acc/binary, $u >>);
+	$V -> to_lower(Rest, << Acc/binary, $v >>);
+	$W -> to_lower(Rest, << Acc/binary, $w >>);
+	$X -> to_lower(Rest, << Acc/binary, $x >>);
+	$Y -> to_lower(Rest, << Acc/binary, $y >>);
+	$Z -> to_lower(Rest, << Acc/binary, $z >>);
+	_ -> to_lower(Rest, << Acc/binary, C >>)
     end.

@@ -29,6 +29,7 @@
 	 allowed_methods/2,
 	 allow_missing_post/2,
 	 is_authorized/2,
+	 forbidden/2,
 	 resource_exists/2,
 	 is_conflict/2,
 	 delete_resource/2,
@@ -46,7 +47,7 @@
 	 from_json/2,
 	 from_xml/2]).
 
--record(state, {op, url, node, ct}).
+-record(state, {op, url, node, ct, user}).
 
 -record(content_type, {parser   :: atom(),
 		       renderer :: atom(),
@@ -116,17 +117,27 @@ resource_exists(Req, State) ->
     {true, Req, State}.
 
 is_authorized(Req, #state{op=Op, url=Url}=State) ->
-    case occi_http_common:get_acl_user(Req) of
-	{ok, User} ->
-	    case occi_acl:check(Op, Url, User) of
+    case occi_http_common:auth(Req) of
+	{true, User} ->
+	    {true, Req, State#state{user=User}};
+	false ->
+	    case occi_acl:check(Op, Url, anonymous) of
 		allow ->
-		    {true, Req, State};
+		    {true, Req, State#state{user=anonymous}};
 		deny ->
 		    {{false, occi_http_common:get_auth()}, Req, State}
-	    end;
-	{error, Error} ->
-	    lager:debug("Authentication error: ~p~n", [Error]),
-	    {{false, occi_http_common:get_auth()}, Req, State}
+	    end
+    end.
+
+forbidden(Req, #state{user=anonymous}=State) ->
+    {false, Req, State};
+forbidden(Req, #state{op=Op, url=Url, user=User}=State) ->
+    lager:debug("### check user ~p~n", [User]),
+    case occi_acl:check(Op, Url, User) of
+	allow ->
+	    {false, Req, State};
+	deny ->
+	    {true, Req, State}
     end.
 
 is_conflict(Req, #state{node=#occi_node{id=#uri{}, type=occi_resource}}=State) ->
