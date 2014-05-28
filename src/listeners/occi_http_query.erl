@@ -25,6 +25,7 @@
 	 delete_resource/2,
 	 allowed_methods/2,
 	 is_authorized/2,
+	 forbidden/2,
 	 content_types_provided/2,
 	 content_types_accepted/2
 	]).
@@ -41,7 +42,7 @@
 -include("occi.hrl").
 -include("occi_http.hrl").
 
--record(state, {op, node, ct}).
+-record(state, {op, node, ct, user}).
 
 -record(content_type, {parser   :: atom(),
 		       renderer :: atom(),
@@ -72,19 +73,27 @@ allowed_methods(Req, State) ->
     {Methods, occi_http_common:set_cors(Req, Allow), State}.
 
 is_authorized(Req, #state{op=Op}=State) ->
-    case occi_http_common:get_acl_user(Req) of
-	{ok, User} ->
-	    case occi_acl:check(Op, capabilities, User) of
+    case occi_http_common:auth(Req) of
+	{true, User} ->
+	    {true, Req, State#state{user=User}};
+	false ->
+	    case occi_acl:check(Op, capabilities, anonymous) of
 		allow ->
-		    {true, Req, State};
+		    {true, Req, State#state{user=anonymous}};
 		deny ->
 		    {{false, occi_http_common:get_auth()}, Req, State}
-	    end;
-	{error, Error} ->
-	    lager:debug("Authentication error: ~p~n", [Error]),
-	    {{false, occi_http_common:get_auth()}, Req, State}
+	    end
     end.
 
+forbidden(Req, #state{user=anonymous}=State) ->
+    {false, Req, State};
+forbidden(Req, #state{op=Op, user=User}=State) ->
+    case occi_acl:check(Op, capabilities, User) of
+	allow ->
+	    {false, Req, State};
+	deny ->
+	    {true, Req, State}
+    end.
 
 content_types_provided(Req, State) ->
     {[
