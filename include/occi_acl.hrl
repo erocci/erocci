@@ -8,6 +8,6 @@
 
 -type(acl_policy() :: allow | deny).
 -type(acl_op() :: create | read | update | {action, binary() } | delete | '_').
--type(acl_node() :: capabilities | acl_url() | '_').
+-type(acl_node() :: capabilities | term() | '_').
 -type(acl_url() :: binary()).
 -type(acl_user() :: anonymous | authenticated | admin | owner | '_').

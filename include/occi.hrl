@@ -134,7 +134,7 @@
 		    type      = undefined  :: occi_node_type(),
 		    data      = undefined  :: term(),
 		    etag      = undefined  :: term(),
-		    owner     = {1, 1}     :: {uid(), gid()}}).
+		    owner     = anonymous  :: term()}).
 -type(occi_node() :: #occi_node{}).
 
 -record(occi_backend, {ref            :: atom(),

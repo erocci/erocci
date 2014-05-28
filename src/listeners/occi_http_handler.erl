@@ -150,8 +150,7 @@ delete_resource(Req, #state{node=Node}=State) ->
     case occi_store:delete(Node) of
 	{error, undefined_backend} ->
 	    lager:error("Internal error deleting node: ~p~n", [lager:pr(Node#occi_node.id, ?MODULE)]),
-	    {ok, Req2} = cowboy_req:reply(500, Req),
-	    {halt, Req2, State};
+	    {halt, Req, State};
 	{error, Reason} ->
 	    lager:error("Error deleting node: ~p~n", [Reason]),
 	    {false, Req, State};
@@ -199,6 +198,7 @@ save_or_update(Req, #state{op=update}=State) ->
 save_or_update(Req, #state{op={action, Action}}=State) ->
     action(Req, State, Action).
 
+
 save(Req, #state{node=#occi_node{type=occi_collection, objid=#occi_cid{class=Cls}}}=State) ->
     case Cls of
 	kind ->
@@ -218,6 +218,7 @@ save(Req, #state{node=#occi_node{type=occi_link}}=State) ->
 
 save(Req, #state{node=#occi_node{type=undefined}}=State) ->
     save_entity(Req, State).
+
 
 update(Req, #state{node=#occi_node{type=occi_collection, objid=#occi_cid{class=kind}}}=State) ->
     save_entity(Req, State);
@@ -240,6 +241,7 @@ update(Req, #state{node=#occi_node{type=occi_link}}=State) ->
 update(Req, #state{node=#occi_node{type=undefined}}=State) ->
     update_entity(Req, State).
 
+
 render(Req, #state{node=Node, ct=#content_type{renderer=Renderer}}=State) ->
     case occi_store:load(Node) of
 	{ok, Node2} ->
@@ -250,6 +252,7 @@ render(Req, #state{node=Node, ct=#content_type{renderer=Renderer}}=State) ->
 	    {ok, Req2} = cowboy_req:reply(500, Req),
 	    {halt, Req2, State}
     end.
+
 
 save_entity(Req, #state{node=Node, ct=#content_type{parser=Parser}}=State) ->
     {ok, Body, Req2} = cowboy_req:body(Req),
@@ -282,6 +285,7 @@ save_entity(Req, #state{node=Node, ct=#content_type{parser=Parser}}=State) ->
 		    {halt, Req2, State}
 	    end
     end.
+
 
 update_entity(Req, #state{node=Node, ct=#content_type{parser=Parser}}=State) ->
     {ok, Body, Req2} = cowboy_req:body(Req),
@@ -319,6 +323,7 @@ update_entity(Req, #state{node=Node, ct=#content_type{parser=Parser}}=State) ->
 	    {halt, Req2, State}
     end.
 
+
 save_collection(Req, #state{ct=#content_type{parser=Parser},
 			    node=#occi_node{objid=Cid}=Node}=State) ->
     {ok, Body, Req2} = cowboy_req:body(Req),
@@ -342,6 +347,7 @@ save_collection(Req, #state{ct=#content_type{parser=Parser},
 		    {halt, Req2, State}
 	    end
     end.
+
 
 update_collection(Req, #state{ct=#content_type{parser=Parser}, node=#occi_node{objid=Cid}=Node}=State) ->
     {ok, Body, Req2} = cowboy_req:body(Req),
@@ -367,6 +373,7 @@ update_collection(Req, #state{ct=#content_type{parser=Parser}, node=#occi_node{o
 	    end
     end.
 
+
 action(Req, #state{ct=#content_type{parser=Parser}, node=Node}=State, ActionName) ->
     {ok, Body, Req2} = cowboy_req:body(Req),
     case Parser:parse_action(Body, Req2, prepare_action(Req2, Node, ActionName)) of
@@ -386,10 +393,13 @@ action(Req, #state{ct=#content_type{parser=Parser}, node=Node}=State, ActionName
 	    end
     end.
 
+
 prepare_action(Req, Node, Name) when is_binary(Name)->
     prepare_action(Req, Node, list_to_atom(binary_to_list(Name)));
+
 prepare_action(_Req, _Node, Name) ->
     occi_action:new(#occi_cid{term=Name, class=action}).
+
 
 prepare_entity(_Req, #occi_node{type=occi_collection, objid=Cid}) ->
     case occi_store:find(Cid) of
@@ -421,23 +431,29 @@ prepare_entity(Req, #occi_node{type=undefined}) ->
     {Path, _} = cowboy_req:path(Req),
     #occi_entity{id=occi_config:to_url(occi_uri:parse(Path))}.
 
+
 create_resource_node(Req, #occi_resource{id=undefined}=Res) ->
     {Prefix, _} = cowboy_req:path(Req),
     Id = occi_config:gen_id(Prefix),
     occi_node:new(Id, occi_resource:set_id(Res, Id));
+
 create_resource_node(_Req, #occi_resource{}=Res) ->
     occi_node:new(occi_resource:get_id(Res), Res).
+
 
 create_link_node(Req, #occi_link{id=undefined}=Link) ->
     {Prefix, _} = cowboy_req:path(Req),
     Id = occi_config:gen_id(Prefix),
     occi_node:new(Id, occi_link:set_id(Link, Id));
+
 create_link_node(_Req, #occi_link{}=Link) ->
     occi_node:new(occi_link:get_id(Link), Link).
+
 
 set_location_header(#occi_node{objid=Id}, Req) ->
     cowboy_req:set_resp_header(<<"location">>,
 			       occi_uri:to_binary(Id), Req).
+
 
 set_allowed_methods(Methods, Req, State) ->
     << ", ", Allow/binary >> = << << ", ", M/binary >> || M <- Methods >>,
