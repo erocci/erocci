@@ -132,7 +132,6 @@ is_authorized(Req, #state{op=Op, url=Url}=State) ->
 forbidden(Req, #state{user=anonymous}=State) ->
     {false, Req, State};
 forbidden(Req, #state{op=Op, url=Url, user=User}=State) ->
-    lager:debug("### check user ~p~n", [User]),
     case occi_acl:check(Op, Url, User) of
 	allow ->
 	    {false, Req, State};
