@@ -47,7 +47,15 @@ init_per_suite(Config) ->
     Listeners = {listeners, 
 		 [{http, occi_http, [{port, ?PORT}]}]
 		},
-    Acls = {acl, [{allow, '_', '_', '_'}]},
+    Acls = {acl, [
+		  {allow, delete, capabilities, owner},
+		  {allow, '_', capabilities, '_'},
+		  {allow, create, '_', '_'},
+		  {allow, read, '_', group},
+		  {allow, update, '_', owner},
+		  {allow, delete, '_', owner},
+		  {deny, '_', '_', '_'}
+		 ]},
     occi:config([{name, ?NAME}, Backends, Listeners, Acls]),
     Config.
 
