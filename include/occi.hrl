@@ -114,6 +114,13 @@
 		      }).
 -type(occi_request() :: #occi_request{}).
 
+-record(occi_user, {id             :: uid(),
+		    groups         :: [gid()]}).
+-type(occi_user() :: #occi_user{}).
+
+-type(uid() :: integer()).
+-type(gid() :: integer()).
+
 -type(occi_node_id() :: uri()).
 -type(occi_node_objid() :: atom() | uri() | occi_cid()).
 -type(occi_node_type() :: mountpoint |
@@ -127,7 +134,7 @@
 		    type      = undefined  :: occi_node_type(),
 		    data      = undefined  :: term(),
 		    etag      = undefined  :: term(),
-		    acl       = []         :: occi_acl()}).
+		    owner     = {1, 1}     :: {uid(), gid()}}).
 -type(occi_node() :: #occi_node{}).
 
 -record(occi_backend, {ref            :: atom(),
@@ -135,7 +142,5 @@
 		       mountpoint     :: uri(),
 		       opts           :: term()}).
 -type(occi_backend() :: #occi_backend{}).
-
--type(occi_acl() :: [term()]).
 
 -type(occi_object() :: occi_node() | occi_entity() | occi_category() | occi_collection()).
