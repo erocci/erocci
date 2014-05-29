@@ -46,6 +46,6 @@ ensure_started(App) ->
     case application:start(App) of
 	ok -> ok;
 	{error, {already_started, App}} -> ok;
-	{error, Err} -> {error, Err}
+	{error, Err} -> throw({error, Err})
     end.
     
