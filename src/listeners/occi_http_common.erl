@@ -46,8 +46,8 @@
 -define(ROUTE_OCCI,    {<<"/[...]">>,                       occi_http_handler,  []}).
 
 start(Props) ->
-    occi:ensure_started(cowlib),
     occi:ensure_started(crypto),
+    occi:ensure_started(cowlib),
     occi:ensure_started(ranch),
     occi:ensure_started(cowboy),
     occi:ensure_started(epasswd),
