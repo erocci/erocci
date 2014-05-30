@@ -28,8 +28,9 @@ notice):
 * openssl and headers
 * libxml2 and headers
 * libexpat and headers
+* Apache Runtime Library utils headers
 
-Debian and Ubuntu: apt-get install erlang rebar libssl-dev libexpat1-dev libxml2-dev
+Debian and Ubuntu: apt-get install erlang rebar libssl-dev libexpat1-dev libxml2-dev libaprutil1-dev
 
 ## Compiling
 
