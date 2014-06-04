@@ -31,9 +31,26 @@
 	 parse_user_mixin/2,
 	 parse_collection/2]).
 
+-export([parse/2]).
+
 %%%===================================================================
 %%% API
 %%%===================================================================
+parse(Headers, #state{type=filters}=S) ->
+    parse_category(Headers, S);
+
+parse(Headers, #state{type=action}=S) ->
+    parse_action(Headers, S);
+
+parse(Headers, #state{type=entity}=S) ->
+    parse_entity(Headers, S);
+
+parse(Headers, #state{type=user_mixin}=S) ->
+    parse_user_mixin(Headers, S);
+
+parse(Headers, #state{type=collection}=S) ->
+    parse_collection(Headers, S).
+
 parse_action(Headers, #state{}=State) ->
     case parse_category(Headers, State) of
 	{ok, #state{action=Action}} ->
@@ -160,6 +177,8 @@ parse_l_kv({error, Err}, _, _, _, _) ->
 parse_l_kv(none, L, V, H, #state{entity=#occi_resource{}=Res}=S) ->
     parse_l_values(V, H, S#state{entity=occi_resource:add_link(Res, L)}).
 
+parse_c_values([], H, #state{type=filters}=S) ->
+    parse_attributes(H, S);
 parse_c_values([], _H, #state{entity=undefined}=_S) ->
     {error, {parse_error, undefined_category}};
 parse_c_values([], H, #state{entity=#occi_resource{}}=S) ->
@@ -218,6 +237,8 @@ parse_c_kv(none, Cid, [], _, #state{mixin=#occi_mixin{}=M}=S) ->
 parse_c_kv(none, Cid, V, H, S) ->
     add_category(Cid, V, H, S).
 
+add_category(Cid, V, H, #state{type=filters, filters=Filters}=S) ->
+    parse_c_values(V, H, S#state{filters=[Cid | Filters]});
 add_category(Cid, V, H, S) ->
     case occi_store:find(Cid) of
 	{ok, [#occi_kind{}=Kind]} -> new_entity(Kind, V, H, S);
@@ -246,6 +267,8 @@ parse_attributes(Headers, State) ->
 	    {ok, State}
     end.
 
+parse_a_values([], _, #state{type=filters, filters=Filters}) ->
+    {ok, lists:reverse(Filters)};
 parse_a_values([], _, #state{action=#occi_action{}}=State) ->
     {ok, State};
 parse_a_values([], _, #state{entity=#occi_resource{}=Res, entity_id=#uri{}=Id}=State) ->
@@ -259,6 +282,8 @@ parse_a_values([], _, State) ->
 parse_a_values([Bin | Attrs], H, S) ->
     parse_a_value(parse_kv(Bin), Attrs, H, S).
 
+parse_a_value({ok, Key, {_, Value}, Rest}, V, H, #state{type=filters, filters=Filters}=S) ->
+    parse_a_value(parse_kv(Rest), V, H, S#state{filters=[ {Key, Value} | Filters]});
 parse_a_value({ok, Key, {_, Value}, Rest}, V, H, #state{action=#occi_action{}=A}=S) ->
     try occi_action:set_attr_value(A, Key, Value) of
 	#occi_action{}=A2 ->

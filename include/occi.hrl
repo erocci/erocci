@@ -98,7 +98,8 @@
 -type(occi_entity() :: #occi_entity{}).
 
 %%% OCCI Filter
--type(occi_filter() :: any()).
+-type(occi_filter() :: occi_cid() | {occi_attr_key(), term()}).
+-type(occi_filters() :: occi_filter()).
 
 %%% OCCI hooks
 -type(hook_type() :: {pid, pid()}).

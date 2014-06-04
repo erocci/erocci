@@ -64,22 +64,34 @@
 -define(ct_xml,      #content_type{parser=occi_parser_xml, renderer=occi_renderer_xml, 
 				   mimetype="application/xml"}).
 
+-define(caps, #occi_node{type=capabilities}).
+
 init(_Transport, _Req, []) -> 
     {upgrade, protocol, cowboy_rest}.
 
 rest_init(Req, _Opts) ->
     Op = occi_http_common:get_acl_op(Req),
     {Path, _} = cowboy_req:path(Req),
-    Url = occi_uri:parse(Path),
-    Node = case occi_store:find(#occi_node{id=#uri{path=Url#uri.path}, _='_'}) of
-	       {ok, []} -> #occi_node{id=Url};
-	       {ok, [#occi_node{}=N]} -> N
+    Filters = case Op of
+		  read -> parse_filters(Req);
+		  delete -> parse_filters(Req);
+		  _ -> []
+	      end,
+    Node = case Path of
+	       <<"/-/">> ->
+		   get_caps_node(Filters);
+	       <<"/.well-known/org/ogf/occi/-/">> ->
+		   get_caps_node(Filters);
+	       _ ->
+		   get_node(Path, Filters)
 	   end,
     {ok, cowboy_req:set_resp_header(<<"server">>, ?SERVER_ID, Req), 
      #state{op=Op, node=Node}}.
 
 allowed_methods(Req, #state{node=#occi_node{objid=#uri{}, type=occi_collection}}=State) ->
     set_allowed_methods([<<"GET">>, <<"DELETE">>, <<"OPTIONS">>], Req, State);
+allowed_methods(Req, #state{node=#occi_node{type=capabilities}}=State) ->
+    set_allowed_methods([<<"GET">>, <<"DELETE">>, <<"OPTIONS">>, <<"POST">>], Req, State);
 allowed_methods(Req, #state{node=#occi_node{objid=#occi_cid{class=kind}, type=occi_collection}}=State) ->
     set_allowed_methods([<<"GET">>, <<"DELETE">>, <<"OPTIONS">>, <<"POST">>], Req, State);
 allowed_methods(Req, State) ->
@@ -129,8 +141,11 @@ is_authorized(Req, #state{op=Op, node=Node}=State) ->
 	    end
     end.
 
+
 forbidden(Req, #state{user=anonymous}=State) ->
+    % If anonymous request, acl has already been checked
     {false, Req, State};
+
 forbidden(Req, #state{op=Op, node=Node, user=User}=State) ->
     case occi_acl:check(Op, Node, User) of
 	allow ->
@@ -221,7 +236,7 @@ save(Req, #state{node=#occi_node{type=undefined}}=State) ->
 
 
 update(Req, #state{node=#occi_node{type=occi_collection, objid=#occi_cid{class=kind}}}=State) ->
-    save_entity(Req, State);
+    update_collection(Req, State);
 
 update(Req, #state{node=#occi_node{type=occi_collection, objid=#occi_cid{class=mixin}}}=State) ->
     update_collection(Req, State);
@@ -268,13 +283,7 @@ save_entity(Req, #state{user=User, node=Node, ct=#content_type{parser=Parser}}=S
 	    Node2 = occi_node:new(Res, User),
 	    case occi_store:save(Node2) of
 		ok ->
-		    Req3 = cowboy_req:set_resp_body("OK\n", Req2),
-		    case Node#occi_node.type of
-			occi_collection ->
-			    {true, set_location_header(Node2, Req3), State};
-			_ ->
-			    {true, Req3, State}
-		    end;
+		    {true, Req2, State};
 		{error, Reason} ->
 		    lager:error("Error creating resource: ~p~n", [Reason]),
 		    {halt, Req2, State}
@@ -283,13 +292,7 @@ save_entity(Req, #state{user=User, node=Node, ct=#content_type{parser=Parser}}=S
 	    Node2 = occi_node:new(Link, User),
 	    case occi_store:save(Node2) of
 		ok ->
-		    Req3 = cowboy_req:set_resp_body("OK\n", Req2),
-		    case Node#occi_node.type of
-			occi_collection ->
-			    {true, set_location_header(Node2, Req3), State};
-			_ ->
-			    {true, Req3, State}
-		    end;
+		    {true, Req2, State};
 		{error, Reason} ->
 		    lager:error("Error creating link: ~p~n", [Reason]),
 		    {halt, Req2, State}
@@ -357,7 +360,38 @@ save_collection(Req, #state{ct=#content_type{parser=Parser},
 	    end
     end.
 
-
+update_collection(Req, #state{ct=#content_type{parser=Parser},
+			      user=User,
+			      node=#occi_node{type=occi_collection, objid=#occi_cid{class=kind}}=Node}=State) ->
+    {ok, Body, Req2} = cowboy_req:body(Req),
+    Entity = prepare_entity(Node),
+    case Parser:parse_entity(Body, Req2, Entity) of
+	{error, {parse_error, Err}} ->
+	    lager:error("Error processing request: ~p~n", [Err]),
+	    {false, Req2, State};
+	{error, Err} ->
+	    lager:error("Internal error: ~p~n", [Err]),
+	    {halt, Req2, State};
+	{ok, #occi_resource{}=Res} ->
+	    Node2 = occi_node:new(Res, User),
+	    case occi_store:save(Node2) of
+		ok ->
+		    {{true, occi_uri:to_binary(Node2#occi_node.objid)}, Req2, State};
+		{error, Reason} ->
+		    lager:error("Error creating resource: ~p~n", [Reason]),
+		    {halt, Req2, State}
+	    end;
+	{ok, #occi_link{}=Link} ->
+	    Node2 = occi_node:new(Link, User),
+	    case occi_store:save(Node2) of
+		ok ->
+		    {{true, occi_uri:to_binary(Node2#occi_node.objid)}, Req2, State};
+		{error, Reason} ->
+		    lager:error("Error creating link: ~p~n", [Reason]),
+		    {halt, Req2, State}
+	    end
+    end;
+    
 update_collection(Req, #state{ct=#content_type{parser=Parser}, node=#occi_node{objid=Cid}=Node}=State) ->
     {ok, Body, Req2} = cowboy_req:body(Req),
     case Parser:parse_collection(Body, Req2) of
@@ -440,12 +474,55 @@ prepare_entity(#occi_node{type=occi_link}=Node) ->
 prepare_entity(#occi_node{id=Id, type=undefined}) ->
     #occi_entity{id=Id}.
 
-
-set_location_header(#occi_node{objid=Id}, Req) ->
-    cowboy_req:set_resp_header(<<"location">>,
-			       occi_uri:to_binary(Id), Req).
-
-
 set_allowed_methods(Methods, Req, State) ->
     << ", ", Allow/binary >> = << << ", ", M/binary >> || M <- Methods >>,
     {Methods, occi_http_common:set_cors(Req, Allow), State}.
+
+parse_filters(Req) ->
+    case cowboy_req:header(<<"content-type">>, Req) of
+	{<<"text/occi">>, _} ->
+	    case occi_parser_occi:parse(<<>>, Req, filters) of
+		{ok, Filters} -> Filters;
+		% too laxist ?
+		{error, _} -> []
+	    end;
+	_ ->
+	    parse_qs_filters(Req)
+    end.
+
+%
+% possible query string values:
+% http://scheme#term
+% name=value
+%
+parse_qs_filters(Req) ->
+    {Qs, _} = cowboy_req:qs_vals(Req),
+    parse_qs_filter(Qs, []).
+
+parse_qs_filter([], Acc) ->
+    lists:reverse(lists:flatten(Acc));
+parse_qs_filter([ {Name, true} | Qs ], Acc) ->
+    parse_qs_filter(Qs, [ parse_qs_category(http_uri:decode(Name)) | Acc]);
+parse_qs_filter([ {Name, Value} | Qs ], Acc) ->
+    parse_qs_filter(Qs, [ {http_uri:decode(Name), http_uri:decode(Value)} | Acc ]).
+
+parse_qs_category(Bin) ->
+    case binary:split(Bin, <<"#">>) of
+	[Scheme] -> #occi_cid{scheme=Scheme, _='_'};
+	[Scheme, Term] -> #occi_cid{scheme=Scheme, term=Term, _='_'};
+	_ -> []
+    end.	    
+
+get_node(Path, Filters) ->
+    Url = occi_uri:parse(Path),
+    case occi_store:find(#occi_node{id=#uri{path=Url#uri.path}, _='_'}, Filters) of
+	{ok, []} -> #occi_node{id=Url};
+	{ok, [#occi_node{}=N]} -> N
+    end.
+
+get_caps_node(Filters) ->
+    case occi_store:find(?caps, Filters) of
+	{ok, []} -> ?caps;
+	{ok, [#occi_node{}=Node]} -> Node
+    end.
+

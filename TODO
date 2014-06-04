@@ -1,9 +1,16 @@
-# Move OCCI schemas declaration to backends
-
-Storage backends (like mnesia) are generic and then can get schema
-from user, but this is special case.
-
 # Backend/store:
  Optimize multiple backend requests: backends declare their
  categories, so store could be able to know which backend needs to be
  requested.
+
+# Parsers
+Migrate to single parse/3 API with state containing request type (see
+   text/occi and text/plain parsers)
+
+# User mixins
+
+Remove all hacks with mixin/user mixin
+Replace with authorization mechanism: 
+* user mixin is owned by the user
+* model mixin has special owner: read-only (or equiv)
+   

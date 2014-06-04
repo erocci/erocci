@@ -41,6 +41,7 @@
 	 update/1,
 	 delete/1,
 	 find/1,
+	 find/2,
 	 load/1,
 	 action/2]).
 
@@ -156,6 +157,10 @@ delete(#occi_node{id=#uri{path=Path}}=Node) ->
 	{error, Err} ->
 	    {error, Err}
     end.
+
+-spec find(occi_node(), occi_filters()) -> {ok, [occi_node()]} | {error, term()}.
+find(Req, _Filters) ->
+    find(Req).
 
 -spec find(occi_node() | occi_cid() | occi_category()) -> {ok, [occi_node() | occi_category()]} | {error, term()}.
 find(#occi_cid{class=Cls}=Cid) ->
