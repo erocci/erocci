@@ -34,6 +34,7 @@ Debian and Ubuntu: apt-get install erlang libssl-dev libexpat1-dev libxml2-dev
 
 Fedora: 
 yum install erlang libssl-dev libexpat1-dev libxml2-dev
+
 yum install : 
 * gcc
 * openssl
