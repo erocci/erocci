@@ -4,11 +4,7 @@
 %%%
 %%% @end
 %%% Created : 14 Mar 2013 by Jean Parpaillon <jean.parpaillon@free.fr>
--type(occi_class() :: kind | mixin | action).
-
--define(HTTP_SERVER_ID, "erocci OCCI/1.1").
--define(XMPP_CLIENT_ID, "erocci client").
--define(XMPP_NODE_ID, "http://github.com/jeanparpaillon/erocci").
+-type(occi_class() :: kind | mixin | usermixin | action).
 
 %%%% URI and al.
 -record(uri, {scheme   = undefined    :: atom(),
@@ -28,7 +24,7 @@
 			}).
 -type(occi_extension() :: #occi_extension{}).
 
--record(occi_collection, {cid                    :: occi_cid(),
+-record(occi_collection, {id                     :: uri() | occi_cid(),
 			  entities  = undefined  :: term()}). % ordset()
 -type(occi_collection() :: #occi_collection{}).
 
@@ -80,7 +76,6 @@
 %%% OCCI Resource
 -record(occi_resource, {id         = undefined :: uri(),
 			cid        = undefined :: occi_cid(),
-			title      = undefined :: binary(),
 		        summary    = undefined :: binary(),
 			attributes = undefined :: term(),       % orddict()
 			links                  :: term(),       % set()
@@ -90,7 +85,6 @@
 %%% OCCI Link
 -record(occi_link, {id         = undefined :: uri(),
 		    cid        = undefined :: occi_cid(),
-		    title      = undefined :: binary(),
 		    attributes = undefined :: term(),           % orddict()
 		    source                 :: uri(),
 		    target                 :: uri(),
@@ -120,11 +114,17 @@
 		      }).
 -type(occi_request() :: #occi_request{}).
 
+-record(occi_user, {id             :: uid(),
+		    groups         :: [gid()]}).
+-type(occi_user() :: #occi_user{}).
+
+-type(uid() :: integer()).
+-type(gid() :: integer()).
+
 -type(occi_node_id() :: uri()).
 -type(occi_node_objid() :: atom() | uri() | occi_cid()).
--type(occi_node_type() :: dir | 
-			  mountpoint |
-			  occi_query |
+-type(occi_node_type() :: mountpoint |
+			  capabilities |
 			  occi_resource | 
 			  occi_link |
 			  occi_user_mixin |
@@ -132,17 +132,23 @@
 -record(occi_node, {id                     :: occi_node_id(),
 		    objid     = undefined  :: occi_node_objid(),
 		    type      = undefined  :: occi_node_type(),
-		    parent    = undefined  :: occi_node_id(),
 		    data      = undefined  :: term(),
 		    etag      = undefined  :: term(),
-		    acl       = []         :: occi_acl()}).
+		    owner     = anonymous  :: term()}).
 -type(occi_node() :: #occi_node{}).
 
 -record(occi_backend, {ref            :: atom(),
 		       mod            :: atom(),
+		       mountpoint     :: uri(),
 		       opts           :: term()}).
 -type(occi_backend() :: #occi_backend{}).
 
--type(occi_acl() :: [term()]).
-
 -type(occi_object() :: occi_node() | occi_entity() | occi_category() | occi_collection()).
+
+-type(acl() :: {acl_policy(), acl_op(), acl_node(), acl_user()}).
+
+-type(acl_policy() :: allow | deny).
+-type(acl_op() :: create | read | update | {action, binary() } | delete | '_').
+-type(acl_node() :: capabilities | acl_url()).
+-type(acl_url() :: binary()).
+-type(acl_user() :: anonymous | authenticated | admin | owner | group | '_').

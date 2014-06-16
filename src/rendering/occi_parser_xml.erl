@@ -743,7 +743,6 @@ stop(#parser{id=Ref, src=#parser{id=Src}}) ->
 send_events(_P, []) ->
     {error, {parse_error, incomplete}};
 send_events(#parser{}=P, [E|T]) ->
-    lager:debug("send_event: ~p~n", [lager:pr(E, ?MODULE)]),
     case occi_parser:send_event(E, ok, P) of
 	{reply, {error, Err}, _, _} ->
 	    {error, Err};
@@ -797,7 +796,7 @@ make_resource_title(E, #state{entity=Res}=State) ->
 	undefined ->
 	    make_resource_id(E, State);
 	Title ->
-	    make_resource_id(E, State#state{entity=occi_resource:set_title(Res, Title)})
+	    make_resource_id(E, State#state{entity=occi_resource:set_attr_value(Res, 'occi.core.title', Title)})
     end.
 
 make_resource_id(E, #state{entity_id=undefined, entity=#occi_resource{id=undefined}=Res}=State) ->

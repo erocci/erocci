@@ -282,6 +282,8 @@ parse_a_value(none, V, H, S) ->
 
 parse_location(Headers, #state{entity=E}=S) ->
     case orddict:find(location, Headers) of
+	{ok, [undefined]} ->
+	    {ok, S};
 	{ok, [Location]} ->
 	    try occi_uri:parse(Location) of
 		#uri{}=Uri ->

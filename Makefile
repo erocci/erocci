@@ -1,7 +1,7 @@
 topdir=.
 
 ERL ?= erl
-REBAR=$(shell which rebar)
+REBAR=$(shell which rebar || echo "echo \"rebar is missing. Exiting...\" && false")
 APP=occi
 
 .PHONY: all deps clean distclean doc doc-clean exmpp-deps tests tests-all

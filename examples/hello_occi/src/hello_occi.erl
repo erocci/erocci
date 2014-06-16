@@ -10,10 +10,6 @@
 
 -include_lib("occi.hrl").
 
--define(SCHEME_INFRA, 'http://schemas.ogf.org/occi/infrastructure#').
--define(SCHEME_NET, 'http://schemas.ogf.org/occi/infrastructure/network#').
--define(SCHEME_NET_IF, 'http://schemas.ogf.org/occi/infrastructure/networkinterface#').
-
 -export([start/0, stop/0, loop/0]).
 %% Hooks
 -export([on_save/1, on_update/2, on_delete/1, on_action/2]).

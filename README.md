@@ -24,11 +24,18 @@ install the following dependancies (thanks Augusto Ciuffoletti for the
 notice):
 
 * erlang/OTP, version 15b1 or greater
+* rebar
 * openssl and headers
 * libxml2 and headers
 * libexpat and headers
+* Apache Runtime Library utils headers
 
-Debian and Ubuntu: apt-get install erlang libssl-dev libexpat1-dev libxml2-dev
+Debian and Ubuntu: apt-get install erlang rebar libssl-dev libexpat1-dev libxml2-dev libaprutil1-dev
+
+Fedora: yum install erlang rebar curl gcc openssl openssl-devel  mod_ssl libxml2-devel
+
+(install also development tools if necessary : yum groupinstall "Development tools")
+
 
 ## Compiling
 

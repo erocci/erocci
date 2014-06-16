@@ -32,10 +32,6 @@
 %%%===================================================================
 %%% API
 %%%===================================================================
-render(#occi_node{type=dir}=Node, Req, Renderer) ->
-    Headers = render_dir(Node, orddict:from_list([{<<"x-occi-location">>, []}])),
-    Renderer(Headers, Req);
-
 render(#occi_node{type=occi_resource, data=Res}, Req, Renderer) ->
     Headers = render_resource(Res, orddict:new()),
     Renderer(Headers, Req);
@@ -44,7 +40,7 @@ render(#occi_node{type=occi_link, data=Link}, Req, Renderer) ->
     Headers = render_link(Link, orddict:new()),
     Renderer(Headers, Req);
 
-render(#occi_node{type=occi_query, data={Kinds, Mixins, Actions}}, Req, Renderer) ->
+render(#occi_node{type=capabilities, data={Kinds, Mixins, Actions}}, Req, Renderer) ->
     Headers = lists:foldl(fun (Cat, Acc) ->
 				  render_category(Cat, Acc)
 			  end, orddict:from_list([{<<"category">>, []}]), Kinds ++ Mixins ++ Actions),
@@ -85,13 +81,6 @@ render_category(#occi_action{}=Action, Hdr) ->
 render_cid(#occi_cid{}=Cid, Acc) ->
     add_header_value(<<"category">>, build_cid(Cid), Acc).
 
-render_dir(#occi_node{type=dir, data=Children}, Acc) ->
-    gb_sets:fold(fun (#occi_node{type=dir}=Child, Acc2) ->
-			 render_dir(Child, Acc2);
-		     (#uri{}=ChildId, Acc2) ->
-			 add_header_value(<<"x-occi-location">>, occi_uri:to_iolist(ChildId), Acc2)
-		 end, Acc, Children).
-
 render_resource(#occi_resource{}=Res, Acc) ->
     Acc2 = render_cid(occi_resource:get_cid(Res), Acc),
     Acc3 = sets:fold(fun render_cid/2, Acc2, occi_resource:get_mixins(Res)),
@@ -102,14 +91,11 @@ render_resource(#occi_resource{}=Res, Acc) ->
 render_link(#occi_link{}=Link, Acc) ->
     Acc2 = render_cid(occi_link:get_cid(Link), Acc),
     Acc3 = sets:fold(fun render_cid/2, Acc2, occi_link:get_mixins(Link)),
-    Acc4 = lists:foldl(fun render_attribute/2, Acc3, occi_link:get_attributes(Link)),
-    Acc5 = add_header_value(<<"x-occi-attribute">>, 
-			    render_kv("occi.core.source", occi_uri:to_iolist(occi_link:get_source(Link))),
-			    Acc4),
-    Acc6 = add_header_value(<<"x-occi-attribute">>, 
-			    render_kv("occi.core.target", occi_uri:to_iolist(occi_link:get_target(Link))),
-			    Acc5),
-    render_location(occi_link:get_id(Link), Acc6).
+    Attrs = [ occi_link:get_attr(Link, 'occi.core.source'), 
+	      occi_link:get_attr(Link, 'occi.core.target') 
+	      | occi_link:get_attributes(Link)],
+    Acc4 = lists:foldl(fun render_attribute/2, Acc3, Attrs),
+    render_location(occi_link:get_id(Link), Acc4).
 
 render_inline_link(#uri{}=Uri, Acc) ->
     add_header_value(<<"link">>, occi_uri:to_iolist(Uri), Acc);
@@ -154,6 +140,8 @@ render_action_specs(Actions) ->
 render_action_spec(#occi_action{id=Id}) ->
     render_cid_uri(Id).
 
+render_attribute(#occi_attr{id='occi.core.id'}, Acc) ->
+    Acc;
 render_attribute(#occi_attr{}=Attr, Acc) ->
     add_header_value(<<"x-occi-attribute">>, build_attribute(Attr), Acc).
 
@@ -172,6 +160,8 @@ format_value(V) when is_integer(V) ->
     integer_to_list(V);
 format_value(V) when is_float(V) ->
     io_lib:format("~g", [V]);
+format_value(#uri{}=U) ->
+    occi_uri:to_iolist(U);
 format_value(V) ->
     V.
 

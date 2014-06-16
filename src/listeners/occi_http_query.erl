@@ -24,6 +24,8 @@
 	 rest_init/2,
 	 delete_resource/2,
 	 allowed_methods/2,
+	 is_authorized/2,
+	 forbidden/2,
 	 content_types_provided/2,
 	 content_types_accepted/2
 	]).
@@ -38,7 +40,9 @@
 	 from_xml/2]).
 
 -include("occi.hrl").
+-include("occi_http.hrl").
 
+-record(state, {op, node, ct, user}).
 
 -record(content_type, {parser   :: atom(),
 		       renderer :: atom(),
@@ -59,12 +63,37 @@ init(_Transport, _Req, []) ->
     {upgrade, protocol, cowboy_rest}.
 
 rest_init(Req, _Opts) ->
-    {ok, cowboy_req:set_resp_header(<<"server">>, ?HTTP_SERVER_ID, Req), #occi_node{type=occi_query}}.
+    Op = occi_http_common:get_acl_op(Req),
+    {ok, cowboy_req:set_resp_header(<<"server">>, ?SERVER_ID, Req), 
+     #state{op=Op, node=#occi_node{type=capabilities}}}.
 
 allowed_methods(Req, State) ->
     Methods = [<<"GET">>, <<"DELETE">>, <<"POST">>, <<"OPTIONS">>],
     << ", ", Allow/binary >> = << << ", ", M/binary >> || M <- Methods >>,
     {Methods, occi_http_common:set_cors(Req, Allow), State}.
+
+is_authorized(Req, #state{op=Op, node=Node}=State) ->
+    case occi_http_common:auth(Req) of
+	{true, User} ->
+	    {true, Req, State#state{user=User}};
+	false ->
+	    case occi_acl:check(Op, Node, anonymous) of
+		allow ->
+		    {true, Req, State#state{user=anonymous}};
+		deny ->
+		    {{false, occi_http_common:get_auth()}, Req, State}
+	    end
+    end.
+
+forbidden(Req, #state{user=anonymous}=State) ->
+    {false, Req, State};
+forbidden(Req, #state{op=Op, user=User}=State) ->
+    case occi_acl:check(Op, capabilities, User) of
+	allow ->
+	    {false, Req, State};
+	deny ->
+	    {true, Req, State}
+    end.
 
 content_types_provided(Req, State) ->
     {[
@@ -99,41 +128,41 @@ delete_resource(Req, State) ->
     end.
 
 to_plain(Req, State) ->
-    to(Req, State, ?ct_plain).
+    to(Req, State#state{ct=?ct_plain}).
 
 to_occi(Req, State) ->
-    to(Req, State, ?ct_occi).
+    to(Req, State#state{ct=?ct_occi}).
 
 to_uri_list(Req, State) ->
-    to(Req, State, ?ct_uri_list).
+    to(Req, State#state{ct=?ct_uri_list}).
 
 to_json(Req, State) ->
-    to(Req, State, ?ct_json).
+    to(Req, State#state{ct=?ct_json}).
 
 to_xml(Req, State) ->
-    to(Req, State, ?ct_xml).
+    to(Req, State#state{ct=?ct_xml}).
 
 from_plain(Req, State) ->
-    from(Req, State, ?ct_plain).
+    from(Req, State#state{ct=?ct_plain}).
 
 from_occi(Req, State) ->
-    from(Req, State, ?ct_occi).
+    from(Req, State#state{ct=?ct_occi}).
 
 from_json(Req, State) ->
-    from(Req, State, ?ct_json).
+    from(Req, State#state{ct=?ct_json}).
 
 from_xml(Req, State) ->
-    from(Req, State, ?ct_xml).
+    from(Req, State#state{ct=?ct_xml}).
 
 %%%
 %%% Private
 %%%
-to(Req, State, #content_type{renderer=R}) ->
-    {ok, [Node]} = occi_store:find(State),
-    {Body, Req2} = R:render(Node, Req),
+to(Req, #state{ct=#content_type{renderer=R}, node=Node}=State) ->
+    {ok, [Node2]} = occi_store:find(Node),
+    {Body, Req2} = R:render(Node2, Req),
     {Body, Req2, State}.
 
-from(Req, State, #content_type{parser=Parser}) ->
+from(Req, #state{ct=#content_type{parser=Parser}, op=Op}=State) ->
     {ok, Body, Req2} = cowboy_req:body(Req),
     case Parser:parse_user_mixin(Body, Req2) of
 	{error, {parse_error, Err}} ->
@@ -142,14 +171,13 @@ from(Req, State, #content_type{parser=Parser}) ->
 	    {halt, Req3, State};
 	{error, Err} ->
 	    lager:debug("Internal error: ~p~n", [Err]),
-	    {ok, Req3} = cowboy_req:reply(500, Req2),
-	    {halt, Req3, State};	    
+	    {halt, Req2, State};	    
 	{ok, undefined} ->
 	    lager:debug("Empty request~n"),
 	    {false, Req2, State};
 	{ok, #occi_mixin{id=Cid, location=Uri}=Mixin} ->
-	    case cowboy_req:method(Req2) of
-		{<<"DELETE">>, _} ->
+	    case Op of
+		delete ->
 		    case occi_store:find(#occi_mixin{id=Cid, _='_'}) of
 			{ok, []} ->
 			    {ok, Req3} = cowboy_req:reply(404, Req2),
@@ -161,8 +189,7 @@ from(Req, State, #content_type{parser=Parser}) ->
 			    case occi_store:delete(Mixin2) of
 				{error, undefined_backend} ->
 				    lager:debug("Internal error deleting user mixin~n"),
-				    {ok, Req2} = cowboy_req:reply(500, Req),
-				    {halt, Req2, State};
+				    {halt, Req, State};
 				{error, Reason} ->
 				    lager:debug("Error deleting user mixin: ~p~n", [Reason]),
 				    {false, Req, State};
@@ -170,15 +197,14 @@ from(Req, State, #content_type{parser=Parser}) ->
 				    {true, cowboy_req:set_resp_body("OK\n", Req2), State}
 			    end
 		    end;
-		{<<"POST">>, _} ->
+		update ->
 		    case occi_store:save(Mixin) of
 			ok ->
 			    Req3 = cowboy_req:set_resp_header(<<"location">>, occi_uri:to_binary(Uri), Req2),
 			    {true, cowboy_req:set_resp_body("OK\n", Req3), State};
 			{error, Reason} ->
 			    lager:debug("Error creating resource: ~p~n", [Reason]),
-			    {ok, Req3} = cowboy_req:reply(500, Req2),
-			    {halt, Req3, State}
+			    {halt, Req2, State}
 		    end
 	    end
     end.

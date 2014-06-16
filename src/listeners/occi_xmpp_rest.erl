@@ -46,12 +46,12 @@
 init(Req, _S) ->
     {ok, Req, #state{}}.
 
-allowed_methods(#occi_iq{type=occi_query}=Req, State) ->
+allowed_methods(#occi_iq{type=capabilities}=Req, State) ->
     {['get', update, delete], Req, State};
 allowed_methods(Req, State) ->
     {['get', save, update, delete, action], Req, State}.
 
-resource_exists(#occi_iq{type=occi_query}=Req, State) ->
+resource_exists(#occi_iq{type=capabilities}=Req, State) ->
     {true, Req, State};
 
 resource_exists(#occi_iq{node=Node}=Req, State) ->
@@ -63,7 +63,7 @@ resource_exists(#occi_iq{node=Node}=Req, State) ->
 	    {true, Req#occi_iq{node=Node2}, State}
     end.
 
-is_conflict(#occi_iq{type=occi_query}=Req, State) ->
+is_conflict(#occi_iq{type=capabilities}=Req, State) ->
     {true, Req, State};
 is_conflict(#occi_iq{type=occi_collection}=Req, State) ->
     {false, Req, State};
@@ -75,7 +75,7 @@ is_conflict(#occi_iq{type=occi_entity, node=#occi_node{type=Type}}=Req, State)
 is_conflict(Req, State) ->
     {true, Req, State}.
 
-delete_resource(#occi_iq{type=occi_query, node=#occi_node{data=Mixin}}=Req, 
+delete_resource(#occi_iq{type=capabilities, node=#occi_node{data=Mixin}}=Req, 
 		State) ->
     case occi_store:find(Mixin) of
 	{ok, []} ->
@@ -213,7 +213,7 @@ accept_resource(Iq, State) ->
     Err = occi_iq:error(Iq, 'bad-request'),
     {false, Err, State}.
 
-update_resource(#occi_iq{type=occi_query, raw=Raw}=Req, State) ->
+update_resource(#occi_iq{type=capabilities, raw=Raw}=Req, State) ->
     case exmpp_xml:get_child_elements(occi_iq:get_payload(Raw)) of
 	[] -> 
 	    lager:debug("Bad request: ~p~n", [lager:pr(Raw, ?MODULE)]),

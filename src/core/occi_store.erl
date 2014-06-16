@@ -72,8 +72,9 @@ start_link() ->
 -spec register(backend_desc()) -> {ok, pid()} | ignore | {error, term()}.
 register({Ref, Mod, Opts, [ $/ | Path ]}) ->
     lager:info("Registering backend: ~p~n", [Ref]),
-    Backend = #occi_backend{ref=Ref, mod=Mod, opts=Opts},
-    Mp = occi_node:new(occi_uri:parse([$/ | Path]), Backend),
+    Id = occi_uri:parse([$/ | Path]),
+    Backend = #occi_backend{ref=Ref, mod=Mod, mountpoint=Id, opts=Opts},
+    Mp = occi_node:new(Id, Backend),
     Def = {Ref, {occi_backend, start_link, [Backend]}, 
 	   permanent, 5000, worker, [occi_backend, Mod]},
     case supervisor:start_child(occi_store, Def) of
@@ -100,7 +101,7 @@ save(#occi_mixin{location=#uri{path=Path}}=Mixin) ->
 	    {error, Err}
     end;
 
-save(#occi_node{type=occi_collection}=Node) ->
+save(#occi_node{type=occi_collection, objid=#occi_cid{}}=Node) ->
     lager:debug("occi_store:save(~p)~n", [lager:pr(Node, ?MODULE)]),
     cast(save, filter_collection(Node));
 
@@ -114,7 +115,7 @@ save(#occi_node{id=#uri{path=Path}}=Node) ->
     end.
 
 -spec update(occi_node()) -> ok | {error, term()}.
-update(#occi_node{type=occi_collection}=Node) ->
+update(#occi_node{type=occi_collection, objid=#occi_cid{}}=Node) ->
     lager:debug("occi_store:update(~p)~n", [lager:pr(Node, ?MODULE)]),
     cast(update, filter_collection(Node));
 
@@ -136,6 +137,16 @@ delete(#occi_mixin{location=#uri{path=Path}}=Mixin) ->
 	{error, Err} ->
 	    {error, Err}
     end;
+
+delete(#occi_node{type=occi_collection, objid=#occi_cid{}, data=undefined}=Node) ->
+    case load(Node) of
+	{ok, N2} -> delete(N2);
+	{error, Err} -> {error, Err}
+    end;
+
+delete(#occi_node{type=occi_collection, objid=#occi_cid{}}=Node) ->
+    lager:debug("occi_store:delete(~p)~n", [lager:pr(Node, ?MODULE)]),
+    cast(delete, filter_collection(Node));
 
 delete(#occi_node{id=#uri{path=Path}}=Node) ->
     lager:debug("occi_store:delete(~p)~n", [lager:pr(Node, ?MODULE)]),
@@ -199,7 +210,7 @@ find(#occi_mixin{location=#uri{path=Path}}=Req) ->
 	    {error, Err}
     end;
 
-find(#occi_node{type=occi_query}=Req) ->
+find(#occi_node{type=capabilities}=Req) ->
     lager:debug("occi_store:find(~p)~n", [lager:pr(Req, ?MODULE)]),
     {K, M, A} = occi_category_mgr:find_all(),
     Merge = fun (#occi_node{id=#uri{path=Prefix}}, Mixins, Acc) ->
@@ -251,7 +262,7 @@ find(#occi_node{id=#uri{path=Path}=Id}=Req) ->
     end.
 
 -spec load(occi_node()) -> {ok, occi_node()} | {error, term()}.
-load(#occi_node{type=occi_query, data=undefined}=Req) ->
+load(#occi_node{type=capabilities, data=undefined}=Req) ->
     {ok, [Res]} = find(Req),
     {ok, Res};
 load(#occi_node{id=#uri{path=Path}, type=dir}=Node) ->
@@ -300,7 +311,7 @@ load(#occi_node{data=_}=Node) ->
     lager:debug("occi_store:load(~p)~n", [lager:pr(Node, ?MODULE)]),
     {ok, Node}.
 
-action(#occi_node{type=occi_query}=_N, _A) ->
+action(#occi_node{type=capabilities}=_N, _A) ->
     lager:debug("occi_store:action(~p, ~p)~n", [lager:pr(_N, ?MODULE), lager:pr(_A, ?MODULE)]),
     {error, unsupported_node};
 
@@ -459,7 +470,7 @@ cancel_response({Tag, #occi_node{objid=Ref}, It}) ->
 %%% return list of {mountpoint, #occi_node{type=occi_collection}}
 %%% each collection only contains entities related to the mountpoint
 %%%
-filter_collection(#occi_node{type=occi_collection, data=#occi_collection{cid=Cid, entities=E}}=Node) ->
+filter_collection(#occi_node{type=occi_collection, data=#occi_collection{id=Cid, entities=E}}=Node) ->
     F = fun (#uri{path=Path}=Uri, Acc) ->
 		case get_backend(Path) of
 		    {error, Err} -> throw({error, Err});
@@ -468,9 +479,9 @@ filter_collection(#occi_node{type=occi_collection, data=#occi_collection{cid=Cid
 			    none ->
 				C = occi_collection:new(Cid, [occi_uri:rm_prefix(Uri, Prefix)]),
 				gb_trees:insert(Backend, Node#occi_node{data=C}, Acc);
-			    {value, #occi_collection{}=C} ->
+			    {value, #occi_node{data=#occi_collection{}=C}} ->
 				C2 = occi_collection:add_entity(C, occi_uri:rm_prefix(Uri, Prefix)),
-				gb_trees:insert(Backend, Node#occi_node{data=C2}, Acc)
+				gb_trees:update(Backend, Node#occi_node{data=C2}, Acc)
 			end
 		end
 	end,

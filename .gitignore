@@ -5,6 +5,7 @@ ebin
 deps/
 Mnesia.nonode@nohost/
 /log/
+/logs/
 src/rendering/occi_scanner.erl
 src/rendering/occi_scanner_json.erl
 test/*.beam
