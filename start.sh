@@ -81,7 +81,7 @@ exec erl -pa $PWD/ebin \
     -config $config \
     -kernel error_logger silent \
     -lager handlers "[{lager_console_backend, $debug}]" \
-    -epasswd mod "{htpasswd, \"$htpasswd\"}" \
+    -epasswd mod "{xmpp, \"\" }" \
     -occi listeners "[$listener]" \
     -occi name "\"$name\"" \
     $debug_app -s occi
