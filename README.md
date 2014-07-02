@@ -30,9 +30,7 @@ notice):
 
 Debian and Ubuntu: apt-get install erlang libssl-dev libexpat1-dev libxml2-dev
 
-Fedora: yum install erlang rebar curl gcc openssl openssl-devel  mod_ssl libxml2-devel
-
-(install also development tools if necessary : yum groupinstall "Development tools")
+Fedora: yum install erlang rebar curl gcc openssl openssl-devel mod_ssl libxml2-devel gcc-c++ expat-devel apr-util-devel
 
 
 ## Compiling
