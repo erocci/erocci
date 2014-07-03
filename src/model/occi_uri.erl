@@ -39,6 +39,10 @@
 	 to_binary/1,
 	 to_string/1]).
 
+% Wrappers to http_uri for treating with binaries
+-export([encode/1,
+	 decode/1]).
+
 %%%
 %%% API
 %%%
@@ -140,6 +144,12 @@ to_binary(Uri) ->
 
 to_string(Uri) ->
     binary_to_list(to_binary(Uri)).
+
+encode(Bin) ->
+    list_to_binary(http_uri:encode(binary_to_list(Bin))).
+
+decode(Bin) ->
+    list_to_binary(http_uri:decode(binary_to_list(Bin))).
 
 %%%
 %%% Private

@@ -64,7 +64,7 @@
     {ok, State :: term()} |
     {{error, Reason :: term()}, State :: term()}.
 
--callback find(Request :: occi_node() | occi_mixin(), State :: term()) ->
+-callback find(Request :: occi_node(), State :: term()) ->
     {{ok, [occi_node()]}, term()} |
     {{error, Reason :: term()}, State :: term()}.
 

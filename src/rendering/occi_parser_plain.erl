@@ -75,7 +75,7 @@ parse_user_mixin(Data, _Env) ->
 	{error, Err} ->
 	    {error, Err};
 	{ok, Headers} ->
-	    occi_parser_text:parse_user_mixin(Headers, #state{mixin=occi_mixin:new(#occi_cid{class=usermixin})})
+	    occi_parser_text:parse_user_mixin(Headers, #state{mixin=occi_mixin:new(#occi_cid{class=mixin})})
     end.
 
 parse_collection(Data, _Env) ->

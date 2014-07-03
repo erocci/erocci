@@ -37,6 +37,7 @@
 
 %% API
 -export([start_link/0, register/1]).
+-export([get/1]).
 -export([save/1,
 	 update/1,
 	 delete/1,
@@ -81,6 +82,7 @@ register({Ref, Mod, Opts, [ $/ | Path ]}) ->
     case supervisor:start_child(occi_store, Def) of
 	{ok, Pid} ->
 	    add_backend(Mp),
+	    load_user_mixins(Mp),
 	    {ok, Pid};
 	{error, {already_started, Pid}} ->
 	    {ok, Pid};
@@ -92,16 +94,7 @@ register({_, _, _, Path}) ->
     lager:error("Invalid mountpoint: ~p~n", [Path]),
     throw({invalid_mountpoint, Path}).
 
--spec save(occi_node() | occi_mixin()) -> ok | {error, term()}.
-save(#occi_mixin{location=#uri{path=Path}}=Mixin) ->
-    lager:debug("occi_store:save(~p)~n", [lager:pr(Mixin, ?MODULE)]),
-    case get_backend(Path) of
-	{ok, #occi_node{id=#uri{path=Prefix}, objid=Ref}} ->
-	    occi_backend:save(Ref, occi_mixin:rm_prefix(Mixin, Prefix));
-	{error, Err} ->
-	    {error, Err}
-    end;
-
+-spec save(occi_node()) -> ok | {error, term()}.
 save(#occi_node{type=occi_collection, objid=#occi_cid{}}=Node) ->
     lager:debug("occi_store:save(~p)~n", [lager:pr(Node, ?MODULE)]),
     cast(save, filter_collection(Node));
@@ -116,6 +109,17 @@ save(#occi_node{id=#uri{path=Path}}=Node) ->
     end.
 
 -spec update(occi_node()) -> ok | {error, term()}.
+update(#occi_node{id=#uri{path=Path}, type=capabilities, data=#occi_mixin{}=Mixin}=Node) ->
+    lager:debug("occi_store:update(~p)~n", [lager:pr(Node, ?MODULE)]),
+    case get_backend(Path) of
+	{ok, #occi_node{id=#uri{path=Prefix}, objid=Ref}} ->
+	    Res = occi_backend:update(Ref, occi_node:rm_prefix(Node, Prefix)),
+	    occi_category_mgr:register_mixin(Mixin),
+	    Res;
+	{error, Err} ->
+	    {error, Err}
+    end;
+
 update(#occi_node{type=occi_collection, objid=#occi_cid{}}=Node) ->
     lager:debug("occi_store:update(~p)~n", [lager:pr(Node, ?MODULE)]),
     cast(update, filter_collection(Node));
@@ -129,16 +133,7 @@ update(#occi_node{id=#uri{path=Path}}=Node) ->
 	    {error, Err}
     end.
 
--spec delete(occi_node() | occi_mixin()) -> ok | {error, term()}.
-delete(#occi_mixin{location=#uri{path=Path}}=Mixin) ->
-    lager:debug("occi_store:delete(~p)~n", [lager:pr(Mixin, ?MODULE)]),
-    case get_backend(Path) of
-	{ok, #occi_node{id=#uri{path=Prefix}, objid=Ref}} ->
-	    occi_backend:delete(Ref, occi_mixin:rm_prefix(Mixin, Prefix));
-	{error, Err} ->
-	    {error, Err}
-    end;
-
+-spec delete(occi_node()) -> ok | {error, term()}.
 delete(#occi_node{type=occi_collection, objid=#occi_cid{}, data=undefined}=Node) ->
     case load(Node) of
 	{ok, N2} -> delete(N2);
@@ -149,6 +144,17 @@ delete(#occi_node{type=occi_collection, objid=#occi_cid{}}=Node) ->
     lager:debug("occi_store:delete(~p)~n", [lager:pr(Node, ?MODULE)]),
     cast(delete, filter_collection(Node));
 
+delete(#occi_node{id=#uri{path=Path}, type=capabilities, data=#occi_mixin{}=Mixin}=Node) ->
+    lager:debug("occi_store:delete(~p)~n", [lager:pr(Node, ?MODULE)]),
+    case get_backend(Path) of
+	{ok, #occi_node{id=#uri{path=Prefix}, objid=Ref}} ->
+	    Res = occi_backend:delete(Ref, occi_node:rm_prefix(Node, Prefix)),
+	    occi_category_mgr:unregister_mixin(Mixin),
+	    Res;
+	{error, Err} ->
+	    {error, Err}
+    end;
+
 delete(#occi_node{id=#uri{path=Path}}=Node) ->
     lager:debug("occi_store:delete(~p)~n", [lager:pr(Node, ?MODULE)]),
     case get_backend(Path) of
@@ -156,104 +162,72 @@ delete(#occi_node{id=#uri{path=Path}}=Node) ->
 	    occi_backend:delete(Ref, occi_node:rm_prefix(Node, Prefix));
 	{error, Err} ->
 	    {error, Err}
-    end.
-
--spec find(occi_node(), occi_filters()) -> {ok, [occi_node()]} | {error, term()}.
-find(Req, _Filters) ->
-    find(Req).
-
--spec find(occi_node() | occi_cid() | occi_category()) -> {ok, [occi_node() | occi_category()]} | {error, term()}.
-find(#occi_cid{class=Cls}=Cid) ->
-    lager:debug("occi_store:find(~p)~n", [lager:pr(Cid, ?MODULE)]),
-    if
-	Cls == kind orelse Cls == action ->
-	    {ok, occi_category_mgr:find(Cid)};
-	Cls == mixin orelse Cls == '_' ->
-	    Merge = fun (#occi_node{id=#uri{path=Prefix}}, Mixins, Acc) ->
-			    lists:map(fun (Mixin) ->
-					      occi_mixin:add_prefix(Mixin, Prefix)
-				      end, Mixins) ++ Acc
-		    end,
-	    case fold(Merge, [], find, #occi_mixin{id=Cid, _='_'}) of
-		{ok, UMixins} ->
-		    {ok, occi_category_mgr:find(Cid) ++ UMixins};
-		{error, Err} ->
-		    {error, Err}
-	    end;
-	true ->
-	    {error, invalid_class}
     end;
 
-find(#occi_kind{}=Kind) ->
-    lager:debug("occi_store:find(~p)~n", [lager:pr(Kind, ?MODULE)]),
-    occi_category_mgr:find(Kind);
+delete(_) ->
+    {error, unsupported_node}.
 
-find(#occi_action{}=Action) ->
-    lager:debug("occi_store:find(~p)~n", [lager:pr(Action, ?MODULE)]),
-    occi_category_mgr:find(Action);
+-spec get(occi_cid()) -> {ok, occi_category()} | {error, term()}.
+get(Cid) ->
+    occi_category_mgr:get(Cid).
 
-find(#occi_mixin{location='_'}=Req) ->
+-spec find(occi_node() | occi_cid()) -> {ok, [occi_node()]} | {error, term()}.
+find(#occi_node{type=capabilities, objid=#occi_cid{}=Cid}=Req) ->
     lager:debug("occi_store:find(~p)~n", [lager:pr(Req, ?MODULE)]),
-    Merge = fun (#occi_node{id=#uri{path=Prefix}}, Mixins, Acc) ->
-		    lists:map(fun (Mixin) ->
-				      occi_mixin:add_prefix(Mixin, Prefix)
-			      end, Mixins) ++ Acc
-	    end,
-    fold(Merge, [], find, Req);
-
-find(#occi_mixin{location=#uri{path=Path}}=Req) ->
-    lager:debug("occi_store:find(~p)~n", [lager:pr(Req, ?MODULE)]),
-    case get_backend(Path) of
-	{ok, #occi_node{id=#uri{path=Prefix}, objid=Ref}} ->
-	    case occi_backend:find(Ref, occi_mixin:rm_prefix(Req, Prefix)) of
-		{ok, Res} ->
-		    {ok, lists:map(fun (E) -> occi_mixin:add_prefix(E, Prefix) end, Res)};
+    case occi_category_mgr:find(Cid) of
+	[#occi_mixin{location=#uri{path=Path}}] ->
+	    case get_backend(Path) of
+		{ok, #occi_node{id=#uri{path=Prefix}, objid=Ref}} ->
+		    case occi_backend:find(Ref, Req) of
+			{ok, [#occi_node{}=Node]} ->
+			    {ok, [occi_node:add_prefix(Node, Prefix)]};
+			{ok, []} ->
+			    {ok, [occi_capabilities:new()]};
+			{error, Err} ->
+			    {error, Err}
+		    end;
 		{error, Err} ->
 		    {error, Err}
 	    end;
-	{error, Err} ->
-	    {error, Err}
+	_ ->
+	    {ok, []}
     end;
 
 find(#occi_node{type=capabilities}=Req) ->
     lager:debug("occi_store:find(~p)~n", [lager:pr(Req, ?MODULE)]),
     {K, M, A} = occi_category_mgr:find_all(),
-    Merge = fun (#occi_node{id=#uri{path=Prefix}}, Mixins, Acc) ->
-		    Acc ++ lists:map(fun (M2) ->
-					     occi_mixin:add_prefix(M2, Prefix)
-				     end, Mixins)
-	    end,
-    case fold(Merge, M, find, #occi_mixin{_='_'}) of
-	{ok, M3} ->
-	    {ok, [Req#occi_node{data={K, M3, A}}]};
-	{error, Err} ->
-	    {error, Err}
-    end;
+    {ok, [occi_capabilities:new(K, M, A)]};
 
-find(#occi_node{type=occi_collection, objid=#occi_cid{}=Cid}=Req) ->
+find(Req) ->
+    find(Req, []).
+
+
+-spec find(occi_node(), occi_filters()) -> {ok, occi_node()} | none | {error, term()}.
+find(#occi_node{type=occi_collection, objid=#occi_cid{}=Cid}=Req, _Filters) ->
+    lager:debug("occi_store:find(~p, ~p)~n", [lager:pr(Req, ?MODULE), _Filters]),
     case find(Cid) of
-	{ok, [#occi_kind{id=Id}]} -> 
+	{ok, #occi_kind{id=Id}} -> 
 	    {ok, [Req#occi_node{objid=Id}]};
 	{ok, [#occi_mixin{id=Id}]} ->
 	    {ok, [Req#occi_node{objid=Id}]};
 	{ok, _} ->
-	    {ok, []};
+	    none;
 	{error, Err} ->
 	    {error, Err}
     end;
 
-find(#occi_node{id=undefined}) ->
+find(#occi_node{id=undefined}, _Filters) ->
     {ok, []};
 
-find(#occi_node{id=#uri{path=Path}=Id}=Req) ->
-    lager:debug("occi_store:find(~p)~n", [lager:pr(Req, ?MODULE)]),
+find(#occi_node{id=#uri{path=Path}=Id}=Req, _Filters) ->
+    lager:debug("occi_store:find(~p, ~p)~n", [lager:pr(Req, ?MODULE), _Filters]),
     case occi_category_mgr:find(Id) of
 	[] ->
 	    case get_backend(Path) of
 		{ok, #occi_node{id=#uri{path=Prefix}, objid=Ref}} ->
 		    case occi_backend:find(Ref, occi_node:rm_prefix(Req, Prefix)) of
 			{ok, Res} ->
-			    {ok, lists:map(fun(E) -> occi_node:add_prefix(E, Prefix) end, Res)};
+			    {ok, lists:map(fun (E) -> occi_node:add_prefix(E, Prefix) end, Res)};
 			{error, Err} ->
 			    {error, Err}
 		    end;
@@ -266,23 +240,11 @@ find(#occi_node{id=#uri{path=Path}=Id}=Req) ->
 	    {ok, [occi_node:new(#uri{path=Path}, Cid)]}
     end.
 
+
 -spec load(occi_node()) -> {ok, occi_node()} | {error, term()}.
 load(#occi_node{type=capabilities, data=undefined}=Req) ->
     {ok, [Res]} = find(Req),
     {ok, Res};
-load(#occi_node{id=#uri{path=Path}, type=dir}=Node) ->
-    lager:debug("occi_store:load(~p)~n", [lager:pr(Node, ?MODULE)]),
-    case get_backend(Path) of
-	{ok, #occi_node{id=#uri{path=Prefix}, objid=Ref}} ->
-	    case occi_backend:load(Ref, occi_node:rm_prefix(Node, Prefix)) of
-		{ok, Node2} ->
-		    {ok, occi_node:add_prefix(Node2, Prefix)};
-		{error, Err} ->
-		    {error, Err}
-	    end;
-	{error, Err} ->
-	    {error, Err}
-    end;
 
 load(#occi_node{objid=#occi_cid{}=Cid, type=occi_collection, data=undefined}=Node) ->
     lager:debug("occi_store:load(~p)~n", [lager:pr(Node, ?MODULE)]),
@@ -317,10 +279,6 @@ load(#occi_node{data=_}=Node) ->
     {ok, Node}.
 
 action(#occi_node{type=capabilities}=_N, _A) ->
-    lager:debug("occi_store:action(~p, ~p)~n", [lager:pr(_N, ?MODULE), lager:pr(_A, ?MODULE)]),
-    {error, unsupported_node};
-
-action(#occi_node{type=occi_user_mixin}=_N, _A) ->
     lager:debug("occi_store:action(~p, ~p)~n", [lager:pr(_N, ?MODULE), lager:pr(_A, ?MODULE)]),
     {error, unsupported_node};
 
@@ -421,20 +379,20 @@ insert_set(#occi_node{type=mountpoint}=Mp) ->
     S = ets:lookup_element(?TABLE, set, 2),
     ets:insert(?TABLE, {set, gb_sets:add(Mp, S)}).
 
-fold(Merge, Res, Op, Req) ->
+fold(Merge, Acc0, Op, Req) ->
     Reqs = gb_sets:fold(fun (Backend, Acc) ->
 				[{Backend, Req}|Acc]
 			end, [], get_mounts()),
-    cast(Merge, Res, Op, Reqs).
+    cast(Merge, Acc0, Op, Reqs).
 
 cast(Op, Reqs) ->
     cast(noop, [], Op, Reqs).
 
-cast(Merge, Res, Op, Reqs) ->
+cast(Merge, Acc0, Op, Reqs) ->
     Tags = lists:foldl(fun ({#occi_node{objid=Ref}=Backend, Req}, Acc) ->
 			       gb_trees:insert(occi_backend:cast(Ref, Op, Req), Backend, Acc)
 		       end, gb_trees:empty(), Reqs),
-    wait_response(Merge, Res, Tags).
+    wait_response(Merge, Acc0, Tags).
 
 wait_response(Merge, Acc, Tags) ->
     receive
@@ -445,13 +403,21 @@ wait_response(Merge, Acc, Tags) ->
 		false -> wait_response(Merge, Acc, Tags2)
 	    end;
 	{Tag, {ok, Res}} ->
-	    Acc2 = Merge(gb_trees:get(Tag, Tags), Res, Acc),
-	    Tags2 = gb_trees:delete(Tag, Tags),
-	    case gb_trees:is_empty(Tags2) of
-		true -> 
+	    case Merge(gb_trees:get(Tag, Tags), Res, Acc) of
+		{error, Err} ->
+		    cancel_response(gb_trees:next(gb_trees:iterator(Tags))),
+		    {error, Err};
+		{halt, Acc2} ->
+		    cancel_response(gb_trees:next(gb_trees:iterator(Tags))),
 		    {ok, Acc2};
-		false ->
-		    wait_response(Merge, Acc2, Tags2)
+		Acc2 ->
+		    Tags2 = gb_trees:delete(Tag, Tags),
+		    case gb_trees:is_empty(Tags2) of
+			true -> 
+			    {ok, Acc2};
+			false ->
+			    wait_response(Merge, Acc2, Tags2)
+		    end
 	    end;
 	{_Tag, {error, Err}} ->
 	    cancel_response(gb_trees:next(gb_trees:iterator(Tags))),
@@ -502,3 +468,13 @@ build_dir_reqs(#occi_node{type=dir, data=Children}, A) ->
 				 [{Backend, {occi_uri:rm_prefix(Uri, Prefix), A}} | Acc]
 			 end
 		 end, [], Children).
+
+load_user_mixins(#occi_node{objid=Ref}) ->
+    case occi_backend:find(Ref, #occi_node{type=capabilities, _='_'}) of
+	{ok, [#occi_node{data={_, Mixins, _}}]} ->
+	    lists:foreach(fun (Mixin) -> 
+				  occi_category_mgr:register_mixin(Mixin)
+			  end, Mixins);
+	{error, Err} ->
+	    {error, Err}
+    end.

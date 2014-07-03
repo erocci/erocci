@@ -7,10 +7,14 @@
 Migrate to single parse/3 API with state containing request type (see
    text/occi and text/plain parsers)
 
-# User mixins
+# Do not use dynamic atoms !!!
 
-Remove all hacks with mixin/user mixin
-Replace with authorization mechanism: 
-* user mixin is owned by the user
-* model mixin has special owner: read-only (or equiv)
-   
+Replace list_to_atom with list_to_existing_atom
+
+# Categories management
+
+occi_category_mgr must not return actions separatly from kind/mixin
+
+# Remove checking functions from attributes
+
+   Dynamic types are not allowed anymore

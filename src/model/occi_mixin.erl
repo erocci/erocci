@@ -62,8 +62,6 @@ new(Scheme, Term) ->
 
 new(#occi_cid{class=mixin}=Cid) ->
     #occi_mixin{id=Cid, attributes=orddict:new(), actions=orddict:new()};
-new(#occi_cid{class=usermixin}=Cid) ->
-    #occi_mixin{id=Cid, attributes=orddict:new(), actions=orddict:new()};
 new(_) ->
     throw({error, invalid_cid}).
 
@@ -149,20 +147,6 @@ is_valid(#occi_mixin{id=#occi_cid{class=kind}}) ->
     {false, invalid_class};
 is_valid(#occi_mixin{id=#occi_cid{class=action}}) ->
     {false, invalid_class};
-is_valid(#occi_mixin{id=#occi_cid{class=usermixin},
-		     applies=[],
-		     depends=[],
-		     actions=[]}=M) ->
-    case M#occi_mixin.location of
-	undefined -> {false, invalid_user_mixin};
-	_ ->
-	    case get_attr_list(M) of
-		[] -> true;
-		_ -> {false, invalid_user_mixin}
-	    end
-    end;
-is_valid(#occi_mixin{id=#occi_cid{class=usermixin}}) ->
-    {false, invalid_user_mixin};
 is_valid(#occi_mixin{}) ->
     true.
 
