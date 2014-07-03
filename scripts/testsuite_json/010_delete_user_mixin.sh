@@ -2,17 +2,4 @@
 
 . $(dirname $0)/../testenv.sh
 
-content=$(cat <<EOF
-{
-  "mixins": [
-   {
-      "term": "jsonmixin",
-      "scheme": "http://schemas.example.org/occi#",
-      "location": "/store/usermixins/jsonmixin/"
-   }
-  ]
-}
-EOF
-       )
-
-delete 200 /-/ "application/json" "$content"
+delete 204 '/-/?category=http%3A%2F%2Fschemas.example.org%2Focci%23jsonmixin'
