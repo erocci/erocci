@@ -15,6 +15,5 @@ Replace list_to_atom with list_to_existing_atom
 
 occi_category_mgr must not return actions separatly from kind/mixin
 
-# Remove checking functions from attributes
-
-   Dynamic types are not allowed anymore
+# OCCI meta-model
+ Handle OCCI inheritance

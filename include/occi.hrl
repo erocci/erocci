@@ -66,9 +66,9 @@
 
 %%% OCCI Attribute description
 -type(occi_attr_key() :: atom()).
+-type(occi_attr_type() :: {atom(), atom()}).
 -record(occi_attr, {id                           :: occi_attr_key(),
-		    type_id                      :: atom(),
-		    f               = undefined  :: fun(),
+		    type                         :: occi_attr_type(),
 		    title           = undefined  :: binary(),
 		    properties                   :: [term()],
 		    value           = undefined  :: any()}).
