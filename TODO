@@ -7,9 +7,7 @@
 Migrate to single parse/3 API with state containing request type (see
    text/occi and text/plain parsers)
 
-# Do not use dynamic atoms !!!
-
-Replace list_to_atom with list_to_existing_atom
+Rewrite parsers (XML, JSON) with sequential code
 
 # Categories management
 
@@ -17,3 +15,5 @@ occi_category_mgr must not return actions separatly from kind/mixin
 
 # OCCI meta-model
  Handle OCCI inheritance
+
+# Replace lists (strings) with binaries: uris

@@ -55,9 +55,8 @@
 		       {required, false},
 		       {default, undefined}]).
 
-new(Id) when is_binary(Id) ->
-    new(list_to_atom(binary_to_list(Id)));
-new(Id) ->
+new(Id) when is_binary(Id);
+	     is_atom(Id) ->
     #occi_attr{id=Id, properties=dict:from_list(?attr_default)}.
 
 get_id(A) ->

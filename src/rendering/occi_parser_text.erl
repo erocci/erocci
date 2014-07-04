@@ -194,10 +194,10 @@ parse_c_value(Bin, V, H, S) ->
     end.
 
 parse_c_term(<< $;, Rest/bits >>, V, H, #state{mixin=#occi_mixin{id=Cid}}=S, SoFar)->
-    Term = list_to_atom(binary_to_list(SoFar)),
+    Term = ?term_to_atom(SoFar),
     parse_c_kv(parse_kv(Rest), Cid#occi_cid{term=Term}, V, H, S);
 parse_c_term(<< $;, Rest/bits >>, V, H, S, SoFar)->
-    Term = list_to_atom(binary_to_list(SoFar)),
+    Term = ?term_to_atom(SoFar),
     parse_c_kv(parse_kv(Rest), #occi_cid{term=Term}, V, H, S);
 parse_c_term(<< C, Rest/bits >>, V, H, S, SoFar) ->
     parse_c_term(Rest, V, H, S, << SoFar/binary, C >>);
@@ -211,11 +211,11 @@ parse_c_kv({ok, location, {string, Bin}, Rest}, Cid, V, H, #state{mixin=#occi_mi
     catch throw:Err -> {error, Err}
     end;
 parse_c_kv({ok, scheme, {string, Bin}, Rest}, Cid, V, H, S) ->
-    parse_c_kv(parse_kv(Rest), Cid#occi_cid{scheme=to_atom(Bin)}, V, H, S);
+    parse_c_kv(parse_kv(Rest), Cid#occi_cid{scheme=?scheme_to_atom(Bin)}, V, H, S);
 parse_c_kv({ok, class, {string, Bin}, Rest}, #occi_cid{class=undefined}=Cid, V, H, S) ->
-    parse_c_kv(parse_kv(Rest), Cid#occi_cid{class=to_atom(Bin)}, V, H, S);
+    parse_c_kv(parse_kv(Rest), Cid#occi_cid{class=?class_to_atom(Bin)}, V, H, S);
 parse_c_kv({ok, class, {string, Bin}, Rest}, #occi_cid{class=Cls}=Cid, V, H, S) ->
-    C = to_atom(Bin),
+    C = ?class_to_atom(Bin),
     if
 	C == Cls -> parse_c_kv(parse_kv(Rest), Cid, V, H, S);
 	true -> {error, invalid_class}
@@ -318,7 +318,7 @@ parse_kv(Bin) ->
 
 parse_key(<< $=, Rest/bits >>, SoFar) ->
     Rest2 = parse_ws(Rest),
-    parse_value(Rest2, to_atom(SoFar));
+    parse_value(Rest2, key_to_atom(SoFar));
 parse_key(<< C, Rest/bits >>, SoFar) ->
     case C of
 	$a -> parse_key(Rest, << SoFar/binary, $a >>);
@@ -463,5 +463,14 @@ match_eq(<< _, Rest/bits >>, N) ->
 match_eq(_, _) ->
     nomatch.
 
-to_atom(Bin) when is_binary(Bin) ->
-    list_to_atom(binary_to_list(Bin)).
+key_to_atom(<<"scheme">>) -> 'scheme';
+key_to_atom(<<"term">>) -> 'term';
+key_to_atom(<<"class">>) -> 'class';
+key_to_atom(<<"title">>) -> 'title';
+key_to_atom(<<"rel">>) -> 'rel';
+key_to_atom(<<"location">>) -> 'location';
+key_to_atom(<<"attributes">>) -> 'attributes';
+key_to_atom(<<"actions">>) -> 'actions';
+key_to_atom(<<"self">>) -> 'self';
+key_to_atom(<<"category">>) -> 'category';
+key_to_atom(Bin) -> ?attr_to_atom(Bin).

@@ -74,37 +74,26 @@ get_class(_) ->
 get_scheme(#occi_mixin{id=#occi_cid{scheme=Scheme}}) -> 
     Scheme.
 
-set_scheme(#occi_mixin{}=Mixin, Scheme) when is_list(Scheme) ->
-    set_scheme(Mixin, list_to_atom(Scheme));
-set_scheme(#occi_mixin{}=Mixin, Scheme) when is_binary(Scheme) ->
-    set_scheme(Mixin, list_to_atom(binary_to_list(Scheme)));
-set_scheme(#occi_mixin{id=Id}=Mixin, Scheme) when is_atom(Scheme) ->
+set_scheme(#occi_mixin{id=Id}=Mixin, Scheme) when is_binary(Scheme); is_atom(Scheme) ->
     Mixin#occi_mixin{id=Id#occi_cid{scheme=Scheme}}.
 
 get_term(#occi_mixin{id=#occi_cid{term=Term}}) -> 
     Term.
 
-set_term(#occi_mixin{}=Mixin, Term) when is_list(Term) ->
-    set_term(Mixin, list_to_atom(Term));
-set_term(#occi_mixin{}=Mixin, Term) when is_binary(Term) ->
-    set_term(Mixin, list_to_atom(binary_to_list(Term)));
-set_term(#occi_mixin{id=Id}=Mixin, Term) when is_atom(Term) ->
+set_term(#occi_mixin{id=Id}=Mixin, Term) when is_binary(Term); is_atom(Term) ->
     Mixin#occi_mixin{id=Id#occi_cid{term=Term}}.
 
 get_title(#occi_mixin{title=Title}) -> 
     Title.
 
-set_title(Mixin, Title) when is_list(Title) ->
-    set_title(Mixin, list_to_binary(Title));
-set_title(#occi_mixin{}=Mixin, Title) -> 
+set_title(#occi_mixin{}=Mixin, Title) when is_binary(Title); 
+					   Title =:= undefined ->
     Mixin#occi_mixin{title=Title}.
 
 get_location(#occi_mixin{location=Uri}) -> 
     Uri.
 
 set_location(Mixin, Uri) when is_binary(Uri)->
-    set_location(Mixin, occi_uri:parse(Uri));
-set_location(Mixin, Uri) when is_list(Uri)->
     set_location(Mixin, occi_uri:parse(Uri));
 set_location(#occi_mixin{}=Mixin, #uri{}=Uri) -> 
     Mixin#occi_mixin{location=Uri}.

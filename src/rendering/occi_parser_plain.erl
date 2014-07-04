@@ -177,7 +177,7 @@ parse_hd_value(<<>>, _H, _N, _SoFar) ->
     {error, eof}.
 
 add_header_value(Name, Value, Acc) when is_binary(Name) ->
-    add_header_value(list_to_atom(binary_to_list(Name)), Value, Acc);
+    add_header_value(?hdr_to_atom(Name), Value, Acc);
 add_header_value(Name, Value, Acc) ->
     Values = case orddict:find(Name, Acc) of
 		 {ok, V} -> V;

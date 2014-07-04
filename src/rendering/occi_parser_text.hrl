@@ -7,3 +7,5 @@
 		entity_id      = undefined          :: uri(),
 		mixin          = undefined          :: term(),
 		action         = undefined          :: occi_action()}).
+
+-define(hdr_to_atom(X), occi_known:hdr_to_atom(X)).

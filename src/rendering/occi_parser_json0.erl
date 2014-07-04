@@ -186,14 +186,14 @@ init(#token{}=Token, _From, Ctx) ->
 object(#token{name=objEnd}=Token, _From, #parser{stack=[Top|Stack]}=Ctx) ->
     occi_parser:send_event(Token, {reply, ok, Top, Ctx#parser{stack=Stack}}, Ctx);
 object(#token{name=string, data=Val}, _From, Ctx) ->
-    occi_parser:send_event(#token{name=key, data=Val}, {reply, ok, pair, Ctx}, Ctx);
+    occi_parser:send_event(#token{name=key, data=list_to_binary(Val)}, {reply, ok, pair, Ctx}, Ctx);
 object(#token{}=Token, _From, Ctx) ->
     occi_parser:parse_error(Token, Ctx).
 
 array(#token{name=arrEnd}=Token, _From, #parser{stack=[Top|Stack]}=Ctx) ->
     occi_parser:send_event(Token, {reply, ok, Top, Ctx#parser{stack=Stack}}, Ctx);
 array(#token{name=string, data=Val}, _From, Ctx) ->
-    occi_parser:send_event(#token{name=value, data=Val}, {reply, ok, elements, Ctx}, Ctx);
+    occi_parser:send_event(#token{name=value, data=list_to_binary(Val)}, {reply, ok, elements, Ctx}, Ctx);
 array(#token{name=float, data=Val}, _From, Ctx) ->
     occi_parser:send_event(#token{name=value, data=Val}, {reply, ok, elements, Ctx}, Ctx);
 array(#token{name=integer, data=Val}, _From, Ctx) ->
@@ -217,7 +217,7 @@ pair(#token{}=Token, _From, Ctx) ->
     occi_parser:parse_error(Token, Ctx).
 
 value(#token{name=string, data=Val}, _From, Ctx) ->
-    occi_parser:send_event(#token{name=value, data=Val}, {reply, ok, members, Ctx}, Ctx);
+    occi_parser:send_event(#token{name=value, data=list_to_binary(Val)}, {reply, ok, members, Ctx}, Ctx);
 value(#token{name=float, data=Val}, _From, Ctx) ->
     occi_parser:send_event(#token{name=value, data=Val}, {reply, ok, members, Ctx}, Ctx);
 value(#token{name=integer, data=Val}, _From, Ctx) ->
@@ -240,7 +240,7 @@ members(#token{name=comma}, _From, Ctx) ->
 members(#token{name=objEnd}=Token, _From, #parser{stack=[Top|Stack]}=Ctx) ->
     occi_parser:send_event(Token, {reply, ok, Top, Ctx#parser{stack=Stack}}, Ctx);
 members(#token{name=string, data=Val}, _From, Ctx) ->
-    occi_parser:send_event(#token{name=key, data=Val}, {reply, ok, pair, Ctx}, Ctx);
+    occi_parser:send_event(#token{name=key, data=list_to_binary(Val)}, {reply, ok, pair, Ctx}, Ctx);
 members(#token{}=Token, _From, Ctx) ->
     occi_parser:parse_error(Token, Ctx).
 
@@ -249,7 +249,7 @@ elements(#token{name=comma}, _From, Ctx) ->
 elements(#token{name=arrEnd}=Token, _From, #parser{stack=[Top|Stack]}=Ctx) ->
     occi_parser:send_event(Token, {reply, ok, Top, Ctx#parser{stack=Stack}}, Ctx);
 elements(#token{name=string, data=Val}, _From, Ctx) ->
-    occi_parser:send_event(#token{name=value, data=Val}, {reply, ok, elements, Ctx}, Ctx);
+    occi_parser:send_event(#token{name=value, data=list_to_binary(Val)}, {reply, ok, elements, Ctx}, Ctx);
 elements(#token{name=float, data=Val}, _From, Ctx) ->
     occi_parser:send_event(#token{name=value, data=Val}, {reply, ok, elements, Ctx}, Ctx);
 elements(#token{name=integer, data=Val}, _From, Ctx) ->

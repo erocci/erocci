@@ -108,13 +108,13 @@ render_location(#uri{}=Uri, Acc) ->
 render_cid_uri(undefined) ->
     undefined;
 render_cid_uri(#occi_cid{scheme=Scheme, term=Term}) ->
-    [ atom_to_list(Scheme), atom_to_list(Term) ].
+    [ to_list(Scheme), to_list(Term) ].
 
 render_attr_specs(Attributes) ->
     occi_renderer:join(orddict:fold(fun render_attr_spec/3, [], Attributes), " ").
 
 render_attr_spec(Id, #occi_attr{}=Attr, Acc) ->
-    [ [ atom_to_list(Id), render_attr_properties(Attr) ] | Acc ].
+    [ [ to_list(Id), render_attr_properties(Attr) ] | Acc ].
 
 render_attr_properties(#occi_attr{}=A) ->
     L = case occi_attribute:is_required(A) of
@@ -175,7 +175,7 @@ build_inline_link(#occi_link{}=Link) ->
     occi_renderer:join(L2, "; ").
 
 build_attribute(#occi_attr{}=Attr) ->
-    Name = atom_to_list(occi_attribute:get_id(Attr)),
+    Name = to_list(occi_attribute:get_id(Attr)),
     render_kv(Name, occi_attribute:get_value(Attr)).
 
 build_cid(#occi_cid{term=Term, scheme=Scheme, class=Cls}) ->
@@ -190,3 +190,8 @@ add_header_value(Name, Value, Acc) ->
 		 error -> []
 	     end,
     orddict:store(Name, [Value | Values], Acc).
+
+to_list(V) when is_atom(V) ->
+    atom_to_list(V);
+to_list(V) when is_binary(V) ->
+    binary_to_list(V).

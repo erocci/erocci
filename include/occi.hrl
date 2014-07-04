@@ -6,6 +6,13 @@
 %%% @end
 %%% Created : 14 Mar 2013 by Jean Parpaillon <jean.parpaillon@free.fr>
 -type(occi_class() :: kind | mixin | action).
+-type(occi_scheme() :: atom() | binary()).
+-type(occi_term() :: atom() | binary()).
+
+-define(scheme_to_atom(X), occi_known:scheme_to_atom(X)).
+-define(term_to_atom(X), occi_known:term_to_atom(X)).
+-define(class_to_atom(X), occi_known:class_to_atom(X)).
+-define(attr_to_atom(X), occi_known:attr_to_atom(X)).
 
 %%%% URI and al.
 -record(uri, {scheme   = undefined    :: atom(),
@@ -17,8 +24,8 @@
 -type(uri() :: #uri{}).
 
 %%% OCCI Extension
--record(occi_extension, {name           :: atom(),
-			 scheme         :: atom(),
+-record(occi_extension, {name           :: binary(),
+			 scheme         :: occi_scheme(),
 			 version        :: term(),
 			 kinds          :: [occi_cid()],
 			 mixins         :: [occi_cid()]
@@ -65,7 +72,7 @@
 -type(occi_action() :: #occi_action{}).
 
 %%% OCCI Attribute description
--type(occi_attr_key() :: atom()).
+-type(occi_attr_key() :: atom() | binary()).
 -type(occi_attr_type() :: {atom(), atom()}).
 -record(occi_attr, {id                           :: occi_attr_key(),
 		    type                         :: occi_attr_type(),

@@ -26,26 +26,13 @@
 
 -export([parse/1]).
 
--spec parse(binary() | string()) -> occi_cid().
+-spec parse(binary()) -> occi_cid().
 parse(undefined) ->
     throw({error, invalid_cid});
-parse(Str) when is_list(Str) ->
-    case string:tokens(Str, "#") of
-	[Scheme, Term] ->
-	    #occi_cid{scheme=list_to_atom(Scheme++"#"), term=list_to_atom(Term), class='_'};
-	_ ->
-	    throw({error, {invalid_cid, Str}})
-    end;
 parse(Bin) when is_binary(Bin) ->
     case binary:split(Bin, <<"#">>) of
 	[Scheme, Term] ->
-	    #occi_cid{scheme=to_atom(<< Scheme/binary, "#" >>), term=to_atom(Term), class='_'};
+	    #occi_cid{scheme=?scheme_to_atom(<< Scheme/binary, "#" >>), term=?term_to_atom(Term), class='_'};
 	_ ->
 	    throw({error, {invalid_cid, Bin}})
     end.
-
-%%%
-%%% Priv
-%%%
-to_atom(Bin) when is_binary(Bin) ->
-    list_to_atom(binary_to_list(Bin)).

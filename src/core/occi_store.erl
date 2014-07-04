@@ -55,7 +55,11 @@
 -type(backend_ref() :: atom()).
 -type(backend_mod() :: atom()).
 -type(backend_opts() :: term()).
--type(backend_desc() :: {backend_ref(), backend_mod(), backend_opts()}).
+-type(backend_mountpoint() :: binary() | string()).
+-type(backend_desc() :: {backend_ref(), 
+			 backend_mod(), 
+			 backend_opts(),
+			 backend_mountpoint()}).
 
 %%%===================================================================
 %%% API
@@ -72,9 +76,11 @@ start_link() ->
     supervisor:start_link({local, ?SUPERVISOR}, ?MODULE, []).
 
 -spec register(backend_desc()) -> {ok, pid()} | ignore | {error, term()}.
-register({Ref, Mod, Opts, [ $/ | Path ]}) ->
+register({Ref, Mod, Opts, Path}) when is_list(Path) ->
+    register({Ref, Mod, Opts, list_to_binary(Path)});
+register({Ref, Mod, Opts, Path}) when is_atom(Ref), is_atom(Mod), is_binary(Path) ->
     lager:info("Registering backend: ~p~n", [Ref]),
-    Id = occi_uri:parse([$/ | Path]),
+    Id = occi_uri:parse(Path),
     Backend = #occi_backend{ref=Ref, mod=Mod, mountpoint=Id, opts=Opts},
     Mp = occi_node:new(Id, Backend),
     Def = {Ref, {occi_backend, start_link, [Backend]}, 
@@ -88,11 +94,7 @@ register({Ref, Mod, Opts, [ $/ | Path ]}) ->
 	    {ok, Pid};
 	{error, Err} ->
 	    {error, Err}
-    end;
-
-register({_, _, _, Path}) ->
-    lager:error("Invalid mountpoint: ~p~n", [Path]),
-    throw({invalid_mountpoint, Path}).
+    end.
 
 -spec save(occi_node()) -> ok | {error, term()}.
 save(#occi_node{type=occi_collection, objid=#occi_cid{}}=Node) ->

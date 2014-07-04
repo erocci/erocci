@@ -457,11 +457,8 @@ action(Req, #state{ct=#content_type{parser=Parser}, node=Node}=State, ActionName
     end.
 
 
-prepare_action(Req, Node, Name) when is_binary(Name)->
-    prepare_action(Req, Node, list_to_atom(binary_to_list(Name)));
-
 prepare_action(_Req, _Node, Name) ->
-    occi_action:new(#occi_cid{term=Name, class=action}).
+    occi_action:new(#occi_cid{term=?term_to_atom(Name), class=action}).
 
 
 prepare_entity(#occi_node{id=#uri{path=Prefix}, type=occi_collection, objid=Cid}) ->
@@ -508,10 +505,9 @@ parse_filters(Req) ->
 
 parse_category_filter(Bin, Req) ->
     case binary:split(occi_uri:decode(Bin), <<"#">>) of
-	[Scheme, Term] -> 
-	    % TODO: replace with .._to_existing_atom
-	    S = list_to_atom(binary_to_list(<<Scheme/binary, $#>>)),
-	    T = list_to_atom(binary_to_list(Term)),
+	[Scheme, Term] ->
+	    S = ?scheme_to_atom(<<Scheme/binary, $#>>),
+	    T = ?term_to_atom(Term),
 	    parse_attr_filters([#occi_cid{scheme=S, term=T, _='_'}], Req);
 	_ -> []
     end.

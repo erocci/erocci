@@ -160,7 +160,7 @@ get_uri(Id) ->
     M:F(Id).
 
 hash1(#occi_cid{term=Term}=Cid, Prefix, 0) ->
-    U = #uri{path=lists:flatten(io_lib:format("~s/~s/", [Prefix, atom_to_list(Term)]))},
+    U = #uri{path=lists:flatten(io_lib:format("~s/~s/", [Prefix, term_to_list(Term)]))},
     case find(U) of
 	[] -> U;
 	_ ->
@@ -168,10 +168,13 @@ hash1(#occi_cid{term=Term}=Cid, Prefix, 0) ->
 	    hash1(Cid, Prefix, 1)
     end;
 hash1(#occi_cid{term=Term}=Cid, Prefix, I) ->
-    U = #uri{path=lists:flatten(io_lib:format("~s/~s~.b/", [Prefix, atom_to_list(Term), I]))},
+    U = #uri{path=lists:flatten(io_lib:format("~s/~s~.b/", [Prefix, term_to_list(Term), I]))},
     case find(U) of
 	[] -> U;
 	_ ->
 	    % Conflict !
 	    hash1(Cid, Prefix, I+1)
     end.    
+
+term_to_list(Term) when is_atom(Term) -> atom_to_list(Term);
+term_to_list(Term) when is_binary(Term) -> binary_to_list(Term).

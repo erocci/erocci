@@ -765,11 +765,6 @@ get_attr_value(#xmlel{}=XmlEl, Name, Default) ->
 	Attr -> Attr#xmlattr.value
     end.
 
-to_atom(Val) when is_binary(Val) ->
-    list_to_atom(binary_to_list(Val));
-to_atom(Val) when is_atom(Val) ->
-    Val.
-
 push(Next, #parser{stack=undefined}=Ctx) ->
     push(Next, Ctx#parser{stack=[]});
 push(Next, #parser{stack=Stack}=Ctx) ->
@@ -781,8 +776,8 @@ pop(#parser{stack=[_Cur,Previous|Stack]}=Ctx) ->
     {reply, ok, Previous, Ctx#parser{stack=[Previous|Stack]}}.
 
 make_extension(E, _State) ->
-    Name = to_atom(get_attr_value(E, <<"name">>, undefined)),
-    Version = to_atom(get_attr_value(E, <<"version">>, undefined)),
+    Name = get_attr_value(E, <<"name">>, undefined),
+    Version = get_attr_value(E, <<"version">>, undefined),
     lager:info("Load extension: ~s v~s~n", [Name, Version]),
     occi_extension:new(Name, Version).
 
@@ -876,24 +871,24 @@ make_link_id(E, #state{entity_id=Uri, entity=Link}=State) ->
     end.
 
 make_kind(E, #state{extension=Ext}) ->
-    Scheme = to_atom(get_attr_value(E, <<"scheme">>, Ext#occi_extension.scheme)),
-    Term = to_atom(get_attr_value(E, <<"term">>)),
+    Scheme = ?scheme_to_atom(get_attr_value(E, <<"scheme">>, Ext#occi_extension.scheme)),
+    Term = ?term_to_atom(get_attr_value(E, <<"term">>)),
     lager:info("Load kind: ~s~s~n", [Scheme, Term]),
     Kind = occi_kind:new(Scheme, Term),
     Title = get_attr_value(E, <<"title">>, undefined),
     occi_kind:set_title(Kind, Title).
 
 make_mixin(E, #state{extension=#occi_extension{}=Ext}) ->
-    Scheme = to_atom(get_attr_value(E, <<"scheme">>, Ext#occi_extension.scheme)),
-    Term = to_atom(get_attr_value(E, <<"term">>)),
+    Scheme = ?scheme_to_atom(get_attr_value(E, <<"scheme">>, Ext#occi_extension.scheme)),
+    Term = ?term_to_atom(get_attr_value(E, <<"term">>)),
     lager:info("Load mixin: ~s~s~n", [Scheme, Term]),
     Mixin = occi_mixin:new(Scheme, Term),
     Title = get_attr_value(E, <<"title">>, undefined),
     occi_mixin:set_title(Mixin, Title);
 
 make_mixin(E, _S) ->
-    Id = #occi_cid{scheme=to_atom(get_attr_value(E, <<"scheme">>)), 
-		   term=to_atom(get_attr_value(E, <<"term">>)),
+    Id = #occi_cid{scheme=?scheme_to_atom(get_attr_value(E, <<"scheme">>)), 
+		   term=?term_to_atom(get_attr_value(E, <<"term">>)),
 		   class=mixin},
     occi_mixin:set_title(
       occi_mixin:set_location(
@@ -926,14 +921,14 @@ make_attribute(E, _State) ->
 			#xmlattr{value=Val} ->
 			    try occi_uri:parse(Val) of
 				#uri{}=Uri ->
-				    {ok, to_atom(Name), Uri}
+				    {ok, ?attr_to_atom(Name), Uri}
 			    catch
 				throw:Err ->
 				    {error, Err}
 			    end
 		    end;
 		#xmlattr{value=Val} ->
-		    {ok, to_atom(Name), Val}
+		    {ok, ?attr_to_atom(Name), Val}
 	    end
     end.
 
@@ -984,7 +979,7 @@ get_cid(E) ->
 		undefined ->
 		    {error, {invalid_cid, missing_term}};
 		Term ->
-		    #occi_cid{scheme=to_atom(Scheme), term=to_atom(Term), class='_'}
+		    #occi_cid{scheme=?scheme_to_atom(Scheme), term=?term_to_atom(Term), class='_'}
 	    end
     end.
 

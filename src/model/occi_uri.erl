@@ -46,16 +46,17 @@
 %%%
 %%% API
 %%%
+-spec parse(undefined | binary()) -> uri().
 parse(undefined) ->
     throw({error, invalid_uri});
+parse(<<$u, $r, $n, $:, Uri>>) ->
+    #uri{scheme=urn, path=binary_to_list(Uri)};
+parse(<<"/">>) ->
+    #uri{scheme=undefined, path="/"};
+parse(<<"/", Uri/bits>>) ->
+    #uri{scheme=undefined, path=[$/|binary_to_list(Uri)]};
 parse(Uri) when is_binary(Uri) ->
-    parse(binary_to_list(Uri));
-parse([$u,$r,$n,$:|Uri]) ->
-    #uri{scheme=urn, path=Uri};
-parse([$/|Uri]) ->
-    #uri{scheme=undefined, path=[$/|Uri]};
-parse(Uri) ->
-    case uri:parse(Uri) of
+    case uri:parse(binary_to_list(Uri)) of
 	{ok, {Scheme, UserInfo, Host, Port, Path, Query}} ->
 	    #uri{scheme=Scheme, userinfo=UserInfo, host=Host, port=Port, path=Path, query=Query};
         {error, Err} ->
