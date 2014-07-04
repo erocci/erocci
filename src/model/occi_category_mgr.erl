@@ -29,12 +29,14 @@
 %% API
 -export([init/0,
 	 hash/1]).
--export([find/1,
+-export([get/1,
+	 find/1,
 	 find_all/0,
 	 load_schemas/2,
 	 register_kind/1,
 	 register_mixin/1,
-	 register_action/1]).
+	 register_action/1,
+	 unregister_mixin/1]).
 
 -define(CAT_TBL, ?MODULE).
 
@@ -81,9 +83,24 @@ register_mixin(#occi_mixin{id=Id, location=Uri}=Mixin) ->
 		  end,
 		  occi_mixin:get_actions(Mixin)).
 
+unregister_mixin(#occi_mixin{id=Id, location=Uri}) ->
+    lager:info("Unregistering mixin: ~p -> ~p~n", [ lager:pr(Id, ?MODULE), lager:pr(Uri, ?MODULE) ]),
+    ets:insert(?CAT_TBL, Id).
+
 register_action(#occi_action{id=Id}=Action) ->
     lager:info("Registering action: ~p~n", [ lager:pr(Id, ?MODULE) ]),
     ets:insert(?CAT_TBL, Action).
+
+-spec get(occi_cid()) -> {ok, occi_category()} | {error, term()}.
+get(#occi_cid{}=Cid) ->
+    case find(Cid) of
+	[] ->
+	    {error, unknown_cid};
+	[Res] ->
+	    {ok, Res};
+	_ ->
+	    {error, invalid_cid}
+    end.
 
 -spec find(occi_category() | uri()) -> [occi_category()].
 find(#uri{path=Path}) ->
@@ -104,9 +121,9 @@ find(#occi_cid{class=mixin}=Cid) ->
     ets:match_object(?CAT_TBL, #occi_mixin{id=Cid, _='_'});
 
 find(#occi_cid{class='_'}=Cid) ->
-    case ets:match_object(?CAT_TBL, #occi_kind{id=Cid, _='_'}) of
+    case ets:match_object(?CAT_TBL, #occi_kind{id=Cid#occi_cid{class=kind}, _='_'}) of
 	[] ->
-	    ets:match_object(?CAT_TBL, #occi_mixin{id=Cid, _='_'});
+	    ets:match_object(?CAT_TBL, #occi_mixin{id=Cid#occi_cid{class=mixin}, _='_'});
 	Res ->
 	    Res
     end;
@@ -120,11 +137,9 @@ find(#occi_mixin{}=Mixin) ->
 find(#occi_action{}=Action) ->
     ets:match_object(?CAT_TBL, Action).
 
--spec find_all() -> {[occi_kind()], [occi_mixin()], [occi_action()]}.
+-spec find_all() -> { [occi_kind()], [occi_mixin()], [occi_action()] }.
 find_all() ->
-    { find(#occi_kind{_='_'}),
-      find(#occi_mixin{_='_'}),
-      find(#occi_action{_='_'}) }.
+    { find(#occi_kind{_='_'}), find(#occi_mixin{_='_'}), find(#occi_action{_='_'}) }.
 
 %%--------------------------------------------------------------------
 %% @doc

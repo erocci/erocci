@@ -41,8 +41,6 @@
 	 get_acl_op/1,
 	 get_auth/0]).
 
--define(ROUTE_QUERY,   {<<"/-/">>,                          occi_http_query,    []}).
--define(ROUTE_QUERY2,  {<<"/.well-known/org/ogf/occi/-/">>, occi_http_query,    []}).
 -define(ROUTE_OCCI,    {<<"/[...]">>,                       occi_http_handler,  []}).
 
 start(Props) ->
@@ -79,10 +77,7 @@ add_route(Ref, Route) ->
     cowboy:set_env(Ref, dispatch, get_dispatch()).
 
 get_dispatch() ->
-    Routes = lists:flatten([?ROUTE_QUERY,
-			    ?ROUTE_QUERY2,
-			    ets:lookup_element(?TBL, routes, 2),
-			    ?ROUTE_OCCI]),
+    Routes = lists:flatten([ets:lookup_element(?TBL, routes, 2), ?ROUTE_OCCI]),
     cowboy_router:compile([{'_', Routes}]).
 
 -spec auth(term()) -> {true, occi_user()} | false.

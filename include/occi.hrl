@@ -1,10 +1,11 @@
+
 %%% @author Jean Parpaillon <jean.parpaillon@free.fr>
 %%% @copyright (C) 2013, Jean Parpaillon
 %%% @doc Created from https://github.com/dizz/occi-grammar/blob/master/occi-antlr-grammar/Occi.g
 %%%
 %%% @end
 %%% Created : 14 Mar 2013 by Jean Parpaillon <jean.parpaillon@free.fr>
--type(occi_class() :: kind | mixin | usermixin | action).
+-type(occi_class() :: kind | mixin | action).
 
 %%%% URI and al.
 -record(uri, {scheme   = undefined    :: atom(),
@@ -65,9 +66,9 @@
 
 %%% OCCI Attribute description
 -type(occi_attr_key() :: atom()).
+-type(occi_attr_type() :: {atom(), atom()}).
 -record(occi_attr, {id                           :: occi_attr_key(),
-		    type_id                      :: atom(),
-		    f               = undefined  :: fun(),
+		    type                         :: occi_attr_type(),
 		    title           = undefined  :: binary(),
 		    properties                   :: [term()],
 		    value           = undefined  :: any()}).
@@ -98,7 +99,8 @@
 -type(occi_entity() :: #occi_entity{}).
 
 %%% OCCI Filter
--type(occi_filter() :: any()).
+-type(occi_filter() :: occi_cid() | iolist() | {iolist(), iolist()}).
+-type(occi_filters() :: occi_filter()).
 
 %%% OCCI hooks
 -type(hook_type() :: {pid, pid()}).

@@ -31,9 +31,23 @@
 	 parse_user_mixin/2,
 	 parse_collection/2]).
 
+-export([parse/2]).
+
 %%%===================================================================
 %%% API
 %%%===================================================================
+parse(Headers, #state{type=action}=S) ->
+    parse_action(Headers, S);
+
+parse(Headers, #state{type=entity}=S) ->
+    parse_entity(Headers, S);
+
+parse(Headers, #state{type=user_mixin}=S) ->
+    parse_user_mixin(Headers, S);
+
+parse(Headers, #state{type=collection}=S) ->
+    parse_collection(Headers, S).
+
 parse_action(Headers, #state{}=State) ->
     case parse_category(Headers, State) of
 	{ok, #state{action=Action}} ->
@@ -142,10 +156,10 @@ parse_l_kv({ok, self, _, _}, _, _, _, _) ->
     {error, invalid_self};
 parse_l_kv({ok, category, {string, Bin}, Rest}, L, V, H, S) ->
     Cid = occi_cid:parse(Bin),
-    case occi_store:find(Cid#occi_cid{class='_'}) of
-	{ok, [#occi_kind{}=Kind]} -> 
+    case occi_store:get(Cid#occi_cid{class='_'}) of
+	{ok, #occi_kind{}=Kind} -> 
 	    parse_l_kv(parse_kv(Rest), occi_link:set_cid(L, Kind), V, H, S);
-	{ok, [#occi_mixin{}=Mixin]} -> 
+	{ok, #occi_mixin{}=Mixin} -> 
 	    parse_l_kv(parse_kv(Rest), occi_link:add_mixin(L, Mixin), V, H, S);
 	_ -> 
 	    throw({error, invalid_category})
@@ -160,6 +174,8 @@ parse_l_kv({error, Err}, _, _, _, _) ->
 parse_l_kv(none, L, V, H, #state{entity=#occi_resource{}=Res}=S) ->
     parse_l_values(V, H, S#state{entity=occi_resource:add_link(Res, L)}).
 
+parse_c_values([], H, #state{type=filters}=S) ->
+    parse_attributes(H, S);
 parse_c_values([], _H, #state{entity=undefined}=_S) ->
     {error, {parse_error, undefined_category}};
 parse_c_values([], H, #state{entity=#occi_resource{}}=S) ->
@@ -201,16 +217,14 @@ parse_c_kv({ok, class, {string, Bin}, Rest}, #occi_cid{class=undefined}=Cid, V, 
 parse_c_kv({ok, class, {string, Bin}, Rest}, #occi_cid{class=Cls}=Cid, V, H, S) ->
     C = to_atom(Bin),
     if
-	C == mixin andalso Cls == usermixin ->
-	    parse_c_kv(parse_kv(Rest), Cid, V, H, S);
 	C == Cls -> parse_c_kv(parse_kv(Rest), Cid, V, H, S);
 	true -> {error, invalid_class}
     end;
 parse_c_kv({error, Err}, _, _, _, _) ->
     {error, Err};
 parse_c_kv(none, Cid, [], H, #state{action=#occi_action{}}=S) ->
-    case occi_store:find(Cid) of
-	{ok, [#occi_action{}=A]} -> parse_attributes(H, S#state{action=A});
+    case occi_store:get(Cid) of
+	{ok, #occi_action{}=A} -> parse_attributes(H, S#state{action=A});
 	_ -> {error, invalid_category}
     end;
 parse_c_kv(none, Cid, [], _, #state{mixin=#occi_mixin{}=M}=S) ->
@@ -219,9 +233,9 @@ parse_c_kv(none, Cid, V, H, S) ->
     add_category(Cid, V, H, S).
 
 add_category(Cid, V, H, S) ->
-    case occi_store:find(Cid) of
-	{ok, [#occi_kind{}=Kind]} -> new_entity(Kind, V, H, S);
-	{ok, [#occi_mixin{}=Mixin]} -> add_mixin(Mixin, V, H, S);
+    case occi_store:get(Cid) of
+	{ok, #occi_kind{}=Kind} -> new_entity(Kind, V, H, S);
+	{ok, #occi_mixin{}=Mixin} -> add_mixin(Mixin, V, H, S);
 	_ ->
 	    {error, {einval, Cid}}
     end.

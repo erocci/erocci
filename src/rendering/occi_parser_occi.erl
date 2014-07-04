@@ -31,9 +31,21 @@
 	 parse_user_mixin/2,
 	 parse_collection/2]).
 
+%% New API
+-export([parse/3]).
+
 %%%===================================================================
 %%% API
 %%%===================================================================
+-spec parse(Content :: binary(), Ctx :: term(), Type :: req_type()) -> {ok, term()} | {error, term()}.
+parse(_, Req, Type) ->
+    case parse_headers(Req, orddict:new()) of
+	{error, Err} ->
+	    {error, Err};
+	{ok, Headers} ->
+	    occi_parser_text:parse(Headers, #state{type=Type})
+    end.
+
 parse_action(_, Req, Action) ->
     case parse_headers(Req, orddict:new()) of
 	{error, Err} ->
@@ -71,7 +83,7 @@ parse_user_mixin(_, Req) ->
 	{error, Err} ->
 	    {error, Err};
 	{ok, Headers} ->
-	    occi_parser_text:parse_user_mixin(Headers, #state{mixin=occi_mixin:new(#occi_cid{class=usermixin})})
+	    occi_parser_text:parse_user_mixin(Headers, #state{mixin=occi_mixin:new(#occi_cid{class=mixin})})
     end.
 
 parse_collection(_, Req) ->
@@ -87,9 +99,7 @@ parse_collection(_, Req) ->
 %%%
 parse_headers(Req, Acc) ->
     {Headers, _} = cowboy_req:headers(Req),
-    H = parse_header(Headers, Acc),
-    lager:debug("### headers: ~p~n", [H]),
-    H.
+    parse_header(Headers, Acc).
 
 parse_header([], Acc) ->
     {ok, reverse(Acc)};

@@ -63,14 +63,14 @@ new(Id) ->
 get_id(A) ->
     A#occi_attr.id.
 
-get_type_id(#occi_attr{type_id={_Ns, Id}}) ->
+get_type_id(#occi_attr{type={_NS, Id}}) ->
     Id.
 
-get_type(#occi_attr{type_id=Id}) ->
-    Id.
+get_type(#occi_attr{type=Type}) ->
+    Type.
 
-set_type(A, Id) ->
-    A#occi_attr{type_id=Id, f=occi_type:get(Id)}.
+set_type(A, Type) ->
+    A#occi_attr{type=Type}.
 
 is_required(A) ->
     dict:fetch(required, A#occi_attr.properties).
@@ -93,8 +93,8 @@ set_default(#occi_attr{properties=Props}=A, Value) ->
 get_value(#occi_attr{value=Value}) ->
     Value.
 
-set_value(#occi_attr{f=Fun}=A, Value) ->
-    A#occi_attr{value=Fun(Value)}.
+set_value(#occi_attr{type=Type}=A, Value) ->
+    A#occi_attr{value=occi_type:check(Type, Value)}.
 
 set_title(A, Title) ->
     A#occi_attr{title=Title}.
@@ -135,28 +135,28 @@ core_id() ->
     Props = dict:from_list([{immutable, true},
 			    {required, true},
 			    {default, undefined}]),
-    #occi_attr{id='occi.core.id', properties=Props, f=occi_type:get({?xmlschema_ns, anyURI})}.
+    #occi_attr{id='occi.core.id', properties=Props, type={?xmlschema_ns, anyURI}}.
 
 core_title() ->
     Props = dict:from_list([{immutable, false},
 			    {required, false},
 			    {default, undefined}]),
-    #occi_attr{id='occi.core.title', properties=Props, f=occi_type:get({?xmlschema_ns, string})}.
+    #occi_attr{id='occi.core.title', properties=Props, type={?xmlschema_ns, string}}.
 
 core_summary() ->
     Props = dict:from_list([{immutable, false},
 			    {required, false},
 			    {default, undefined}]),
-    #occi_attr{id='occi.core.summary', properties=Props, f=occi_type:get({?xmlschema_ns, string})}.
-    
+    #occi_attr{id='occi.core.summary', properties=Props, type={?xmlschema_ns, string}}.
+
 core_src() ->
     Props = dict:from_list([{immutable, false},
 			    {required, true},
 			    {default, undefined}]),
-    #occi_attr{id='occi.core.source', properties=Props, f=occi_type:get({?xmlschema_ns, anyURI})}.
-    
+    #occi_attr{id='occi.core.source', properties=Props, type={?xmlschema_ns, anyURI}}.
+
 core_target() ->
     Props = dict:from_list([{immutable, false},
 			    {required, true},
 			    {default, undefined}]),
-    #occi_attr{id='occi.core.target', properties=Props, f=occi_type:get({?xmlschema_ns, anyURI})}.
+    #occi_attr{id='occi.core.target', properties=Props, type={?xmlschema_ns, anyURI}}.

@@ -49,7 +49,7 @@ new(#uri{path=Path}, #occi_link{id=Id}=Data)  ->
     #occi_node{id=#uri{path=Path}, objid=Id, type=occi_link, data=Data};
 
 new(#uri{path=Path}, #occi_mixin{id=Id}=Data)  ->
-    #occi_node{id=#uri{path=Path}, objid=Id, type=occi_user_mixin, data=Data};
+    #occi_node{id=#uri{path=Path}, objid=Id, type=capabilities, data=Data};
 
 new(#uri{path=Path}, #occi_cid{}=Cid) ->
     #occi_node{id=#uri{path=Path}, objid=Cid, type=occi_collection, data=undefined};
@@ -64,7 +64,10 @@ new(#occi_resource{id=#uri{path=Path}=Id}=Data, Owner) ->
     #occi_node{id=#uri{path=Path}, objid=Id, type=occi_resource, owner=Owner, data=Data};
 
 new(#occi_link{id=#uri{path=Path}=Id}=Data, Owner) ->
-    #occi_node{id=#uri{path=Path}, objid=Id, type=occi_link, owner=Owner, data=Data}.
+    #occi_node{id=#uri{path=Path}, objid=Id, type=occi_link, owner=Owner, data=Data};
+
+new(#occi_mixin{id=Id, location=#uri{path=Path}}=Data, Owner) ->
+    #occi_node{id=#uri{path=Path}, objid=Id, type=capabilities, owner=Owner, data=Data}.
 
 
 -spec get_objid(occi_node()) -> any().
@@ -100,6 +103,9 @@ set_data(#occi_node{type=Type}, _) ->
     throw({invalid_data_type, Type}).
 
 -spec add_prefix(occi_node(), list()) -> occi_node().
+add_prefix(#occi_node{id='_'}=Node, _) ->
+    Node;
+
 add_prefix(#occi_node{id=#uri{}=Id, objid=ObjId, data=Data}=Node, Prefix) when is_list(Prefix) ->
     N = Node#occi_node{id=occi_uri:add_prefix(Id, Prefix)},
     N2 = case ObjId of
@@ -116,6 +122,9 @@ add_prefix(#occi_node{id=#uri{}=Id, objid=ObjId, data=Data}=Node, Prefix) when i
 		      end}.
 
 -spec rm_prefix(occi_node(), list()) -> occi_node().
+rm_prefix(#occi_node{id='_'}=Node, _) ->
+    Node;
+
 rm_prefix(#occi_node{id=#uri{}=Id, objid=ObjId, data=Data}=Node, Prefix) when is_list(Prefix) -> 
     N = Node#occi_node{id=occi_uri:rm_prefix(Id, Prefix)},
     N2 = case ObjId of

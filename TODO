@@ -1,9 +1,19 @@
-# Move OCCI schemas declaration to backends
-
-Storage backends (like mnesia) are generic and then can get schema
-from user, but this is special case.
-
 # Backend/store:
  Optimize multiple backend requests: backends declare their
  categories, so store could be able to know which backend needs to be
  requested.
+
+# Parsers
+Migrate to single parse/3 API with state containing request type (see
+   text/occi and text/plain parsers)
+
+# Do not use dynamic atoms !!!
+
+Replace list_to_atom with list_to_existing_atom
+
+# Categories management
+
+occi_category_mgr must not return actions separatly from kind/mixin
+
+# OCCI meta-model
+ Handle OCCI inheritance

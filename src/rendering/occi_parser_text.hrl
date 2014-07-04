@@ -1,6 +1,8 @@
 -include("occi.hrl").
 
--record(state, {collection                          :: occi_collection(),
+-type(req_type() :: action | entity | user_mixin | collection).
+-record(state, {type                                :: req_type(),
+		collection                          :: occi_collection(),
 		entity         = undefined          :: term(),
 		entity_id      = undefined          :: uri(),
 		mixin          = undefined          :: term(),

@@ -7,4 +7,4 @@ category: plainmixin; scheme="http://schemas.example.org/occi#"; location="/stor
 EOF
        )
 
-post 200 /-/ "text/plain" "$content"
+post 303 /-/ "text/plain" "$content"

@@ -15,4 +15,4 @@ content=$(cat <<EOF
 EOF
        )
 
-post 200 /-/ "application/json" "$content"
+post 303 /-/ "application/json" "$content"

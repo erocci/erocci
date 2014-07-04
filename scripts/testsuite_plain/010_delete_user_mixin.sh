@@ -2,9 +2,4 @@
 
 . $(dirname $0)/../testenv.sh
 
-content=$(cat <<EOF
-category: plainmixin; scheme="http://schemas.example.org/occi#"; class="mixin"; location="/store/usermixins/plainmixin/"
-EOF
-       )
-
-delete 200 /-/ "text/plain" "$content"
+delete 204 '/-/?category=http%3A%2F%2Fschemas.example.org%2Focci%23plainmixin'

@@ -137,7 +137,7 @@ parse_entity(Data, _Env, #occi_entity{id=Id}) ->
     end.
 
 parse_user_mixin(Data, _Env) ->
-    case parse_full(Data, #state{mixin=occi_mixin:new(#occi_cid{class=usermixin})}) of
+    case parse_full(Data, #state{mixin=occi_mixin:new(#occi_cid{class=mixin})}) of
 	{error, Reason} ->
 	    {error, {parse_error, Reason}};
 	{ok, #occi_request{mixins=[#occi_mixin{}=Mixin]}} ->
@@ -323,8 +323,8 @@ resource_kind(#token{name=value, data=Val}, _From,
     try occi_cid:parse(Val) of
 	#occi_cid{}=Cid ->
 	    C2 = Cid#occi_cid{class=kind},
-	    case occi_store:find(C2) of
-		{ok, [#occi_kind{parent=#occi_cid{term=resource}}=Kind]} ->
+	    case occi_store:get(C2) of
+		{ok, #occi_kind{parent=#occi_cid{term=resource}}=Kind} ->
 		    Res2 = occi_resource:set_cid(Res, Kind),
 		    {reply, ok, resource, 
 		     ?set_state(Ctx, State#state{entity=Res2})};
@@ -358,8 +358,8 @@ resource_mixin(#token{name=value, data=Val}, _From,
     try occi_cid:parse(Val) of
 	#occi_cid{}=Cid ->
 	    C2 = Cid#occi_cid{class=mixin},
-	    case occi_store:find(C2) of
-		{ok, [#occi_mixin{}=Mixin]} ->
+	    case occi_store:get(C2) of
+		{ok, #occi_mixin{}=Mixin} ->
 		    Res2 = occi_resource:add_mixin(Res, Mixin),
 		    {reply, ok, resource_mixins, ?set_state(Ctx, State#state{entity=Res2})};
 		_ ->
@@ -491,8 +491,8 @@ link_kind(#token{name=value, data=Val}, _From,
     try occi_cid:parse(Val) of
 	#occi_cid{}=Cid ->
 	    C2 = Cid#occi_cid{class=kind},
-	    case occi_store:find(C2) of
-		{ok, [#occi_kind{parent=#occi_cid{term=link}}=Kind]} ->
+	    case occi_store:get(C2) of
+		{ok, #occi_kind{parent=#occi_cid{term=link}}=Kind} ->
 		    L2 = occi_link:set_cid(L, Kind),
 		    {reply, ok, link, ?set_state(Ctx, S#state{link=L2})};
 		_ ->
@@ -505,8 +505,8 @@ link_kind(#token{name=value, data=Val}, _From,
     try occi_cid:parse(Val) of
 	#occi_cid{}=Cid ->
 	    C2 = Cid#occi_cid{class=kind},
-	    case occi_store:find(C2) of
-		{ok, [#occi_kind{parent=#occi_cid{term=link}}=Kind]} ->
+	    case occi_store:get(C2) of
+		{ok, #occi_kind{parent=#occi_cid{term=link}}=Kind} ->
 		    L2 = occi_link:set_cid(L, Kind),
 		    {reply, ok, link, ?set_state(Ctx, S#state{entity=L2})};
 		_ ->
@@ -539,8 +539,8 @@ link_mixin(#token{name=value, data=Val}, _From,
     try occi_cid:parse(Val) of
 	#occi_cid{}=Cid ->
 	    C2 = Cid#occi_cid{class=mixin},
-	    case occi_store:find(C2) of
-		{ok, [#occi_mixin{}=Mixin]} ->
+	    case occi_store:get(C2) of
+		{ok, #occi_mixin{}=Mixin} ->
 		    L2 = occi_link:add_mixin(L, Mixin),
 		    {reply, ok, link_mixins, ?set_state(Ctx, S#state{link=L2})};
 		_ ->
@@ -552,8 +552,8 @@ link_mixin(#token{name=value, data=Val}, _From, #parser{state=#state{entity=L}=S
     try occi_cid:parse(Val) of
 	#occi_cid{}=Cid ->
 	    C2 = Cid#occi_cid{class=mixin},
-	    case occi_store:find(C2) of
-		{ok, [#occi_mixin{}=Mixin]} ->
+	    case occi_store:get(C2) of
+		{ok, #occi_mixin{}=Mixin} ->
 		    L2 = occi_link:add_mixin(L, Mixin),
 		    {reply, ok, link_mixins, ?set_state(Ctx, S#state{entity=L2})};
 		_ ->
@@ -772,8 +772,8 @@ action_req(#token{name=value, data=Val}, _From,
     try occi_cid:parse(Val) of
 	#occi_cid{term=Term}=Cid ->
 	    C2 = Cid#occi_cid{class=action},
-	    case occi_store:find(C2) of
-		{ok, [#occi_action{}=Action]} ->
+	    case occi_store:get(C2) of
+		{ok, #occi_action{}=Action} ->
 		    {reply, ok, action, ?set_state(Ctx, State#state{action=Action})};
 		_ ->
 		    {reply, {error, {invalid_cid, C2}}, eof, Ctx}
@@ -866,8 +866,8 @@ build_attr_name(NS) ->
     list_to_atom(string:join(lists:reverse(NS), ".")).
 
 check_cid(#occi_cid{}=Cid) ->
-    case occi_store:find(Cid) of
-	{ok, [#occi_kind{id=C2}]} -> C2;
-	{ok, [#occi_mixin{id=C2}]} -> C2;
+    case occi_store:get(Cid) of
+	{ok, #occi_kind{id=C2}} -> C2;
+	{ok, #occi_mixin{id=C2}} -> C2;
 	_ -> error
     end.

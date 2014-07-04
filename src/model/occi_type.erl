@@ -25,24 +25,23 @@
 -include("occi.hrl").
 -include("occi_xml.hrl").
 
-% Factory for base types
--export([get/1]).
+-export([check/2]).
 
--spec get(atom()) -> function().
-get({?xmlschema_ns, string}) ->
-    fun to_string/1;
+-spec check(occi_attr_type(), term()) -> term().
+check({?xmlschema_ns, string}, Val) ->
+    to_string(Val);
 
-get({?xmlschema_ns, integer}) ->
-    fun to_integer/1;
+check({?xmlschema_ns, integer}, Val) ->
+    to_integer(Val);
 
-get({?xmlschema_ns, float}) ->
-    fun to_float/1;
+check({?xmlschema_ns, float}, Val) ->
+    to_float(Val);
 
-get({?xmlschema_ns, anyURI}) ->
-    fun to_uri/1;
+check({?xmlschema_ns, anyURI}, Val) ->
+    to_uri(Val);
 
-get(_) ->
-    {error, invalid_type}.
+check(_, Val) ->
+    to_string(Val).
 
 %%%
 %%% Priv
