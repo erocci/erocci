@@ -78,9 +78,8 @@ set_attr_value(#occi_action{}=A, 'occi.core.title', Val) ->
     A#occi_action{title=Val};
 set_attr_value(#occi_action{}=A, 'occi.core.id', Val) ->
     A#occi_action{id=Val};
-set_attr_value(#occi_action{}=A, Key, Val) when is_list(Key) ->
-    set_attr_value(A, list_to_atom(Key), Val);
-set_attr_value(#occi_action{attributes=Attrs}=A, Key, Val) when is_atom(Key) ->
+set_attr_value(#occi_action{attributes=Attrs}=A, Key, Val) when is_binary(Key); 
+								is_atom(Key) ->
     case orddict:is_key(Key, Attrs) of
 	true ->
 	    Attr = orddict:fetch(Key, Attrs),

@@ -134,7 +134,7 @@ set_name(Props) ->
 		   end
 	   end,
     Name = atom_to_list(Scheme)++"://"++Host++":"++integer_to_list(Port),
-    occi_config:set(name, occi_uri:parse(Name)).
+    occi_config:set(name, occi_uri:parse(list_to_binary(Name))).
 
 pattern_name(Props) ->
     case occi_config:get(name) of

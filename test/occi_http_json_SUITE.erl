@@ -43,7 +43,7 @@ init_per_suite(Config) ->
     DataDir = proplists:get_value(data_dir, Config),
     Schemas = {schemas, [{xml, DataDir ++ "occi-infrastructure.xml"}]},
     Backends = {backends, 
-		[{mnesia, occi_backend_mnesia, [Schemas], "/"}]},
+		[{mnesia, occi_backend_mnesia, [Schemas], <<"/">>}]},
     Listeners = {listeners, 
 		 [{http, occi_http, [{port, ?PORT}]}]
 		},

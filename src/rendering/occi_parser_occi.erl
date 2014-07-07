@@ -121,7 +121,7 @@ parse_values(<< C, Rest/bits >>, SoFar, Acc) ->
     parse_values(Rest, << SoFar/binary, C >>, Acc).
 
 add_header_value(Name, V, Acc) when is_binary(Name) ->
-    add_header_value(list_to_atom(binary_to_list(Name)), V, Acc);
+    add_header_value(?hdr_to_atom(Name), V, Acc);
 add_header_value(Name, Values, Acc) ->
     case orddict:find(Name, Acc) of
 	{ok, V} -> 

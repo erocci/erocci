@@ -141,7 +141,7 @@ opt_name(Props) ->
 	undefined -> Props;
 	"" -> proplists:delete(name,Props);
 	Name ->
-	    ets:insert(?TABLE, {name, occi_uri:parse(Name)}),
+	    ets:insert(?TABLE, {name, occi_uri:parse(list_to_binary(Name))}),
 	    proplists:delete(name, Props)
     end.
 

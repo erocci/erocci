@@ -131,15 +131,15 @@ render_ejson(#occi_link{}=Link) ->
 	       ]);
 
 render_ejson(#occi_cid{}=Cid) ->
-    strip_list([{scheme, list_to_binary(atom_to_list(Cid#occi_cid.scheme))}, 
+    strip_list([{scheme, to_binary(Cid#occi_cid.scheme)}, 
 		{term, Cid#occi_cid.term}, 
 		{class, Cid#occi_cid.class}]).
 
 render_cid_uri(undefined) ->
     undefined;
 render_cid_uri(#occi_cid{}=Cid) ->
-    BTerm = list_to_binary(atom_to_list(Cid#occi_cid.term)),
-    BScheme = list_to_binary(atom_to_list(Cid#occi_cid.scheme)),
+    BTerm = to_binary(Cid#occi_cid.term),
+    BScheme = to_binary(Cid#occi_cid.scheme),
     << BScheme/binary, BTerm/binary >>.
 
 render_attribute_specs(Attrs) ->
@@ -188,10 +188,8 @@ insert_attr([ Name | Tail ], Value, {[ {Name, Children} | OtherNS ]}) ->
 insert_attr([ Name | Tail ], Value, {Tree}) ->
     { [{Name, insert_attr(Tail, Value, {[]}) } | Tree] }.
 
-split_attr_id(Name) when is_atom(Name) ->
-    lists:map(fun (T) ->
-		      list_to_binary(T)
-	      end, string:tokens(atom_to_list(Name), ".")).
+split_attr_id(Name) ->
+    [ T || T <- binary:split(to_binary(Name), <<".">>, [global])].
 
 strip_list(L) ->
     {strip_list(L, [])}.
@@ -208,3 +206,6 @@ strip_list([{_Key, {[]}}|Tail], Acc) ->
     strip_list(Tail, Acc);
 strip_list([{Key, Val}|Tail], Acc) ->
     strip_list(Tail, [{Key, Val}|Acc]).
+
+to_binary(V) when is_atom(V) -> atom_to_binary(V, latin1);
+to_binary(V) when is_binary(V) -> V.

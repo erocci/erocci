@@ -265,20 +265,20 @@ init(#token{name=arrBegin}, _From, #parser{state=State}=Ctx) ->
 init(Token, _From, Ctx) ->
     occi_parser:parse_error(Token, Ctx).
 
-request(#token{name=key, data="resources"}, _From, Ctx) ->
+request(#token{name=key, data = <<"resources">>}, _From, Ctx) ->
     {reply, ok, resources_req, Ctx};
-request(#token{name=key, data="collection"}, _From, Ctx) ->
+request(#token{name=key, data = <<"collection">>}, _From, Ctx) ->
     {reply, ok, collection_req, Ctx};
-request(#token{name=key, data="links"}, _From, Ctx) ->
+request(#token{name=key, data = <<"links">>}, _From, Ctx) ->
     {reply, ok, links_req, Ctx};
-request(#token{name=key, data="action"}, _From, Ctx) ->
+request(#token{name=key, data = <<"action">>}, _From, Ctx) ->
     {reply, ok, action_req, Ctx};
-request(#token{name=key, data="kinds"}, _From, Ctx) ->
+request(#token{name=key, data = <<"kinds">>}, _From, Ctx) ->
     % TODO
     {reply, {error, invalid_request}, eof, Ctx};
-request(#token{name=key, data="mixins"}, _From, Ctx) ->
+request(#token{name=key, data = <<"mixins">>}, _From, Ctx) ->
     {reply, ok, mixins_req, Ctx};
-request(#token{name=key, data="actions"}, _From, Ctx) ->
+request(#token{name=key, data = <<"actions">>}, _From, Ctx) ->
     % TODO
     {reply, {error, invalid_request}, eof, Ctx};
 request(#token{name=objEnd}, _From, #parser{state=#state{request=Req}}=Ctx) ->
@@ -302,18 +302,18 @@ resources(#token{name=arrEnd}, _From, Ctx) ->
 resources(Token, _From, Ctx) ->
     occi_parser:parse_error(Token, Ctx).
     
-resource(#token{name=key, data="kind"}, _From, Ctx) ->
+resource(#token{name=key, data = <<"kind">>}, _From, Ctx) ->
     {reply, ok, resource_kind, Ctx};
-resource(#token{name=key, data="mixins"}, _From, Ctx) ->
+resource(#token{name=key, data = <<"mixins">>}, _From, Ctx) ->
     {reply, ok, resource_mixins, Ctx};
-resource(#token{name=key, data="attributes"}, _From, Ctx) ->
+resource(#token{name=key, data = <<"attributes">>}, _From, Ctx) ->
     {reply, ok, resource_attributes, Ctx};
-resource(#token{name=key, data="id"}, _From, Ctx) ->
+resource(#token{name=key, data = <<"id">>}, _From, Ctx) ->
     {reply, ok, resource_id, Ctx};
-resource(#token{name=key, data="links"}, _From, Ctx) ->
+resource(#token{name=key, data = <<"links">>}, _From, Ctx) ->
     {reply, ok, resource_links, Ctx};
 resource(#token{name=objEnd}, _From, #parser{state=#state{entity=Res, request=Req}=State}=Ctx) ->
-    {reply, ok, resources, 
+    {reply, ok, resources,
      ?set_state(Ctx, State#state{entity=undefined, request=occi_request:add_entity(Req, Res)})};
 resource(Token, _From, Ctx) ->
     occi_parser:parse_error(Token, Ctx).
@@ -386,8 +386,7 @@ resource_attribute(#token{name=objBegin}, _From, Ctx) ->
     {reply, ok, resource_attribute, Ctx};
 resource_attribute(#token{name=value, data=Val}, _From, 
 		   #parser{state=#state{attrNS=[H|T], entity=Res}=State}=Ctx) ->
-    Name = build_attr_name([H|T]),
-    try occi_resource:set_attr_value(Res, Name, Val) of
+    try occi_resource:set_attr_value(Res, build_attr_name([H|T]), Val) of
 	#occi_resource{}=Res2 ->
 	    {reply, ok, resource_attribute, ?set_state(Ctx, State#state{attrNS=T, entity=Res2})};
 	{error, Err} ->
@@ -430,7 +429,7 @@ resource_links(Token, _From, Ctx) ->
 
 resource_link(#token{name=value, data=Val}, _From, #parser{state=#state{entity=Res}=State}=Ctx) ->
     {reply, ok, resource_links, 
-     ?set_state(Ctx, State#state{entity=occi_resource:add_link(Res, Val)})};
+     ?set_state(Ctx, State#state{entity=occi_resource:add_link(Res, occi_uri:parse(Val))})};
 resource_link(#token{name=objBegin}, _From, #parser{state=#state{}=S}=Ctx) ->
     {reply, ok, link, ?set_state(Ctx, S#state{link=occi_link:new()})};
 resource_link(Token, _From, Ctx) ->
@@ -444,7 +443,8 @@ links_req(Token, _From, Ctx) ->
 links(#token{name=objBegin}, _From, #parser{state=#state{entity_id=undefined, entity=undefined}=State}=Ctx) ->
     {reply, ok, link, Ctx#parser{state=State#state{entity=occi_link:new()}}};
 links(#token{name=objBegin}, _From, #parser{state=#state{entity_id=Id, entity=undefined}=State}=Ctx) ->
-    {reply, ok, link, Ctx#parser{state=State#state{entity_id=undefined, entity=occi_link:new(Id)}}};
+    {reply, ok, link, Ctx#parser{state=State#state{entity_id=undefined, 
+						   entity=occi_link:new(Id)}}};
 links(#token{name=objBegin}, _From, Ctx) ->
     {reply, ok, link, Ctx};
 links(#token{name=arrEnd}, _From, 
@@ -456,25 +456,25 @@ links(#token{name=arrEnd}, _From, Ctx) ->
 links(Token, _From, Ctx) ->
     occi_parser:parse_error(Token, Ctx).
     
-link(#token{name=key, data="kind"}, _From, Ctx) ->
+link(#token{name=key, data = <<"kind">>}, _From, Ctx) ->
     {reply, ok, link_kind, Ctx};
-link(#token{name=key, data="mixins"}, _From, Ctx) ->
+link(#token{name=key, data = <<"mixins">>}, _From, Ctx) ->
     {reply, ok, link_mixins, Ctx};
-link(#token{name=key, data="attributes"}, _From, Ctx) ->
+link(#token{name=key, data = <<"attributes">>}, _From, Ctx) ->
     {reply, ok, link_attributes, Ctx};
-link(#token{name=key, data="self"}, _From, 
+link(#token{name=key, data = <<"self">>}, _From, 
      #parser{state=#state{link=#occi_link{}}}=Ctx) ->
     % Inline link: id is called "self"
     {reply, ok, link_id, Ctx};
-link(#token{name=key, data="id"}, _From, Ctx) ->
+link(#token{name=key, data = <<"id">>}, _From, Ctx) ->
     {reply, ok, link_id, Ctx};
-link(#token{name=key, data="target"}, _From, Ctx) ->
+link(#token{name=key, data = <<"target">>}, _From, Ctx) ->
     {reply, ok, link_target, Ctx};
-link(#token{name=key, data="source"}=Token, _From, 
+link(#token{name=key, data = <<"source">>}=Token, _From, 
      #parser{state=#state{link=#occi_link{}}}=Ctx) ->
     % Inline link: source is the enclosing resource
     occi_parser:parse_error(Token, Ctx);
-link(#token{name=key, data="source"}, _From, Ctx) ->
+link(#token{name=key, data = <<"source">>}, _From, Ctx) ->
     {reply, ok, link_source, Ctx};
 link(#token{name=objEnd}, _From, 
      #parser{state=#state{entity=#occi_resource{}=R, link=#occi_link{}=L}=S}=Ctx) ->
@@ -579,8 +579,7 @@ link_attribute(#token{name=objBegin}, _From, Ctx) ->
 link_attribute(#token{name=value, data=Val}, _From, 
 	       #parser{state=#state{attrNS=[H|T], entity=#occi_resource{}, link=L}=S}=Ctx) ->
     % Inline link
-    Name = build_attr_name([H|T]),
-    case occi_link:set_attr_value(L, Name, Val) of
+    case occi_link:set_attr_value(L, build_attr_name([H|T]), Val) of
 	#occi_link{}=L2 ->
 	    {reply, ok, link_attribute, ?set_state(Ctx, S#state{attrNS=T, link=L2})};
 	{error, Err} ->
@@ -589,8 +588,7 @@ link_attribute(#token{name=value, data=Val}, _From,
     end;
 link_attribute(#token{name=value, data=Val}, _From, 
 	       #parser{state=#state{attrNS=[H|T], entity=L}=S}=Ctx) ->
-    Name = build_attr_name([H|T]),
-    case occi_link:set_attr_value(L, Name, Val) of
+    case occi_link:set_attr_value(L, build_attr_name([H|T]), Val) of
 	#occi_link{}=L2 ->
 	    {reply, ok, link_attribute, ?set_state(Ctx, S#state{attrNS=T, entity=L2})};
 	{error, Err} ->
@@ -666,17 +664,17 @@ mixins(#token{name=arrEnd}, _From, Ctx) ->
 mixins(Token, _From, Ctx) ->
     occi_parse:parse_error(Token, Ctx).
 
-mixin(#token{name=key, data="term"}, _From, Ctx) ->
+mixin(#token{name=key, data = <<"term">>}, _From, Ctx) ->
     {reply, ok, mixin_term, Ctx};
-mixin(#token{name=key, data="scheme"}, _From, Ctx) ->
+mixin(#token{name=key, data = <<"scheme">>}, _From, Ctx) ->
     {reply, ok, mixin_scheme, Ctx};
-mixin(#token{name=key, data="depends"}, _From, Ctx) ->
+mixin(#token{name=key, data = <<"depends">>}, _From, Ctx) ->
     {reply, ok, mixin_depends, Ctx};
-mixin(#token{name=key, data="applies"}, _From, Ctx) ->
+mixin(#token{name=key, data = <<"applies">>}, _From, Ctx) ->
     {reply, ok, mixin_applies, Ctx};
-mixin(#token{name=key, data="title"}, _From, Ctx) ->
+mixin(#token{name=key, data = <<"title">>}, _From, Ctx) ->
     {reply, ok, mixin_title, Ctx};
-mixin(#token{name=key, data="location"}, _From, Ctx) ->
+mixin(#token{name=key, data = <<"location">>}, _From, Ctx) ->
     {reply, ok, mixin_location, Ctx};
 mixin(#token{name=objEnd}, _From, #parser{state=#state{mixin=Mixin, request=Req}=State}=Ctx) ->
     case occi_mixin:is_valid(Mixin) of
@@ -691,13 +689,13 @@ mixin(Token, _From, Ctx) ->
 
 mixin_term(#token{name=value, data=Val}, _From, #parser{state=#state{mixin=Mixin}=State}=Ctx) ->
     {reply, ok, mixin,
-     ?set_state(Ctx, State#state{mixin=occi_mixin:set_term(Mixin, Val)})};
+     ?set_state(Ctx, State#state{mixin=occi_mixin:set_term(Mixin, ?term_to_atom(Val))})};
 mixin_term(Token, _From, Ctx) ->
     occi_parser:parse_error(Token, Ctx).
 
 mixin_scheme(#token{name=value, data=Val}, _From, #parser{state=#state{mixin=Mixin}=State}=Ctx) ->
     {reply, ok, mixin,
-     ?set_state(Ctx, State#state{mixin=occi_mixin:set_scheme(Mixin, Val)})};
+     ?set_state(Ctx, State#state{mixin=occi_mixin:set_scheme(Mixin, ?scheme_to_atom(Val))})};
 mixin_scheme(Token, _From, Ctx) ->
     occi_parser:parse_error(Token, Ctx).
 
@@ -759,7 +757,8 @@ mixin_location(Token, _From, Ctx) ->
 
 collection(#token{name=value, data=Val}, _From, #parser{state=#state{collection=Coll}=State}=Ctx) ->
     {reply, ok, collection, 
-     ?set_state(Ctx, State#state{collection=occi_collection:add_entity(Coll, occi_uri:parse(Val))})};
+     ?set_state(Ctx, State#state{collection=occi_collection:add_entity(Coll, 
+								       occi_uri:parse(Val))})};
 collection(#token{name=arrEnd}, _From, #parser{state=#state{request=Req, collection=Coll}=State}=Ctx) ->
     Req2 = occi_request:set_collection(Req, Coll),
     Ctx2 = ?set_state(Ctx, State#state{request=Req}),
@@ -787,7 +786,7 @@ action_req(#token{name=objEnd}, _From,
 action_req(Token, _From, Ctx) ->
     occi_parser:parse_error(Token, Ctx).
 
-action(#token{name=key, data="attributes"}, _From, Ctx) ->
+action(#token{name=key, data = <<"attributes">>}, _From, Ctx) ->
     {reply, ok, action_attributes, Ctx};
 action(Token, _From, Ctx) ->
     occi_parser:parse_error(Token, Ctx).
@@ -808,8 +807,7 @@ action_attribute(#token{name=objBegin}, _From, Ctx) ->
     {reply, ok, action_attribute, Ctx};
 action_attribute(#token{name=value, data=Val}, _From, 
 		 #parser{state=#state{attrNS=[H|T], action=Action}=State}=Ctx) ->
-    Name = build_attr_name([H|T]),
-    case occi_action:set_attr_value(Action, Name, Val) of
+    case occi_action:set_attr_value(Action, build_attr_name([H|T]), Val) of
 	#occi_action{}=Action2 ->
 	    {reply, ok, action_attribute, ?set_state(Ctx, State#state{attrNS=T, action=Action2})};
 	{error, Err} ->
@@ -863,7 +861,10 @@ stop(#parser{id=Ref, src=#parser{mod=Mod}=Src}) ->
     gen_fsm:send_all_state_event(Ref, stop).
 
 build_attr_name(NS) ->
-    list_to_atom(string:join(lists:reverse(NS), ".")).
+    << ".", Name/binary >> = lists:foldl(fun (X, Acc) -> 
+						 << ".", X/binary, Acc/binary >> 
+					 end, <<>>, NS),
+    ?attr_to_atom(Name).
 
 check_cid(#occi_cid{}=Cid) ->
     case occi_store:get(Cid) of

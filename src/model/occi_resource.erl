@@ -84,10 +84,10 @@ new(#uri{}=Id, #occi_kind{}=Kind, Attributes) ->
 get_id(#occi_resource{id=Id}) ->
     Id.
 
--spec set_id(occi_resource(), uri() | string() | binary()) -> occi_resource().
+-spec set_id(occi_resource(), uri() | binary()) -> occi_resource().
 set_id(#occi_resource{}=Res, #uri{}=Id) ->
     Res#occi_resource{id=Id};
-set_id(#occi_resource{}=Res, Id) ->
+set_id(#occi_resource{}=Res, Id) when is_binary(Id) ->
     Res#occi_resource{id=occi_uri:parse(Id)}.
 
 -spec get_cid(occi_resource()) -> occi_cid().
@@ -123,11 +123,9 @@ del_mixin(#occi_resource{mixins=Mixins, attributes=Attrs}=Res,
 		      attributes=occi_entity:rm_attrs(Mixin, Attrs)}.
 
 -spec set_attr_value(occi_resource(), occi_attr_key(), any()) -> occi_resource().
-set_attr_value(#occi_resource{}=Res, Key, Val) when is_list(Key) ->
-    set_attr_value(Res, list_to_atom(Key), Val);
 set_attr_value(#occi_resource{}=Res, 'occi.core.id', Val) ->
     set_id(Res, Val);
-set_attr_value(#occi_resource{attributes=Attrs}=Res, Key, Val) when is_atom(Key) ->
+set_attr_value(#occi_resource{attributes=Attrs}=Res, Key, Val) when is_binary(Key); is_atom(Key) ->
     case orddict:is_key(Key, Attrs) of
 	true ->
 	    Attr = orddict:fetch(Key, Attrs),
