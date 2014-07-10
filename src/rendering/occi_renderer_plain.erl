@@ -39,15 +39,15 @@
 %%%===================================================================
 %%% API
 %%%===================================================================
-render(Node, Env) ->
+render(Node, #occi_env{}=Env) ->
     occi_renderer_text:render(Node, Env, fun ?MODULE:render_headers/2).
 
-render_headers(Headers, Req) ->
+render_headers(Headers, #occi_env{req=Req}=Env) ->
     {BodyHdr, Req2} = 
 	lists:foldl(fun (Name, Acc) ->
 			    dispatch_headers(Name, Acc, Headers)
 		    end, {[], Req}, lists:reverse(orddict:fetch_keys(Headers))),
-    {[ occi_renderer:join(BodyHdr, "\n") | "\n"], Req2}.
+    {[ occi_renderer:join(BodyHdr, "\n") | "\n"], Env#occi_env{req=Req2}}.
 
 %%
 %% Private

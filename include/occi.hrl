@@ -5,6 +5,9 @@
 %%%
 %%% @end
 %%% Created : 14 Mar 2013 by Jean Parpaillon <jean.parpaillon@free.fr>
+-record(occi_env, {host, req}).
+-type occi_env() :: #occi_env{}.
+
 -type(occi_class() :: kind | mixin | action).
 -type(occi_scheme() :: atom() | binary()).
 -type(occi_term() :: atom() | binary()).

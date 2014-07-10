@@ -44,18 +44,15 @@
 -define(ROUTE_OCCI,    {<<"/[...]">>,                       occi_http_handler,  []}).
 
 start(Props) ->
-    occi:ensure_started(crypto),
-    occi:ensure_started(cowlib),
-    occi:ensure_started(ranch),
-    occi:ensure_started(cowboy),
-    occi:ensure_started(epasswd),
-    pattern_name(Props),
+    occi:ensure_all_started(cowboy),
+    occi:ensure_all_started(epasswd),
     case ets:info(?TBL) of
 	undefined ->
 	    ?TBL = ets:new(?TBL, [set, public, {keypos, 1}, named_table]),
 	    ets:insert(?TBL, {routes, []});
 	_ -> ok
-    end.
+    end,
+    Props.
 
 stop() ->
     ok.
@@ -118,31 +115,12 @@ get_auth() ->
 %%%
 %%% Private
 %%%
-set_name(Props) ->
-    Scheme = proplists:get_value(scheme, Props),
-    Port = proplists:get_value(port, Props),
-    Host = case proplists:get_value(ip, Props) of
-	       {0,0,0,0} ->
-		   case inet_res:gethostbyaddr({127,0,0,1}) of
-		       {ok, #hostent{h_name=S}} -> S;
-		       {error, Err} -> throw({error, Err})
-		   end;
-	       Ip ->
-		   case inet_res:gethostbyaddr(Ip) of
-		       {ok, #hostent{h_name=S}} -> S;
-		       {error, Err} -> throw({error, Err})
-		   end
-	   end,
-    Name = atom_to_list(Scheme)++"://"++Host++":"++integer_to_list(Port),
-    occi_config:set(name, occi_uri:parse(list_to_binary(Name))).
-
-pattern_name(Props) ->
-    case occi_config:get(name) of
-	undefined ->
-	    set_name(Props);
-	_Name ->
-	    ok
-    end.
+%% get_name(Props) ->
+%%     Scheme = proplists:get_value(scheme, Props),
+%%     Port = proplists:get_value(port, Props),
+%%     Host = occi_config:get(name),
+%%     Uri = [ atom_to_list(Scheme), "://", Host, integer_to_list(Port) ],
+%%     [ {name, occi_uri:parse(iolist_to_binary(Uri))} | Props ].
 
 get_basic_user(Auth) ->
     case binary:split(base64:decode(Auth), [<<":">>]) of
