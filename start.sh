@@ -22,6 +22,7 @@ name=
 debug=info
 config=${basedir}/priv/example.config
 listener="{http, occi_http, [{port, 8080}]}"
+epasswd="{htpasswd, <<\"priv/htpasswd\">>}"
 while getopts ":hdsc:x:n:p:" opt; do
     case $opt in
 	n)
@@ -57,6 +58,7 @@ done
 if [ -n "$jid" ]; then
     read -s -p "Password:" passwd
     listener="{xmppc, occi_xmpp_client, [{jid, \"$jid\"}, {passwd, \"$passwd\"}]}"
+    epasswd="{xmpp, \"\" }"
 fi
 
 if [ -d ${basedir}/deps ]; then
@@ -81,7 +83,7 @@ exec erl -pa $PWD/ebin \
     -config $config \
     -kernel error_logger silent \
     -lager handlers "[{lager_console_backend, $debug}]" \
-    -epasswd mod "{xmpp, \"\" }" \
+    -epasswd mod $epassd \
     -occi listeners "[$listener]" \
     -occi name "\"$name\"" \
     $debug_app -s occi
