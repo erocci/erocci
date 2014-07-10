@@ -160,4 +160,4 @@
 -type(acl_op() :: create | read | update | {action, binary() } | delete | '_').
 -type(acl_node() :: capabilities | acl_url()).
 -type(acl_url() :: binary()).
--type(acl_user() :: anonymous | authenticated | admin | owner | group | '_').
+-type(acl_user() :: anonymous | authenticated | admin | owner | group | {group, binary() } | '_').

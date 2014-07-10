@@ -76,7 +76,9 @@ init_db() ->
     mnesia:create_table(occi_node,
 		       [{disc_copies, [node()]},
 			{attributes, record_info(fields, occi_node)}]),
-    mnesia:wait_for_tables([occi_collection, occi_resource, occi_link, occi_mixin, occi_node],
+    mnesia:create_table(occi_user, [{disc_copies, [node()]},
+			{attributes, record_info(fields, occi_user)}]),
+    mnesia:wait_for_tables([occi_collection, occi_resource, occi_link, occi_mixin, occi_node, occi_user],
 			   infinite).
 
 terminate(#state{}) ->
