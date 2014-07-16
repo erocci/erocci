@@ -104,11 +104,7 @@ init(Props) ->
                 host=exmpp_jid:domain(Jid), 
                 userinfo=exmpp_jid:node(Jid)},
     occi_config:set(name, Name),
-    TState = session(Props),
-    State = element(2, TState),
-    Session = State#state.session,
-    epasswd:start(Session),
-    {ok, State}.
+    session(Props).
 
 %%--------------------------------------------------------------------
 %% @private
@@ -280,6 +276,7 @@ auth(#state{session=Session}=S) ->
     exmpp_session:send_packet(Session, Status),
     %% TODO : Maybe call in another place
     iq_roster(Session),
+    epasswd:start(Session),
     {ok, S}.
 
 presence_subscribed(Session, Recipient) ->
@@ -296,7 +293,7 @@ handle_roster(From, Raw, _State) ->
     case exmpp_xml:get_attribute(Raw, binary:list_to_bin("type"), "not_found") of
         <<"result">> -> update_table_user(Raw);
         <<"get">> -> lager:debug("Get");
-        <<"set">> -> lager:debug("new roster")
+        <<"set">> -> lager:debug("Modification roster")
     end,
     lager:debug("### ROSTER IQ from ~p: ~p~n", [From, Raw]).
 
@@ -427,7 +424,7 @@ is_authorized(JID, Raw, MyJID) ->
     case Op of
         'get' -> Op1=read;
         'set' -> case exmpp_xml:has_attribute(Query, binary:list_to_bin("op")) of
-                     true -> Op1 = exmpp_xml:has_attribute(Query, binary:list_to_bin("op"), "not_found");
+                     true -> Op1 = exmpp_xml:get_attribute(Query, binary:list_to_bin("op"), "not_found");
                      false -> Op1='create'
                  end
     end,	
@@ -435,25 +432,23 @@ is_authorized(JID, Raw, MyJID) ->
     if
         User_1 == User_2 -> acl_check(Op1, Occi_Node, User_1);
         User_1 =/= User_2 ->
-            Group_res = read_user(User_2),
-            Group_tuple = element(2, Group_res),	
-            lager:debug("Group :~p~n", [Group_tuple]),
-            [H | _T] = Group_tuple,
-            Groups = H#occi_user.groups,
-            lager:debug("Group :~p~n", [Groups]),	
-            case Groups of
-                undefined ->
-                    Groupe = {group, Groups},
-                    acl_check(Op1, Occi_Node, Groupe);
+            User_21 = binary_to_list(User_2),
+            Group_res = epasswd:get_group_user(User_21),	
+            lager:debug("Group_res :~p~n", [Group_res]),
+            case Group_res of
+                "undefined" ->
+                    Group = {group, <<"undefined">>},
+                    lager:debug("Group :~p~n", [Group]),
+                    acl_check(Op1, Occi_Node, Group);  
                 _ ->						
-                    Groupe = {group, Groups},
-                    lager:debug("Group :~p~n", [Groupe]),
-                    acl_check(Op1, Occi_Node, Groupe)
+                    Group = {group, <<Group_res>>},
+                    lager:debug("Group :~p~n", [Group]),
+                    acl_check(Op1, Occi_Node, Group)
             end
     end.
 
-acl_check(Op1, Occi_Node, Groupe) ->
-    case occi_acl:check(Op1, Occi_Node, Groupe) of
+acl_check(Op1, Occi_Node, Group) ->
+    case occi_acl:check(Op1, Occi_Node, Group) of
         allow ->
             lager:debug("Autorized"),
             {true};
@@ -646,43 +641,36 @@ rest_terminate(Req, #state{handler=Handler, handler_state=HandlerState}=State) -
     {noreply, State}.
 
 %% update_table_user update table user
-%% TODO : More than 1 group 
 update_table_user(Raw) ->
-    Query = exmpp_xml:get_element(Raw, "query"),
-    Items = exmpp_xml:get_elements(Query, "item"),
+    Query = exmpp_xml:get_element(Raw, query),
+    Items = exmpp_xml:get_elements(Query, item),
     lager:debug("Item ~p~n", [Items]),
     lists:foreach(fun(Item) ->
                           User = exmpp_xml:get_attribute(Item, binary:list_to_bin("jid"), "not_found"),
-                          case exmpp_xml:has_element(Item, "group") of
-                              true -> Groupe = exmpp_xml:get_element(Item, "group"),
-                                      Groupe_Name = exmpp_xml:get_cdata(Groupe),
-                                      add_user(User, Groupe_Name),
-                                      lager:debug("Groupe_Name ~p~n", [Groupe_Name]),
-                                      lager:debug("User ~p~n", [User]);
-                              false -> add_user(User),
-                                       lager:debug("User ~p~n", [User])
+                          Nick = exmpp_xml:get_attribute(Item, binary:list_to_bin("name"), ""),
+                          case exmpp_xml:has_element(Item, group) of
+                              true -> Groups = exmpp_xml:get_elements(Item, group),
+                                      lists:foreach(fun(Group) -> 
+                                                            Group_Name = exmpp_xml:get_cdata(Group),
+                                                            User1 = binary_to_list(User),
+                                                            epasswd:create_user(User1, Nick),
+                                                            Group_Name1 = binary_to_list(Group_Name),
+                                                            epasswd:create_group([Group_Name1]),
+                                                            %%TODO do not set a random number for id ingroup
+                                                            Rand = random:uniform(1000),
+                                                            Rand2 = integer_to_list(Rand),
+                                                            Rand3 = string:concat("id", Rand2),
+                                                            epasswd:create_ingroup(Rand3, User1, Group_Name1),
+                                                            lager:debug("Groupe_Name ~p~n", [Group_Name]),
+                                                            lager:debug("User ~p~n", [User])
+                                                    end, Groups);
+                              false -> 
+                                  User1 = binary_to_list(User),
+                                  epasswd:create_user(User1, Nick),
+                                  lager:debug("User ~p~n", [User])
                           end
                   end, Items).
 
 iq_roster(Session) ->
     Roster_Iq = exmpp_client_roster:get_roster(),
     exmpp_session:send_packet(Session, Roster_Iq).
-
-%%add_user Add user in mnesia table
-add_user(User) ->
-    F = fun() ->
-                mnesia:write(#occi_user{id=User})
-        end,
-    mnesia:transaction(F).
-
-add_user(User, Groupe_Name) ->
-    F = fun() ->
-                mnesia:write(#occi_user{id=User, groups=Groupe_Name})
-        end,
-    mnesia:transaction(F). 
-%% %%test ajout a regarder
-read_user(JID) ->
-    F = fun() ->
-                mnesia:read(occi_user, JID)
-        end,
-    mnesia:transaction(F).
