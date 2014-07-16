@@ -150,27 +150,22 @@ get_type(#xmlel{children=[El]}) ->
 	<<"caps">> -> capabilities;
 	<<"col">> -> occi_collection;
 	<<"entity">> -> occi_entity;
-	<<"action">> -> occi_action;
 	_ -> throw({error, invalid_type})
     end;
 get_type(_El) ->
     lager:error("Invalid OCCI IQ: ~p~n", [lager:pr(_El, ?MODULE)]),
     throw({error, invalid_occi_iq}).
 
--spec get_op(xmlel()) -> get | save | update | delete.
+-spec get_op(xmlel()) -> read | create | update | delete.
 get_op(#xmlel{children=[El]}=Iq) ->
     case exmpp_iq:get_type(Iq) of
-	'get' -> get;
+	'get' -> read;
 	'set' ->
-	    case get_type(Iq) of
-		occi_action -> action;
-		_ ->		    
-		    case exmpp_xml:get_attribute(El, <<"op">>, <<"save">>) of
-			<<"save">> -> save;
-			<<"update">> -> update;
-			<<"delete">> -> delete;
-			_ -> throw({error, invalid_op})
-		    end
+	    case exmpp_xml:get_attribute(El, <<"op">>, <<"save">>) of
+		<<"save">> -> create;
+		<<"update">> -> update;
+		<<"delete">> -> delete;
+		_ -> throw({error, invalid_op})
 	    end
     end;
 get_op(_El) ->

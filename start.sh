@@ -52,11 +52,20 @@ while getopts ":hdsc:x:p:" opt; do
     esac
 done
 
-if [ -n "$jid" ]; then
-    read -s -p "Password:" passwd
-    listener="{xmppc, occi_xmpp_client, [{jid, \"$jid\"}, {passwd, \"$passwd\"}]}"
-    epasswd="{xmpp, \"\" }"
-fi
+case x$jid in
+    x)
+	true
+	;;
+    *@local)
+	listener="{xmppc, occi_xmpp_client, [{jid, \"$jid\"}]}"
+	epasswd="{xmpp, \"\" }"
+	;;
+    *)
+	read -s -p "Password:" passwd
+	listener="{xmppc, occi_xmpp_client, [{jid, \"$jid\"}, {passwd, \"$passwd\"}]}"
+	epasswd="{xmpp, \"\" }"
+	;;
+esac
 
 if [ -d ${basedir}/deps ]; then
     depsbin=${basedir}/deps

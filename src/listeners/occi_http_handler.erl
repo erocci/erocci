@@ -228,9 +228,6 @@ save(Req, #state{node=#occi_node{type=occi_collection, objid=#occi_cid{class=Cls
 	    save_collection(Req, State)
     end;
 
-save(Req, #state{node=#occi_node{type=occi_user_mixin}}=State) ->
-    save_collection(Req, State);
-
 save(Req, #state{node=#occi_node{type=occi_resource}}=State) ->
     save_entity(Req, State);
 

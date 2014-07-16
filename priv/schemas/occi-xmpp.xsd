@@ -16,7 +16,7 @@
   </xs:annotation>
 
   <xs:element name="query" type="queryType" ></xs:element>
-
+  
   <xs:complexType name="queryType" >
     <xs:sequence>
       <!-- TODO: extend xmpp iq -->
@@ -26,9 +26,7 @@
     <xs:attribute name="type" default="entity" >
       <xs:restriction base="xs:string" >
 	<xs:enumeration value="caps" />
-	<xs:enumeration value="col" />
 	<xs:enumeration value="entity" />
-	<xs:enumeration value="action" />
       </xs:restriction>
     </xs:attribute>
     <xs:attribute name="op" default="save" >
@@ -36,6 +34,7 @@
 	<xs:enumeration value="save" />
 	<xs:enumeration value="update" />
 	<xs:enumeration value="delete" />
+	<xs:enumeration value="action" />
       </xs:restriction>
     </xs:attribute>
   </xs:complexType>

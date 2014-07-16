@@ -1,4 +1,5 @@
 -define(XMPP_CLIENT_ID, "erocci client").
+-define(XMPP_RESOURCE, <<"erocci">>).
 -define(XMPP_NODE_ID, "http://github.com/jeanparpaillon/erocci").
 
 -define(ns_occi_xmpp, 'http://schemas.ogf.org/occi-xmpp').

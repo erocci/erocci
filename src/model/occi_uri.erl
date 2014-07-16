@@ -23,6 +23,7 @@
 -compile([{parse_transform, lager_transform}]).
 
 -include("occi.hrl").
+-include_lib("erim/include/erim_jid.hrl").
 
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
@@ -53,6 +54,8 @@
 -spec parse(undefined | binary()) -> uri().
 parse(undefined) ->
     throw({error, invalid_uri});
+parse(#jid{node=Node, domain=Domain}) ->
+    #uri{scheme='xmpp+occi', userinfo=Node, host=Domain};
 parse(<<$u, $r, $n, $:, Uri>>) ->
     #uri{scheme=urn, path=binary_to_list(Uri)};
 parse(<<"/">>) ->
