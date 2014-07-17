@@ -34,35 +34,26 @@
 %%%===================================================================
 %%% API
 %%%===================================================================
-render(#occi_node{type=dir}=Node, Env) ->
-    {occi_renderer:join(render_dir(Node), "\n"), Env};
-
 render(#occi_node{type=occi_collection, data=Coll}, Env) ->
-    Data = occi_renderer:join([ occi_uri:to_iolist(Id) || Id <- occi_collection:get_entities(Coll) ], <<"\n">>),
+    Data = occi_renderer:join([ occi_uri:to_iolist(Id, Env) 
+				|| Id <- occi_collection:get_entities(Coll) ], <<"\n">>),
     {Data, Env};
 
 render(#occi_node{type=capabilities, data={Kinds, Mixins, Actions}}, Env) ->
     Data = occi_renderer:join(
 	     lists:reverse(
 	       lists:foldl(fun (#occi_kind{location=#uri{}=Uri}, Acc) ->
-				   [occi_uri:to_iolist(Uri)|Acc];
+				   [occi_uri:to_iolist(Uri, Env)|Acc];
 			       (#occi_mixin{location=#uri{}=Uri}, Acc) ->
-				   [occi_uri:to_iolist(Uri)|Acc];
+				   [occi_uri:to_iolist(Uri, Env)|Acc];
 			       (#occi_action{location=undefined}, Acc) ->
 				   Acc;
 			       (#occi_action{location=#uri{}=Uri}, Acc) ->
-				   [occi_uri:to_iolist(Uri)|Acc]
+				   [occi_uri:to_iolist(Uri, Env)|Acc]
 			   end, [], Kinds ++ Mixins ++ Actions)),
 	     <<"\n">>),
     {Data, Env}.
 
 %%%
-%%% Prive
+%%% Private
 %%%
-render_dir(#occi_node{type=dir, data=Children}) ->
-    L = gb_sets:fold(fun (#occi_node{type=dir}=Child, Acc) ->
-			     [ render_dir(Child) | Acc ];
-			 (#uri{}=ChildId, Acc) ->
-			     [ [ occi_uri:to_iolist(ChildId) ] | Acc ]
-		     end, [], Children),
-    occi_renderer:join(L, <<"\n">>).

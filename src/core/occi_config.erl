@@ -30,8 +30,7 @@
 	 get/1,
 	 get/2,
 	 set/2,
-	 to_url/1,
-	 gen_id/1]).
+	 gen_id/2]).
 
 -define(TABLE, ?MODULE).
 
@@ -60,21 +59,12 @@ get(Name, Default) ->
 set(Name, Value) ->
     ets:insert(?TABLE, {Name, Value}).
 
-to_url(#uri{}=Uri) ->
-    case get(name, undefined) of
-	undefined ->
-	    throw({error, undefined_name});
-	#uri{scheme=Scheme, host=Host, port=Port, userinfo=UserInfo} ->
-	    Uri#uri{scheme=Scheme, host=Host, port=Port, userinfo=UserInfo}
-    end.
-
--spec gen_id(string() | binary()) -> uri().
-gen_id(Prefix) when is_binary(Prefix) ->
-    gen_id(binary_to_list(Prefix));
-gen_id(Prefix) when is_list(Prefix) ->
-    #uri{host=Host}=Server = get(name, undefined),
+-spec gen_id(string() | binary(), occi_env()) -> uri().
+gen_id(Prefix, Env) when is_binary(Prefix) ->
+    gen_id(binary_to_list(Prefix), Env);
+gen_id(Prefix, #occi_env{host=#uri{host=Host}}) when is_list(Prefix) ->
     Id = uuid:to_string(uuid:uuid3(uuid:uuid4(), Host)),
-    Server#uri{path=Prefix++Id}.
+    #uri{path=Prefix++Id}.
 
 %%%
 %%% Private
@@ -83,8 +73,8 @@ setup(Props) ->
     P2 = opt_categories_map(Props),
     P3 = opt_categories_prefix(P2),
     P4 = opt_backends(P3),
-    P5 = opt_name(P4),
-    P6 = opt_listeners(P5),
+    %P5 = opt_name(P4),
+    P6 = opt_listeners(P4),
     P7 = opt_backend_timeout(P6),
     P8 = opt_handlers(P7),
     opt_store(P8).
@@ -136,14 +126,21 @@ opt_backends(Props) ->
 	    proplists:delete(backends, Props)
     end.
 
-opt_name(Props) ->
-    case proplists:get_value(name, Props) of
-	undefined -> Props;
-	"" -> proplists:delete(name,Props);
-	Name ->
-	    ets:insert(?TABLE, {name, occi_uri:parse(list_to_binary(Name))}),
-	    proplists:delete(name, Props)
-    end.
+%% opt_name(Props) ->
+%%     Name = case proplists:get_value(name, Props) of
+%% 	       undefined -> 
+%% 		   {ok, S} = inet:gethostname(),
+%% 		   S;
+%% 	       "" -> 
+%% 		   proplists:delete(name, Props),
+%% 		   {ok, S} = inet:gethostname(),
+%% 		   S;
+%% 	       S ->
+%% 		   proplists:delete(name, Props),
+%% 		   S
+%% 	   end,
+%%     ets:insert(?TABLE, {name, Name}),
+%%     Props.
 
 opt_listeners(Props) ->
     case proplists:get_value(listeners, Props) of

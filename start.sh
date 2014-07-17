@@ -22,11 +22,9 @@ name=
 debug=info
 config=${basedir}/priv/example.config
 listener="{http, occi_http, [{port, 8080}]}"
-while getopts ":hdsc:x:n:p:" opt; do
+epasswd="{htpasswd, <<\"priv/htpasswd\">>}"
+while getopts ":hdsc:x:p:" opt; do
     case $opt in
-	n)
-	    name=$OPTARG
-	    ;;
 	d)
 	    debug=debug
 	    set -x
@@ -54,10 +52,20 @@ while getopts ":hdsc:x:n:p:" opt; do
     esac
 done
 
-if [ -n "$jid" ]; then
-    read -s -p "Password:" passwd
-    listener="{xmppc, occi_xmpp_client, [{jid, \"$jid\"}, {passwd, \"$passwd\"}]}"
-fi
+case x$jid in
+    x)
+	true
+	;;
+    *@local)
+	listener="{xmppc, occi_xmpp_client, [{jid, \"$jid\"}]}"
+	epasswd="{xmpp, \"\" }"
+	;;
+    *)
+	read -s -p "Password:" passwd
+	listener="{xmppc, occi_xmpp_client, [{jid, \"$jid\"}, {passwd, \"$passwd\"}]}"
+	epasswd="{xmpp, \"\" }"
+	;;
+esac
 
 if [ -d ${basedir}/deps ]; then
     depsbin=${basedir}/deps
@@ -81,7 +89,6 @@ exec erl -pa $PWD/ebin \
     -config $config \
     -kernel error_logger silent \
     -lager handlers "[{lager_console_backend, $debug}]" \
-    -epasswd mod "{xmpp, \"\" }" \
+    -epasswd mod $epassd \
     -occi listeners "[$listener]" \
-    -occi name "\"$name\"" \
     $debug_app -s occi
