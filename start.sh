@@ -22,7 +22,7 @@ name=
 debug=info
 config=${basedir}/priv/example.config
 listener="{http, occi_http, [{port, 8080}]}"
-epasswd="{htpasswd, <<\"priv/htpasswd\">>}"
+epasswd="{htpasswd, \"$htpasswd\" }"
 while getopts ":hdsc:x:p:" opt; do
     case $opt in
 	d)
@@ -89,6 +89,6 @@ exec erl -pa $PWD/ebin \
     -config $config \
     -kernel error_logger silent \
     -lager handlers "[{lager_console_backend, $debug}]" \
-    -epasswd mod $epassd \
+    -epasswd mod "[$epasswd]" \
     -occi listeners "[$listener]" \
     $debug_app -s occi
