@@ -1,0 +1,6 @@
+<iq to="user-1@localhost/erocci" type="set"><query xmlns="http://schemas.ogf.org/occi-xmpp" op="update" node="/store/myresources/xmpp/compute/id1">
+<occi:resource xmlns:occi="http://schemas.ogf.org/occi" title="Machine a toto" >
+<occi:attribute name="occi.compute.memory" value="90" />
+</occi:resource>
+</query></iq>
+
