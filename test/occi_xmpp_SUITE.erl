@@ -132,8 +132,8 @@ groups() ->
         get_resource, delete_resource, get_resource_delete, 
         {group, test_link} ]},
      {test_link, [],
-      [ {group, create_test_resources}, put_link, get_link, post_link_new, post_link, 
-        get_link, delete_link, get_link_delete, 
+      [ {group, create_test_resources}, put_resources, put_link_new, put_link, get_link, post_link_new, post_link, 
+        get_link, delete_link, get_link_delete, delete_resource,
         {group, test_kind_col} ]},
      {test_kind_col, [],
       [ put_kind_col,
@@ -148,7 +148,7 @@ groups() ->
       [ put_resource_dir, get_dir,
         {group, test_link2} ]},     
      {test_link2, [],
-      [put_resource2, put_link2, put_resource, put_link, get_resource]}
+      [put_resource2, put_link2, put_resource, put_link_new, get_resource]}
     ].
 
 %%--------------------------------------------------------------------
@@ -243,7 +243,7 @@ put_link2(Config) ->
 % 
 put_resources(Config) ->
     FileName = proplists:get_value(data_dir, Config) ++ "resource1.xml",
-    FileName1 = proplists:get_value(data_dir, Config) ++ "resource2.xml",
+    FileName1 = proplists:get_value(data_dir, Config) ++ "network1.xml",
     FileName2 = proplists:get_value(data_dir, Config) ++ "resource3.xml",
     Session = proplists:get_value(session, Config),
     {ok, File} = file:read_file(FileName),

@@ -1,5 +1,6 @@
 <iq to="user-1@localhost/erocci" type="set"><query xmlns="http://schemas.ogf.org/occi-xmpp" op="update" node="/store/mylinks/xmpp/networkinterfaces/id11">
 <occi:link xmlns:occi="http://schemas.ogf.org/occi" xmlns:xl="http://www.w3.org/2008/06/xlink">
+<occi:kind scheme="http://schemas.ogf.org/occi/infrastructure#" term="networkinterface"/>
 <occi:attribute name="occi.networkinterface.state" value="ko"/>
 <occi:attribute name="occi.core.source" xl:href="http://localhost:8080/store/myresources/xmpp/compute/id2"/>
 </occi:link>

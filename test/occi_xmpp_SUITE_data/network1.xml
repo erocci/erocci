@@ -4,6 +4,7 @@
 <occi:kind scheme="http://schemas.ogf.org/occi/infrastructure#" term="network" />
 <occi:attribute name="occi.network.vlan" value="1" />
 <occi:attribute name="occi.network.label" value="mylan" />
+<occi:attribute name="occi.network.state" value="ok" />
 </occi:resource>
 </query>
 </iq>
