@@ -113,7 +113,7 @@ parse_action(Data, _Env, Action) ->
     case parse_full(Data, #state{action=Action}) of
         {error, Reason} ->
             {error, {parse_error, Reason}};
-        {ok, #occi_request{action=#occi_action{}=Action2}} ->
+        {ok, #occi_action{}=Action2} ->
             {ok, Action2};
         _ ->
             {error, {parse_error, not_an_action}}
@@ -123,7 +123,7 @@ parse_entity(Data, _Env, #occi_resource{}=Res) ->
     case parse_full(Data, #state{entity=Res}) of
         {error, Reason} ->
             {error, {parse_error, Reason}};
-        {ok, #occi_request{entities=[#occi_resource{}=Res2]}} ->
+        {ok, #occi_resource{}=Res2} ->
             {ok, Res2};
         _ ->
             {error, {parse_error, not_an_entity}}
@@ -133,7 +133,7 @@ parse_entity(Data, _Env, #occi_link{}=Link) ->
     case parse_full(Data, #state{entity=Link}) of
         {error, Reason} ->
             {error, {parse_error, Reason}};
-        {ok, #occi_request{entities=[#occi_link{}=Link2]}} ->
+        {ok, #occi_link{}=Link2} ->
             {ok, Link2};
         _ ->
             {error, {parse_error, not_an_entity}}
@@ -143,9 +143,9 @@ parse_entity(Data, _Env, #occi_entity{id=Id}) ->
     case parse_full(Data, #state{entity_id=Id}) of
         {error, Reason} ->
             {error, {parse_error, Reason}};
-        {ok, #occi_request{entities=[#occi_resource{}=Res2]}} ->
+        {ok, #occi_resource{}=Res2} ->
             {ok, Res2};
-        {ok, #occi_request{entities=[#occi_link{}=Link2]}} ->
+        {ok, #occi_link{}=Link2} ->
             {ok, Link2};
         _ ->
             {error, {parse_error, not_an_entity}}
@@ -155,7 +155,7 @@ parse_user_mixin(Data, _Env) ->
     case parse_full(Data, #state{mixin=occi_mixin:new(#occi_cid{class=mixin})}) of
         {error, Reason} ->
             {error, {parse_error, Reason}};
-        {ok, #occi_request{mixins=[#occi_mixin{}=Mixin]}} ->
+        {ok, #occi_mixin{}=Mixin} ->
             {ok, Mixin};
         Err ->
             lager:error("Invalid request: ~p~n", [Err]),
@@ -166,7 +166,7 @@ parse_collection(Data, _Env) ->
     case parse_full(Data) of
         {error, Reason} ->
             {error, {parse_error, Reason}};
-        {ok, #occi_request{collection=Coll}} ->
+        {ok, #occi_collection{}=Coll} ->
             {ok, Coll}
     end.
 
