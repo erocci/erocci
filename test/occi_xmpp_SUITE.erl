@@ -148,7 +148,9 @@ groups() ->
       [ put_resource_dir, get_dir,
         {group, test_link2} ]},     
      {test_link2, [],
-      [put_resource2, put_link2, put_resource, put_link_new, get_resource]}
+      [put_resource2, put_link2, put_resource, put_link_new, get_resource,
+        {group, test_delete} ]},
+     {test_delete, [], [delete_all]}
     ].
 
 %%--------------------------------------------------------------------
@@ -589,3 +591,32 @@ get_dir(Config) ->
         after 1000 -> ko
         end,
     ?assertEqual(R, "result").
+
+%
+% @doc Test delete link and resource. 
+% expect: "resultresult"(ok)
+% end
+%
+
+delete_all(Config) ->
+    FileName = proplists:get_value(data_dir, Config) ++ "delete_all.xml",
+    FileName1 = proplists:get_value(data_dir, Config) ++ "delete_all2.xml",
+    {ok, File} = file:read_file(FileName),
+    {ok, File1} = file:read_file(FileName1),
+    File11 = exmpp_xml:parse_document(File, []),
+    [H | _T] = File11,
+    File12 = exmpp_xml:parse_document(File1, []),
+    [H1 | _T] = File12,
+    Session = proplists:get_value(session, Config),
+    exmpp_session:send_packet(Session, H),
+     R = receive
+            #received_packet{type_attr = V1} -> V1
+        after 1000 -> ko
+        end,
+    exmpp_session:send_packet(Session, H1),
+    R1 = receive
+            #received_packet{type_attr = V} -> V
+        after 1000 -> ko
+        end,
+    R3 = string:concat(R, R1),
+    ?assertEqual(R3, "resultresult").

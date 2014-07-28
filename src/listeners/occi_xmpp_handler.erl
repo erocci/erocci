@@ -218,7 +218,7 @@ update_entity(#xmlel{}=Req, #state{node=Node}=State) ->
                             Data = occi_node:get_data(Node2),
                             Link2 = occi_link:update_attr_value(Data, Attr),
                             Node3 = occi_node:set_data(Node2, Link2),
-                            case occi_store:update(Node4) of
+                            case occi_store:update(Node3) of
                                 ok ->
                                     respond(Req, State),
                                     terminate(State);

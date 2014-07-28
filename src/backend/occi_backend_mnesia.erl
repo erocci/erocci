@@ -284,6 +284,9 @@ update_t(#occi_node{type=occi_collection, data=#occi_collection{id=#occi_cid{}=C
     add_to_collection_t(Cid, Entities);
 
 update_t(#occi_node{type=occi_resource, data=Res}) ->
+    save_entity_t(Res);
+
+update_t(#occi_node{type=occi_link, data=Res}) ->
     save_entity_t(Res).
 
 add_to_collection_t(none, _) ->
