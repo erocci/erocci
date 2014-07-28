@@ -39,6 +39,18 @@ suite() ->
 %%--------------------------------------------------------------------
 init_per_suite(Config) ->
     application:set_env(lager, handlers, [{lager_console_backend, debug}]),
+    application:start(occi),
+    DataDir = proplists:get_value(data_dir, Config),
+    Schemas = {schemas, [{xml, DataDir ++ "occi-infrastructure.xml"}]},
+    Backends = {backends, 
+        [{mnesia, occi_backend_mnesia, [Schemas], <<"/">>}]},
+    Listeners = {listeners, 
+         [{xmppc, occi_xmpp_client, [{jid, "user-1@localhost"}, {passwd, "test"}]}]
+        },
+    Acls = {acl, [
+          {allow, '_', '_', '_'}
+         ]},
+    occi:config([{name, ?NAME}, Backends, Listeners, Acls]),
     Config.
 
 connect() ->
