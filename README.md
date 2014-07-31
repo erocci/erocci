@@ -28,11 +28,16 @@ notice):
 * openssl and headers
 * libxml2 and headers
 * libexpat and headers
-* Apache Runtime Library utils headers
 
-Debian and Ubuntu: apt-get install erlang rebar libssl-dev libexpat1-dev libxml2-dev libaprutil1-dev
+Optinal features requires the following dependancies:
+* htpasswd based authentication: Apache Runtime Library utils headers
+* XMPP link-local support: Avahi headers
 
-Fedora: yum install erlang rebar curl gcc openssl openssl-devel  mod_ssl libxml2-devel gcc-c++ expat-devel apr-util-devel
+As of today, build is not modular, so the above dependancies are required.
+
+Debian and Ubuntu: apt-get install erlang rebar libssl-dev libexpat1-dev libxml2-dev libaprutil1-dev libavahi-compat-libdnssd-dev
+
+Fedora: yum install erlang rebar curl gcc openssl openssl-devel  mod_ssl libxml2-devel gcc-c++ expat-devel apr-util-devel avahi-compat-libdns_sd-devel
 
 
 ## Compiling

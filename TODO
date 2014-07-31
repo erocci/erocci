@@ -17,3 +17,5 @@ occi_category_mgr must not return actions separatly from kind/mixin
  Handle OCCI inheritance
 
 # Replace lists (strings) with binaries: uris
+
+# Handle multiple listeners
