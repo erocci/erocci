@@ -306,7 +306,7 @@ post_link_new(_Config) ->
 	++ "\"00:80:41:ae:fd:7e\" } } } } ]}",
     {ok, {{_Protocol, Code, _Status}, _Headers, _Body}} =  
 	httpc:request(post, {Id, [], "application/json", Content}, [], []),
-    ?assertEqual(204, Code).
+    ?assertEqual(200, Code).
 
 %
 % @doc Test creation of a link on an ID which is not existing.

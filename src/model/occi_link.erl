@@ -25,28 +25,29 @@
 -include("occi.hrl").
 
 -export([new/0,
-	 new/1,
-	 new/2,
-	 new/4,
-	 get_id/1,
-	 set_id/2,
-	 get_cid/1,
-	 set_cid/2,
-	 get_mixins/1,
-	 add_mixin/2,
-	 del_mixin/2,
-	 set_attr_value/3,
-	 get_attr/2,
-	 get_attr_value/2,
-	 get_attributes/1,
-	 get_target/1,
-	 set_target/2,
-	 get_target_cid/1,
-	 set_target_cid/2,
-	 get_source/1,
-	 set_source/2,
-	 add_prefix/2,
-	 rm_prefix/2]).
+         new/1,
+         new/2,
+         new/4,
+         get_id/1,
+         set_id/2,
+         get_cid/1,
+         set_cid/2,
+         get_mixins/1,
+         add_mixin/2,
+         del_mixin/2,
+         set_attr_value/3,
+         get_attr/2,
+         get_attr_value/2,
+         get_attributes/1,
+         get_target/1,
+         set_target/2,
+         get_target_cid/1,
+         set_target_cid/2,
+         get_source/1,
+         set_source/2,
+         add_prefix/2,
+         rm_prefix/2,
+         update_attr_value/2]).
 
 -export([reset/1]).
 
@@ -62,24 +63,24 @@ new() ->
 -spec new(Id :: uri(), Kind :: occi_kind()) -> occi_link().
 new(#uri{}=Id, #occi_kind{}=Kind) ->
     #occi_link{id=Id, cid=occi_kind:get_id(Kind), 
-	       attributes=occi_entity:merge_attrs(Kind, ?CORE_ATTRS)}.
+               attributes=occi_entity:merge_attrs(Kind, ?CORE_ATTRS)}.
 
 -spec new(occi_kind() | uri()) -> occi_link().
 new(#occi_kind{}=Kind) ->
     #occi_link{cid=occi_kind:get_id(Kind), 
-	       attributes=occi_entity:merge_attrs(Kind, ?CORE_ATTRS)};
+               attributes=occi_entity:merge_attrs(Kind, ?CORE_ATTRS)};
 new(#uri{}=Uri) ->
     #occi_link{id=Uri, attributes=?CORE_ATTRS}.
 
 -spec new(uri(), occi_kind(), [{atom(), term}], uri()) -> occi_link().
 new(#uri{}=Id, #occi_kind{}=Kind, Attributes, Target) ->
     L = #occi_link{id=Id,
-		   cid=occi_kind:get_id(Kind), 
-		   attributes=occi_entity:merge_attrs(Kind, ?CORE_ATTRS),
-		   target=Target},
+                   cid=occi_kind:get_id(Kind), 
+                   attributes=occi_entity:merge_attrs(Kind, ?CORE_ATTRS),
+                   target=Target},
     lists:foldl(fun ({Key, Value}, Acc) ->
-			occi_link:set_attr_value(Acc, Key, Value)
-		end, L, Attributes).
+                         occi_link:set_attr_value(Acc, Key, Value)
+                end, L, Attributes).
 
 -spec get_id(occi_link()) -> uri().
 get_id(#occi_link{id=Id}) ->
@@ -138,14 +139,14 @@ add_mixin(#occi_link{mixins=undefined}=Link, Mixin) ->
     add_mixin(Link#occi_link{mixins=sets:new()}, Mixin);
 add_mixin(#occi_link{mixins=Mixins, attributes=Attrs}=Res, #occi_mixin{id=Cid}=Mixin) ->
     Res#occi_link{mixins=sets:add_element(Cid, Mixins), 
-		  attributes=occi_entity:merge_attrs(Mixin, Attrs)}.
+                  attributes=occi_entity:merge_attrs(Mixin, Attrs)}.
 
 -spec del_mixin(occi_link(), occi_mixin()) -> occi_link().
 del_mixin(#occi_link{mixins=undefined}=Link, _) ->
     Link;
 del_mixin(#occi_link{mixins=Mixins, attributes=Attrs}=Res, #occi_mixin{id=Cid}=Mixin) ->
     Res#occi_link{mixins=lists:delete(Cid, Mixins), 
-		  attributes=occi_entity:rm_attrs(Mixin, Attrs)}.
+                  attributes=occi_entity:rm_attrs(Mixin, Attrs)}.
 
 -spec set_attr_value(occi_link(), occi_attr_key(), any()) -> occi_link().
 set_attr_value(#occi_link{}=Link, 'occi.core.source', Val) ->
@@ -154,12 +155,23 @@ set_attr_value(#occi_link{}=Link, 'occi.core.target', Val) ->
     set_target(Link, Val);
 set_attr_value(#occi_link{attributes=Attrs}=Link, Key, Val) when is_binary(Key); is_atom(Key) ->
     case orddict:is_key(Key, Attrs) of
-	true ->
-	    Attr = orddict:fetch(Key, Attrs),
-	    Link#occi_link{attributes=orddict:store(Key, occi_attribute:set_value(Attr, Val), Attrs)};
-	false ->
-	    {error, {undefined_attribute, Key}}
+        true ->
+            Attr = orddict:fetch(Key, Attrs),
+            Link#occi_link{attributes=orddict:store(Key, occi_attribute:set_value(Attr, Val), Attrs)};
+        false ->
+            {error, {undefined_attribute, Key}}
     end.
+
+-spec update_attr_value(occi_resource(), term()) -> occi_resource().
+update_attr_value(#occi_link{attributes=Attrs}=Link, List) ->
+    New_attr = orddict:merge(fun(_Key, Val, Val2) ->
+                                     Val3 =occi_attribute:get_value(Val2),
+                                     case Val3 of
+                                         undefined -> Val;
+                                         _ -> Val2
+                                     end
+                             end, Attrs, List),
+    Link#occi_link{attributes=New_attr}.
 
 -spec get_attr(occi_link(), occi_attr_key()) -> any().
 get_attr(#occi_link{id=Val}, 'occi.core.id') ->
@@ -176,8 +188,8 @@ get_attr(#occi_link{attributes=Attr}, Key) ->
 
 get_attr_value(#occi_link{attributes=Attr}, Key) ->
     case orddict:find(Key, Attr) of
-	{ok, #occi_attr{value=V}} -> V;
-	_ -> throw({error, invalid_attribute})
+        {ok, #occi_attr{value=V}} -> V;
+        _ -> throw({error, invalid_attribute})
     end.	    
 
 -spec get_attributes(occi_link()) -> [occi_attr()].
@@ -187,8 +199,8 @@ get_attributes(#occi_link{attributes=Attrs}) ->
 -spec reset(occi_link()) -> occi_link().
 reset(#occi_link{attributes=Attrs}=Link) ->
     Link#occi_link{attributes=orddict:map(fun (_Key, Attr) ->
-						  occi_attribute:reset(Attr)
-					  end, Attrs)}.
+                                                   occi_attribute:reset(Attr)
+                                          end, Attrs)}.
 
 -spec add_prefix(occi_link(), string()) -> occi_link().
 add_prefix(Link, Prefix) ->

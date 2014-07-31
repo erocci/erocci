@@ -58,6 +58,7 @@ start(normal, _Args) ->
     ensure_started(lager),
     ensure_started(inets),
     ensure_started(erim),
+    ensure_started(epasswd),
     Ret = occi_sup:start_link(),
     occi_category_mgr:init(),
     occi_config:start(),
