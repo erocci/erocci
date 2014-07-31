@@ -720,8 +720,8 @@ to_events(#xmlel{ns=NS, name=Name, children=undefined}=El) ->
     [El, #xmlendtag{ns=NS, name=Name}];
 to_events(#xmlel{ns=NS, name=Name, children=Children}=El) ->
     [El#xmlel{children=undefined}, 
-             lists:map(fun (#xmlel{}=Child) -> to_events(Child) end, Children),
-             #xmlendtag{ns=NS, name=Name}].
+     lists:map(fun (#xmlel{}=Child) -> to_events(Child) end, Children),
+     #xmlendtag{ns=NS, name=Name}].
 
 start(Ctx) ->
     Parser = #parser{state=Ctx},
@@ -905,8 +905,21 @@ make_attr_spec(E, State) ->
     lager:debug("Load attribute spec: ~s~n", [Name]),
     Attr = occi_attribute:new(Name),
     Attr2 = occi_attribute:set_type(Attr, Type),
+    Attr3 = case get_attr_value(E, <<"default">>, undefined) of
+                undefined -> Attr2;
+                Default -> Def = binary_to_atom(Default, latin1),
+                           occi_attribute:set_default(Attr2, Def)
+            end,
+    Attr4 = case get_attr_value(E, <<"use">>, undefined) of
+                undefined -> Attr3;
+                _ -> occi_attribute:set_required(Attr3, true)
+            end,
+    Attr5 = case get_attr_value(E, <<"immutable">>, undefined) of
+                undefined -> Attr4;
+                _ -> occi_attribute:set_immutable(Attr4, true)
+            end,
     Title = get_attr_value(E, <<"title">>, undefined),
-    occi_attribute:set_title(Attr2, Title).
+    occi_attribute:set_title(Attr5, Title).
 
 make_attribute(E, _State) ->
     case get_attr_value(E, <<"name">>, undefined) of
