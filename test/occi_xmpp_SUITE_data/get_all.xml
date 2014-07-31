@@ -1,0 +1,4 @@
+<iq to="user-1@localhost/erocci" type="get">
+<query xmlns="http://schemas.ogf.org/occi-xmpp" node="/store">
+</query>
+</iq>

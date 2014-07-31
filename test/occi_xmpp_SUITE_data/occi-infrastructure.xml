@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<occi:extension xmlns:occi="http://schemas.ogf.org/occi"
+		xmlns:xs="http://www.w3.org/2001/XMLSchema"
+		xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		xsi:schemaLocation="http://schemas.ogf.org/occi occi.xsd " name="Infrastructure"
+		status="stable" version="1">
+  <!-- Compute Kind -->
+  <occi:kind term="compute" scheme="http://schemas.ogf.org/occi/infrastructure#"
+	     title="Compute Resource">
+    <occi:parent scheme="http://schemas.ogf.org/occi/core#"
+		 term="resource" />
+    <occi:attribute name="occi.compute.architecture" type="xs:string" title="CPU Architecture" />
+    <occi:attribute name="occi.compute.cores" type="xs:integer" title="CPU cores number" />
+    <occi:attribute name="occi.compute.hostname" type="xs:string" title="System hostname" />
+    <occi:attribute name="occi.compute.speed" type="xs:float" title="CPU speed (GHz)" />
+    <occi:attribute name="occi.compute.memory" type="xs:float" title="System RAM (GB)" />
+    <occi:attribute name="occi.compute.state" use="required"
+		    default="inactive" immutable="true"
+		    title="System state" type="xs:string" />
+    <occi:action term="start"
+		 scheme="http://schemas.ogf.org/occi/infrastructure/compute/action#"
+		 title="Start the system" ></occi:action>
+    <occi:action term="stop"
+		 scheme="http://schemas.ogf.org/occi/infrastructure/compute/action#"
+		 title="Stop the system (graceful, acpioff or poweroff)" >
+      <occi:attribute name="method" type="xs:string" />
+    </occi:action>
+    <occi:action term="restart"
+		 scheme="http://schemas.ogf.org/occi/infrastructure/compute/action#"
+		 title="Restart the system (graceful, warm or cold)" >
+      <occi:attribute name="method" type="xs:string" />
+    </occi:action>
+    <occi:action term="suspend"
+		 scheme="http://schemas.ogf.org/occi/infrastructure/compute/action#"
+		 title="Suspend the system (hibernate or in RAM)" >
+      <occi:attribute name="method" type="xs:string" />
+    </occi:action>
+  </occi:kind>
+
+  <!-- Storage Resource -->
+  <occi:kind scheme="http://schemas.ogf.org/occi/infrastructure#"
+	     term="storage" title="Storage Resource">
+    <occi:parent scheme="http://schemas.ogf.org/occi/core#" term="resource" />
+    <occi:attribute name="occi.storage.size" type="xs:float" use="required" title="Storage size" />
+    <occi:attribute name="occi.storage.state" use="required" title="Storage state" type="xs:string" />
+    <occi:action
+	scheme="http://schemas.ogf.org/occi/infrastructure/storage/action#"
+	term="online" title="Set storage online" />
+    <occi:action
+	scheme="http://schemas.ogf.org/occi/infrastructure/storage/action#"
+	term="offline" title="Set storage offline" />
+    <occi:action
+	scheme="http://schemas.ogf.org/occi/infrastructure/storage/action#"
+	term="backup" title="Set storage as backup" />
+    <occi:action
+	scheme="http://schemas.ogf.org/occi/infrastructure/storage/action#"
+	term="snapshot" title="Take storage snapshot" />
+    <occi:action
+	scheme="http://schemas.ogf.org/occi/infrastructure/storage/action#"
+	term="resize" title="Resize storage" >
+      <occi:attribute name="size" type="xs:float" />
+    </occi:action>
+  </occi:kind>
+
+  <!-- StorageLink Link -->
+  <occi:kind scheme="http://schemas.ogf.org/occi/infrastructure#"
+	     term="storagelink" title="StorageLink Link">
+    <occi:parent scheme="http://schemas.ogf.org/occi/core#"
+		 term="link" />
+    <occi:attribute name="occi.storagelink.deviceid" use="required" type="xs:string" />
+    <occi:attribute name="occi.storagelink.mountpoint" type="xs:string" />
+    <occi:attribute name="occi.storagelink.state" use="required" immutable="true" type="xs:string" />
+  </occi:kind>
+
+  <!-- Network -->
+  <occi:kind scheme="http://schemas.ogf.org/occi/infrastructure#"
+	     term="network" title="Network Resource">
+    <occi:parent scheme="http://schemas.ogf.org/occi/core#"
+		 term="resource" />
+    <occi:attribute name="occi.network.vlan" type="xs:integer" />
+    <occi:attribute name="occi.network.label" type="xs:string" />
+    <occi:attribute name="occi.network.state" immutable="true" use="required" type="xs:string" />
+    <occi:action scheme="http://schemas.ogf.org/occi/infrastructure/action#"
+		 term="up" title="Set network up" />
+    <occi:action scheme="http://schemas.ogf.org/occi/infrastructure/action#"
+		 term="down" title="Set network down" />
+  </occi:kind>
+
+  <!-- NetworkInterface Link -->
+  <occi:kind scheme="http://schemas.ogf.org/occi/infrastructure#"
+	     term="networkinterface" title="NetworkInterface Link">
+    <occi:parent scheme="http://schemas.ogf.org/occi/core#"
+		 term="link" />
+    <occi:attribute name="occi.networkinterface.interface"
+		    immutable="true" type="xs:string" use="required" />
+    <occi:attribute name="occi.networkinterface.mac" type="xs:string" use="required" />
+    <occi:attribute name="occi.networkinterface.state" immutable="true" use="required" type="xs:string" />
+  </occi:kind>
+
+  <!-- IP Networking Mixin -->
+  <occi:mixin scheme="http://schemas.ogf.org/occi/infrastructure/network#"
+	      term="ipnetwork" title="IP Networking Mixin">
+    <occi:attribute name="occi.network.address" type="xs:string" />
+    <occi:attribute name="occi.network.gateway" type="xs:string" />
+    <occi:attribute name="occi.network.allocation" use="required" type="xs:string" />
+  </occi:mixin>
+
+  <!-- IP NetworkInterface Mixin -->
+  <occi:mixin term="ipnetworkinterface" title="IP Network Interface Mixin"
+	      scheme="http://schemas.ogf.org/occi/infrastructure/networkinterface#">
+    <occi:attribute name="occi.networkinterface.address" type="xs:string" use="required" />
+    <occi:attribute name="occi.networkinterface.gateway" type="xs:string" />
+    <occi:attribute name="occi.networkinterface.allocation" use="required" type="xs:string" />
+  </occi:mixin>
+
+  <!-- OS template -->
+  <occi:mixin scheme="http://schemas.ogf.org/occi/infrastructure#" term="os_tpl" title="OS Template" />
+
+  <!-- Resource template -->
+  <occi:mixin scheme="http://schemas.ogf.org/occi/infrastructure#" term="resource_tpl" title="Resource template" />
+</occi:extension>
