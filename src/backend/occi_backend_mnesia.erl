@@ -130,8 +130,8 @@ load(#occi_node{}=Req, State) ->
 	    {{error, Reason}, State}
     end.
 
-action({#uri{}=Id, #occi_action{}=A}, State) ->
-    lager:info("[~p] action(~p, ~p)~n", [?MODULE, Id, A]),
+action({#occi_node{}=Node, #occi_action{}=A}, State) ->
+    lager:info("[~p] action(~p, ~p)~n", [?MODULE, Node#occi_node.id, A]),
     {ok, State}.
 
 %%%===================================================================
