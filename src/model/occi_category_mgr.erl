@@ -53,7 +53,7 @@ init() ->
 -spec load_schemas(Backend :: atom(), Schemas :: list()) -> ok | {error, term()}.
 load_schemas(_, []) ->
     ok;
-load_schemas(Backend, [{xml, Path}|Tail]) ->
+load_schemas(Backend, [{path, Path}|Tail]) ->
     case occi_parser_xml:load_extension(Path) of
 	{error, parse_error} ->
 	    {error, parse_error};

@@ -8,6 +8,9 @@
 -record(occi_env, {host, req}).
 -type occi_env() :: #occi_env{}.
 
+-type occi_schemas() :: binary()
+		      | [{path, string()}].
+
 -type(occi_class() :: kind | mixin | action).
 -type(occi_scheme() :: atom() | binary()).
 -type(occi_term() :: atom() | binary()).
@@ -139,7 +142,6 @@
 			  capabilities |
 			  occi_resource | 
 			  occi_link |
-			  occi_user_mixin |
 			  occi_collection).
 -record(occi_node, {id                     :: occi_node_id(),
 		    objid     = undefined  :: occi_node_objid(),

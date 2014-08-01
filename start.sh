@@ -24,7 +24,7 @@ htpasswd=${basedir}/priv/htpasswd
 
 name=
 debug=info
-config=${basedir}/priv/example.config
+config=${basedir}/priv/configs/default.config
 idx=-1
 listeners[0]="{http, occi_http, [{port, 8080}]}"
 epasswd="{htpasswd, \"$htpasswd\" }"

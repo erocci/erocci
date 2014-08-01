@@ -46,7 +46,7 @@
 		pending         :: term()}).
 
 -callback init(Backend :: occi_backend()) ->
-    {ok, State :: term()} |
+    {ok, Schemas :: occi_schemas(), State :: term()} |
     {error, Reason :: term()}.
 
 -callback terminate(State :: term()) ->
@@ -123,10 +123,15 @@ cancel(Ref, Tag) ->
 init(#occi_backend{ref=Ref, mod=Mod}=Backend) ->
     T = ets:new(Mod, [set, public, {keypos, 1}]),
     case Mod:init(Backend) of
-	{ok, BackendState} ->
-	    {ok, #state{ref=Ref, mod=Mod, pending=T, state=BackendState}};
-	{error, Error} ->
-	    {stop, Error}
+	{ok, Schemas, BackendState} when is_list(Schemas) ->
+	    case occi_category_mgr:load_schemas(Ref, Schemas) of
+		ok -> 
+		    {ok, #state{ref=Ref, mod=Mod, pending=T, state=BackendState}};
+		{error, Err} -> 
+		    {stop, Err}
+	    end;
+	{error, Err} ->
+	    {stop, Err}
     end.
 
 %%--------------------------------------------------------------------

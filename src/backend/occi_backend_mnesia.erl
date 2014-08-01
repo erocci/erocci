@@ -41,17 +41,14 @@
 %%%===================================================================
 %%% occi_backend callbacks
 %%%===================================================================
-init(#occi_backend{ref=Ref, opts=Opts}) ->
+init(#occi_backend{opts=Opts}) ->
     init_db(),
     case proplists:get_value(schemas, Opts) of
-	undefined -> ok;
+	undefined -> 
+	    {ok, [], #state{}};
 	Schemas ->
-	    case occi_category_mgr:load_schemas(Ref, Schemas) of
-		ok -> ok;
-		{error, Err} -> throw({error, Err})
-	    end
-    end,
-    {ok, #state{}}.
+	    {ok, Schemas, #state{}}
+    end.
 
 init_db() ->
     case mnesia:system_info(extra_db_nodes) of
@@ -84,8 +81,7 @@ init_db() ->
 terminate(#state{}) ->
     ok.
 
-save(Obj, State) when is_record(Obj, occi_node);
-		      is_record(Obj, occi_mixin) ->
+save(#occi_node{}=Obj, State) ->
     lager:info("[~p] save(~p)~n", [?MODULE, Obj]),
     case mnesia:transaction(fun () -> save_t(Obj) end) of
 	{atomic, ok} ->
@@ -94,8 +90,7 @@ save(Obj, State) when is_record(Obj, occi_node);
 	    {{error, Reason}, State}
     end.
 
-delete(Obj, State) when is_record(Obj, occi_node);
-			is_record(Obj, occi_mixin) ->
+delete(#occi_node{}=Obj, State) ->
     lager:info("[~p] delete(~p)~n", [?MODULE, Obj]),
     case mnesia:transaction(fun () -> del_node_t(Obj) end) of
 	{atomic, ok} ->
@@ -113,8 +108,7 @@ update(#occi_node{}=Node, State) ->
 	    {{error, Reason}, State}
     end.    
 
-find(Obj, State) when is_record(Obj, occi_node);
-		      is_record(Obj, occi_mixin) ->
+find(#occi_node{}=Obj, State) ->
     lager:info("[~p] find(~p)~n", [?MODULE, Obj]),
     case mnesia:transaction(fun () ->
 				    find_node_t(Obj)
