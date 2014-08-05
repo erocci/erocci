@@ -24,7 +24,8 @@ htpasswd=${basedir}/priv/htpasswd
 
 name=
 debug=info
-config=${basedir}/priv/configs/default.config
+configdir=${basedir}/priv/configs
+config=${configdir}/default.config
 idx=-1
 listeners[0]="{http, occi_http, [{port, 8080}]}"
 epasswd="{htpasswd, \"$htpasswd\" }"
@@ -62,7 +63,14 @@ while getopts ":hdtsc:x:p:" opt; do
 	    esac
 	    ;;
 	c)
-	    config=`pwd`/$OPTARG
+	    if [ -e ${basedir}/$OPTARG ]; then
+		config=`pwd`/$OPTARG
+	    elif [ -e ${configdir}/$OPTARG ]; then
+		config=${configdir}/$OPTARG
+	    else
+		echo "Could not find config: "$OPTARG
+		exit 1
+	    fi
 	    ;;
 	p)
 	    htpasswd=$OPTARG
