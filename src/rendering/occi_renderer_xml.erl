@@ -203,22 +203,18 @@ make_attr_spec(#occi_attr{}=A) ->
 	 end,
     L3 = case occi_attribute:is_required(A) of
 	     false -> L2;
-	     true -> [exmpp_xml:attribute(<<"use">>, true) | L2]
+	     true -> [exmpp_xml:attribute(<<"use">>, "required") | L2]
 	 end,
-    L4 = case occi_attribute:is_required(A) of
-	     false -> L3;
-	     true -> [exmpp_xml:attribute(<<"use">>, true) | L3]
+    L4 = case occi_attribute:get_default(A) of
+	     undefined -> L3;
+	     D -> [exmpp_xml:attribute(<<"default">>, D) | L3]
 	 end,
-    L5 = case occi_attribute:get_default(A) of
+    L5 = case occi_attribute:get_title(A) of
 	     undefined -> L4;
-	     D -> [exmpp_xml:attribute(<<"default">>, D) | L4]
+	     T -> [exmpp_xml:attribute(<<"title">>, T) | L4]
 	 end,
-    L6 = case occi_attribute:get_title(A) of
-	     undefined -> L5;
-	     T -> [exmpp_xml:attribute(<<"title">>, T) | L5]
-	 end,
-    L7 = [exmpp_xml:attribute(<<"name">>, occi_attribute:get_id(A)) | L6],
-    exmpp_xml:element(?occi_ns, attribute, L7, []).
+    L6 = [exmpp_xml:attribute(<<"name">>, occi_attribute:get_id(A)) | L5],
+    exmpp_xml:element(?occi_ns, attribute, L6, []).
 
 render_attribute(E, #occi_attr{value=undefined}, _) ->
     E;
