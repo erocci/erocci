@@ -123,7 +123,7 @@ cancel(Ref, Tag) ->
 init(#occi_backend{ref=Ref, mod=Mod}=Backend) ->
     T = ets:new(Mod, [set, public, {keypos, 1}]),
     case Mod:init(Backend) of
-	{ok, Schemas, BackendState} when is_list(Schemas) ->
+	{ok, Schemas, BackendState} ->
 	    case occi_category_mgr:load_schemas(Ref, Schemas) of
 		ok -> 
 		    {ok, #state{ref=Ref, mod=Mod, pending=T, state=BackendState}};

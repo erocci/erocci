@@ -27,7 +27,7 @@
 -export([new/0,
          new/1,
          new/2,
-         new/3,
+         new/4,
          get_id/1,
          set_id/2,
          get_cid/1,
@@ -48,34 +48,48 @@
 
 -export([reset/1]).
 
--define(CORE_ATTRS, orddict:from_list([{'occi.core.title', occi_attribute:core_title()},
-                                       {'occi.core.summary', occi_attribute:core_summary()}])).
+-define(CORE_ATTRS, [{'occi.core.title', occi_attribute:core_title()},
+		     {'occi.core.summary', occi_attribute:core_summary()}]).
 
 %%%
 %%% API
 %%%
 -spec new() -> occi_resource().
 new() ->
-    #occi_resource{attributes=?CORE_ATTRS, links=sets:new()}.
+    #occi_resource{attributes=orddict:from_list(?CORE_ATTRS), links=sets:new()}.
 
 -spec new(occi_kind() | uri()) -> occi_resource().
 new(#occi_kind{}=Kind) ->
+    Attrs = [orddict:to_list(occi_kind:get_attributes(Kind)),
+	     ?CORE_ATTRS],
     #occi_resource{cid=occi_kind:get_id(Kind), 
-                   attributes=occi_entity:merge_attrs(Kind, ?CORE_ATTRS),
+                   attributes=orddict:from_list(lists:flatten(Attrs)),
                    links=sets:new()};
 new(#uri{}=Id) ->
-    #occi_resource{id=Id, attributes=?CORE_ATTRS, links=sets:new()}.
+    #occi_resource{id=Id, 
+		   attributes=orddict:from_list(?CORE_ATTRS), 
+		   links=sets:new()}.
 
 -spec new(Id :: uri(), Kind :: occi_kind()) -> occi_resource().
 new(#uri{}=Id, #occi_kind{}=Kind) ->
+    Attrs = [orddict:to_list(occi_kind:get_attributes(Kind)),
+	     ?CORE_ATTRS],
     #occi_resource{id=Id, cid=occi_kind:get_id(Kind), 
-                   attributes=occi_entity:merge_attrs(Kind, ?CORE_ATTRS),
+                   attributes=orddict:from_list(lists:flatten(Attrs)),
                    links=sets:new()}.
 
--spec new(Id :: uri(), Kind :: occi_kind(), Attributes :: [{Key :: atom(), Val :: term}]) -> occi_resource().
-new(#uri{}=Id, #occi_kind{}=Kind, Attributes) ->
+-spec new(Id :: uri(), 
+	  Kind :: occi_kind(), 
+	  Mixins :: [occi_mixin()], 
+	  Attributes :: [{Key :: atom(), Val :: term}]) -> occi_resource().
+new(#uri{}=Id, #occi_kind{}=Kind, Mixins, Attributes) ->
+    Attrs = [?CORE_ATTRS,
+	     orddict:to_list(occi_kind:get_attributes(Kind)),
+	     lists:map(fun (Mixin) ->
+			       orddict:to_list(occi_kind:get_attributes(Mixin))
+		       end, Mixins)],
     R = #occi_resource{id=Id, cid=occi_kind:get_id(Kind), 
-                       attributes=occi_entity:merge_attrs(Kind, ?CORE_ATTRS),
+                       attributes=orddict:from_list(lists:flatten(Attrs)),
                        links=sets:new()},
     lists:foldl(fun ({Key, Value}, Acc) ->
                          occi_resource:set_attr_value(Acc, Key, Value)

@@ -3,6 +3,7 @@
 	* HTTP handler cleaning
 	* Update backend API: user mixins are 'capabilities' nodes
 	* Optimize categories management: occi_category_mgr acts as cache for user mixins
+	* Change in backend API (init must return schemas)
 
 	-- To be releases
 

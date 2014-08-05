@@ -57,6 +57,9 @@ new() ->
 		actions=orddict:new(),
 		attributes=orddict:new()}.
 
+new(#occi_cid{}=Id, #uri{}=Location) ->
+    #occi_mixin{id=Id, attributes=orddict:new(), actions=orddict:new(), location=Location};
+
 new(Scheme, Term) ->
     new(#occi_cid{scheme=Scheme, term=Term, class=mixin}).
 

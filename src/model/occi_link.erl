@@ -27,7 +27,7 @@
 -export([new/0,
          new/1,
          new/2,
-         new/4,
+         new/5,
          get_id/1,
          set_id/2,
          get_cid/1,
@@ -51,32 +51,42 @@
 
 -export([reset/1]).
 
--define(CORE_ATTRS, orddict:from_list([{'occi.core.title', occi_attribute:core_title()}])).
+-define(CORE_ATTRS, [{'occi.core.title', occi_attribute:core_title()}]).
 
 %%%
 %%% API
 %%%
 -spec new() -> occi_link().
 new() ->
-    #occi_link{attributes=?CORE_ATTRS}.
+    #occi_link{attributes=orddict:from_list(?CORE_ATTRS)}.
 
 -spec new(Id :: uri(), Kind :: occi_kind()) -> occi_link().
 new(#uri{}=Id, #occi_kind{}=Kind) ->
+    Attrs = [orddict:to_list(occi_kind:get_attributes(Kind)),
+	     ?CORE_ATTRS],
     #occi_link{id=Id, cid=occi_kind:get_id(Kind), 
-               attributes=occi_entity:merge_attrs(Kind, ?CORE_ATTRS)}.
+               attributes=orddict:from_list(lists:flatten(Attrs))}.
 
 -spec new(occi_kind() | uri()) -> occi_link().
 new(#occi_kind{}=Kind) ->
+    Attrs = [orddict:to_list(occi_kind:get_attributes(Kind)),
+	     ?CORE_ATTRS],
     #occi_link{cid=occi_kind:get_id(Kind), 
-               attributes=occi_entity:merge_attrs(Kind, ?CORE_ATTRS)};
-new(#uri{}=Uri) ->
-    #occi_link{id=Uri, attributes=?CORE_ATTRS}.
+               attributes=orddict:from_list(lists:flatten(Attrs))};
 
--spec new(uri(), occi_kind(), [{atom(), term}], uri()) -> occi_link().
-new(#uri{}=Id, #occi_kind{}=Kind, Attributes, Target) ->
+new(#uri{}=Uri) ->
+    #occi_link{id=Uri, attributes=orddict:from_list(?CORE_ATTRS)}.
+
+-spec new(uri(), occi_kind(), [occi_mixin()], [{atom(), term}], uri()) -> occi_link().
+new(#uri{}=Id, #occi_kind{}=Kind, Mixins, Attributes, Target) ->
+    Attrs = [?CORE_ATTRS,
+	     orddict:to_list(occi_kind:get_attributes(Kind)),
+	     lists:map(fun (Mixin) ->
+			       orddict:to_list(occi_kind:get_attributes(Mixin))
+		       end, Mixins)],
     L = #occi_link{id=Id,
                    cid=occi_kind:get_id(Kind), 
-                   attributes=occi_entity:merge_attrs(Kind, ?CORE_ATTRS),
+                   attributes=orddict:from_list(lists:flatten(Attrs)),
                    target=Target},
     lists:foldl(fun ({Key, Value}, Acc) ->
                          occi_link:set_attr_value(Acc, Key, Value)

@@ -34,7 +34,7 @@
 	 add_mixin/2,
 	 set_attr_value/3]).
 -export([merge_attrs/2,
-	rm_attrs/2]).
+	 rm_attrs/2]).
 
 -spec new(occi_kind()) -> occi_resource() | occi_link().
 new(#occi_kind{}=Kind) ->
