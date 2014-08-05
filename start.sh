@@ -51,13 +51,13 @@ while getopts ":hdtsc:x:p:" opt; do
 		*@local)
 		    idx=$(( $idx + 1 ))
 		    listeners[$idx]="{xmpplocal, occi_xmpp_client, [{jid, \"$jid\"}]}"
-		    #epasswd="{xmpp, \"\" }"
+		    epasswd="{xmpp, \"\" }"
 		    ;;
 		*)
 		    read -s -p "Password:" passwd
 		    idx=$(( $idx + 1 ))
 		    listeners[$idx]="{xmppc, occi_xmpp_client, [{jid, \"$jid\"}, {passwd, \"$passwd\"}]}"
-		    #epasswd="{xmpp, \"\" }"
+		    epasswd="{xmpp, \"\" }"
 		    ;;
 	    esac
 	    ;;
