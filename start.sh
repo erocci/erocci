@@ -1,15 +1,19 @@
 #!/bin/bash
 basedir=$(cd $(dirname $0) && pwd)
 
-usage() {
-    echo "Usage: $0 [-d] [-s] [-x <jid>] [-c <config>] [-h] [-n <name>]"
+function usage() {
+    echo "Usage: $0 [-d] [-t] [-s] [-x <jid>] [-c <config>] [-h] [-n <name>]"
     echo -e "\t-d           Print debug messages"
+    echo -e "\t-t           Start HTTP listener"
     echo -e "\t-s           Start HTTPS listener (default: HTTP)"
     echo -e "\t-x <jid>     Start XMPP listener with given JID"
     echo -e "\t-c <config>  Set alternate config file (default: example.config)"
-    echo -e "\t-n <name>    Set system name (e.g.: http://localhost:8080)"
     echo -e "\t-h           Print this help"
 
+}
+
+function join {
+    local IFS="$1"; shift; echo "$*"
 }
 
 ssldir=${basedir}/priv/ssl
@@ -21,19 +25,41 @@ htpasswd=${basedir}/priv/htpasswd
 name=
 debug=info
 config=${basedir}/priv/example.config
-listener="{http, occi_http, [{port, 8080}]}"
+idx=-1
+listeners[0]="{http, occi_http, [{port, 8080}]}"
 epasswd="{htpasswd, \"$htpasswd\" }"
-while getopts ":hdsc:x:p:" opt; do
+while getopts ":hdtsc:x:p:" opt; do
     case $opt in
 	d)
 	    debug=debug
 	    set -x
 	    ;;
+	t)
+	    idx=$(( $idx + 1 ))
+	    listeners[$idx]="{http, occi_http, [{port, 8080}]}"
+	    ;;
 	s)
-	    listener="{https, occi_https, [{port, 8443}, {cacertfile, \"$cacertfile\"}, {certfile, \"$certfile\"}, {keyfile, \"$keyfile\"}]}"
+	    idx=$(( $idx + 1 ))
+	    listeners[$idx]="{https, occi_https, [{port, 8443}, {cacertfile, \"$cacertfile\"}, {certfile, \"$certfile\"}, {keyfile, \"$keyfile\"}]}"
 	    ;;
 	x)
 	    jid=$OPTARG
+	    case x$jid in
+		x)
+		    true
+		    ;;
+		*@local)
+		    idx=$(( $idx + 1 ))
+		    listeners[$idx]="{xmpplocal, occi_xmpp_client, [{jid, \"$jid\"}]}"
+		    #epasswd="{xmpp, \"\" }"
+		    ;;
+		*)
+		    read -s -p "Password:" passwd
+		    idx=$(( $idx + 1 ))
+		    listeners[$idx]="{xmppc, occi_xmpp_client, [{jid, \"$jid\"}, {passwd, \"$passwd\"}]}"
+		    #epasswd="{xmpp, \"\" }"
+		    ;;
+	    esac
 	    ;;
 	c)
 	    config=`pwd`/$OPTARG
@@ -52,21 +78,6 @@ while getopts ":hdsc:x:p:" opt; do
     esac
 done
 
-case x$jid in
-    x)
-	true
-	;;
-    *@local)
-	listener="{xmppc, occi_xmpp_client, [{jid, \"$jid\"}]}"
-	epasswd="{xmpp, \"\" }"
-	;;
-    *)
-	read -s -p "Password:" passwd
-	listener="{xmppc, occi_xmpp_client, [{jid, \"$jid\"}, {passwd, \"$passwd\"}]}"
-	epasswd="{xmpp, \"\" }"
-	;;
-esac
-
 if [ -d ${basedir}/deps ]; then
     depsbin=${basedir}/deps
 else
@@ -82,6 +93,10 @@ case $debug in
 	;;
 esac
 
+listeners=$(echo "["; join , "${listeners[@]}"; echo "]")
+#echo $listeners
+#exit 0
+
 cd ${basedir}
 exec erl -pa $PWD/ebin \
     $depsbin/*/ebin \
@@ -90,5 +105,5 @@ exec erl -pa $PWD/ebin \
     -kernel error_logger silent \
     -lager handlers "[{lager_console_backend, $debug}]" \
     -epasswd mod "$epasswd" \
-    -occi listeners "[$listener]" \
+    -occi listeners "$listeners" \
     $debug_app -s occi
