@@ -1,4 +1,5 @@
 *~
+*.pyc
 erl_crash.dump
 ebin
 .eunit
