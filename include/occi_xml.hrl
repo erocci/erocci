@@ -1,5 +1,9 @@
+-ifndef(occi_xml_hrl).
+-define(occi_xml_hrl, true).
+
+-include("occi.hrl").
+
 -define(occi_ns, 'http://schemas.ogf.org/occi').
--define(xmlschema_ns, 'http://www.w3.org/2001/XMLSchema').
 -define(xlink_ns, 'http://www.w3.org/2008/06/xlink').
 
 -define(extension, #xmlel{ns=?occi_ns, name=extension}).
@@ -97,3 +101,5 @@
 
 -define(pattern, #xmlel{ns=?xmlschema_ns, name=pattern}).
 -define(patternEnd, #xmlendtag{ns=?xmlschema_ns, name=pattern}).
+
+-endif.

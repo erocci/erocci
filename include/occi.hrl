@@ -5,6 +5,11 @@
 %%%
 %%% @end
 %%% Created : 14 Mar 2013 by Jean Parpaillon <jean.parpaillon@free.fr>
+-ifndef(occi_hrl).
+-define(occi_hrl, true).
+
+-define(xmlschema_ns, 'http://www.w3.org/2001/XMLSchema').
+
 -record(occi_env, {host, req}).
 -type occi_env() :: #occi_env{}.
 
@@ -43,7 +48,7 @@
 -type(occi_collection() :: #occi_collection{}).
 
 %%% OCCI Category ID
--record(occi_cid, {scheme    = undefined :: atom() | uri(),
+-record(occi_cid, {scheme    = undefined :: atom() | binary(),
 		   term      = undefined :: atom(),
 		   class     = undefined :: occi_class()}).
 -type(occi_cid() :: #occi_cid{}).
@@ -88,7 +93,7 @@
 -type(occi_attr() :: #occi_attr{}).
 
 %%% OCCI Resource
--record(occi_resource, {id         = undefined :: uri(),
+-record(occi_resource, {id         = undefined :: term(),       % internal id for backend
 			cid        = undefined :: occi_cid(),
 		        summary    = undefined :: binary(),
 			attributes = undefined :: term(),       % orddict()
@@ -97,7 +102,7 @@
 -type(occi_resource() :: #occi_resource{}).
 
 %%% OCCI Link
--record(occi_link, {id         = undefined :: uri(),
+-record(occi_link, {id         = undefined :: term(),           % internal id for backend
 		    cid        = undefined :: occi_cid(),
 		    attributes = undefined :: term(),           % orddict()
 		    source                 :: uri(),
@@ -166,3 +171,5 @@
 -type(acl_node() :: capabilities | acl_url()).
 -type(acl_url() :: binary()).
 -type(acl_user() :: anonymous | authenticated | admin | owner | group | {group, binary() } | '_').
+
+-endif.
