@@ -167,7 +167,7 @@ render_attribute_values([#occi_attr{}=Attr|Tail], Acc, Env) ->
     Id = split_attr_id(occi_attribute:get_id(Attr)),
     case occi_attribute:get_value(Attr) of
 	undefined ->
-	    render_attribute_values(Tail, Acc);
+	    render_attribute_values(Tail, Acc, Env);
 	#uri{}=U ->
 	    render_attribute_values(Tail, insert_attr(Id, occi_uri:to_binary(U, Env), Acc), Env);
 	Value when is_list(Value) ->
