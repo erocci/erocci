@@ -4,7 +4,7 @@ ERL ?= erl
 REBAR=$(shell which rebar || echo "echo \"rebar is missing. Exiting...\" && false")
 APP=occi
 
-.PHONY: all deps clean distclean doc doc-clean exmpp-deps tests tests-all
+.PHONY: all deps clean distclean doc doc-clean tests tests-all
 
 all: deps
 	@$(REBAR) compile
