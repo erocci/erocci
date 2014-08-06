@@ -68,7 +68,7 @@
 -define(ct_xml,      #content_type{parser=occi_parser_xml, renderer=occi_renderer_xml, 
 				   mimetype="application/xml"}).
 
--define(caps, #occi_node{type=capabilities}).
+-define(caps, #occi_node{id=#uri{path="/-/"}, type=capabilities}).
 
 init(_Transport, _Req, []) -> 
     {upgrade, protocol, cowboy_rest}.
@@ -539,7 +539,7 @@ get_node(Path, Filters) ->
     end.
 
 get_caps_node([#occi_cid{}=Cid]) ->
-    case occi_store:find(#occi_node{type=capabilities, objid=Cid, _='_'}) of
+    case occi_store:find(#occi_node{id=#uri{path="/-/"}, type=capabilities, objid=Cid, _='_'}) of
 	{ok, []} -> ?caps;
 	{ok, [#occi_node{}=N]} -> N
     end;
