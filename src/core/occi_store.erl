@@ -101,6 +101,17 @@ save(#occi_node{type=occi_collection, objid=#occi_cid{}}=Node) ->
     lager:debug("occi_store:save(~p)~n", [lager:pr(Node, ?MODULE)]),
     cast(save, filter_collection(Node));
 
+save(#occi_node{id=#uri{path=Path}, type=occi_resource}=Node) ->
+    lager:debug("occi_store:save(~p)~n", [lager:pr(Node, ?MODULE)]),
+    case get_backend(Path) of
+	{ok, #occi_node{id=#uri{path=Prefix}, objid=Ref}} ->
+	    {ResNode, LinksNodes} = process_resource_links(Node),
+	    occi_backend:save(Ref, occi_node:rm_prefix(ResNode, Prefix)),
+	    save_resource_links(LinksNodes);
+	{error, Err} ->
+	    {error, Err}
+    end;
+
 save(#occi_node{id=#uri{path=Path}}=Node) ->
     lager:debug("occi_store:save(~p)~n", [lager:pr(Node, ?MODULE)]),
     case get_backend(Path) of
@@ -109,6 +120,7 @@ save(#occi_node{id=#uri{path=Path}}=Node) ->
 	{error, Err} ->
 	    {error, Err}
     end.
+
 
 -spec update(occi_node()) -> ok | {error, term()}.
 update(#occi_node{id=#uri{path=Path}, type=capabilities, data=#occi_mixin{}=Mixin}=Node) ->
@@ -480,3 +492,34 @@ load_user_mixins(#occi_node{objid=Ref}) ->
 	{error, Err} ->
 	    {error, Err}
     end.
+
+process_resource_links(#occi_node{id=ResId, owner=Owner, data=Res}=Node) ->
+    {Links, LinksNodes} = lists:foldl(fun (#uri{}=Link, {AccUris, AccNodes}) ->
+					      { sets:add_element(Link, AccUris), AccNodes };
+					  (#occi_link{}=Link, {AccUris, AccNodes}) ->
+					      Id = create_link_id(Link),
+					      LinkNode = occi_node:new(Link#occi_link{id=Id, source=ResId}, Owner),
+					      { AccUris, [ LinkNode | AccNodes ]}
+				      end, {sets:new(), []}, occi_resource:get_links(Res)),
+    { Node#occi_node{data=Res#occi_resource{links=Links}},
+      LinksNodes }.
+
+save_resource_links([]) ->
+    ok;
+save_resource_links([ Node | Nodes ]) ->
+    case save(Node) of
+	ok ->
+	    save_resource_links(Nodes);
+	{error, Err} ->
+	    {error, Err}
+    end.
+
+    
+create_link_id(#occi_link{cid=KindId}) ->
+    case occi_category_mgr:get(KindId) of
+	{ok, #occi_kind{location=#uri{path=Prefix}}} ->
+	    occi_config:gen_id(Prefix);
+	{error, _} ->
+	    throw({error, {invalid_kind, KindId}})
+    end.
+	    
