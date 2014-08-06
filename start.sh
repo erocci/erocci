@@ -2,7 +2,7 @@
 basedir=$(cd $(dirname $0) && pwd)
 
 function usage() {
-    echo "Usage: $0 [-d] [-t] [-s] [-x <jid>] [-c <config>] [-h] [-n <name>]"
+    echo "Usage: $0 [-d] [-t] [-s] [-x <jid>] [-c <config>] [-h]"
     echo -e "\t-d           Print debug messages"
     echo -e "\t-t           Start HTTP listener"
     echo -e "\t-s           Start HTTPS listener (default: HTTP)"
