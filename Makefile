@@ -15,7 +15,7 @@ deps:
 clean: doc-clean
 	find -name '*~' -exec rm {} \;
 	rm -f erl_crash.dump
-	@$(REBAR) clean
+	@$(REBAR) -r clean
 
 distclean: clean
 	@$(REBAR) delete-deps
