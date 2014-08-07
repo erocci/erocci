@@ -4,6 +4,7 @@ basedir=$(cd $(dirname $0) && pwd)
 function usage() {
     echo "Usage: $0 [-d] [-t] [-s] [-x <jid>] [-c <config>] [-h]"
     echo -e "\t-d           Print debug messages"
+    echo -e "\t-q           Print only error messages"
     echo -e "\t-t           Start HTTP listener"
     echo -e "\t-s           Start HTTPS listener (default: HTTP)"
     echo -e "\t-x <jid>     Start XMPP listener with given JID"
@@ -29,11 +30,14 @@ config=${configdir}/default.config
 idx=-1
 listeners[0]="{http, occi_http, [{port, 8080}]}"
 epasswd="{htpasswd, \"$htpasswd\" }"
-while getopts ":hdtsc:x:p:" opt; do
+while getopts ":hdqtsc:x:p:" opt; do
     case $opt in
 	d)
 	    debug=debug
 	    set -x
+	    ;;
+	q)
+	    debug=error
 	    ;;
 	t)
 	    idx=$(( $idx + 1 ))
