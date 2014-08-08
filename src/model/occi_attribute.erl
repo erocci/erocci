@@ -23,7 +23,6 @@
 -compile([{parse_transform, lager_transform}]).
 
 -include("occi.hrl").
--include("occi_xml.hrl").
 
 -export([new/1,
 	 get_id/1,
@@ -62,13 +61,13 @@ new(Id) when is_binary(Id);
 get_id(A) ->
     A#occi_attr.id.
 
-get_type_id(#occi_attr{type={_NS, Id}}) ->
+get_type_id(#occi_attr{type=Id}) ->
     Id.
 
 get_type(#occi_attr{type=Type}) ->
-    Type.
+    {?xmlschema_ns, Type}.
 
-set_type(A, Type) ->
+set_type(A, {?xmlschema_ns, Type}) ->
     A#occi_attr{type=Type}.
 
 is_required(A) ->

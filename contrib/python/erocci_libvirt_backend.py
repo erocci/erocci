@@ -34,9 +34,7 @@ class LibvirtService(dbus.service.Object):
 
     @dbus.service.method(erocci.BACKEND_IFACE, in_signature='a{sv}', out_signature='av')
     def init(self, opts):
-        return dbus.types.Array(
-            dbus.types.String(LibvirtService.get_schema(), variant_level=1),
-            'v')
+        return dbus.types.Array([dbus.types.UTF8String(LibvirtService.get_schema(), variant_level=1)], 'v')
 
     @dbus.service.method(erocci.BACKEND_IFACE)
     def terminate(self):
@@ -45,39 +43,59 @@ class LibvirtService(dbus.service.Object):
 
     @dbus.service.method(erocci.BACKEND_IFACE, in_signature=erocci.SIG_NODE)
     def save(self, node_tuple):
+        print "save(%s)\n" % (node_tuple,)
         node = erocci.OcciNode.from_dbus(node_tuple)
-        print "Save node: %s\n" % (node)
         return
 
     @dbus.service.method(erocci.BACKEND_IFACE, in_signature=erocci.SIG_NODE)
     def update(self, node_tuple):
+        print "update(%s)\n" % (node_tuple,)
         node = erocci.OcciNode.from_dbus(node_tuple)
-        print "Update node: %s\n" % (node)
         return
 
     @dbus.service.method(erocci.BACKEND_IFACE, in_signature='s')
     def delete(self, url):
-        print "Delete node: %s\n" % url
+        print "delete(%s)\n" % (url)
         return
 
-    @dbus.service.method(erocci.BACKEND_IFACE, in_signature='s', out_signature=erocci.SIG_NODE)
+    @dbus.service.method(erocci.BACKEND_IFACE, in_signature='s', out_signature='a' + erocci.SIG_NODE)
     def find(self, url):
+        print "find(%s)\n" % (url)
         if url == 'resources/resource1':
-            return erocci.OcciNode(url, 'jean', erocci.TYPE_RESOURCE).to_dbus()
-        elif url == '':
-            return erocci.OcciNode(url, '', erocci.TYPE_UNBOUNDED_COLL).to_dbus()
-        return
+            node = erocci.OcciNode(url, 0, '', '', erocci.TYPE_RESOURCE, None)
+            return dbus.types.Array([node.to_dbus()], erocci.SIG_NODE)
 
-    @dbus.service.method(erocci.BACKEND_IFACE, in_signature='s', out_signature=erocci.SIG_NODE)
-    def load(self, url):
-        if url == 'resources/resource1':
-            kind = erocci.OcciCategory('http://schemas.ogf.org/occi/infrastructure#', 'compute')
-            attrs = {'occi.compute.cores', 4}
-            return erocci.OcciResource(url, kind, attributes=attrs).to_dbus()
+        elif url == '/-/':
+            node = erocci.OcciNode.capabilities([])
+            return dbus.types.Array([node.to_dbus()], erocci.SIG_NODE)
+
         elif url == '':
-            return erocci.OcciCollection(url, ['resources/resource1']).to_dbus()
-        return
-        
+            node = erocci.OcciNode(url, url, '', '', erocci.TYPE_UNBOUNDED_COLL, None)
+            return dbus.types.Array([node.to_dbus()], erocci.SIG_NODE)
+
+        return dbus.types.Array([], erocci.SIG_NODE)
+
+    @dbus.service.method(erocci.BACKEND_IFACE, in_signature=erocci.SIG_NODE, out_signature=erocci.SIG_NODE)
+    def load(self, node_tuple):
+        print "load(%s)\n" % (node_tuple,)
+        node = erocci.OcciNode.from_dbus(node_tuple)
+        if node.has_data():
+            return node.to_dbus()
+        else:
+            data = None
+            if node._id == 'resources/resource1':
+                kind = erocci.OcciCategory('http://schemas.ogf.org/occi/infrastructure#', 'compute')
+                attrs = {'occi.compute.cores': 4}
+                data = erocci.OcciResource(0, kind, [], attrs, [])
+            elif node._id == '':
+                data = erocci.OcciCollection(1, ['resources/resource1'])
+
+            if data is None:
+                raise erocci.OcciException()
+            else:
+                node.set_data(data)
+                return node.to_dbus()
+
     @dbus.service.method(dbus.PROPERTIES_IFACE, in_signature='ss', out_signature='v')
     def Get(self, interface_name, property_name):
         if interface_name == erocci.BACKEND_IFACE:

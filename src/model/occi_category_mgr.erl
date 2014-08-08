@@ -53,19 +53,21 @@ init() ->
 -spec load_schemas(Backend :: atom(), Schemas :: list()) -> ok | {error, term()}.
 load_schemas(_, []) ->
     ok;
-load_schemas(Backend, [{path, Path}|Tail]) ->
-    case occi_parser_xml:load_extension(Path) of
+
+load_schemas(Backend, [Ext | Tail]) ->
+    case get_extension(Ext) of
 	{error, parse_error} ->
 	    {error, parse_error};
-	Ext ->
+	#occi_extension{}=E ->
 	    lists:foreach(fun(#occi_kind{id=Id}=Kind) ->
 				  register_kind(Kind#occi_kind{location=get_uri(Id)});
 			     (#occi_mixin{id=Id}=Mixin) ->
 				  register_mixin(Mixin#occi_mixin{location=get_uri(Id)})
 			  end,
-			  occi_extension:get_categories(Ext)),
+			  occi_extension:get_categories(E)),
 	    load_schemas(Backend, Tail)
     end.
+
 
 register_kind(#occi_kind{id=Id, location=#uri{}=Uri}=Kind) ->
     lager:info("Registering kind: ~p -> ~p~n", [ lager:pr(Id, ?MODULE), lager:pr(Uri, ?MODULE) ]),
@@ -178,3 +180,9 @@ hash1(#occi_cid{term=Term}=Cid, Prefix, I) ->
 
 term_to_list(Term) when is_atom(Term) -> atom_to_list(Term);
 term_to_list(Term) when is_binary(Term) -> binary_to_list(Term).
+
+get_extension({path, Path}) ->
+    occi_parser_xml:load_extension(Path);
+
+get_extension(Bin) when is_binary(Bin) ->
+    occi_parser_xml:parse_extension(Bin).

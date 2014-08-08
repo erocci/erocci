@@ -11,6 +11,6 @@
 -define(TYPE_UNBOUNDED_COLL, 5).
 -define(TYPE_MIXIN, 6).
 
--define(dbus_undefined, #dbus_variant{type= <<"b">>, value=false}).
+-define(dbus_undefined, #dbus_variant{type=boolean, value=false}).
 
 -endif.

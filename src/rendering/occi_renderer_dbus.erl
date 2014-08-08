@@ -30,6 +30,30 @@
 -export([render/1,
 	 render/2]).
 
+-define(sig_resource, [variant, 
+		       {struct, [string, string]}, 
+		       {array, {struct, [string, string]}},
+		       {dict, string, variant},
+		       {array, variant}]
+       ).
+
+-define(sig_link, [variant, 
+		   {struct, [string, string]}, 
+		   {array, {struct, [string, string]}},
+		   string,
+		   string,
+		   {struct, [string, string]},
+		   {dict, string, variant}]
+       ).
+
+-define(sig_collection, [variant,
+			 {array, string}]
+       ).
+
+-define(sig_mixin, [variant,
+		    string]
+       ).
+
 %%%
 %%% API
 %%%
@@ -61,10 +85,13 @@ render_objid(_, undefined) ->
     ?dbus_undefined;
 
 render_objid(capabilities, #occi_cid{}=Objid) ->
-    #dbus_variant{type= <<"(ss)">>, value=render_cid(Objid)};
+    #dbus_variant{type={struct, [string, string]}, value=render_cid(Objid)};
 
 render_objid(_, #uri{}=Objid) ->
-    #dbus_variant{type= <<"s">>, value=render_uri(Objid)}.
+    #dbus_variant{type=string, value=render_uri(Objid)};
+
+render_objid(_, Objid) when is_integer(Objid) ->
+    #dbus_variant{type=uint64, value=Objid}.
 
 
 render_cid('_') ->
@@ -90,7 +117,7 @@ render_owner(undefined) ->
     ?dbus_undefined;
 
 render_owner(Owner) when is_binary(Owner) ->
-    #dbus_variant{type= <<"s">>, value=Owner}.
+    #dbus_variant{type=string, value=Owner}.
 
 render_etag('_') ->
     <<>>;
@@ -114,16 +141,16 @@ render_attrs(Attrs) ->
 
 
 render_attr_value(#occi_attr{type={?xmlschema_ns, anyURI}, value=#uri{}=Uri}) ->
-    #dbus_variant{type= <<"s">>, value=render_uri(Uri)};
+    #dbus_variant{type=string, value=render_uri(Uri)};
 
 render_attr_value(#occi_attr{type={?xmlschema_ns, string}, value=Val}) ->
-    #dbus_variant{type= <<"s">>, value=Val};
+    #dbus_variant{type=string, value=Val};
 
 render_attr_value(#occi_attr{type={?xmlschema_ns, integer}, value=Val}) ->
-    #dbus_variant{type= <<"x">>, value=Val};
+    #dbus_variant{type=int64, value=Val};
 
 render_attr_value(#occi_attr{type={?xmlschema_ns, float}, value=Val}) ->
-    #dbus_variant{type= <<"d">>, value=Val}.
+    #dbus_variant{type=double, value=Val}.
 
 
 render_type(#occi_node{type='_'})                                -> ?TYPE_UNDEFINED;
@@ -149,7 +176,7 @@ render_content(_, #occi_resource{id=Id, cid=Kind, mixins=Mixins, attributes=Attr
 	    render_attrs(Attrs),
 	    render_resource_links(Links)
 	  ],
-    #dbus_variant{type= <<"v(ss)a(ss)a{sv}av">>, value=Val};
+    #dbus_variant{type=?sig_resource, value=Val};
 
 render_content(_, #occi_link{id=Id, cid=Kind, mixins=Mixins, 
 			     source=Src, target=Target, 
@@ -164,21 +191,21 @@ render_content(_, #occi_link{id=Id, cid=Kind, mixins=Mixins,
 	    render_cid(TargetCid),
 	    render_attrs(Attrs)
 	  ],
-    #dbus_variant{type= <<"v(ss)a(ss)ss(ss)a{sv}">>, value=Val};
+    #dbus_variant{type=?sig_link, value=Val};
 
 render_content(Type, #occi_collection{id=Id, entities=Entities}) ->
     Val = ordsets:fold(fun (Uri, Acc) ->
 			       [ render_uri(Uri) | Acc ]
 		       end, [], Entities),
-    #dbus_variant{type= <<"vas">>, value={render_objid(Type, Id), Val}};
+    #dbus_variant{type=?sig_collection, value={render_objid(Type, Id), Val}};
 
 render_content(_, #occi_mixin{id=Id, location=Loc}) ->
-    #dbus_variant{type= <<"vs">>, value={render_objid(capabilities, Id), render_uri(Loc)}}.
+    #dbus_variant{type=?sig_mixin, value={render_objid(capabilities, Id), render_uri(Loc)}}.
 
 
 render_resource_links(Links) ->
     sets:fold(fun (#uri{}=Link, Acc) ->
-		      [ #dbus_variant{type= <<"s">>, value=render_uri(Link)} | Acc ];
+		      [ #dbus_variant{type=string, value=render_uri(Link)} | Acc ];
 		  (#occi_link{}=Link, Acc) ->
 		      [ render_content(occi_link, Link) | Acc ]
 	      end, Links).

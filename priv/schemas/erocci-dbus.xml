@@ -70,7 +70,7 @@
     
     <method name="find" >
       <arg name="id" type="s" direction="in" />
-      <arg name="node" type="(svvsyv)" direction="out" />
+      <arg name="node" type="a(svvsyv)" direction="out" />
     </method>
 
     <method name="load" >

@@ -53,7 +53,7 @@ init(#occi_backend{opts=Props}) ->
 		    lager:info("Initializing backend service: ~s~n", [Service]),
 		    case dbus_proxy:call(Backend, ?BACKEND_IFACE, <<"init">>, [Opts]) of
 			{ok, Schemas} ->
-			    {ok, Schemas, #state{conn=Bus, backend=Backend}};
+			    {ok, process_schemas(Schemas, []), #state{conn=Bus, backend=Backend}};
 			{error, {Code, Err}} ->
 			    lager:debug("Error initializing: ~n"
 					"Code=~s~n"
@@ -101,21 +101,21 @@ update(#occi_node{}=Node, #state{backend=Backend}=State) ->
     end.
  
 
-find(#occi_node{id=Uri}, #state{backend=Backend}=State) ->
-    lager:info("[~p] find(~p)~n", [?MODULE, Uri]),
+find(#occi_node{id=Uri}=_N, #state{backend=Backend}=State) ->
+    lager:info("[~p] find(~p)~n", [?MODULE, lager:pr(_N, ?MODULE)]),
     case dbus_proxy:call(Backend, ?BACKEND_IFACE, <<"find">>, [occi_uri:to_binary(Uri)]) of
-	{ok, Node} ->
-	    {{ok, occi_parser_dbus:parse(Node)}, State};
+	{ok, [Node]} ->
+	    {{ok, [occi_parser_dbus:parse(Node)]}, State};
 	{error, Err} ->
 	    {{error, Err}, State}
     end.
 
 
-load(#occi_node{id=Uri}, #state{backend=Backend}=State) ->
+load(#occi_node{id=Uri}=Node, #state{backend=Backend}=State) ->
     lager:info("[~p] load(~p)~n", [?MODULE, Uri]),
-    case dbus_proxy:call(Backend, ?BACKEND_IFACE, <<"load">>, [occi_uri:to_binary(Uri)]) of
-	{ok, Node} ->
-	    {{ok, occi_parser_dbus:parse(Node)}, State};
+    case dbus_proxy:call(Backend, ?BACKEND_IFACE, <<"load">>, [occi_renderer_dbus:render(Node)]) of
+	{ok, N} ->
+	    {{ok, occi_parser_dbus:parse(N)}, State};
 	{error, Err} ->
 	    {{error, Err}, State}
     end.
@@ -160,3 +160,12 @@ connect_backend(Service) ->
 	{error, Err} ->
 	    {error, Err}
     end.
+
+process_schemas([], Acc) ->
+    lists:reverse(Acc);
+
+process_schemas([#dbus_variant{type=string, value=Bin} | Rest], Acc) ->
+    process_schemas(Rest, [Bin | Acc]);
+
+process_schemas([#dbus_variant{type={struct, [string, string]}, value={<<"path">>, Val}} | Rest], Acc) ->
+    process_schemas(Rest, [{path, Val} | Acc]).

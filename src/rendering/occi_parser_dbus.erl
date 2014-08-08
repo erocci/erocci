@@ -33,44 +33,56 @@
 %%%===================================================================
 %%% API
 %%%===================================================================
-parse({Id, _, ?TYPE_CAPABILITIES, Content}) ->
-    #occi_node{id=oci_uri:parse(Id),
+parse({Id, _, _, Etag, ?TYPE_CAPABILITIES, Content}) ->
+    #occi_node{id=occi_uri:parse(Id),
 	       objid=undefined,
-	       type=occi_capabilities,
+	       owner=nobody,
+	       etag=Etag,
+	       type=capabilities,
 	       data=parse_capabilities(Content)};
 
-parse({Id, Objid, ?TYPE_BOUNDED_COLL, Content}) ->
+parse({Id, Objid, Owner, Etag, ?TYPE_BOUNDED_COLL, Content}) ->
     Cid = parse_objid(?TYPE_BOUNDED_COLL, Objid),
     #occi_node{id=occi_uri:parse(Id),
 	       objid=Cid,
+	       owner=parse_owner(Owner),
+	       etag=Etag,
 	       type=occi_collection,
 	       data=parse_collection(Cid, Content)};
 
-parse({Id, Objid, ?TYPE_UNBOUNDED_COLL, Content}) ->
+parse({Id, Objid, Owner, Etag, ?TYPE_UNBOUNDED_COLL, Content}) ->
     CollId = parse_objid(?TYPE_UNBOUNDED_COLL, Objid),
     #occi_node{id=occi_uri:parse(Id),
 	       objid=CollId,
+	       owner=parse_owner(Owner),
+	       etag=Etag,
 	       type=occi_collection,
 	       data=parse_collection(CollId, Content)};
 
-parse({Id, Objid, ?TYPE_RESOURCE, Content}) ->
+parse({Id, Objid, Owner, Etag, ?TYPE_RESOURCE, Content}) ->
     ResId = parse_objid(?TYPE_RESOURCE, Objid),
     #occi_node{id=occi_uri:parse(Id),
 	       objid=ResId,
+	       owner=parse_owner(Owner),
+	       etag=Etag,
 	       type=occi_resource,
 	       data=parse_resource(ResId, Content)};
 
-parse({Id, Objid, ?TYPE_LINK, Content}) ->
+parse({Id, Objid, Owner, Etag, ?TYPE_LINK, Content}) ->
     LinkId = parse_objid(?TYPE_LINK, Objid),
     #occi_node{id=occi_uri:parse(Id),
 	       objid=LinkId,
+	       owner=parse_owner(Owner),
+	       etag=Etag,
 	       type=occi_resource,
 	       data=parse_link(LinkId, Content)};
 
-parse({Id, Objid, ?TYPE_MIXIN, Content}) ->
+parse({Id, Objid, Owner, Etag, ?TYPE_MIXIN, Content}) ->
     Cid = parse_objid(?TYPE_MIXIN, Objid),
     #occi_node{id=occi_uri:parse(Id),
 	       objid=Cid,
+	       owner=parse_owner(Owner),
+	       etag=Etag,
 	       type=capabilities,
 	       data=parse_mixin(Cid, Content)}.
 
@@ -87,17 +99,30 @@ parse_objid(?TYPE_BOUNDED_COLL, Var) ->
 parse_objid(?TYPE_MIXIN, Var) ->
     parse_cid(Var);
 
-parse_objid(_, #dbus_variant{type= <<"s">>, value=Val}) ->
-    occi_uri:parse(Val).
+parse_objid(_, #dbus_variant{type=string, value=Val}) ->
+    occi_uri:parse(Val);
+
+parse_objid(_, #dbus_variant{value=Val}) when is_integer(Val) ->
+    Val.
 
 
-parse_cid(#dbus_variant{type= <<"(ss)">>, value={Scheme, Term}}) ->
+parse_cid(#dbus_variant{type={struct, [string, string]}, value={Scheme, Term}}) ->
     #occi_cid{scheme=?scheme_to_atom(Scheme), term=?term_to_atom(Term)}.
 
 
-parse_uri(#dbus_variant{type= <<"s">>, value=Val}) ->
+parse_uri(#dbus_variant{type=string, value=Val}) ->
     occi_uri:parse(Val).
 
+
+parse_owner(?dbus_undefined) ->
+    undefined;
+
+parse_owner(#dbus_variant{type=string, value=Val}) ->
+    Val.
+
+
+parse_collection(_, #dbus_variant{value=false}) ->
+    undefined;
 
 parse_collection(Id, #dbus_variant{value={_, Uris}}) ->
     Entities = lists:foldl(fun (S, Acc) ->
@@ -106,21 +131,27 @@ parse_collection(Id, #dbus_variant{value={_, Uris}}) ->
     occi_collection:new(Id, Entities).
 
 
+parse_resource(_, #dbus_variant{value=false}) ->
+    undefined;
+
 parse_resource(Id, #dbus_variant{value={_, {Scheme, Term}, Mixins, Attrs, Links}}) ->
     Kind = get_kind(Scheme, Term),
     Mixins = parse_mixins(Mixins),
     Attributes = parse_attributes(Attrs),
     Res = occi_resource:new(Id, Kind, Mixins, Attributes),
-    lists:fold(fun (#dbus_variant{type= <<"s">>, value=S}, Acc) ->
-		       occi_resource:add_link(Acc, occi_uri:parse(S));
-		   (Other, Acc) ->
-		       occi_resource:add_link(Acc, parse_resource_link(Other))
-	       end, Res, Links).
+    lists:foldl(fun (#dbus_variant{type=string, value=S}, Acc) ->
+			occi_resource:add_link(Acc, occi_uri:parse(S));
+		    (Other, Acc) ->
+			occi_resource:add_link(Acc, parse_resource_link(Other))
+		end, Res, Links).
 
 
 parse_resource_link(#dbus_variant{value={Id, _ ,_ ,_ ,_ ,_ ,_}}=Link) ->
     parse_link(parse_objid(?TYPE_LINK, Id), Link).
 
+
+parse_link(_, #dbus_variant{value=false}) ->
+    undefined;
 
 parse_link(Id, #dbus_variant{value={_, {Scheme, Term}, Mixins, Src, Target, TargetCid, Attrs}}) ->
     Kind = get_kind(Scheme, Term),
@@ -132,13 +163,19 @@ parse_link(Id, #dbus_variant{value={_, {Scheme, Term}, Mixins, Src, Target, Targ
 	occi_link:new(Id, Kind, Mixins, Attributes, Target), Src), parse_cid(TargetCid)).
 
 
-parse_capabilities(Mixins) ->
+parse_capabilities(#dbus_variant{value=false}) ->
+    undefined;
+
+parse_capabilities(#dbus_variant{value=Mixins}) ->
     M = lists:map(fun ({{Scheme, Term}, Uri}) ->
 			  occi_mixin:new(#occi_cid{scheme=Scheme, term=Term, class=mixin}, 
 					 occi_uri:parse(Uri))
 		  end, Mixins),
-    occi_capabilities:new([], M, []).
+    {[], M, []}.
 
+
+parse_mixin(_, #dbus_variant{value=false}) ->
+    undefined;
 
 parse_mixin(Id, #dbus_variant{value={_, Location}}) ->
     #occi_mixin{id=Id, location=occi_uri:parse(Location)}.
@@ -151,8 +188,8 @@ parse_mixins(Mixins) ->
 
 
 parse_attributes(Attrs) ->
-    lists:map(fun ({Name, #dbus_variant{value=Val}}, Acc) ->
-		      [{?attr_to_atom(Name), Val} | Acc]
+    lists:map(fun ({Name, #dbus_variant{value=Val}}) ->
+		      {?attr_to_atom(Name), Val}
 	      end, Attrs).
 
 
