@@ -130,8 +130,8 @@ load(#occi_node{}=Req, State) ->
 	    {{error, Reason}, State}
     end.
 
-action({#occi_node{}=Node, #occi_action{}=A}, State) ->
-    lager:info("[~p] action(~p, ~p)~n", [?MODULE, Node#occi_node.id, A]),
+action({#uri{}=Id, #occi_action{}=A}, State) ->
+    lager:info("[~p] action(~p, ~p)~n", [?MODULE, Id, A]),
     {ok, State}.
 
 %%%===================================================================
@@ -156,7 +156,7 @@ find_node_t(#occi_node{type=occi_collection}=Node) ->
 find_node_t(#occi_node{id=Id}) ->
     case mnesia:wread({occi_node, Id}) of
 	[] -> [];
-	[#occi_node{}=Node] -> [Node]
+	[Node] -> [Node]
     end.
 
 load_node_t(#occi_node{type=occi_collection, objid=Id}=Node) ->
@@ -173,7 +173,8 @@ load_node_t(#occi_node{type=occi_collection, objid=Id}=Node) ->
     end;
 
 load_node_t(#occi_node{type=occi_resource, objid=Id}=Node) ->
-    load_object_t(Node, occi_resource, Id);
+    Node2 = load_object_t(Node, occi_resource, Id),
+    load_resource_node_t(Node2);
 
 load_node_t(#occi_node{type=occi_link, objid=Id}=Node) ->
     load_object_t(Node, occi_link, Id).
@@ -186,16 +187,51 @@ load_object_t(Node, Type, Id) ->
 	    Node#occi_node{data=Data}
     end.
 
-save_t(#occi_node{type=occi_resource, data=Res}=Node) ->
-    save_entity_t(Res),
-    save_node_t(Node);
 
-save_t(#occi_node{type=occi_link, data=Res}=Node) ->
-    save_entity_t(Res),
-    save_node_t(Node);
+load_resource_node_t(#occi_node{data=#occi_resource{links=OrigLinks}=Res}=Node) ->
+    Links = sets:fold(fun (#uri{}=LinkId, Acc) ->
+			      sets:add_element(LinkId, Acc);
+			  ({inline, Id}, Acc) ->
+			      sets:add_element(get_link_node_t(Id), Acc)
+		      end, sets:new(), OrigLinks),
+    Node#occi_node{data=Res#occi_resource{links=Links}}.
+
+
+save_t(#occi_node{id=Id, type=occi_resource}=Node) ->
+    ObjId = make_ref(),
+    { #occi_node{data=Res}=Node2, LinksNodes } = get_resource_links_t(Node#occi_node{objid=ObjId}),
+    save_entity_t(Id, occi_resource:set_id(Res, ObjId)),
+    save_resource_links_t(LinksNodes),
+    save_node_t(Node2);
+
+save_t(#occi_node{id=Id, type=occi_link, data=Link}=Node) ->
+    ObjId = make_ref(),
+    save_entity_t(Id, occi_link:set_id(Link, ObjId)),
+    save_node_t(Node#occi_node{objid=ObjId});
 
 save_t(#occi_node{type=occi_collection, data=Coll}) ->
     save_collection_t(Coll).
+
+
+save_resource_links_t([]) ->
+    ok;
+
+save_resource_links_t([#occi_node{id=Id, data=Link}=Node | Nodes]) ->
+    save_resource_link_t(Id, Link),
+    save_node_t(Node),
+    save_resource_links_t(Nodes).
+
+
+save_resource_link_t(Id, Link) ->
+    add_link_t(Id, occi_link:get_target(Link)),
+    mnesia:write(Link),
+    KindId = occi_link:get_cid(Link),
+    add_to_collection_t(KindId, [Id]),
+    sets:fold(fun (#occi_cid{}=MixinId, _) ->
+		      add_to_collection_t(MixinId, [Id])
+	      end, ok, occi_link:get_mixins(Link)),
+    ok.
+
 
 save_collection_t(#occi_collection{}=Coll) ->
     lists:foreach(fun (#uri{}=Id) ->
@@ -206,46 +242,33 @@ save_collection_t(#occi_collection{}=Coll) ->
 		  end, occi_collection:get_entities(Coll)),
     mnesia:write(Coll).
 
-save_entity_t(#occi_resource{}=Res) ->
+save_entity_t(Id, #occi_resource{}=Res) ->
     mnesia:write(Res),
     KindId = occi_resource:get_cid(Res),
-    Uri = occi_resource:get_id(Res),
-    add_to_collection_t(KindId, [Uri]),
+    add_to_collection_t(KindId, [Id]),
     sets:fold(fun (#occi_cid{}=MixinId, _) ->
-		      add_to_collection_t(MixinId, [Uri])
+		      add_to_collection_t(MixinId, [Id])
 	      end, ok, occi_resource:get_mixins(Res)),
     ok;
 
-save_entity_t(#occi_link{}=Link) ->
-    add_link_t(Link, occi_link:get_source(Link)),
-    add_link_t(Link, occi_link:get_target(Link)),
+save_entity_t(Id, #occi_link{}=Link) ->
+    add_link_t(Id, occi_link:get_source(Link)),
+    add_link_t(Id, occi_link:get_target(Link)),
     mnesia:write(Link),
     KindId = occi_link:get_cid(Link),
-    Uri = occi_link:get_id(Link),
-    add_to_collection_t(KindId, [Uri]),
+    add_to_collection_t(KindId, [Id]),
     sets:fold(fun (#occi_cid{}=MixinId, _) ->
-		      add_to_collection_t(MixinId, [Uri])
+		      add_to_collection_t(MixinId, [Id])
 	      end, ok, occi_link:get_mixins(Link)),
     ok.
 
-add_link_t(Link, ResId) ->
-    Res2 = case occi_uri:is_rel(ResId) of
-	       true ->
-		   case mnesia:wread({occi_resource, ResId}) of
-		       [] ->
-			   mnesia:abort({unknown_resource, ResId});
-		       [Res] ->
-			   occi_resource:add_link(Res, occi_link:get_id(Link))
-		   end;
-	       false ->
-		   case occi_store:find(#occi_node{id=ResId, _='_'}) of
-		       {ok, []} ->
-			   mnesia:abort({unknown_resource, ResId});
-		       {ok, [#occi_resource{}=Res]} ->
-			  occi_resource:add_link(Res, occi_link:get_id(Link))
-		   end
-	   end,
-    mnesia:write(Res2).
+add_link_t(LinkId, Id) ->
+    case get_resource_t(Id) of
+	false ->
+	    mnesia:abort({unknown_resource, Id});
+	{ok, Res} ->
+	    mnesia:write(occi_resource:add_link(Res, LinkId))
+    end.
 
 save_node_t(#occi_node{id=Id}=Node) ->
     case mnesia:wread({occi_node, Id}) of
@@ -263,28 +286,23 @@ update_t(#occi_node{type=occi_collection, data=#occi_collection{id=#occi_cid{}=C
     Mixin = get_mixin_t(Cid),
     Entities = occi_collection:get_entities(Coll),
     lists:foreach(fun (#uri{}=Id) ->
-    			  case mnesia:wread({occi_resource, Id}) of
-    			      [#occi_resource{}=Res] ->
-    				  mnesia:write(occi_resource:add_mixin(Res, Mixin));
-    			      [] ->
-    				  case mnesia:wread({occi_link, Id}) of
-    				      [#occi_link{}=Link] ->
-    					  mnesia:write(occi_link:add_mixin(Link, Mixin));
-    				      [] -> 
-    					  mnesia:abort({no_such_entity, Id})
-    				  end
-    			  end
+			  case get_entity_t(Id) of
+			      false -> mnesia:abort({no_such_entity, Id});
+			      {ok, Entity} ->
+				  mnesia:write(occi_entity:add_mixin(Entity, Mixin))
+			  end
     		  end, Entities),
     add_to_collection_t(Cid, Entities);
 
-update_t(#occi_node{type=occi_resource, data=Res}) ->
-    save_entity_t(Res);
+update_t(#occi_node{id=Id, type=occi_resource, data=Res}) ->
+    save_entity_t(Id, Res);
 
-update_t(#occi_node{type=occi_link, data=Res}) ->
-    save_entity_t(Res).
+update_t(#occi_node{id=Id, type=occi_link, data=Res}) ->
+    save_entity_t(Id, Res).
 
 add_to_collection_t(none, _) ->
     ok;
+
 add_to_collection_t(#uri{path=Path}=Parent, Child) ->
     lager:debug("add_to_collection_t(~p, ~p)~n", [Parent, Child]),
     case mnesia:wread({occi_node, Parent}) of
@@ -448,6 +466,7 @@ del_full_collection_t(#occi_collection{id=#occi_cid{class=mixin}=Cid}=Coll, #occ
 		  end, Entities),
     mnesia:delete({occi_collection, Cid}).
 
+
 del_mixin_t(#occi_mixin{id=Cid}=Mixin) ->
     case mnesia:wread({occi_collection, Cid}) of
 	[#occi_collection{}=Coll] ->
@@ -456,11 +475,13 @@ del_mixin_t(#occi_mixin{id=Cid}=Mixin) ->
 	    ok
     end.
 
+
 get_mixin_t(#occi_cid{}=Cid) ->
     case occi_store:get(Cid) of
 	{ok, #occi_mixin{}=Mixin} -> Mixin;
 	_ -> mnesia:abort({error, {invalid_cid, Cid}})
     end.
+
 
 check_entity_t(#uri{}=Id) ->
     case occi_uri:is_rel(Id) of
@@ -477,5 +498,70 @@ check_entity_t(#uri{}=Id) ->
 	    case occi_store:find(#occi_node{id=Id, _='_'}) of
 		{ok, []} -> false;
 		{ok, [_]} -> true
+	    end
+    end.
+
+
+get_resource_t(Id) ->
+    case occi_uri:is_rel(Id) of
+	true ->
+	    case mnesia:wread({occi_node, Id}) of
+		[] -> false;
+		[#occi_node{objid=ObjId}] ->
+		    case mnesia:wread({occi_resource, ObjId}) of
+			[] -> false;
+			[Res] -> {ok, Res}
+		    end
+	    end;
+	false ->
+	    case occi_store:find(#occi_node{id=Id, _='_'}) of
+		{ok, []} -> false;
+		{ok, [#occi_resource{}=Res]} -> Res
+	    end
+    end.
+
+
+get_entity_t(Id) ->
+    case mnesia:wread({occi_node, Id}) of
+	[] -> false;
+	[#occi_node{objid=ObjId}] ->
+	    case mnesia:wread({occi_resource, ObjId}) of
+		[] -> 
+		    case mnesia:wread({occi_link, ObjId}) of
+			[] -> false;
+			[Link] -> {ok, Link}
+		    end;
+		[Res] -> {ok, Res}
+	    end
+    end.
+
+
+get_resource_links_t(#occi_node{id=ResId, owner=Owner, data=Res}=Node) ->
+    Links = occi_resource:get_links(Res),
+    F = fun (#uri{}=Link, {AccUris, AccNodes}) ->
+		{ sets:add_element(Link, AccUris), AccNodes };
+	    (#occi_link{}=Link, {AccUris, AccNodes}) ->
+		Id = create_link_id(ResId),
+		LinkNode = occi_node:new(Link#occi_link{id=Id, source=ResId}, Owner),
+		{ sets:add_element({inline, Id}, AccUris), [ LinkNode | AccNodes ] }
+	end,
+    {LinksIds, LinksNodes} = lists:foldl(F, {sets:new(), []}, Links),
+    { Node#occi_node{data=Res#occi_resource{links=LinksIds}}, LinksNodes }.
+
+
+create_link_id(#uri{path=Path}=Id) ->
+    Id#uri{path=Path ++ "_links/" ++ uuid:to_string(uuid:uuid4())}.
+
+
+get_link_node_t(Id) ->
+    case mnesia:wread({occi_node, Id}) of
+	[] -> 
+	    mnesia:abort({unknown_node, Id});
+	[#occi_node{objid=ObjId}] ->
+	    case mnesia:wread({occi_link, ObjId}) of
+		[] ->
+		    mnesia:abort({unknown_object, ObjId});
+		[Link] ->
+		    Link#occi_link{id=Id}
 	    end
     end.

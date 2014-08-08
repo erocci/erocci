@@ -58,17 +58,22 @@ parse(#jid{node=Node, domain=Domain}) ->
     #uri{scheme='xmpp+occi', userinfo=Node, host=Domain};
 parse(<<$u, $r, $n, $:, Uri>>) ->
     #uri{scheme=urn, path=binary_to_list(Uri)};
+parse(<<>>) ->
+    #uri{scheme=undefined, path=""};
 parse(<<"/">>) ->
     #uri{scheme=undefined, path="/"};
 parse(<<"/", Uri/bits>>) ->
     #uri{scheme=undefined, path=[$/|binary_to_list(Uri)]};
 parse(Uri) when is_binary(Uri) ->
-    case uri:parse(binary_to_list(Uri)) of
+    Str = binary_to_list(Uri),
+    case uri:parse(Str) of
 	{ok, {Scheme, UserInfo, Host, Port, Path, Query}} ->
 	    #uri{scheme=Scheme, userinfo=UserInfo, host=Host, port=Port, path=Path, query=Query};
+        {error, no_scheme} ->
+             #uri{path=Str};
         {error, Err} ->
-            throw({error, {Err, Uri}})
-    end.
+             throw({error, {Err, Uri}})
+     end.
 
 -spec gen_urn(Nid :: string(), Seed :: string()) -> uri().
 gen_urn(Nid, Seed) ->
@@ -149,6 +154,8 @@ to_iolist(Uri, #occi_env{host=#uri{}=Host}) ->
 
 to_iolist(undefined) ->
     [];
+to_iolist(#uri{scheme=undefined, path=P}) ->
+    P;
 to_iolist(#uri{scheme='xmpp+occi', userinfo=U, host=H, path=P, 'query'=Q}) ->
     ["xmpp+occi:", U, "@", H, P, Q];
 to_iolist(#uri{scheme=urn, path=Path}) ->

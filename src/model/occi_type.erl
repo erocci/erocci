@@ -28,16 +28,19 @@
 -export([check/2]).
 
 -spec check(occi_attr_type(), term()) -> term().
-check({?xmlschema_ns, string}, Val) ->
+check({?xmlschema_ns, Type}, Val) ->
+    check(Type, Val);
+
+check(string, Val) ->
     to_string(Val);
 
-check({?xmlschema_ns, integer}, Val) ->
+check(integer, Val) ->
     to_integer(Val);
 
-check({?xmlschema_ns, float}, Val) ->
+check(float, Val) ->
     to_float(Val);
 
-check({?xmlschema_ns, anyURI}, Val) ->
+check(anyURI, Val) ->
     to_uri(Val);
 
 check(_, Val) ->

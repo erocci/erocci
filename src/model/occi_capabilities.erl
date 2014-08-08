@@ -32,13 +32,14 @@
 
 -spec new() -> occi_node().
 new() ->
-    #occi_node{type=capabilities, owner=nobody, data={[],[],[]}}.
+    #occi_node{id=#uri{path="/-/"}, type=capabilities, objid=capabilities, owner=nobody, data={[],[],[]}}.
 
 -spec new([occi_kind()], [occi_mixin()], [occi_action()]) -> occi_node().
 new(Kinds, Mixins, Actions) when is_list(Kinds),
 				 is_list(Mixins),
 				 is_list(Actions) ->
-    #occi_node{id=#uri{path="/"}, type=capabilities, owner=nobody, data={Kinds, Mixins, Actions}}.
+    #occi_node{id=#uri{path="/-/"}, objid=capabilities, type=capabilities, owner=nobody, 
+	       data={Kinds, Mixins, Actions}}.
 
 -spec set(occi_node(), [occi_kind()], [occi_mixin()], [occi_action()]) -> occi_node().
 set(#occi_node{type=capabilities}=N, Kinds, Mixins, Actions) when is_list(Kinds),

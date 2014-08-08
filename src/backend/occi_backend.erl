@@ -72,7 +72,7 @@
     {{ok, occi_node()}, term()} |
     {{error, Reason :: term()}, State :: term()}.
 
--callback action({Node :: occi_node(), Action :: occi_action()}, State :: term()) ->
+-callback action({Id :: occi_node_id(), Action :: occi_action()}, State :: term()) ->
     {ok, term()} |
     {{error, Reason :: term()}, State :: term()}.
 
@@ -200,7 +200,7 @@ handle_cast(_Msg, State) ->
 %% @end
 %%--------------------------------------------------------------------
 handle_info(Info, #state{mod=Mod, state=BState}=State) ->
-    case erlang:function_exported(Mod, handle_info) of
+    case erlang:function_exported(Mod, handle_info, 2) of
 	true ->
 	    Mod:handle_info(Info, BState),
 	    {noreply, State};

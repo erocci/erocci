@@ -58,31 +58,31 @@
 new() ->
     #occi_resource{attributes=orddict:from_list(?CORE_ATTRS), links=sets:new()}.
 
--spec new(occi_kind() | uri()) -> occi_resource().
+-spec new(occi_kind() | term()) -> occi_resource().
 new(#occi_kind{}=Kind) ->
     Attrs = [orddict:to_list(occi_kind:get_attributes(Kind)),
 	     ?CORE_ATTRS],
     #occi_resource{cid=occi_kind:get_id(Kind), 
                    attributes=orddict:from_list(lists:flatten(Attrs)),
                    links=sets:new()};
-new(#uri{}=Id) ->
+new(Id) ->
     #occi_resource{id=Id, 
 		   attributes=orddict:from_list(?CORE_ATTRS), 
 		   links=sets:new()}.
 
--spec new(Id :: uri(), Kind :: occi_kind()) -> occi_resource().
-new(#uri{}=Id, #occi_kind{}=Kind) ->
+-spec new(Id :: occi_objid(), Kind :: occi_kind()) -> occi_resource().
+new(Id, #occi_kind{}=Kind) ->
     Attrs = [orddict:to_list(occi_kind:get_attributes(Kind)),
 	     ?CORE_ATTRS],
     #occi_resource{id=Id, cid=occi_kind:get_id(Kind), 
                    attributes=orddict:from_list(lists:flatten(Attrs)),
                    links=sets:new()}.
 
--spec new(Id :: uri(), 
+-spec new(Id :: occi_objid(), 
 	  Kind :: occi_kind(), 
 	  Mixins :: [occi_mixin()], 
 	  Attributes :: [{Key :: atom(), Val :: term}]) -> occi_resource().
-new(#uri{}=Id, #occi_kind{}=Kind, Mixins, Attributes) ->
+new(Id, #occi_kind{}=Kind, Mixins, Attributes) ->
     Attrs = [?CORE_ATTRS,
 	     orddict:to_list(occi_kind:get_attributes(Kind)),
 	     lists:map(fun (Mixin) ->
@@ -99,11 +99,9 @@ new(#uri{}=Id, #occi_kind{}=Kind, Mixins, Attributes) ->
 get_id(#occi_resource{id=Id}) ->
     Id.
 
--spec set_id(occi_resource(), uri() | binary()) -> occi_resource().
-set_id(#occi_resource{}=Res, #uri{}=Id) ->
-    Res#occi_resource{id=Id};
-set_id(#occi_resource{}=Res, Id) when is_binary(Id) ->
-    Res#occi_resource{id=occi_uri:parse(Id)}.
+-spec set_id(occi_resource(), occi_objid() | binary()) -> occi_resource().
+set_id(#occi_resource{}=Res, Id) ->
+    Res#occi_resource{id=Id}.
 
 -spec get_cid(occi_resource()) -> occi_cid().
 get_cid(#occi_resource{cid=Cid}) ->
@@ -201,19 +199,19 @@ reset(#occi_resource{attributes=Attrs}=Res) ->
                                              end, Attrs)}.
 
 -spec add_prefix(occi_resource(), string()) -> occi_resource().
-add_prefix(#occi_resource{id=Id, links=Links}=Res, Prefix) ->
+add_prefix(#occi_resource{links=Links}=Res, Prefix) ->
     Links2 = sets:fold(fun (#uri{}=U, Acc) ->
-                                sets:add_element(occi_uri:add_prefix(U, Prefix), Acc);
-                          (#occi_link{}=L, Acc) ->
+			       sets:add_element(occi_uri:add_prefix(U, Prefix), Acc);
+			   (#occi_link{}=L, Acc) ->
                                sets:add_element(occi_link:add_prefix(L, Prefix), Acc)
                        end, sets:new(), Links),
-    Res#occi_resource{id=occi_uri:add_prefix(Id, Prefix), links=Links2}.
+    Res#occi_resource{links=Links2}.
 
 -spec rm_prefix(occi_resource(), string()) -> occi_resource().
-rm_prefix(#occi_resource{id=Id, links=Links}=Res, Prefix) ->
+rm_prefix(#occi_resource{links=Links}=Res, Prefix) ->
     Links2 = sets:fold(fun (#uri{}=U, Acc) ->
                                 sets:add_element(occi_uri:rm_prefix(U, Prefix), Acc);
                           (#occi_link{}=L, Acc) ->
                                sets:add_element(occi_link:rm_prefix(L, Prefix), Acc)
                        end, sets:new(), Links),
-    Res#occi_resource{id=occi_uri:rm_prefix(Id, Prefix), links=Links2}.
+    Res#occi_resource{links=Links2}.

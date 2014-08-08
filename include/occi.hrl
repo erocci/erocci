@@ -92,8 +92,10 @@
 		    value           = undefined  :: any()}).
 -type(occi_attr() :: #occi_attr{}).
 
+-type occi_objid() :: term().
+
 %%% OCCI Resource
--record(occi_resource, {id         = undefined :: term(),       % internal id for backend
+-record(occi_resource, {id         = undefined :: occi_objid(),       % internal id for backend
 			cid        = undefined :: occi_cid(),
 		        summary    = undefined :: binary(),
 			attributes = undefined :: term(),       % orddict()
@@ -102,7 +104,7 @@
 -type(occi_resource() :: #occi_resource{}).
 
 %%% OCCI Link
--record(occi_link, {id         = undefined :: term(),           % internal id for backend
+-record(occi_link, {id         = undefined :: occi_objid(),           % internal id for backend
 		    cid        = undefined :: occi_cid(),
 		    attributes = undefined :: term(),           % orddict()
 		    source                 :: uri(),
@@ -112,7 +114,7 @@
 -type(occi_link() :: #occi_link{}).
 
 %%% OCCI Entity
--record(occi_entity, {id       = undefined :: uri(),
+-record(occi_entity, {id       = undefined :: occi_objid(),
 		      cid                  :: occi_cid()}).
 -type(occi_entity() :: #occi_entity{}).
 
@@ -142,14 +144,13 @@
 -type(gid() :: integer()).
 
 -type(occi_node_id() :: uri()).
--type(occi_node_objid() :: atom() | uri() | occi_cid()).
 -type(occi_node_type() :: mountpoint |
 			  capabilities |
 			  occi_resource | 
 			  occi_link |
 			  occi_collection).
 -record(occi_node, {id                     :: occi_node_id(),
-		    objid     = undefined  :: occi_node_objid(),
+		    objid     = undefined  :: occi_objid(),
 		    type      = undefined  :: occi_node_type(),
 		    data      = undefined  :: term(),
 		    etag      = undefined  :: term(),

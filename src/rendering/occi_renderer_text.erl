@@ -32,12 +32,12 @@
 %%%===================================================================
 %%% API
 %%%===================================================================
-render(#occi_node{type=occi_resource, data=Res}, Env, Renderer) ->
-    Headers = render_resource(Res, orddict:new(), Env),
+render(#occi_node{id=Id, type=occi_resource, data=Res}, Env, Renderer) ->
+    Headers = render_resource(Id, Res, orddict:new(), Env),
     Renderer(Headers, Env);
 
-render(#occi_node{type=occi_link, data=Link}, Env, Renderer) ->
-    Headers = render_link(Link, orddict:new(), Env),
+render(#occi_node{id=Id, type=occi_link, data=Link}, Env, Renderer) ->
+    Headers = render_link(Id, Link, orddict:new(), Env),
     Renderer(Headers, Env);
 
 render(#occi_node{type=capabilities, data={Kinds, Mixins, Actions}}, Env, Renderer) ->
@@ -82,7 +82,7 @@ render_category(#occi_action{}=Action, Hdr, Env) ->
 render_cid(#occi_cid{}=Cid, Acc, Env) ->
     add_header_value(<<"category">>, build_cid(Cid, Env), Acc).
 
-render_resource(#occi_resource{}=Res, Acc, Env) ->
+render_resource(Id, #occi_resource{}=Res, Acc, Env) ->
     Acc2 = render_cid(occi_resource:get_cid(Res), Acc, Env),
     Acc3 = sets:fold(fun(X, IntAcc) -> render_cid(X, IntAcc, Env) end, 
 		     Acc2, occi_resource:get_mixins(Res)),
@@ -90,9 +90,9 @@ render_resource(#occi_resource{}=Res, Acc, Env) ->
 		       Acc3, occi_resource:get_attributes(Res)),
     Acc5 = lists:foldl(fun (X, IntAcc) -> render_inline_link(X, IntAcc, Env) end, 
 		       Acc4, occi_resource:get_links(Res)),
-    render_location(occi_resource:get_id(Res), Acc5, Env).
+    render_location(Id, Acc5, Env).
 
-render_link(#occi_link{}=Link, Acc, Env) ->
+render_link(Id, #occi_link{}=Link, Acc, Env) ->
     Acc2 = render_cid(occi_link:get_cid(Link), Acc, Env),
     Acc3 = sets:fold(fun (X, IntAcc) -> render_cid(X, IntAcc, Env) end, 
 		     Acc2, occi_link:get_mixins(Link)),
@@ -101,12 +101,12 @@ render_link(#occi_link{}=Link, Acc, Env) ->
 	      | occi_link:get_attributes(Link)],
     Acc4 = lists:foldl(fun (X, IntAcc) -> render_attribute(X, IntAcc, Env) end, 
 		       Acc3, Attrs),
-    render_location(occi_link:get_id(Link), Acc4, Env).
+    render_location(Id, Acc4, Env).
 
 render_inline_link(#uri{}=Uri, Acc, Env) ->
     add_header_value(<<"link">>, occi_uri:to_iolist(Uri, Env), Acc);
-render_inline_link(#occi_link{}=Link, Acc, Env) ->
-    add_header_value(<<"link">>, build_inline_link(Link, Env), Acc).
+render_inline_link(#occi_node{id=LinkId, data=Link}, Acc, Env) ->
+    add_header_value(<<"link">>, build_inline_link(LinkId, Link, Env), Acc).
 
 render_location(#uri{}=Uri, Acc, Env) ->
     add_header_value(<<"location">>, occi_uri:to_iolist(Uri, Env), Acc).
@@ -171,9 +171,9 @@ format_value(#uri{}=U, Env) ->
 format_value(V, _) ->
     V.
 
-build_inline_link(#occi_link{}=Link, Env) ->
+build_inline_link(Id, #occi_link{}=Link, Env) ->
     L = [ [ "<", occi_uri:to_iolist(occi_link:get_target(Link), Env), ">" ],
-			 render_kv("self", occi_uri:to_iolist(occi_link:get_id(Link), Env), Env),
+			 render_kv("self", occi_uri:to_iolist(Id, Env), Env),
 			 render_kv("category", render_cid_uri(occi_link:get_cid(Link)), Env)],
     L2 = lists:foldl(fun (Attr, Acc) ->
 			     [ build_attribute(Attr, Env) | Acc ]

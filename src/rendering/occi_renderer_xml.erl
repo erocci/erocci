@@ -38,21 +38,21 @@
 %%%
 %%% API
 %%%
-render(Node, Env) ->
+render(#occi_node{}=Node, Env) ->
     {[render_xml(to_xmlel(Node, Env)), "\n"], Env}.
 
-to_xmlel(#occi_node{type=occi_resource, data=Res}, Env) ->
+to_xmlel(#occi_node{id=Id, type=occi_resource, data=Res}, Env) ->
     E = make_ns([?declared_occi_ns, ?declared_xlink_ns],
 		exmpp_xml:element(
 		  ?occi_ns, resource,
-		  [exmpp_xml:attribute(<<"id">>, occi_uri:to_binary(occi_resource:get_id(Res), Env)),
+		  [exmpp_xml:attribute(<<"id">>, occi_uri:to_binary(Id, Env)),
 		   exmpp_xml:attribute(<<"title">>, occi_resource:get_attr_value(Res, 'occi.core.title'))], 
 		  [make_cid(kind, occi_resource:get_cid(Res))])),
    lists:foldl(
      fun (#uri{}=Link, Acc) -> 
 	     render_rel(Acc, link, Link, Env);
-	 (#occi_link{}=Link, Acc) ->
-	     exmpp_xml:append_child(Acc, make_link(Link, Env))
+	 (#occi_node{id=LinkId, data=Link}, Acc) ->
+	     exmpp_xml:append_child(Acc, make_link(LinkId, Link, Env))
      end, 
      lists:foldl(
        fun (Attr, Acc) -> render_attribute(Acc, Attr, Env) end, 
@@ -62,8 +62,8 @@ to_xmlel(#occi_node{type=occi_resource, data=Res}, Env) ->
        occi_resource:get_attributes(Res)),
      occi_resource:get_links(Res));
 
-to_xmlel(#occi_node{type=occi_link, data=Link}, Env) ->
-    make_ns([?declared_occi_ns, ?declared_xlink_ns], make_link(Link, Env));
+to_xmlel(#occi_node{id=Id, type=occi_link, data=Link}, Env) ->
+    make_ns([?declared_occi_ns, ?declared_xlink_ns], make_link(Id, Link, Env));
 
 to_xmlel(#occi_node{type=capabilities, data={Kinds, Mixins, Actions}}, Env) ->
     Children = lists:map(fun (X) -> render_kind(X, Env) end, Kinds)
@@ -72,7 +72,7 @@ to_xmlel(#occi_node{type=capabilities, data={Kinds, Mixins, Actions}}, Env) ->
     make_ns([?declared_occi_ns],
 	    exmpp_xml:element(?occi_ns, capabilities, [], Children));
 
-to_xmlel(#occi_node{type=occi_user_mixin, data=Mixin}, Env) ->
+to_xmlel(#occi_node{type=capabilities, data=Mixin}, Env) ->
     render_mixin(Mixin, Env);
 
 to_xmlel(#occi_node{type=occi_collection, objid=Id, data=Coll}, Env) ->
@@ -80,7 +80,7 @@ to_xmlel(#occi_node{type=occi_collection, objid=Id, data=Coll}, Env) ->
 		#occi_cid{} -> 
 		    [ exmpp_xml:attribute(<<"scheme">>, Id#occi_cid.scheme),
 		      exmpp_xml:attribute(<<"term">>, Id#occi_cid.term) ];
-		#uri{} -> []
+		_ -> []
 	    end,
     make_ns([?declared_occi_ns, ?declared_xlink_ns],
 	    exmpp_xml:element(
@@ -93,7 +93,7 @@ to_xmlel(#occi_node{type=occi_collection, objid=Id, data=Coll}, Env) ->
 %%%
 %%% Private
 %%%
-make_link(#occi_link{}=Link, Env) ->
+make_link(Id, #occi_link{}=Link, Env) ->
     C = [make_cid(kind, occi_link:get_cid(Link)),
 	 make_attribute('occi.core.target', occi_link:get_target(Link), Env)],
     C2 = case occi_link:get_source(Link) of
@@ -105,7 +105,7 @@ make_link(#occi_link{}=Link, Env) ->
 	     V -> [exmpp_xml:attribute(<<"title">>, V)]
 	end,
     E = exmpp_xml:element(?occi_ns, link,
-			  [exmpp_xml:attribute(<<"id">>, occi_uri:to_string(occi_link:get_id(Link), Env)) | A],
+			  [exmpp_xml:attribute(<<"id">>, occi_uri:to_string(Id, Env)) | A],
 			  C2),
     E2 = orddict:fold(
 	   fun (_Key, Attr, Acc) -> 

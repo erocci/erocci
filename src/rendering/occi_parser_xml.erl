@@ -32,6 +32,7 @@
 
 %% API
 -export([load_extension/1,
+	 parse_extension/1,
          parse_el/1,
          parse_full/1,
          parse_action/3,
@@ -97,17 +98,8 @@ load_extension(Path) ->
     {ok, Data} = file:read_file(Path),
     parse_extension(Data, []).
 
-parse_extension(Data, _Env) ->
-    case parse_full(Data, #state{}) of
-        {ok, #occi_extension{}=Ext} ->
-            lager:info("Loaded extension: ~s~n", [occi_extension:get_name(Ext)]),
-            Ext;
-        {error, Reason} ->
-            lager:error("Error loading extension: ~p~n", [Reason]),
-            {error, parse_error};
-        _ ->
-            {error, {parse_error, not_an_extension}}
-    end.
+parse_extension(Data) ->
+    parse_extension(Data, []).
 
 parse_action(Data, _Env, Action) ->
     case parse_full(Data, #state{action=Action}) of
@@ -173,6 +165,18 @@ parse_collection(Data, _Env) ->
 %%%===================================================================
 %%% gen_fsm callbacks
 %%%===================================================================
+parse_extension(Data, _Env) ->
+    case parse_full(Data, #state{}) of
+        {ok, #occi_extension{}=Ext} ->
+            lager:info("Loaded extension: ~s~n", [occi_extension:get_name(Ext)]),
+            Ext;
+        {error, Reason} ->
+            lager:error("Error loading extension: ~p~n", [Reason]),
+            {error, parse_error};
+        _ ->
+            {error, {parse_error, not_an_extension}}
+    end.
+
 init(#parser{}=Parser) ->
     {ok, init, Parser#parser{stack=[init]}}.
 

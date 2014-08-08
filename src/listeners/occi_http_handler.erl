@@ -126,15 +126,17 @@ content_types_accepted(Req, State) ->
      ],
      Req, State}.
 
+
 allow_missing_post(Req, State) ->
     {false, Req, State}.
 
-resource_exists(Req, #state{node=#occi_node{type=capabilities}}=State) ->
-    {true, Req, State};
+
 resource_exists(Req, #state{node=#occi_node{objid=undefined}}=State) ->
     {false, Req, State};
+
 resource_exists(Req, State) ->
     {true, Req, State}.
+
 
 is_authorized(Req, #state{op=Op, node=Node}=State) ->
     case occi_http_common:auth(Req) of
@@ -168,6 +170,10 @@ is_conflict(Req, #state{node=#occi_node{id=#uri{}, type=occi_link}}=State) ->
 is_conflict(Req, State) ->
     {false, Req, State}.
 
+
+delete_resource(Req, #state{node=#occi_node{type=capabilities, data=undefined}}=State) ->
+    {true, Req, State};
+    
 delete_resource(Req, #state{node=Node}=State) ->
     case occi_store:delete(Node) of
 	{error, Reason} ->
@@ -283,7 +289,7 @@ save_entity(Req, #state{env=Env, user=User, node=Node, ct=#content_type{parser=P
 		    {true, Req2, State};
 		{error, Reason} ->
 		    lager:error("Error creating resource: ~p~n", [Reason]),
-		    {halt, Req2, State}
+		    {false, Req2, State}
 	    end;
 	{ok, #occi_link{}=Link} ->
 	    Node2 = occi_node:new(Link, User),
@@ -292,7 +298,7 @@ save_entity(Req, #state{env=Env, user=User, node=Node, ct=#content_type{parser=P
 		    {true, Req2, State};
 		{error, Reason} ->
 		    lager:error("Error creating link: ~p~n", [Reason]),
-		    {halt, Req2, State}
+		    {false, Req2, State}
 	    end
     end.
 
@@ -535,13 +541,21 @@ get_node(Path, Filters) ->
     Url = occi_uri:parse(Path),
     case occi_store:find(#occi_node{id=#uri{path=Url#uri.path}, _='_'}, Filters) of
 	{ok, []} -> #occi_node{id=Url};
-	{ok, [#occi_node{}=N]} -> N
+	{ok, [#occi_node{}=N]} -> N;
+	{error, Err} ->
+	    lager:error("Error looking for node:~n~p~n", [Err]),
+	    throw({error, Err})
     end.
 
 get_caps_node([#occi_cid{}=Cid]) ->
-    case occi_store:find(#occi_node{id=#uri{path="/-/"}, type=capabilities, objid=Cid, _='_'}) of
-	{ok, []} -> ?caps;
-	{ok, [#occi_node{}=N]} -> N
+    Node = #occi_node{id=#uri{path="/-/"}, type=capabilities, objid=Cid, _='_'},
+    case occi_store:find(Node) of
+	{ok, []} -> 
+	    lager:debug("No such mixin: ~p~n", [lager:pr(Cid, ?MODULE)]),
+	    Node#occi_node{data=undefined};
+	{ok, [#occi_node{}=N]} -> 
+	    lager:debug("Found capabilities node: ~p~n", [N]),
+	    N
     end;
 get_caps_node(_) ->
     {ok, [#occi_node{}=N]} = occi_store:find(?caps),

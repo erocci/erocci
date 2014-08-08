@@ -101,17 +101,6 @@ save(#occi_node{type=occi_collection, objid=#occi_cid{}}=Node) ->
     lager:debug("occi_store:save(~p)~n", [lager:pr(Node, ?MODULE)]),
     cast(save, filter_collection(Node));
 
-save(#occi_node{id=#uri{path=Path}, type=occi_resource}=Node) ->
-    lager:debug("occi_store:save(~p)~n", [lager:pr(Node, ?MODULE)]),
-    case get_backend(Path) of
-	{ok, #occi_node{id=#uri{path=Prefix}, objid=Ref}} ->
-	    {ResNode, LinksNodes} = process_resource_links(Node),
-	    occi_backend:save(Ref, occi_node:rm_prefix(ResNode, Prefix)),
-	    save_resource_links(LinksNodes);
-	{error, Err} ->
-	    {error, Err}
-    end;
-
 save(#occi_node{id=#uri{path=Path}}=Node) ->
     lager:debug("occi_store:save(~p)~n", [lager:pr(Node, ?MODULE)]),
     case get_backend(Path) of
@@ -178,7 +167,8 @@ delete(#occi_node{id=#uri{path=Path}}=Node) ->
 	    {error, Err}
     end;
 
-delete(_) ->
+delete(_Node) ->
+    lager:debug("occi_store:delete(~p)~n", [_Node]),
     {error, unsupported_node}.
 
 -spec get(occi_cid()) -> {ok, occi_category()} | {error, term()}.
@@ -196,7 +186,7 @@ find(#occi_node{type=capabilities, objid=#occi_cid{}=Cid}=Req) ->
 			{ok, [#occi_node{}=Node]} ->
 			    {ok, [occi_node:add_prefix(Node, Prefix)]};
 			{ok, []} ->
-			    {ok, [occi_capabilities:new()]};
+			    {ok, []};
 			{error, Err} ->
 			    {error, Err}
 		    end;
@@ -315,12 +305,7 @@ action(#occi_node{type=occi_collection, data=#occi_collection{entities=E}}=_N, #
 			end, [], E),
     cast(action, Reqs);
 
-action(#occi_node{type=dir}=Node, #occi_action{}=A) ->
-    lager:debug("occi_store:action(~p, ~p)~n", [lager:pr(Node, ?MODULE), lager:pr(A, ?MODULE)]),
-    Reqs = build_dir_reqs(Node, A),
-    cast(action, Reqs);
-
-action(#occi_node{objid=#uri{path=Path}=Id}=_N, #occi_action{}=A) ->
+action(#occi_node{id=#uri{path=Path}=Id}=_N, #occi_action{}=A) ->
     lager:debug("occi_store:action(~p, ~p)~n", [lager:pr(_N, ?MODULE), lager:pr(A, ?MODULE)]),
     case get_backend(Path) of
 	{error, Err} -> throw({error, Err});
@@ -472,19 +457,19 @@ filter_collection(#occi_node{type=occi_collection, data=#occi_collection{id=Cid,
 	end,
     gb_trees:to_list(ordsets:fold(F, gb_trees:empty(), E)).
 
-build_dir_reqs(#occi_node{type=dir, data=Children}, A) ->
-    gb_sets:fold(fun (#occi_node{type=dir}=Child, Acc) ->
-			 Acc ++ build_dir_reqs(Child, A);
-		     (#uri{path=Path}=Uri, Acc) ->
-			 case get_backend(Path) of
-			     {error, Err} -> throw({error, Err});
-			     {ok, #occi_node{id=#uri{path=Prefix}}=Backend} ->
-				 [{Backend, {occi_uri:rm_prefix(Uri, Prefix), A}} | Acc]
-			 end
-		 end, [], Children).
+%% build_dir_reqs(#occi_node{type=dir, data=Children}, A) ->
+%%     gb_sets:fold(fun (#occi_node{type=dir}=Child, Acc) ->
+%% 			 Acc ++ build_dir_reqs(Child, A);
+%% 		     (#uri{path=Path}=Uri, Acc) ->
+%% 			 case get_backend(Path) of
+%% 			     {error, Err} -> throw({error, Err});
+%% 			     {ok, #occi_node{id=#uri{path=Prefix}}=Backend} ->
+%% 				 [{Backend, {occi_uri:rm_prefix(Uri, Prefix), A}} | Acc]
+%% 			 end
+%% 		 end, [], Children).
 
 load_user_mixins(#occi_node{objid=Ref}) ->
-    case occi_backend:find(Ref, #occi_node{type=capabilities, _='_'}) of
+    case occi_backend:find(Ref, #occi_node{id=#uri{path="/-/"}, type=capabilities, _='_'}) of
 	{ok, [#occi_node{data={_, Mixins, _}}]} ->
 	    lists:foreach(fun (Mixin) -> 
 				  occi_category_mgr:register_mixin(Mixin)
@@ -492,34 +477,3 @@ load_user_mixins(#occi_node{objid=Ref}) ->
 	{error, Err} ->
 	    {error, Err}
     end.
-
-process_resource_links(#occi_node{id=ResId, owner=Owner, data=Res}=Node) ->
-    {Links, LinksNodes} = lists:foldl(fun (#uri{}=Link, {AccUris, AccNodes}) ->
-					      { sets:add_element(Link, AccUris), AccNodes };
-					  (#occi_link{}=Link, {AccUris, AccNodes}) ->
-					      Id = create_link_id(Link),
-					      LinkNode = occi_node:new(Link#occi_link{id=Id, source=ResId}, Owner),
-					      { AccUris, [ LinkNode | AccNodes ]}
-				      end, {sets:new(), []}, occi_resource:get_links(Res)),
-    { Node#occi_node{data=Res#occi_resource{links=Links}},
-      LinksNodes }.
-
-save_resource_links([]) ->
-    ok;
-save_resource_links([ Node | Nodes ]) ->
-    case save(Node) of
-	ok ->
-	    save_resource_links(Nodes);
-	{error, Err} ->
-	    {error, Err}
-    end.
-
-    
-create_link_id(#occi_link{cid=KindId}) ->
-    case occi_category_mgr:get(KindId) of
-	{ok, #occi_kind{location=#uri{path=Prefix}}} ->
-	    occi_config:gen_id(Prefix);
-	{error, _} ->
-	    throw({error, {invalid_kind, KindId}})
-    end.
-	    

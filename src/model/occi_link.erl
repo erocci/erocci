@@ -60,8 +60,8 @@
 new() ->
     #occi_link{attributes=orddict:from_list(?CORE_ATTRS)}.
 
--spec new(Id :: uri(), Kind :: occi_kind()) -> occi_link().
-new(#uri{}=Id, #occi_kind{}=Kind) ->
+-spec new(Id :: occi_objid(), Kind :: occi_kind()) -> occi_link().
+new(Id, #occi_kind{}=Kind) ->
     Attrs = [orddict:to_list(occi_kind:get_attributes(Kind)),
 	     ?CORE_ATTRS],
     #occi_link{id=Id, cid=occi_kind:get_id(Kind), 
@@ -74,11 +74,11 @@ new(#occi_kind{}=Kind) ->
     #occi_link{cid=occi_kind:get_id(Kind), 
                attributes=orddict:from_list(lists:flatten(Attrs))};
 
-new(#uri{}=Uri) ->
-    #occi_link{id=Uri, attributes=orddict:from_list(?CORE_ATTRS)}.
+new(Id) ->
+    #occi_link{id=Id, attributes=orddict:from_list(?CORE_ATTRS)}.
 
--spec new(uri(), occi_kind(), [occi_mixin()], [{atom(), term}], uri()) -> occi_link().
-new(#uri{}=Id, #occi_kind{}=Kind, Mixins, Attributes, Target) ->
+-spec new(occi_objid(), occi_kind(), [occi_mixin()], [{atom(), term}], uri()) -> occi_link().
+new(Id, #occi_kind{}=Kind, Mixins, Attributes, Target) ->
     Attrs = [?CORE_ATTRS,
 	     orddict:to_list(occi_kind:get_attributes(Kind)),
 	     lists:map(fun (Mixin) ->
@@ -96,11 +96,9 @@ new(#uri{}=Id, #occi_kind{}=Kind, Mixins, Attributes, Target) ->
 get_id(#occi_link{id=Id}) ->
     Id.
 
--spec set_id(occi_link(), uri() | string()) -> occi_link().
-set_id(#occi_link{}=L, #uri{}=Id) ->
-    L#occi_link{id=Id};
+-spec set_id(occi_link(), occi_objid()) -> occi_link().
 set_id(#occi_link{}=L, Id) ->
-    L#occi_link{id=occi_uri:parse(Id)}.
+    L#occi_link{id=Id}.
 
 -spec get_source(occi_link()) -> uri().
 get_source(#occi_link{source=Src}) ->
@@ -213,13 +211,11 @@ reset(#occi_link{attributes=Attrs}=Link) ->
                                           end, Attrs)}.
 
 -spec add_prefix(occi_link(), string()) -> occi_link().
-add_prefix(Link, Prefix) ->
-    L = Link#occi_link{id=occi_uri:add_prefix(Link#occi_link.id, Prefix)},
-    L2 = L#occi_link{source=occi_uri:add_prefix(L#occi_link.source, Prefix)},
-    L2#occi_link{target=occi_uri:add_prefix(L2#occi_link.target, Prefix)}.
+add_prefix(#occi_link{source=Src, target=Target}=Link, Prefix) ->
+    Link#occi_link{source=occi_uri:add_prefix(Src, Prefix),
+		   target=occi_uri:add_prefix(Target, Prefix)}.
 
 -spec rm_prefix(occi_link(), string()) -> occi_link().
-rm_prefix(Link, Prefix) ->
-    L = Link#occi_link{id=occi_uri:rm_prefix(Link#occi_link.id, Prefix)},
-    L2 = L#occi_link{source=occi_uri:rm_prefix(L#occi_link.source, Prefix)},
-    L2#occi_link{target=occi_uri:rm_prefix(L2#occi_link.target, Prefix)}.
+rm_prefix(#occi_link{source=Src, target=Target}=Link, Prefix) ->
+    Link#occi_link{source=occi_uri:rm_prefix(Src, Prefix),
+		   target=occi_uri:rm_prefix(Target, Prefix)}.
