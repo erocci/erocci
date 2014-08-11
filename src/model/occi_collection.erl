@@ -41,35 +41,40 @@
 new() ->
     #occi_collection{entities=ordsets:new()}.
 
+
 new(#uri{}=Id) ->
     #occi_collection{id=Id, entities=ordsets:new()};
 
 new(#occi_cid{}=Cid) ->
     #occi_collection{id=Cid, entities=ordsets:new()}.
 
+
 new(#uri{}=Id, Elements) when is_list(Elements) ->
     #occi_collection{id=Id, entities=ordsets:from_list(Elements)};
+
 new(#occi_cid{}=Cid, Elements) when is_list(Elements) ->
     #occi_collection{id=Cid, entities=ordsets:from_list(Elements)}.
 
-add_entity(#occi_collection{entities=E}=C, #occi_link{id=Id}) ->
-    C#occi_collection{entities=ordsets:add_element(Id, E)};
-add_entity(#occi_collection{entities=E}=C, #occi_resource{id=Id}) ->
-    C#occi_collection{entities=ordsets:add_element(Id, E)};
-add_entity(#occi_collection{entities=E}=C, #uri{}=Uri) ->
+
+add_entity(#occi_collection{entities=E}=C, Uri) ->
     C#occi_collection{entities=ordsets:add_element(Uri, E)}.
+
 
 add_entities(#occi_collection{entities=E}=C, E2) when is_list(E2) ->
     C#occi_collection{entities=ordsets:union(ordsets:from_list(E2), E)}.
 
+
 del_entity(#occi_collection{entities=E}=C, Uri) ->
     C#occi_collection{entities=ordsets:del_element(Uri, E)}.
+
 
 del_entities(#occi_collection{entities=E}=C, Uris) ->
     C#occi_collection{entities=ordsets:subtract(E, ordsets:from_list(Uris))}.
 
+
 get_entities(#occi_collection{entities=E}) ->
     ordsets:to_list(E).
+
 
 is_empty(#occi_collection{entities=E}) ->
     case ordsets:size(E) of

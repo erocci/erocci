@@ -150,26 +150,37 @@ find_node_t(#occi_node{type=capabilities}=Caps) ->
 	    lists:foldl(F, Caps, Mixins)
     end;
 
-find_node_t(#occi_node{type=occi_collection}=Node) ->
-    mnesia:match_object(Node);
+%find_node_t(#occi_node{type=occi_collection}=Node) ->
+%    mnesia:match_object(Node);
 
 find_node_t(#occi_node{id=Id}) ->
     case mnesia:wread({occi_node, Id}) of
 	[] -> [];
-	[Node] -> [Node]
+	[Node] -> [Node#occi_node{data=undefined}]
     end.
 
-load_node_t(#occi_node{type=occi_collection, objid=Id}=Node) ->
+load_node_t(#occi_node{type=occi_collection, objid=#occi_cid{}=Id}=Node) ->
     case mnesia:wread({occi_collection, Id}) of
 	[] ->
-	    case Id of
-		#occi_cid{} ->
-		    Node#occi_node{data=occi_collection:new(Id)};
-		_ ->
-		    mnesia:abort({unknown_node, Id})
-	    end;
+	    Node#occi_node{data=occi_collection:new(Id)};
 	[Coll] ->
 	    Node#occi_node{data=Coll}
+    end;
+
+load_node_t(#occi_node{id=CollId, type=occi_collection}) ->
+    case mnesia:wread({occi_node, CollId}) of
+	[] ->
+	    mnesia:abort({unknown_node, CollId});
+	[#occi_node{data=#occi_collection{entities=Entities}=Coll}=Node] ->
+	    F = fun ({entity, Id}, Acc) -> 
+			ordsets:add_element(Id, Acc);
+		    ({collection, Id}, Acc) ->
+			#occi_node{data=#occi_collection{entities=Entities2}} = 
+			    load_node_t(#occi_node{id=Id, type=occi_collection}),
+			ordsets:union(Acc, Entities2)
+		end,
+	    NewColl = Coll#occi_collection{entities=ordsets:fold(F, ordsets:new(), Entities)},
+	    Node#occi_node{data=NewColl}
     end;
 
 load_node_t(#occi_node{type=occi_resource, objid=Id}=Node) ->
@@ -276,7 +287,7 @@ save_node_t(#occi_node{id=Id}=Node) ->
 	    mnesia:write(Node#occi_node{data=undefined});
 	[] -> 
 	    mnesia:write(Node#occi_node{data=undefined}),
-	    add_to_collection_t(occi_uri:get_parent(Id), Id)
+	    add_to_collection_t(occi_uri:get_parent(Id), {entity, Id})
     end.
 
 update_t(#occi_node{type=capabilities}=Node) ->
@@ -314,7 +325,7 @@ add_to_collection_t(#uri{path=Path}=Parent, Child) ->
 	    mnesia:abort({unknown_collection, Parent})
     end,
     if Path == [] -> ok;
-       true -> add_to_collection_t(occi_uri:get_parent(Parent), Parent)
+       true -> add_to_collection_t(occi_uri:get_parent(Parent), {collection, Parent})
     end;
 
 add_to_collection_t(#occi_cid{class=kind}=Cid, Uris) ->

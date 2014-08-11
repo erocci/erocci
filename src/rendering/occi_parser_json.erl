@@ -312,9 +312,9 @@ resource(#token{name=key, data = <<"id">>}, _From, Ctx) ->
     {reply, ok, resource_id, Ctx};
 resource(#token{name=key, data = <<"links">>}, _From, Ctx) ->
     {reply, ok, resource_links, Ctx};
-resource(#token{name=objEnd}, _From, #parser{state=#state{entity=Res, request=Req}=State}=Ctx) ->
+resource(#token{name=objEnd}, _From, #parser{state=#state{entity=Entity, request=Req}=State}=Ctx) ->
     {reply, ok, resources,
-     ?set_state(Ctx, State#state{entity=undefined, request=occi_request:add_entity(Req, Res)})};
+     ?set_state(Ctx, State#state{entity=undefined, request=occi_request:add_entity(Req, Entity)})};
 resource(Token, _From, Ctx) ->
     occi_parser:parse_error(Token, Ctx).
 
@@ -480,8 +480,8 @@ link(#token{name=objEnd}, _From,
      #parser{state=#state{entity=#occi_resource{}=R, link=#occi_link{}=L}=S}=Ctx) ->
     % Inline links
     {reply, ok, links, ?set_state(Ctx, S#state{entity=occi_resource:add_link(R, L), link=undefined})};
-link(#token{name=objEnd}, _From, #parser{state=#state{entity=L, request=Req}=S}=Ctx) ->
-    {reply, ok, links, ?set_state(Ctx, S#state{entity=undefined, request=occi_request:add_entity(Req, L)})};
+link(#token{name=objEnd}, _From, #parser{state=#state{entity=Link, request=Req}=S}=Ctx) ->
+    {reply, ok, links, ?set_state(Ctx, S#state{entity=undefined, request=occi_request:add_entity(Req, Link)})};
 link(Token, _From, Ctx) ->
     occi_parser:parse_error(Token, Ctx).
 
