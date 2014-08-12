@@ -33,8 +33,8 @@
 	 save/2,
 	 delete/2,
 	 find/2,
-	 load/2,
-	 action/2]).
+	 load/3,
+	 action/3]).
 
 -record(state, {id             :: atom(),
 		wait           :: integer()}).
@@ -43,40 +43,40 @@
 %%% occi_backend callbacks
 %%%===================================================================
 init(#occi_backend{ref=Ref, opts=Opts}) ->
-    {ok, #state{id=Ref, wait=proplists:get_value(wait, Opts, 0)}}.
+    {ok, [], #state{id=Ref, wait=proplists:get_value(wait, Opts, 0)}}.
 
 terminate(#state{}) ->
     ok.
 
-save(Obj, #state{id=Id, wait=Wait}=State) when is_record(Obj, occi_node);
+save(#state{id=Id, wait=Wait}=State, Obj) when is_record(Obj, occi_node);
 		      is_record(Obj, occi_mixin) ->
     lager:info("[~p] save(~p)~n", [Id, lager:pr(Obj, ?MODULE)]),
     timer:sleep(Wait),
     {ok, State}.
 
-delete(Obj, #state{id=Id, wait=Wait}=State) when is_record(Obj, occi_node);
+delete(#state{id=Id, wait=Wait}=State, Obj) when is_record(Obj, occi_node);
 			is_record(Obj, occi_mixin) ->
     lager:info("[~p] delete(~p)~n", [Id, lager:pr(Obj, ?MODULE)]),
     timer:sleep(Wait),
     {ok, State}.
 
-update(#occi_node{}=Node, #state{id=Id, wait=Wait}=State) ->
+update(#state{id=Id, wait=Wait}=State, #occi_node{}=Node) ->
     lager:info("[~p] update(~p)~n", [Id, lager:pr(Node, ?MODULE)]),
     timer:sleep(Wait),
     {ok, State}.
 
-find(Obj, #state{id=Id, wait=Wait}=State) when is_record(Obj, occi_node);
+find(#state{id=Id, wait=Wait}=State, Obj) when is_record(Obj, occi_node);
 				    is_record(Obj, occi_mixin) ->
     lager:info("[~p] find(~p)~n", [Id, lager:pr(Obj, ?MODULE)]),
     timer:sleep(Wait),
     {{ok, []}, State}.
 
-load(#occi_node{}=Req, #state{id=Id, wait=Wait}=State) ->
+load(#state{id=Id, wait=Wait}=State, #occi_node{}=Req, _Opts) ->
     lager:info("[~p] load(~p)~n", [Id, lager:pr(Req, ?MODULE)]),
     timer:sleep(Wait),
     {{ok, Req}, State}.
 
-action({#uri{}=Id, #occi_action{}=A}, State) ->
+action(State, #uri{}=Id, #occi_action{}=A) ->
     lager:info("[~p] action(~p, ~p)~n", [?MODULE, Id, A]),
     {ok, State}.
 

@@ -31,7 +31,7 @@
 	 save/2,
 	 delete/2,
 	 find/2,
-	 load/2,
+	 load/3,
 	 action/3,
 	 cast/3,
 	 cancel/2]).
@@ -46,33 +46,34 @@
 		pending         :: term()}).
 
 -callback init(Backend :: occi_backend()) ->
-    {ok, Schemas :: occi_schemas(), State :: term()} |
+    {ok, Caps :: [occi_backend_capability()], State :: term()} |
     {error, Reason :: term()}.
 
 -callback terminate(State :: term()) ->
     term().
 
--callback update(Node :: occi_node(), State :: term()) ->
+-callback update(State :: term(), Node :: occi_node()) ->
     {ok, State :: term()} |
     {{error, Reason :: term()}, State :: term()}.
 
--callback save(Node :: occi_node() | occi_mixin(), State :: term()) ->
+-callback save(State :: term(), Node :: occi_node() | occi_mixin()) ->
     {ok, State :: term()} |
     {{error, Reason :: term()}, State :: term()}.
 
--callback delete(Node :: occi_node() | occi_mixin(), State :: term()) ->
+-callback delete(State :: term(), Node :: occi_node() | occi_mixin()) ->
     {ok, State :: term()} |
     {{error, Reason :: term()}, State :: term()}.
 
--callback find(Request :: occi_node(), State :: term()) ->
+-callback find(State :: term(), Request :: occi_node()) ->
     {{ok, [occi_node()]}, term()} |
     {{error, Reason :: term()}, State :: term()}.
 
--callback load(Node :: occi_node(), State :: term()) ->
+-callback load(State :: term(), Node :: occi_node(), Opts :: [load_opt()]) ->
     {{ok, occi_node()}, term()} |
+    {{ok, occi_node(), occi_marker()}, term()} |
     {{error, Reason :: term()}, State :: term()}.
 
--callback action({Id :: occi_node_id(), Action :: occi_action()}, State :: term()) ->
+-callback action(State :: term(), Id :: occi_node_id(), Action :: occi_action()) ->
     {ok, term()} |
     {{error, Reason :: term()}, State :: term()}.
 
@@ -85,22 +86,22 @@ start_link(#occi_backend{ref=Ref, mod=Mod}=Backend) ->
     gen_server:start_link({local, Ref}, ?MODULE, Backend, []).
 
 update(Ref, Node) ->
-    gen_server:call(Ref, {update, Node}).
+    gen_server:call(Ref, {update, [Node]}).
 
 save(Ref, Obj) ->
-    gen_server:call(Ref, {save, Obj}).
+    gen_server:call(Ref, {save, [Obj]}).
 
 delete(Ref, Obj) ->
-    gen_server:call(Ref, {delete, Obj}).
+    gen_server:call(Ref, {delete, [Obj]}).
 
 find(Ref, Request) ->
-    gen_server:call(Ref, {find, Request}).
+    gen_server:call(Ref, {find, [Request]}).
 
-load(Ref, Request) ->
-    gen_server:call(Ref, {load, Request}).
+load(Ref, Request, Opts) ->
+    gen_server:call(Ref, {load, [Request, Opts]}).
 
 action(Ref, Id, Action) ->
-    gen_server:call(Ref, {action, {Id, Action}}).
+    gen_server:call(Ref, {action, [Id, Action]}).
 
 cast(Ref, Op, Req) ->
     gen_server:call(Ref, {cast, Op, Req}).
@@ -123,8 +124,8 @@ cancel(Ref, Tag) ->
 init(#occi_backend{ref=Ref, mod=Mod}=Backend) ->
     T = ets:new(Mod, [set, public, {keypos, 1}]),
     case Mod:init(Backend) of
-	{ok, Schemas, BackendState} ->
-	    case occi_category_mgr:load_schemas(Ref, Schemas) of
+	{ok, Caps, BackendState} ->
+	    case init_schemas(Ref, proplists:get_value(schemas, Caps))  of
 		ok -> 
 		    {ok, #state{ref=Ref, mod=Mod, pending=T, state=BackendState}};
 		{error, Err} -> 
@@ -151,7 +152,7 @@ init(#occi_backend{ref=Ref, mod=Mod}=Backend) ->
 handle_call({cast, Op, Req}, {Pid, Tag}, #state{mod=Mod, pending=T, state=BState}=State) ->
     ets:insert(T, {Tag, Pid}),
     F = fun () ->
-		{Reply, _} = Mod:Op(Req, BState),
+		{Reply, _} = erlang:apply(Mod, Op, [BState | Req]),
 		case ets:match_object(T, {Tag, '_'}) of
 		    [] ->
 			% Operation canceled
@@ -165,7 +166,7 @@ handle_call({cast, Op, Req}, {Pid, Tag}, #state{mod=Mod, pending=T, state=BState
     {reply, Tag, State#state{state=BState}};
 
 handle_call({Op, Request}, _From, #state{mod=Mod, state=BState}=State) ->
-    {Reply, RState} = Mod:Op(Request, BState),
+    {Reply, RState} = erlang:apply(Mod, Op, [BState | Request]),
     {reply, Reply, State#state{mod=Mod, state=RState}};
 
 handle_call(Req, From, State) ->
@@ -234,3 +235,27 @@ terminate(_Reason, #state{pending=T, mod=Mod, state=State}) ->
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
+
+init_schemas(_, undefined) ->
+    ok;
+
+init_schemas(_, []) ->
+    ok;
+
+init_schemas(Ref, [{path, Path} | Tail]) ->
+    case occi_category_mgr:load_schema(Ref, {path, Path}) of
+	ok -> init_schemas(Ref, Tail);
+	{error, Err} -> {error, Err}
+    end;
+
+init_schemas(Ref, [Bin | Tail]) when is_binary(Bin) ->
+    case occi_category_mgr:load_schema(Ref, Bin) of
+	ok -> init_schemas(Ref, Tail);
+	{error, Err} -> {error, Err}
+    end;
+
+init_schemas(Ref, [#occi_mixin{}=M | Tail]) ->
+    case occi_category_mgr:register_mixin(M) of
+	ok -> init_schemas(Ref, Tail);
+	{error, Err} -> {error, Err}
+    end.

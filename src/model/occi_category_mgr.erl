@@ -32,7 +32,7 @@
 -export([get/1,
 	 find/1,
 	 find_all/0,
-	 load_schemas/2,
+	 load_schema/2,
 	 register_kind/1,
 	 register_mixin/1,
 	 register_action/1,
@@ -50,11 +50,8 @@ init() ->
 		       [ordered_set, public, {keypos, 2}, named_table, {read_concurrency, true}]),
     ok.
 
--spec load_schemas(Backend :: atom(), Schemas :: list()) -> ok | {error, term()}.
-load_schemas(_, []) ->
-    ok;
-
-load_schemas(Backend, [Ext | Tail]) ->
+-spec load_schema(Backend :: atom(), Schema :: occi_schema()) -> ok | {error, term()}.
+load_schema(_Backend, Ext) ->
     case get_extension(Ext) of
 	{error, parse_error} ->
 	    {error, parse_error};
@@ -64,8 +61,7 @@ load_schemas(Backend, [Ext | Tail]) ->
 			     (#occi_mixin{id=Id}=Mixin) ->
 				  register_mixin(Mixin#occi_mixin{location=get_uri(Id)})
 			  end,
-			  occi_extension:get_categories(E)),
-	    load_schemas(Backend, Tail)
+			  occi_extension:get_categories(E))
     end.
 
 

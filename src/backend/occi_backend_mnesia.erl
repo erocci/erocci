@@ -33,8 +33,8 @@
 	 save/2,
 	 delete/2,
 	 find/2,
-	 load/2,
-	 action/2]).
+	 load/3,
+	 action/3]).
 
 -record(state, {}).
 
@@ -47,11 +47,20 @@ init(#occi_backend{opts=Opts}) ->
 	undefined -> 
 	    {ok, [], #state{}};
 	Schemas ->
-	    {ok, Schemas, #state{}}
+	    F = fun() -> mnesia:match_object(#occi_node{type=capabilities, _='_'}) end,
+	    case mnesia:transaction(F) of
+		{atomic, []} -> 
+		    {ok, [{schemas, Schemas}], #state{}};
+		{atomic, MixinsNodes} ->
+		    Mixins = [ Mixin || #occi_node{data=Mixin} <- MixinsNodes],
+		    {ok, [{schemas, lists:flatten([Schemas, Mixins])}], #state{}};
+		{aborted, Reason} ->
+		    {error, Reason}
+	    end
     end.
 
 init_db() ->
-    case mnesia:system_info(extra_db_nodes) of
+    case mnesia:system_info(running_db_nodes) of
 	[] ->
 	    mnesia:create_schema([node()]);
 	_ ->
@@ -62,26 +71,33 @@ init_db() ->
 			[{disc_copies, [node()]},
 			 {attributes, record_info(fields, occi_collection)}]),
     mnesia:create_table(occi_resource,
-		       [{disc_copies, [node()]},
-			{attributes, record_info(fields, occi_resource)}]),
+			[{disc_copies, [node()]},
+			 {attributes, record_info(fields, occi_resource)}]),
     mnesia:create_table(occi_link,
-		       [{disc_copies, [node()]},
-			{attributes, record_info(fields, occi_link)}]),
+			[{disc_copies, [node()]},
+			 {attributes, record_info(fields, occi_link)}]),
     mnesia:create_table(occi_mixin,
-		       [{disc_copies, [node()]},
-			{attributes, record_info(fields, occi_mixin)}]),
+			[{disc_copies, [node()]},
+			 {attributes, record_info(fields, occi_mixin)}]),
     mnesia:create_table(occi_node,
-		       [{disc_copies, [node()]},
-			{attributes, record_info(fields, occi_node)}]),
-    mnesia:create_table(occi_user, [{disc_copies, [node()]},
-			{attributes, record_info(fields, occi_user)}]),
-    mnesia:wait_for_tables([occi_collection, occi_resource, occi_link, occi_mixin, occi_node, occi_user],
-			   infinite).
+			[{disc_copies, [node()]},
+			 {attributes, record_info(fields, occi_node)}]),
+    mnesia:create_table(occi_user, 
+			[{disc_copies, [node()]},
+			 {attributes, record_info(fields, occi_user)}]),
+    mnesia:wait_for_tables([occi_collection, 
+			    occi_resource,
+			    occi_link,
+			    occi_mixin,
+			    occi_node,
+			    occi_node, 
+			    occi_user], 5000).
+
 
 terminate(#state{}) ->
     ok.
 
-save(#occi_node{}=Obj, State) ->
+save(State, #occi_node{}=Obj) ->
     lager:info("[~p] save(~p)~n", [?MODULE, Obj#occi_node.id]),
     case mnesia:transaction(fun () -> save_t(Obj) end) of
 	{atomic, ok} ->
@@ -90,7 +106,7 @@ save(#occi_node{}=Obj, State) ->
 	    {{error, Reason}, State}
     end.
 
-delete(#occi_node{}=Obj, State) ->
+delete(State, #occi_node{}=Obj) ->
     lager:info("[~p] delete(~p)~n", [?MODULE, Obj#occi_node.id]),
     case mnesia:transaction(fun () -> del_node_t(Obj) end) of
 	{atomic, ok} ->
@@ -99,7 +115,7 @@ delete(#occi_node{}=Obj, State) ->
 	    {{error, Reason}, State}
     end.
 
-update(#occi_node{}=Node, State) ->
+update(State, #occi_node{}=Node) ->
     lager:info("[~p] update(~p)~n", [?MODULE, Node#occi_node.id]),
     case mnesia:transaction(fun () -> update_t(Node) end) of
 	{atomic, ok} ->
@@ -108,7 +124,7 @@ update(#occi_node{}=Node, State) ->
 	    {{error, Reason}, State}
     end.    
 
-find(#occi_node{}=Obj, State) ->
+find(State, #occi_node{}=Obj) ->
     lager:info("[~p] find(~p)~n", [?MODULE, Obj#occi_node.id]),
     case mnesia:transaction(fun () ->
 				    find_node_t(Obj)
@@ -119,7 +135,7 @@ find(#occi_node{}=Obj, State) ->
 	    {{error, Reason}, State}
     end.
 
-load(#occi_node{}=Req, State) ->
+load(State, #occi_node{}=Req, _Opts) ->
     lager:info("[~p] load(~p)~n", [?MODULE, Req#occi_node.id]),
     case mnesia:transaction(fun () ->
 				    load_node_t(Req)
@@ -130,7 +146,7 @@ load(#occi_node{}=Req, State) ->
 	    {{error, Reason}, State}
     end.
 
-action({#uri{}=Id, #occi_action{}=A}, State) ->
+action(State, #uri{}=Id, #occi_action{}=A) ->
     lager:info("[~p] action(~p, ~p)~n", [?MODULE, Id, A]),
     {ok, State}.
 

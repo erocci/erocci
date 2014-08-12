@@ -261,13 +261,19 @@ update(Req, #state{node=#occi_node{type=undefined}}=State) ->
 
 
 render(Req, #state{node=Node, ct=#content_type{renderer=Renderer}, env=Env}=State) ->
-    case occi_store:load(Node) of
-	{ok, Node2} ->
-	    {Body, #occi_env{req=Req2}} = Renderer:render(Node2, Env#occi_env{req=Req}),
-	    {Body, Req2, State};
-	{error, Err} ->
-	    lager:error("Error loading object: ~p~n", [Err]),
-	    {ok, Req2} = cowboy_req:reply(500, Req),
+    try parse_load_opts(Req) of
+	Opts ->
+	    case occi_store:load(Node, Opts) of
+		{ok, Node2} ->
+		    {Body, #occi_env{req=Req2}} = Renderer:render(Node2, Env#occi_env{req=Req}),
+		    {<<Body/binary, "~n">>, Req2, State};
+		{error, Err} ->
+		    lager:error("Error loading object: ~p~n", [Err]),
+		    {ok, Req2} = cowboy_req:reply(500, Req),
+		    {halt, Req2, State}
+	    end
+    catch _:_ ->
+	    {ok, Req2} = cowboy_req:reply(400, Req),
 	    {halt, Req2, State}
     end.
 
@@ -535,6 +541,28 @@ parse_attr_filter([ Attr | Rest ], Acc) ->
 	[] -> parse_attr_filter(Rest, Acc);
 	[Val] -> parse_attr_filter(Rest, [Val | Acc]);
 	[Name, Val] -> parse_attr_filter(Rest, [ {Name, Val} | Acc ])
+    end.
+
+parse_load_opts(Req) ->
+    parse_marker(Req, []).
+
+parse_marker(Req, Acc) ->
+    case cowboy_req:qs_val(<<"marker">>, Req) of
+	{undefined, _} -> parse_limit(Req, Acc);
+	{Bin, _} -> parse_limit(Req, [{marker, Bin} | Acc])
+    end.
+
+parse_limit(Req, Acc) ->
+    case cowboy_req:qs_val(<<"limit">>, Req) of
+	{undefined, _} -> parse_deep(Req, Acc);
+	{Bin, _} -> parse_deep(Req, [ {limit, binary_to_integer(Bin)} | Acc ])
+    end.
+
+parse_deep(Req, Acc) ->
+    case cowboy_req:qs_val(<<"deep">>, Req) of
+	{true, _} -> [deep | Acc];
+	{<<"1">>, _} -> [deep | Acc];
+	_ -> Acc
     end.
 
 get_node(Path, Filters) ->
