@@ -51,7 +51,7 @@ to_xmlel(#occi_node{id=Id, type=occi_resource, data=Res}, Env) ->
    lists:foldl(
      fun (#uri{}=Link, Acc) -> 
 	     render_rel(Acc, link, Link, Env);
-	 (#occi_node{id=LinkId, data=Link}, Acc) ->
+	 (#occi_link{id=LinkId}=Link, Acc) ->
 	     exmpp_xml:append_child(Acc, make_link(LinkId, Link, Env))
      end, 
      lists:foldl(

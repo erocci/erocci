@@ -115,7 +115,7 @@ render_ejson(ResId, #occi_resource{}=Res, Env) ->
 		,{attributes, render_attribute_values(occi_resource:get_attributes(Res), Env)}
 		,{links, lists:map(fun (#uri{}=Link) ->
 					   occi_uri:to_binary(Link, Env);
-				       (#occi_node{id=LinkId, data=Link}) ->
+				       (#occi_link{id=LinkId}=Link) ->
 					   render_ejson(LinkId, Link, Env)
 				   end, occi_resource:get_links(Res))}
 	       ]);

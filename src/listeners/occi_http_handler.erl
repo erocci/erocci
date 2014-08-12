@@ -381,7 +381,7 @@ update_collection(Req, #state{ct=#content_type{parser=Parser}, env=Env,
 	    Node2 = occi_node:new(Res, User),
 	    case occi_store:save(Node2) of
 		ok ->
-		    {{true, occi_uri:to_binary(Node2#occi_node.objid, Env)}, Req2, State};
+		    {{true, occi_uri:to_binary(Node2#occi_node.id, Env)}, Req2, State};
 		{error, Reason} ->
 		    lager:error("Error creating resource: ~p~n", [Reason]),
 		    {halt, Req2, State}
@@ -390,7 +390,7 @@ update_collection(Req, #state{ct=#content_type{parser=Parser}, env=Env,
 	    Node2 = occi_node:new(Link, User),
 	    case occi_store:save(Node2) of
 		ok ->
-		    {{true, occi_uri:to_binary(Node2#occi_node.objid, Env)}, Req2, State};
+		    {{true, occi_uri:to_binary(Node2#occi_node.id, Env)}, Req2, State};
 		{error, Reason} ->
 		    lager:error("Error creating link: ~p~n", [Reason]),
 		    {halt, Req2, State}
