@@ -242,7 +242,7 @@ init_schemas(_, undefined) ->
 init_schemas(_, []) ->
     ok;
 
-init_schemas(Ref, [{path, Path} | Tail]) ->
+init_schemas(Ref, [{Type, Path} | Tail]) when Type =:= xml orelse Type =:= path ->
     case occi_category_mgr:load_schema(Ref, {path, Path}) of
 	ok -> init_schemas(Ref, Tail);
 	{error, Err} -> {error, Err}

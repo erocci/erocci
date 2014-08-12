@@ -67,7 +67,7 @@ while getopts ":hdqtsc:x:p:" opt; do
 	    esac
 	    ;;
 	c)
-	    if [ -e ${basedir}/$OPTARG ]; then
+	    if [ -e $OPTARG ]; then
 		config=`pwd`/$OPTARG
 	    elif [ -e ${configdir}/$OPTARG ]; then
 		config=${configdir}/$OPTARG
