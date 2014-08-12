@@ -194,7 +194,12 @@ load_node_t(#occi_node{id=CollId, type=occi_collection}, Opts) ->
 	    mnesia:abort({unknown_node, CollId});
 	[#occi_node{data=#occi_collection{entities=Entities}=Coll}=Node] ->
 	    F = fun ({entity, Id}, Acc) -> 
-			ordsets:add_element(Id, Acc);
+			case proplists:get_bool(deep, Opts) of
+			    true ->
+				ordsets:add_element(get_node_t(Id), Acc);
+			    false ->
+				ordsets:add_element(Id, Acc)
+			end;
 		    ({collection, Id}, Acc) ->
 			#occi_node{data=#occi_collection{entities=Entities2}} = 
 			    load_node_t(#occi_node{id=Id, type=occi_collection}, Opts),
