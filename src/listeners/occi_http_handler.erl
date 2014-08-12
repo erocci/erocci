@@ -412,7 +412,7 @@ update_collection(Req, #state{ct=#content_type{parser=Parser}, node=#occi_node{o
 	    case occi_store:update(Node2) of
 		ok ->
 		    {true, Req, State};
-		{error, {no_such_entity, Uri}} ->
+		{error, {unknown_entity, Uri}} ->
 		    lager:debug("Invalid entity: ~p~n", [lager:pr(Uri, ?MODULE)]),
 		    {false, Req2, State};
 		{error, Reason} ->

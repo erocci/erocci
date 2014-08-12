@@ -82,7 +82,7 @@ terminate(#state{}) ->
     ok.
 
 save(#occi_node{}=Obj, State) ->
-    lager:info("[~p] save(~p)~n", [?MODULE, Obj]),
+    lager:info("[~p] save(~p)~n", [?MODULE, Obj#occi_node.id]),
     case mnesia:transaction(fun () -> save_t(Obj) end) of
 	{atomic, ok} ->
 	    {ok, State};
@@ -91,7 +91,7 @@ save(#occi_node{}=Obj, State) ->
     end.
 
 delete(#occi_node{}=Obj, State) ->
-    lager:info("[~p] delete(~p)~n", [?MODULE, Obj]),
+    lager:info("[~p] delete(~p)~n", [?MODULE, Obj#occi_node.id]),
     case mnesia:transaction(fun () -> del_node_t(Obj) end) of
 	{atomic, ok} ->
 	    {ok, State};
@@ -100,7 +100,7 @@ delete(#occi_node{}=Obj, State) ->
     end.
 
 update(#occi_node{}=Node, State) ->
-    lager:info("[~p] update(~p)~n", [?MODULE, Node]),
+    lager:info("[~p] update(~p)~n", [?MODULE, Node#occi_node.id]),
     case mnesia:transaction(fun () -> update_t(Node) end) of
 	{atomic, ok} ->
 	    {ok, State};
@@ -109,7 +109,7 @@ update(#occi_node{}=Node, State) ->
     end.    
 
 find(#occi_node{}=Obj, State) ->
-    lager:info("[~p] find(~p)~n", [?MODULE, Obj]),
+    lager:info("[~p] find(~p)~n", [?MODULE, Obj#occi_node.id]),
     case mnesia:transaction(fun () ->
 				    find_node_t(Obj)
 			    end) of
@@ -120,7 +120,7 @@ find(#occi_node{}=Obj, State) ->
     end.
 
 load(#occi_node{}=Req, State) ->
-    lager:info("[~p] load(~p)~n", [?MODULE, Req]),
+    lager:info("[~p] load(~p)~n", [?MODULE, Req#occi_node.id]),
     case mnesia:transaction(fun () ->
 				    load_node_t(Req)
 			    end) of
@@ -208,10 +208,11 @@ load_resource_node_t(#occi_node{data=#occi_resource{links=OrigLinks}=Res}=Node) 
     Node#occi_node{data=Res#occi_resource{links=Links}}.
 
 
-save_t(#occi_node{id=Id, type=occi_resource}=Node) ->
+save_t(#occi_node{id=Id, type=occi_resource, data=Res}=Node) ->
     ObjId = make_ref(),
-    { #occi_node{data=Res}=Node2, LinksNodes } = get_resource_links_t(Node#occi_node{objid=ObjId}),
-    save_entity_t(Id, occi_resource:set_id(Res, ObjId)),
+    { Node2, LinksNodes } = 
+	get_resource_links_t(Node#occi_node{objid=ObjId, data=occi_resource:set_id(Res, ObjId)}),
+    save_entity_t(Id, Node2#occi_node.data),
     save_resource_links_t(LinksNodes),
     save_node_t(Node2);
 
@@ -298,7 +299,8 @@ update_t(#occi_node{type=occi_collection, data=#occi_collection{id=#occi_cid{}=C
     Entities = occi_collection:get_entities(Coll),
     lists:foreach(fun (#uri{}=Id) ->
 			  case get_entity_t(Id) of
-			      false -> mnesia:abort({no_such_entity, Id});
+			      false -> 
+				  mnesia:abort({unknown_entity, Id});
 			      {ok, Entity} ->
 				  mnesia:write(occi_entity:add_mixin(Entity, Mixin))
 			  end
@@ -315,7 +317,6 @@ add_to_collection_t(none, _) ->
     ok;
 
 add_to_collection_t(#uri{path=Path}=Parent, Child) ->
-    lager:debug("add_to_collection_t(~p, ~p)~n", [Parent, Child]),
     case mnesia:wread({occi_node, Parent}) of
 	[] ->
 	    mnesia:write(occi_node:new(Parent, occi_collection:new(Parent, [Child])));
@@ -329,7 +330,6 @@ add_to_collection_t(#uri{path=Path}=Parent, Child) ->
     end;
 
 add_to_collection_t(#occi_cid{class=kind}=Cid, Uris) ->
-    lager:debug("add_to_collection_t(~p, ~p)~n", [Cid, Uris]),
     case mnesia:wread({occi_collection, Cid}) of
 	[#occi_collection{}=C] ->
 	    mnesia:write(occi_collection:add_entities(C, Uris));
@@ -338,7 +338,6 @@ add_to_collection_t(#occi_cid{class=kind}=Cid, Uris) ->
     end;
 
 add_to_collection_t(#occi_cid{class=mixin}=Cid, Uris) ->
-    lager:debug("add_to_collection_t(~p, ~p)~n", [Cid, Uris]),
     case mnesia:wread({occi_collection, Cid}) of
 	[#occi_collection{}=C] ->
 	    mnesia:write(occi_collection:add_entities(C, Uris));
@@ -396,7 +395,6 @@ del_entity_t(#occi_link{id=Id, cid=Cid}=Link) ->
     mnesia:delete({occi_link, Id}).
 
 del_from_collection_t(#uri{}=Id, Uri) ->
-    lager:debug("Remove from collection ~p: ~p~n", [Id, Uri]),
     case mnesia:wread({occi_node, Id}) of
 	[] ->
 	    mnesia:abort({unkown_collection, Id});
@@ -413,37 +411,29 @@ del_from_collection_t(#uri{}=Id, Uri) ->
     end;
 
 del_from_collection_t(#occi_cid{}=Cid, Uris) ->
-    lager:debug("Remove from collection ~p: ~p~n", [Cid, Uris]),
     case mnesia:wread({occi_collection, Cid}) of
 	[#occi_collection{}=C] ->
 	    mnesia:write(occi_collection:del_entities(C, Uris));
 	[] ->
-	    mnesia:abort({error, unknown_collection})
+	    mnesia:abort({unknown_collection, Cid})
     end.
 
 del_collection_t(#occi_collection{id=#occi_cid{class=kind}=Cid}=Coll) ->
+    F = fun (#uri{}=Id, Acc) ->
+		case mnesia:wread({occi_node, Id}) of
+		    [#occi_node{type=Type, objid=ObjId}=N] ->
+			Node = load_node_t(N),
+			mnesia:delete({Type, ObjId}),
+			del_node_t(Node),
+			sets:fold(fun (MixinId, Acc2) ->
+					  dict:append(MixinId, Id, Acc2)
+				  end, Acc, occi_entity:get_mixins(Node#occi_node.data));
+		    [] ->
+			mnesia:abort({unknown_object, Id})
+		end
+	end,
     Uris = occi_collection:get_entities(Coll),
-    Colls = lists:foldl(fun (#uri{}=Uri, Acc) ->
-				case mnesia:wread({occi_resource, Uri}) of
-				    [#occi_resource{id=Id}=Res] ->
-					mnesia:delete({occi_resource, Id}),
-					del_node_t(occi_node:new(Uri, Res)),
-					sets:fold(fun (MixinId, Acc2) ->
-							  dict:append(MixinId, Uri, Acc2)
-						  end, Acc, occi_resource:get_mixins(Res));
-				    [] ->
-					case mnesia:wread({occi_link, Uri}) of
-					    [#occi_link{id=Id}=Link] ->
-						mnesia:delete({occi_link, Id}),
-						del_node_t(occi_node:new(Uri, Link)),
-						sets:fold(fun (MixinId, Acc2) ->
-								  dict:append(MixinId, Uri, Acc2)
-							  end, Acc, occi_link:get_mixins(Link));
-					    [] ->
-						mnesia:abort({error, unknown_object})
-					end
-				end
-			end, dict:new(), Uris),
+    Colls = lists:foldl(F, dict:new(), Uris),
     dict:map(fun (Key, Values) ->
 		     del_from_collection_t(Key, Values)
 	     end, dict:append_list(Cid, Uris, Colls)),
@@ -460,7 +450,7 @@ del_collection_t(#occi_collection{id=#occi_cid{class=mixin}=Cid}=Coll, #occi_mix
 			      [#occi_resource{}=Res] ->
 				  mnesia:write(occi_resource:del_mixin(Res, Mixin));
 			      [] ->
-				  mnesia:abort({error, unknown_object})
+				  mnesia:abort({unknown_object, Uri})
 			  end
 		  end, Entities),
     del_from_collection_t(Cid, Entities).
@@ -472,7 +462,7 @@ del_full_collection_t(#occi_collection{id=#occi_cid{class=mixin}=Cid}=Coll, #occ
 			      [#occi_resource{}=Res] ->
 				  mnesia:write(occi_resource:del_mixin(Res, Mixin));
 			      [] ->
-				  mnesia:abort({error, unknown_object})
+				  mnesia:abort({unknown_object, Uri})
 			  end
 		  end, Entities),
     mnesia:delete({occi_collection, Cid}).
@@ -490,7 +480,7 @@ del_mixin_t(#occi_mixin{id=Cid}=Mixin) ->
 get_mixin_t(#occi_cid{}=Cid) ->
     case occi_store:get(Cid) of
 	{ok, #occi_mixin{}=Mixin} -> Mixin;
-	_ -> mnesia:abort({error, {invalid_cid, Cid}})
+	_ -> mnesia:abort({invalid_cid, Cid})
     end.
 
 

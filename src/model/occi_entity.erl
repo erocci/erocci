@@ -32,6 +32,7 @@
 	 new/2,
 	 set_id/2,
 	 add_mixin/2,
+	 get_mixins/1,
 	 set_attr_value/3]).
 -export([merge_attrs/2,
 	 rm_attrs/2]).
@@ -65,6 +66,12 @@ add_mixin(#occi_resource{}=Res, Mixin) ->
     occi_resource:add_mixin(Res, Mixin);
 add_mixin(#occi_link{}=Link, Mixin) ->
     occi_link:add_mixin(Link, Mixin).
+
+-spec get_mixins(occi_resource() | occi_link()) -> term(). % set()
+get_mixins(#occi_resource{}=Res) ->
+    occi_resource:get_mixins(Res);
+get_mixins(#occi_link{}=Link) ->
+    occi_link:get_mixins(Link).
 
 -spec set_attr_value(occi_resource() | occi_link(), atom(), term()) -> occi_resource() | occi_link().
 set_attr_value(#occi_resource{}=Res, Name, Value) ->
