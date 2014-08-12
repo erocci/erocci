@@ -10,6 +10,18 @@
 
 -define(xmlschema_ns, 'http://www.w3.org/2001/XMLSchema').
 
+-type occi_marker() :: binary().
+-type load_opt() :: {marker, occi_marker()}
+		  | {limit, integer()}
+		  | deep.
+-type occi_schema() :: binary()
+		     | occi_mixin()
+		     | [{path, string()}].
+
+-type occi_backend_capability() :: {schemas, [occi_schema()]}
+				 | pagination
+				 | deep.
+
 -record(occi_env, {host, req}).
 -type occi_env() :: #occi_env{}.
 
@@ -169,18 +181,5 @@
 -type(acl_node() :: capabilities | acl_url()).
 -type(acl_url() :: binary()).
 -type(acl_user() :: anonymous | authenticated | admin | owner | group | {group, binary() } | '_').
-
--type occi_marker() :: binary().
--type load_opt() :: {marker, occi_marker()}
-		  | {limit, integer()}
-		  | deep.
-
--type occi_schema() :: binary()
-		     | occi_mixin()
-		     | [{path, string()}].
-
--type occi_backend_capability() :: {schemas, [occi_schema()]}
-				 | pagination
-				 | deep.
 
 -endif.

@@ -64,8 +64,29 @@ render(#occi_node{id=Id, type=capabilities, data=Mixin}, Env) ->
     MixinJson = render_ejson(Id, Mixin, Env),
     {jiffy:encode(MixinJson, [pretty]), Env};
 
-render(#occi_node{type=occi_collection, data=Coll}, Env) ->
-    {jiffy:encode([ occi_uri:to_binary(Id, Env) || Id <- occi_collection:get_entities(Coll) ], [pretty]), Env}.
+render(#occi_node{type=occi_collection, data=#occi_collection{entities=Entities}}, Env) ->
+    F = fun (#uri{}=Id, {AccRes, AccLinks, AccUris}) ->
+		{ AccRes, AccLinks, [Id | AccUris]};
+	    (#occi_node{id=Id, type=occi_resource, data=Res}, {AccRes, AccLinks, AccUris}) ->
+		{ [ render_ejson(Id, Res, Env) | AccRes ], AccLinks, AccUris};
+	    (#occi_node{id=Id, type=occi_link, data=Link}, {AccRes, AccLinks, AccUris}) ->
+		{ AccRes, [ render_ejson(Id, Link, Env) | AccLinks ], AccUris}
+	end,
+    case ordsets:fold(F, {[], [], []}, Entities) of
+	{[], [], Uris} ->
+	    {jiffy:encode([ occi_uri:to_binary(Entity, Env) || Entity <- Uris ], 
+			  [pretty]),
+	     Env};
+	{EjsonRes, [], []} ->
+	    Content = [{<<"resources">>, EjsonRes}],
+	    {jiffy:encode({Content}, [pretty]), Env};
+	{[], EjsonLinks, []} ->
+	    Content = [{<<"links">>, EjsonLinks}],
+	    {jiffy:encode({Content}, [pretty]), Env};
+	{EjsonRes, EjsonLinks, []} ->
+	    Content = [{<<"resources">>, EjsonRes}, {<<"links">>, EjsonLinks}],
+	    {jiffy:encode({Content}, [pretty]), Env}
+    end.
 
 %%%
 %%% Private

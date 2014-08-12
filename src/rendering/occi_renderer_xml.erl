@@ -42,25 +42,7 @@ render(#occi_node{}=Node, Env) ->
     {[render_xml(to_xmlel(Node, Env)), "\n"], Env}.
 
 to_xmlel(#occi_node{id=Id, type=occi_resource, data=Res}, Env) ->
-    E = make_ns([?declared_occi_ns, ?declared_xlink_ns],
-		exmpp_xml:element(
-		  ?occi_ns, resource,
-		  [exmpp_xml:attribute(<<"id">>, occi_uri:to_binary(Id, Env)),
-		   exmpp_xml:attribute(<<"title">>, occi_resource:get_attr_value(Res, 'occi.core.title'))], 
-		  [make_cid(kind, occi_resource:get_cid(Res))])),
-   lists:foldl(
-     fun (#uri{}=Link, Acc) -> 
-	     render_rel(Acc, link, Link, Env);
-	 (#occi_link{id=LinkId}=Link, Acc) ->
-	     exmpp_xml:append_child(Acc, make_link(LinkId, Link, Env))
-     end, 
-     lists:foldl(
-       fun (Attr, Acc) -> render_attribute(Acc, Attr, Env) end, 
-       sets:fold(
-	 fun (Mixin, Acc) -> render_cid(Acc, mixin, Mixin) end,
-	 E, occi_resource:get_mixins(Res)),
-       occi_resource:get_attributes(Res)),
-     occi_resource:get_links(Res));
+    make_ns([?declared_occi_ns, ?declared_xlink_ns], make_resource(Id, Res, Env));
 
 to_xmlel(#occi_node{id=Id, type=occi_link, data=Link}, Env) ->
     make_ns([?declared_occi_ns, ?declared_xlink_ns], make_link(Id, Link, Env));
@@ -82,17 +64,43 @@ to_xmlel(#occi_node{type=occi_collection, objid=Id, data=Coll}, Env) ->
 		      exmpp_xml:attribute(<<"term">>, Id#occi_cid.term) ];
 		_ -> []
 	    end,
+    F = fun(#uri{}=EntityId) ->
+		exmpp_xml:element(
+		  ?occi_ns, entity,
+		  [exmpp_xml:attribute(?xlink_ns, <<"href">>, occi_uri:to_binary(EntityId, Env))], []);
+	   (#occi_node{id=ResId, type=occi_resource, data=Res}) ->
+		make_resource(ResId, Res, Env);
+	   (#occi_node{id=LinkId, type=occi_link, data=Link}) ->
+		make_link(LinkId, Link, Env)
+	end,
+    Children = [ F(Entity) || Entity <- occi_collection:get_entities(Coll) ],
     make_ns([?declared_occi_ns, ?declared_xlink_ns],
-	    exmpp_xml:element(
-	      ?occi_ns, collection, Attrs,
-	      [exmpp_xml:element(
-		 ?occi_ns, entity,
-		 [exmpp_xml:attribute(?xlink_ns, <<"href">>, occi_uri:to_binary(Uri, Env))], []) || 
-		  Uri <- occi_collection:get_entities(Coll) ])).
+	    exmpp_xml:element(?occi_ns, collection, Attrs, Children)).
 
 %%%
 %%% Private
 %%%
+make_resource(Id, Res, Env) ->
+    E = exmpp_xml:element(
+	  ?occi_ns, resource,
+	  [exmpp_xml:attribute(<<"id">>, occi_uri:to_binary(Id, Env)),
+	   exmpp_xml:attribute(<<"title">>, occi_resource:get_attr_value(Res, 'occi.core.title'))], 
+	  [make_cid(kind, occi_resource:get_cid(Res))]),
+    lists:foldl(
+      fun (#uri{}=Link, Acc) -> 
+	      render_rel(Acc, link, Link, Env);
+	  (#occi_link{id=LinkId}=Link, Acc) ->
+	      exmpp_xml:append_child(Acc, make_link(LinkId, Link, Env))
+      end, 
+      lists:foldl(
+	fun (Attr, Acc) -> render_attribute(Acc, Attr, Env) end, 
+	sets:fold(
+	  fun (Mixin, Acc) -> render_cid(Acc, mixin, Mixin) end,
+	  E, occi_resource:get_mixins(Res)),
+	occi_resource:get_attributes(Res)),
+      occi_resource:get_links(Res)).
+
+
 make_link(Id, #occi_link{}=Link, Env) ->
     C = [make_cid(kind, occi_link:get_cid(Link)),
 	 make_attribute('occi.core.target', occi_link:get_target(Link), Env)],

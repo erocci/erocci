@@ -135,10 +135,10 @@ find(State, #occi_node{}=Obj) ->
 	    {{error, Reason}, State}
     end.
 
-load(State, #occi_node{}=Req, _Opts) ->
+load(State, #occi_node{}=Req, Opts) ->
     lager:info("[~p] load(~p)~n", [?MODULE, Req#occi_node.id]),
     case mnesia:transaction(fun () ->
-				    load_node_t(Req)
+				    load_node_t(Req, Opts)
 			    end) of
 	{atomic, Res} -> 
 	    {{ok, Res}, State};
@@ -175,15 +175,20 @@ find_node_t(#occi_node{id=Id}) ->
 	[Node] -> [Node#occi_node{data=undefined}]
     end.
 
-load_node_t(#occi_node{type=occi_collection, objid=#occi_cid{}=Id}=Node) ->
+load_node_t(#occi_node{type=occi_collection, objid=#occi_cid{}=Id}=Node, Opts) ->
     case mnesia:wread({occi_collection, Id}) of
 	[] ->
 	    Node#occi_node{data=occi_collection:new(Id)};
 	[Coll] ->
-	    Node#occi_node{data=Coll}
+	    case proplists:get_bool(deep, Opts) of
+		true ->
+		    load_deep_collection_t(Node#occi_node{data=Coll});
+		false ->
+		    Node#occi_node{data=Coll}
+	    end
     end;
 
-load_node_t(#occi_node{id=CollId, type=occi_collection}) ->
+load_node_t(#occi_node{id=CollId, type=occi_collection}, Opts) ->
     case mnesia:wread({occi_node, CollId}) of
 	[] ->
 	    mnesia:abort({unknown_node, CollId});
@@ -192,18 +197,18 @@ load_node_t(#occi_node{id=CollId, type=occi_collection}) ->
 			ordsets:add_element(Id, Acc);
 		    ({collection, Id}, Acc) ->
 			#occi_node{data=#occi_collection{entities=Entities2}} = 
-			    load_node_t(#occi_node{id=Id, type=occi_collection}),
+			    load_node_t(#occi_node{id=Id, type=occi_collection}, Opts),
 			ordsets:union(Acc, Entities2)
 		end,
 	    NewColl = Coll#occi_collection{entities=ordsets:fold(F, ordsets:new(), Entities)},
 	    Node#occi_node{data=NewColl}
     end;
 
-load_node_t(#occi_node{type=occi_resource, objid=Id}=Node) ->
+load_node_t(#occi_node{type=occi_resource, objid=Id}=Node, _Opts) ->
     Node2 = load_object_t(Node, occi_resource, Id),
     load_resource_node_t(Node2);
 
-load_node_t(#occi_node{type=occi_link, objid=Id}=Node) ->
+load_node_t(#occi_node{type=occi_link, objid=Id}=Node, _Opts) ->
     load_object_t(Node, occi_link, Id).
 
 load_object_t(Node, Type, Id) ->
@@ -214,6 +219,13 @@ load_object_t(Node, Type, Id) ->
 	    Node#occi_node{data=Data}
     end.
 
+
+load_deep_collection_t(#occi_node{data=#occi_collection{entities=Entities}=Coll}=Node) ->
+    Entities2 = ordsets:fold(fun (#uri{}=Id, Acc) ->
+				     ordsets:add_element(get_node_t(Id), Acc)
+			     end, ordsets:new(), Entities),
+    Node#occi_node{data=Coll#occi_collection{entities=Entities2}}.
+    
 
 load_resource_node_t(#occi_node{data=#occi_resource{links=OrigLinks}=Res}=Node) ->
     Links = sets:fold(fun (#uri{}=LinkId, Acc) ->
@@ -381,7 +393,7 @@ del_node_t(#occi_node{type=occi_collection, data=Col}) ->
     del_collection_t(Col);
 
 del_node_t(#occi_node{type=occi_resource, data=undefined}=Node) ->
-    del_node_t(load_node_t(Node));
+    del_node_t(load_node_t(Node, []));
 
 del_node_t(#occi_node{id=Id, type=occi_resource, data=Res}=Node) ->
     del_entity_t(Res),
@@ -389,7 +401,7 @@ del_node_t(#occi_node{id=Id, type=occi_resource, data=Res}=Node) ->
     mnesia:delete({occi_node, Id});
 
 del_node_t(#occi_node{type=occi_link, data=undefined}=Node) ->
-    del_node_t(load_node_t(Node));
+    del_node_t(load_node_t(Node, []));
 
 del_node_t(#occi_node{id=Id, type=occi_link, data=Res}=Node) ->
     del_entity_t(Res),
@@ -438,7 +450,7 @@ del_collection_t(#occi_collection{id=#occi_cid{class=kind}=Cid}=Coll) ->
     F = fun (#uri{}=Id, Acc) ->
 		case mnesia:wread({occi_node, Id}) of
 		    [#occi_node{type=Type, objid=ObjId}=N] ->
-			Node = load_node_t(N),
+			Node = load_node_t(N, []),
 			mnesia:delete({Type, ObjId}),
 			del_node_t(Node),
 			sets:fold(fun (MixinId, Acc2) ->
@@ -474,7 +486,7 @@ del_mixin_from_entities_t(Entities, Mixin) ->
     lists:foreach(fun (Id) ->
 			  case mnesia:wread({occi_node, Id}) of
 			      [N] ->
-				  #occi_node{data=Entity} = load_node_t(N),
+				  #occi_node{data=Entity} = load_node_t(N, []),
 				  mnesia:write(occi_entity:del_mixin(Entity, Mixin));
 			      [] ->
 				  mnesia:abort({unknown_object, Id})
@@ -535,6 +547,21 @@ get_resource_t(Id) ->
 	    end
     end.
 
+
+get_node_t(Id) ->
+    case mnesia:wread({occi_node, Id}) of
+	[] -> mnesia:abort({unknown_object, Id});
+	[#occi_node{objid=ObjId}=N] ->
+	    case mnesia:wread({occi_resource, ObjId}) of
+		[] -> 
+		    case mnesia:wread({occi_link, ObjId}) of
+			[] -> mnesia:abort({unknown_object, Id});
+			[Link] -> N#occi_node{data=Link}
+		    end;
+		[Res] -> load_resource_node_t(N#occi_node{data=Res})
+	    end
+    end.
+    
 
 get_entity_t(Id) ->
     case mnesia:wread({occi_node, Id}) of

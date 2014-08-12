@@ -98,8 +98,16 @@ fold(#occi_collection{entities=E}=C, F) when is_function(F) ->
 
 -spec add_prefix(occi_collection(), string()) -> occi_collection().
 add_prefix(#occi_collection{}=Coll, Prefix) when is_list(Prefix) ->
-    fold(Coll, fun (#uri{}=Uri) -> occi_uri:add_prefix(Uri, Prefix) end).
+    fold(Coll, fun (#uri{}=Uri) -> 
+		       occi_uri:add_prefix(Uri, Prefix);
+		   (#occi_node{}=Node) ->
+		       occi_node:add_prefix(Node, Prefix)
+	       end).
 
 -spec rm_prefix(occi_collection(), string()) -> occi_collection().
 rm_prefix(#occi_collection{}=Coll, Prefix) when is_list(Prefix) ->
-    fold(Coll, fun (#uri{}=Uri) -> occi_uri:rm_prefix(Uri, Prefix) end).
+    fold(Coll, fun (#uri{}=Uri) -> 
+		       occi_uri:rm_prefix(Uri, Prefix);
+		   (#occi_node{}=Node) ->
+		       occi_node:rm_prefix(Node, Prefix)
+	       end).

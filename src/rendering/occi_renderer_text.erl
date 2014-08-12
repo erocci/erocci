@@ -47,14 +47,20 @@ render(#occi_node{type=capabilities, data={Kinds, Mixins, Actions}}, Env, Render
     Renderer(Headers, Env);
 
 render(#occi_node{type=occi_collection, data=Coll}, Env, Renderer) ->
-    Headers = lists:foldl(fun (EntityId, Acc) ->
+    Headers = lists:foldl(fun (Entity, Acc) ->
 				  Uris = orddict:fetch(<<"x-occi-location">>, Acc),
 				  orddict:store(<<"x-occi-location">>, 
-						[occi_uri:to_iolist(EntityId, Env) | Uris], Acc)
+						[render_entity_id(Entity, Env) | Uris], Acc)
 			  end, 
 			  orddict:from_list([{<<"x-occi-location">>, []}]), 
 			  occi_collection:get_entities(Coll)),
     Renderer(Headers, Env).
+
+render_entity_id(#uri{}=Id, Env) ->
+    occi_uri:to_iolist(Id, Env);
+
+render_entity_id(#occi_node{id=Id}, Env) ->
+    occi_uri:to_iolist(Id, Env).
 
 render_category(#occi_kind{}=Kind, Hdr, Env) ->
     L = [build_cid(occi_kind:get_id(Kind), Env),
