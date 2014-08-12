@@ -203,7 +203,7 @@ load_resource_node_t(#occi_node{data=#occi_resource{links=OrigLinks}=Res}=Node) 
     Links = sets:fold(fun (#uri{}=LinkId, Acc) ->
 			      sets:add_element(LinkId, Acc);
 			  ({inline, Id}, Acc) ->
-			      sets:add_element(get_link_node_t(Id), Acc)
+			      sets:add_element(get_inline_link_t(Id), Acc)
 		      end, sets:new(), OrigLinks),
     Node#occi_node{data=Res#occi_resource{links=Links}}.
 
@@ -564,7 +564,7 @@ create_link_id(#uri{path=Path}=Id) ->
     Id#uri{path=Path ++ "_links/" ++ uuid:to_string(uuid:uuid4())}.
 
 
-get_link_node_t(Id) ->
+get_inline_link_t(Id) ->
     case mnesia:wread({occi_node, Id}) of
 	[] -> 
 	    mnesia:abort({unknown_node, Id});
