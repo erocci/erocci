@@ -384,8 +384,12 @@ fold(Merge, Acc0, Op, Req) ->
 			end, [], get_mounts()),
     cast(Merge, Acc0, Op, Reqs).
 
+cast(_, []) ->
+    ok;
+
 cast(Op, Reqs) ->
     cast(noop, [], Op, Reqs).
+
 
 cast(Merge, Acc0, Op, Reqs) ->
     Tags = lists:foldl(fun ({#occi_node{objid=Ref}=Backend, Req}, Acc) ->
