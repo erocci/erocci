@@ -32,6 +32,7 @@
 	 new/2,
 	 set_id/2,
 	 add_mixin/2,
+	 del_mixin/2,
 	 get_mixins/1,
 	 set_attr_value/3]).
 -export([merge_attrs/2,
@@ -66,6 +67,12 @@ add_mixin(#occi_resource{}=Res, Mixin) ->
     occi_resource:add_mixin(Res, Mixin);
 add_mixin(#occi_link{}=Link, Mixin) ->
     occi_link:add_mixin(Link, Mixin).
+
+-spec del_mixin(occi_resource() | occi_link(), occi_mixin()) -> occi_resource() | occi_link().
+del_mixin(#occi_resource{}=Res, Mixin) ->
+    occi_resource:del_mixin(Res, Mixin);
+del_mixin(#occi_link{}=Link, Mixin) ->
+    occi_link:del_mixin(Link, Mixin).
 
 -spec get_mixins(occi_resource() | occi_link()) -> term(). % set()
 get_mixins(#occi_resource{}=Res) ->

@@ -445,27 +445,25 @@ del_collection_t(#occi_collection{id=#occi_cid{class=mixin}=Cid}=Coll) ->
 
 del_collection_t(#occi_collection{id=#occi_cid{class=mixin}=Cid}=Coll, #occi_mixin{}=Mixin) ->
     Entities = occi_collection:get_entities(Coll),
-    lists:foreach(fun (Uri) ->
-			  case mnesia:wread({occi_resource, Uri}) of
-			      [#occi_resource{}=Res] ->
-				  mnesia:write(occi_resource:del_mixin(Res, Mixin));
-			      [] ->
-				  mnesia:abort({unknown_object, Uri})
-			  end
-		  end, Entities),
+    del_mixin_from_entities_t(Entities, Mixin),
     del_from_collection_t(Cid, Entities).
 
 del_full_collection_t(#occi_collection{id=#occi_cid{class=mixin}=Cid}=Coll, #occi_mixin{}=Mixin) ->
     Entities = occi_collection:get_entities(Coll),
-    lists:foreach(fun (Uri) ->
-			  case mnesia:wread({occi_resource, Uri}) of
-			      [#occi_resource{}=Res] ->
-				  mnesia:write(occi_resource:del_mixin(Res, Mixin));
-			      [] ->
-				  mnesia:abort({unknown_object, Uri})
-			  end
-		  end, Entities),
+    del_mixin_from_entities_t(Entities, Mixin),
     mnesia:delete({occi_collection, Cid}).
+
+
+del_mixin_from_entities_t(Entities, Mixin) ->
+    lists:foreach(fun (Id) ->
+			  case mnesia:wread({occi_node, Id}) of
+			      [N] ->
+				  #occi_node{data=Entity} = load_node_t(N),
+				  mnesia:write(occi_entity:del_mixin(Entity, Mixin));
+			      [] ->
+				  mnesia:abort({unknown_object, Id})
+			  end
+		  end, Entities).
 
 
 del_mixin_t(#occi_mixin{id=Cid}=Mixin) ->
