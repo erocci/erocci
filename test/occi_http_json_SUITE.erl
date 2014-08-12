@@ -19,8 +19,8 @@
 
 -include("occi.hrl").
 
--define(PORT,8080).
--define(NAME,"http://localhost:8080").
+-define(PORT, 8080).
+-define(NAME, "http://localhost:8080").
 
 %%--------------------------------------------------------------------
 %% @spec suite() -> Info
@@ -41,7 +41,7 @@ init_per_suite(Config) ->
     application:set_env(lager, handlers, [{lager_console_backend, debug}]),
     application:start(occi),
     DataDir = proplists:get_value(data_dir, Config),
-    Schemas = {schemas, [{xml, DataDir ++ "occi-infrastructure.xml"}]},
+    Schemas = {schemas, [{path, DataDir ++ "occi-infrastructure.xml"}]},
     Backends = {backends, 
 		[{mnesia, occi_backend_mnesia, [Schemas], <<"/">>}]},
     Listeners = {listeners, 
@@ -330,7 +330,7 @@ post_kind_col(_Config) ->
     FileName = proplists:get_value(data_dir, _Config) ++ "kind2.json",
     {ok, File} = file:read_file(FileName),
     Id = ?NAME ++ "/collections/compute/",
-    {ok, {{_Protocol, Code, _Status}, _Headers, _Body}} =  
+    {ok, {{_Protocol, Code, _Status}, _Headers, _Body}} =
 	httpc:request(post, {Id, [], "application/json", File}, [], []),
     ?assertEqual(200, Code).
   

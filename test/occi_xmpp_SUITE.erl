@@ -41,7 +41,7 @@ init_per_suite(Config) ->
     application:set_env(lager, handlers, [{lager_console_backend, debug}]),
     application:start(occi),
     DataDir = proplists:get_value(data_dir, Config),
-    Schemas = {schemas, [{xml, DataDir ++ "occi-infrastructure.xml"}]},
+    Schemas = {schemas, [{path, DataDir ++ "occi-infrastructure.xml"}]},
     Backends = {backends, 
         [{mnesia, occi_backend_mnesia, [Schemas], <<"/">>}]},
     Listeners = {listeners, 
