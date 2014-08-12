@@ -457,24 +457,13 @@ filter_collection(#occi_node{type=occi_collection, data=#occi_collection{id=Cid,
 			    none ->
 				C = occi_collection:new(Cid, [occi_uri:rm_prefix(Uri, Prefix)]),
 				gb_trees:insert(Backend, [Node#occi_node{data=C}], Acc);
-			    {value, #occi_node{data=#occi_collection{}=C}} ->
+			    {value, [#occi_node{data=#occi_collection{}=C}]} ->
 				C2 = occi_collection:add_entity(C, occi_uri:rm_prefix(Uri, Prefix)),
 				gb_trees:update(Backend, [Node#occi_node{data=C2}], Acc)
 			end
 		end
 	end,
     gb_trees:to_list(ordsets:fold(F, gb_trees:empty(), E)).
-
-%% build_dir_reqs(#occi_node{type=dir, data=Children}, A) ->
-%%     gb_sets:fold(fun (#occi_node{type=dir}=Child, Acc) ->
-%% 			 Acc ++ build_dir_reqs(Child, A);
-%% 		     (#uri{path=Path}=Uri, Acc) ->
-%% 			 case get_backend(Path) of
-%% 			     {error, Err} -> throw({error, Err});
-%% 			     {ok, #occi_node{id=#uri{path=Prefix}}=Backend} ->
-%% 				 [{Backend, {occi_uri:rm_prefix(Uri, Prefix), A}} | Acc]
-%% 			 end
-%% 		 end, [], Children).
 
 load_user_mixins(#occi_node{objid=Ref}) ->
     case occi_backend:find(Ref, #occi_node{id=#uri{path="/-/"}, type=capabilities, _='_'}) of
