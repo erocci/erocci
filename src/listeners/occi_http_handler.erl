@@ -266,7 +266,7 @@ render(Req, #state{node=Node, ct=#content_type{renderer=Renderer}, env=Env}=Stat
 	    case occi_store:load(Node, Opts) of
 		{ok, Node2} ->
 		    {Body, #occi_env{req=Req2}} = Renderer:render(Node2, Env#occi_env{req=Req}),
-		    {<<Body/binary, "~n">>, Req2, State};
+		    {[Body, "\n"], Req2, State};
 		{error, Err} ->
 		    lager:error("Error loading object: ~p~n", [Err]),
 		    {ok, Req2} = cowboy_req:reply(500, Req),
