@@ -41,6 +41,17 @@ start_link() ->
 %% @spec init([]) -> SupervisorTree
 %% @doc supervisor callback.
 init(_) ->
+    TableMgr = {occi_table_mgr,
+		{occi_table_mgr, start_link, []},
+		permanent,
+		infinity,
+		worker,[occi_table_mgr]},
+    Config = {occi_config,
+	     {occi_config, start_link, []},
+	     permanent,
+	     infinity,
+	     supervisor,
+	     [occi_config]},
     Store = {occi_store,
 	     {occi_store, start_link, []},
 	     permanent,
@@ -59,5 +70,5 @@ init(_) ->
 	    infinity,
 	    worker,
 	    [occi_hook]},
-    Children = [Store, Listener, Hook],
+    Children = [TableMgr, Config, Store, Listener, Hook],
     {ok, {{one_for_one, 10, 10}, Children}}.

@@ -22,14 +22,12 @@
 %%% Created :  6 Aug 2013 by Jean Parpaillon <jean.parpaillon@free.fr>
 %%%-------------------------------------------------------------------
 -module(occi_app).
--compiler({parse_transform, lager_transform}).
+-compile([{parse_transform, lager_transform}]).
 
 -behaviour(application).
 
 %% Application callbacks
 -export([start/2, stop/1]).
-
--export([init/0]).
 
 %%%===================================================================
 %%% Application callbacks
@@ -52,18 +50,19 @@
 %% @end
 %%--------------------------------------------------------------------
 start(normal, _Args) ->
-    ensure_started(compiler),
-    ensure_started(syntax_tools),
-    ensure_started(goldrush),
-    ensure_started(lager),
-    ensure_started(inets),
-    ensure_started(erim),
-    ensure_started(epasswd),
+    occi:ensure_started(compiler),
+    occi:ensure_started(syntax_tools),
+    occi:ensure_started(goldrush),
+    occi:ensure_started(lager),
+    occi:ensure_started(inets),
+    occi:ensure_started(erim),
+    occi:ensure_started(epasswd),
     Ret = occi_sup:start_link(),
     occi_category_mgr:init(),
-    occi_config:start(),
-    start(),
+    occi_config:load([]),
+    %start(),
     Ret;
+
 start(_StartType, _StartArgs) ->
     {error, badarg}.
 
@@ -79,29 +78,3 @@ start(_StartType, _StartArgs) ->
 %%--------------------------------------------------------------------
 stop(_State) ->
     ok.
-
-%%%===================================================================
-%%% Internal functions
-%%%===================================================================
-start() ->
-    spawn_link(?MODULE, init, []).
-
-init() ->
-    register(erocci, self()),
-    loop().
-
-loop() ->
-    receive
-	_ ->
-	    loop()
-    end.
-
-ensure_started(App) ->
-    case application:start(App) of
-        ok ->
-            ok;
-        {error, {already_started, App}} ->
-            ok;
-	{error, Err} ->
-	    throw({error, Err})
-    end.

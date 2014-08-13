@@ -23,26 +23,32 @@
 -module(occi_config).
 -compile([{parse_transform, lager_transform}]).
 
+-behaviour(gen_server).
+
 -include("occi.hrl").
 
--export([start/0,
+-export([start_link/0,
 	 load/1,
 	 get/1,
 	 get/2,
 	 set/2,
-	 gen_id/1,
 	 gen_id/2]).
 
--define(TABLE, ?MODULE).
+%% gen_server callbacks
+-export([init/1, handle_call/3, handle_cast/2, handle_info/2,
+	 terminate/2, code_change/3]).
 
-start() ->
+-define(SERVER, ?MODULE).
+-record(state, {tid}).
+
+start_link() ->
     lager:info("Starting OCCI config manager"),
-    ?TABLE = ets:new(?TABLE, [set, public, {keypos, 1}, named_table]),
-    load([]).
+    gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
 
 %%% @doc Config is a proplist, which can be overriden by application env
 -spec load(list()) -> ok.
 load(Config) ->
+    lager:info("Loading erocci configuration~n", []),
     Env = application:get_all_env(occi),
     setup(Env ++ Config).
 
@@ -50,23 +56,10 @@ get(Name) ->
     get(Name, undefined).
 
 get(Name, Default) ->
-    case ets:match_object(?TABLE, {Name, '_'}) of
-	[] ->
-	    Default;
-	[{_, Value}] ->
-	    Value
-    end.
+    gen_server:call(?SERVER, {get, Name, Default}).
 
 set(Name, Value) ->
-    ets:insert(?TABLE, {Name, Value}).
-
-
--spec gen_id(string() | binary()) -> uri().
-gen_id(Prefix) when is_binary(Prefix) ->
-    gen_id(binary_to_list(Prefix));
-gen_id(Prefix) when is_list(Prefix) ->
-    Id = uuid:to_string(uuid:uuid4()),
-    #uri{path=Prefix++Id}.
+    gen_server:call(?SERVER, {set, Name, Value}).
 
 
 -spec gen_id(string() | binary(), occi_env()) -> uri().
@@ -75,6 +68,111 @@ gen_id(Prefix, Env) when is_binary(Prefix) ->
 gen_id(Prefix, #occi_env{host=#uri{host=Host}}) when is_list(Prefix) ->
     Id = uuid:to_string(uuid:uuid3(uuid:uuid4(), Host)),
     #uri{path=Prefix++Id}.
+
+%%%
+%%% gen_server callbacks
+%%%
+
+%%--------------------------------------------------------------------
+%% @private
+%% @doc
+%% Initializes the server
+%%
+%% @spec init(Args) -> {ok, State} |
+%%                     {ok, State, Timeout} |
+%%                     ignore |
+%%                     {stop, Reason}
+%% @end
+%%--------------------------------------------------------------------
+-spec init([]) -> {ok, term()} | {error, term()} | ignore.
+init([]) ->
+    case occi_table_mgr:new(?SERVER, [set, private, {keypos, 1}, {read_concurrency, true}]) of
+	{ok, Tid} ->
+	    {ok, #state{tid=Tid}};
+	{error, Err} ->
+	    {stop, {error, Err}}
+    end.
+
+%%--------------------------------------------------------------------
+%% @private
+%% @doc
+%% Handling call messages
+%%
+%% @spec handle_call(Request, From, State) ->
+%%                                   {reply, Reply, State} |
+%%                                   {reply, Reply, State, Timeout} |
+%%                                   {noreply, State} |
+%%                                   {noreply, State, Timeout} |
+%%                                   {stop, Reason, Reply, State} |
+%%                                   {stop, Reason, State}
+%% @end
+%%--------------------------------------------------------------------
+handle_call({get, Name, Default}, _From, #state{tid=T}=State) ->
+    case ets:lookup(T, Name) of
+	[] ->
+	    {reply, Default, State};
+	[{_, Value}] ->
+	    {reply, Value, State}
+    end;
+
+handle_call({set, Name, Value}, _From, #state{tid=T}=State) ->
+    ets:insert(T, {Name, Value}),
+    {reply, ok, State};
+
+handle_call(Req, From, State) ->
+    lager:error("Unknown message from ~p: ~p~n", [From, Req]),
+    {reply, ok, State}.
+
+%%--------------------------------------------------------------------
+%% @private
+%% @doc
+%% Handling cast messages
+%%
+%% @spec handle_cast(Msg, State) -> {noreply, State} |
+%%                                  {noreply, State, Timeout} |
+%%                                  {stop, Reason, State}
+%% @end
+%%--------------------------------------------------------------------
+handle_cast(_Msg, State) ->
+    {noreply, State}.
+
+%%--------------------------------------------------------------------
+%% @private
+%% @doc
+%% Handling all non call/cast messages
+%%
+%% @spec handle_info(Info, State) -> {noreply, State} |
+%%                                   {noreply, State, Timeout} |
+%%                                   {stop, Reason, State}
+%% @end
+%%--------------------------------------------------------------------
+handle_info(_Info, State) ->
+    {noreply, State}.
+
+%%--------------------------------------------------------------------
+%% @private
+%% @doc
+%% This function is called by a gen_server when it is about to
+%% terminate. It should be the opposite of Module:init/1 and do any
+%% necessary cleaning up. When it returns, the gen_server terminates
+%% with Reason. The return value is ignored.
+%%
+%% @spec terminate(Reason, State) -> void()
+%% @end
+%%--------------------------------------------------------------------
+terminate(_Reason, #state{tid=T}) ->
+    occi_table_mgr:delete(T).
+
+%%--------------------------------------------------------------------
+%% @private
+%% @doc
+%% Convert process state when code is changed
+%%
+%% @spec code_change(OldVsn, State, Extra) -> {ok, NewState}
+%% @end
+%%--------------------------------------------------------------------
+code_change(_OldVsn, State, _Extra) ->
+    {ok, State}.
 
 %%%
 %%% Private
@@ -92,16 +190,15 @@ setup(Props) ->
 %%%
 %%% Option handlers
 %%%
-
 opt_categories_map(Props) ->
     case proplists:get_value(categories_map, Props) of
 	undefined ->
-	    ets:insert(?TABLE, {categories_map, {occi_category_mgr, hash}}),
+	    set(categories_map, {occi_category_mgr, hash}),
 	    Props;
 	{Mod, Fun} ->
 	    case erlang:function_exported(Mod, Fun, 1) of
 		true -> 
-		    ets:insert(?TABLE, {categories_map, {Mod, Fun}}),
+		    set(categories_map, {Mod, Fun}),
 		    proplists:delete(categories_map, Props);
 		false -> 
 		    throw({error, {invalid_conf, categories_map}})
@@ -112,7 +209,7 @@ opt_categories_prefix(Props) ->
     case proplists:get_value(categories_prefix, Props) of
 	undefined -> Props;
 	[$/ | Prefix ] ->
-	    ets:insert(?TABLE, {categories_prefix, [$/ | Prefix]}),
+	    set(categories_prefix, [$/ | Prefix]),
 	    proplists:delete(categories_prefix, Props);
 	_ ->
 	    throw({error, {invalid_conf, categories_prefix}})
@@ -173,11 +270,11 @@ opt_listeners(Props) ->
 opt_backend_timeout(Props) ->
     case proplists:get_value(backend_timeout, Props, 5000) of
 	5000 -> 
-	    ets:insert(?TABLE, {backend_timeout, 5000});
+	    set(backend_timeout, 5000);
 	V when is_integer(V) ->
-	    ets:insert(?TABLE, {backend_timeout, V});
+	    set(backend_timeout, V);
 	V when is_list(V) ->
-	    ets:insert(?TABLE, {backend_timeout, list_to_integer(V)})
+	    set(backend_timeout, list_to_integer(V))
     end,
     proplists:delete(backend_timeout, Props).
 
@@ -202,5 +299,5 @@ opt_handlers(Props) ->
 % All remaining options are stored in the table
 opt_store(Props) ->
     lists:foreach(fun (Key) ->
-			  ets:insert(?TABLE, {Key, proplists:get_value(Key, Props)})
+			  set(Key, proplists:get_value(Key, Props))
 		  end, proplists:get_keys(Props)).
