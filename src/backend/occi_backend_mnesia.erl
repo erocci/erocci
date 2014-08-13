@@ -126,24 +126,16 @@ update(State, #occi_node{}=Node) ->
 
 find(State, #occi_node{}=Obj) ->
     lager:info("[~p] find(~p)~n", [?MODULE, Obj#occi_node.id]),
-    case mnesia:transaction(fun () ->
-				    find_node_t(Obj)
-			    end) of
-	{atomic, Res} -> 
-	    {{ok, Res}, State};
-	{aborted, Reason} ->
-	    {{error, Reason}, State}
+    try mnesia:activity(async_dirty, fun find_node_t/1, [Obj]) of
+	Res -> {{ok, Res}, State}
+    catch exit:Reason -> {{error, Reason}, State}
     end.
 
 load(State, #occi_node{}=Req, Opts) ->
-    lager:info("[~p] load(~p)~n", [?MODULE, Req#occi_node.id]),
-    case mnesia:transaction(fun () ->
-				    load_node_t(Req, Opts)
-			    end) of
-	{atomic, Res} -> 
-	    {{ok, Res}, State};
-	{aborted, Reason} ->
-	    {{error, Reason}, State}
+    lager:info("[~p] load(~p, ~p)~n", [?MODULE, Req#occi_node.id, Opts]),
+    try mnesia:activity(async_dirty, fun load_node_t/2, [Req, Opts]) of
+	Res -> {{ok, Res}, State}
+    catch exit:Reason -> {{error, Reason}, State}
     end.
 
 action(State, #uri{}=Id, #occi_action{}=A) ->
