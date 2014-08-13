@@ -540,7 +540,7 @@ parse_attr_filter([ Attr | Rest ], Acc) ->
     case binary:split(occi_uri:decode(Attr), <<"=">>) of
 	[] -> parse_attr_filter(Rest, Acc);
 	[Val] -> parse_attr_filter(Rest, [Val | Acc]);
-	[Name, Val] -> parse_attr_filter(Rest, [ {Name, Val} | Acc ])
+	[Name, Val] -> parse_attr_filter(Rest, [ {?attr_to_atom(Name), Val} | Acc ])
     end.
 
 parse_load_opts(Req) ->
