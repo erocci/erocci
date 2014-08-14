@@ -10,6 +10,10 @@
 
 -define(xmlschema_ns, 'http://www.w3.org/2001/XMLSchema').
 
+-define(scheme_core, 'http://schemas.ogf.org/occi/core#').
+-define(cid_resource, #occi_cid{scheme=?scheme_core, term=resource}).
+-define(cid_link, #occi_cid{scheme=?scheme_core, term=link}).
+
 -type occi_marker() :: binary().
 -type load_opt() :: {marker, occi_marker()}
 		  | {limit, integer()}

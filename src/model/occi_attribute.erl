@@ -40,6 +40,7 @@
 	 set_title/2,
 	 get_title/1,
 	 check/1,
+	 match_value/2,
 	 add_prefix/2,
 	 rm_prefix/2]).
 -export([core_id/0,
@@ -111,6 +112,11 @@ check(#occi_attr{value=undefined}=A) ->
     end;
 check(#occi_attr{}=_A) ->
     ok.
+
+-spec match_value(occi_attr(), binary()) -> true | false.
+match_value(#occi_attr{type=Type, value=Value}, M) ->
+    occi_type:match(Type, Value, M).
+
 
 add_prefix(#occi_attr{value=undefined}=A, _) ->
     A;

@@ -44,7 +44,9 @@
          get_links_size/1,
          add_prefix/2,
          rm_prefix/2,
-         update_attr_value/2]).
+         update_attr_value/2,
+	 has_category/2,
+	 match_attr/3]).
 
 -export([reset/1]).
 
@@ -215,3 +217,35 @@ rm_prefix(#occi_resource{links=Links}=Res, Prefix) ->
                                sets:add_element(occi_link:rm_prefix(L, Prefix), Acc)
                        end, sets:new(), Links),
     Res#occi_resource{links=Links2}.
+
+
+-spec has_category(occi_resource(), occi_cid()) -> true | false.
+has_category(#occi_resource{cid=Cid}, Cid) ->
+    true;
+has_category(#occi_resource{mixins=undefined}, _) ->
+    false;
+has_category(#occi_resource{mixins=Mixins}, Cid) ->
+    sets:is_element(Cid, Mixins).
+
+
+-spec match_attr(occi_resource(), binary() | atom(), binary()) -> true | false.
+match_attr(#occi_resource{attributes=Attr}, '_', Val) ->
+    match_attr2(orddict:to_list(Attr), Val);
+
+match_attr(#occi_resource{attributes=Attr}, Name, Val) ->
+    case orddict:find(Name, Attr) of
+        {ok, A} -> occi_attribute:match_value(A, Val);
+        _ -> false
+    end.	    
+
+%%%
+%%% Priv
+%%%
+match_attr2([], _) ->
+    false;
+
+match_attr2([{_, Attr} | Rest], Val) ->
+    case occi_attribute:match_value(Attr, Val) of
+	true -> true;
+	false -> match_attr2(Rest, Val)
+    end.

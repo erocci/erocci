@@ -25,7 +25,8 @@
 -include("occi.hrl").
 -include("occi_xml.hrl").
 
--export([check/2]).
+-export([check/2,
+	 match/3]).
 
 -spec check(occi_attr_type(), term()) -> term().
 check({?xmlschema_ns, Type}, Val) ->
@@ -46,6 +47,40 @@ check(anyURI, Val) ->
 check(_, Val) ->
     to_string(Val).
 
+
+-spec match(occi_attr_type(), term(), binary()) -> true | false.
+match({?xmlschema_ns, Type}, Value, M) ->
+    match(Type, Value, M);
+
+match(string, Val, {'=:=', Val}) ->
+    true;
+
+match(string, Val, {like, Val}) ->
+    true;
+
+match(string, Val, {like, Match}) ->
+    match_string(Val, Match);
+
+match(integer, Val, {'=:=', M}) ->
+    Val =:= to_integer(M);
+
+match(float, Val, {'=:=', M}) ->
+    Val =:= to_float(M);
+
+match(anyURI, Val, {'=:=', M}) ->
+    try occi_uri:parse(M) of
+	Val -> true;
+	_ -> false
+    catch throw:_ -> false
+    end;
+
+match(_, Val, {'=:=', Val}) -> 
+    true;
+
+match(_, _, _) -> 
+    false.
+
+
 %%%
 %%% Priv
 %%%
@@ -55,9 +90,9 @@ to_uri(X) ->
     occi_uri:parse(X).
 
 to_string(X) when is_list(X) ->
-    X;
+    list_to_binary(X);
 to_string(X) when is_binary(X) ->
-    binary_to_list(X);
+    X;
 to_string(X) ->
     throw({error, {einval, X}}).
 
@@ -110,3 +145,9 @@ to_float(X) when is_list(X) ->
     end;
 to_float(X) ->
     throw({error, {einval, X}}).
+
+match_string(<<>>, <<>>) -> true;
+match_string(_, <<>>) -> true;
+match_string(<<>>, _) -> false;
+match_string(<<C, Rest/bits>>, <<C, Rest2/bits>>) -> match_string(Rest, Rest2);
+match_string(<<_, Rest/bits>>, M) -> match_string(Rest, M).

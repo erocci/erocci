@@ -42,7 +42,6 @@
 	 update/1,
 	 delete/1,
 	 find/1,
-	 find/2,
 	 load/1,
 	 load/2,
 	 action/2]).
@@ -203,13 +202,8 @@ find(#occi_node{type=capabilities}=Req) ->
     {K, M, A} = occi_category_mgr:find_all(),
     {ok, [occi_capabilities:new(K, M, A)]};
 
-find(Req) ->
-    find(Req, []).
-
-
--spec find(occi_node(), occi_filters()) -> {ok, occi_node()} | none | {error, term()}.
-find(#occi_node{type=occi_collection, objid=#occi_cid{}=Cid}=Req, _Filters) ->
-    lager:debug("occi_store:find(~p, ~p)~n", [lager:pr(Req, ?MODULE), _Filters]),
+find(#occi_node{type=occi_collection, objid=#occi_cid{}=Cid}=Req) ->
+    lager:debug("occi_store:find(~p, ~p)~n", [lager:pr(Req, ?MODULE)]),
     case find(Cid) of
 	{ok, #occi_kind{id=Id}} -> 
 	    {ok, [Req#occi_node{objid=Id}]};
@@ -221,11 +215,11 @@ find(#occi_node{type=occi_collection, objid=#occi_cid{}=Cid}=Req, _Filters) ->
 	    {error, Err}
     end;
 
-find(#occi_node{id=undefined}, _Filters) ->
+find(#occi_node{id=undefined}) ->
     {ok, []};
 
-find(#occi_node{id=#uri{path=Path}=Id}=Req, _Filters) ->
-    lager:debug("occi_store:find(~p, ~p)~n", [lager:pr(Req, ?MODULE), _Filters]),
+find(#occi_node{id=#uri{path=Path}=Id}=Req) ->
+    lager:debug("occi_store:find(~p)~n", [lager:pr(Req, ?MODULE)]),
     case occi_category_mgr:find(Id) of
 	[] ->
 	    case get_backend(Path) of

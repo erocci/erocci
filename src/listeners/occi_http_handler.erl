@@ -51,6 +51,7 @@
 		node, 
 		ct, 
 		user,
+		filters :: term(),
 		env     :: occi_env()}).
 
 -record(content_type, {parser   :: atom(),
@@ -89,10 +90,10 @@ rest_init(Req, _Opts) ->
 	       <<"/.well-known/org/ogf/occi/-/">> ->
 		   get_caps_node(Filters);
 	       _ ->
-		   get_node(Path, Filters)
+		   get_node(Path)
 	   end,
     {ok, cowboy_req:set_resp_header(<<"server">>, ?SERVER_ID, Req), 
-     #state{op=Op, node=Node, env=#occi_env{host=Host}}}.
+     #state{op=Op, node=Node, filters=Filters, env=#occi_env{host=Host}}}.
 
 allowed_methods(Req, #state{node=#occi_node{objid=#uri{}, type=occi_collection}}=State) ->
     set_allowed_methods([<<"GET">>, <<"DELETE">>, <<"OPTIONS">>], Req, State);
@@ -260,10 +261,10 @@ update(Req, #state{node=#occi_node{type=undefined}}=State) ->
     update_entity(Req, State).
 
 
-render(Req, #state{node=Node, ct=#content_type{renderer=Renderer}, env=Env}=State) ->
+render(Req, #state{node=Node, ct=#content_type{renderer=Renderer}, filters=Filters, env=Env}=State) ->
     try parse_load_opts(Req) of
 	Opts ->
-	    case occi_store:load(Node, Opts) of
+	    case occi_store:load(Node, [{filters, Filters} | Opts]) of
 		{ok, Node2} ->
 		    {Body, #occi_env{req=Req2}} = Renderer:render(Node2, Env#occi_env{req=Req}),
 		    {[Body, "\n"], Req2, State};
@@ -539,8 +540,8 @@ parse_attr_filter([], Acc) ->
 parse_attr_filter([ Attr | Rest ], Acc) ->
     case binary:split(occi_uri:decode(Attr), <<"=">>) of
 	[] -> parse_attr_filter(Rest, Acc);
-	[Val] -> parse_attr_filter(Rest, [Val | Acc]);
-	[Name, Val] -> parse_attr_filter(Rest, [ {?attr_to_atom(Name), Val} | Acc ])
+	[Val] -> parse_attr_filter(Rest, [{like, '_', Val} | Acc]);
+	[Name, Val] -> parse_attr_filter(Rest, [ {'=:=', ?attr_to_atom(Name), Val} | Acc ])
     end.
 
 parse_load_opts(Req) ->
@@ -565,9 +566,9 @@ parse_deep(Req, Acc) ->
 	_ -> Acc
     end.
 
-get_node(Path, Filters) ->
+get_node(Path) ->
     Url = occi_uri:parse(Path),
-    case occi_store:find(#occi_node{id=#uri{path=Url#uri.path}, _='_'}, Filters) of
+    case occi_store:find(#occi_node{id=#uri{path=Url#uri.path}, _='_'}) of
 	{ok, []} -> #occi_node{id=Url};
 	{ok, [#occi_node{}=N]} -> N;
 	{error, Err} ->

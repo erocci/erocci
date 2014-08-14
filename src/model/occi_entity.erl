@@ -24,17 +24,15 @@
 
 -include("occi.hrl").
 
--define(scheme_core, 'http://schemas.ogf.org/occi/core#').
--define(cid_resource, #occi_cid{scheme=?scheme_core, term=resource}).
--define(cid_link, #occi_cid{scheme=?scheme_core, term=link}).
-
 -export([new/1,
 	 new/2,
 	 set_id/2,
 	 add_mixin/2,
 	 del_mixin/2,
 	 get_mixins/1,
-	 set_attr_value/3]).
+	 set_attr_value/3,
+	 has_category/2,
+	 match_attr/3]).
 -export([merge_attrs/2,
 	 rm_attrs/2]).
 
@@ -85,6 +83,18 @@ set_attr_value(#occi_resource{}=Res, Name, Value) ->
     occi_resource:set_attr_value(Res, Name, Value);
 set_attr_value(#occi_link{}=Link, Name, Value) ->
     occi_link:set_attr_value(Link, Name, Value).
+
+-spec has_category(occi_resource() | occi_link(), occi_cid()) -> true | false.
+has_category(#occi_resource{}=Res, Cid) ->
+    occi_resource:has_category(Res, Cid);
+has_category(#occi_link{}=Link, Cid) ->
+    occi_link:has_category(Link, Cid).
+
+-spec match_attr(occi_resource() | occi_link(), binary() | atom(), binary()) -> true | false.
+match_attr(#occi_resource{}=Res, Name, Val) ->
+    occi_resource:match_attr(Res, Name, Val);
+match_attr(#occi_link{}=Link, Name, Val) ->
+    occi_link:has_category(Link, Name, Val).
 
 merge_attrs(#occi_kind{}=Kind, Attrs) ->
     orddict:merge(fun (_Key, _Val1, Val2) ->
