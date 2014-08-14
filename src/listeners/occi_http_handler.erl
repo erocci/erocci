@@ -75,7 +75,6 @@ init(_Transport, _Req, []) ->
     {upgrade, protocol, cowboy_rest}.
 
 rest_init(Req, _Opts) ->
-    Host = get_host(Req),
     Op = occi_http_common:get_acl_op(Req),
     {Path, _} = cowboy_req:path(Req),
     Filters = case Op of
@@ -93,7 +92,7 @@ rest_init(Req, _Opts) ->
 		   get_node(Path)
 	   end,
     {ok, cowboy_req:set_resp_header(<<"server">>, ?SERVER_ID, Req), 
-     #state{op=Op, node=Node, filters=Filters, env=#occi_env{host=Host}}}.
+     #state{op=Op, node=Node, filters=Filters, env=#occi_env{req_uri=get_req_url(Req)}}}.
 
 allowed_methods(Req, #state{node=#occi_node{objid=#uri{}, type=occi_collection}}=State) ->
     set_allowed_methods([<<"GET">>, <<"DELETE">>, <<"OPTIONS">>], Req, State);
@@ -265,6 +264,9 @@ render(Req, #state{node=Node, ct=#content_type{renderer=Renderer}, filters=Filte
     try parse_load_opts(Req) of
 	Opts ->
 	    case occi_store:load(Node, [{filters, Filters} | Opts]) of
+		{ok, #occi_node{type=occi_collection, data=Coll}=Node2} ->
+		    {Body, #occi_env{req=Req2}} = Renderer:render(Node2, Env#occi_env{req=Req}),
+		    {[Body, "\n"], render_collection(Coll, Req2), State};
 		{ok, Node2} ->
 		    {Body, #occi_env{req=Req2}} = Renderer:render(Node2, Env#occi_env{req=Req}),
 		    {[Body, "\n"], Req2, State};
@@ -277,6 +279,25 @@ render(Req, #state{node=Node, ct=#content_type{renderer=Renderer}, filters=Filte
 	    {ok, Req2} = cowboy_req:reply(400, Req),
 	    {halt, Req2, State}
     end.
+
+
+render_collection(#occi_collection{range=undefined}, Req) ->
+    Req;
+render_collection(#occi_collection{range=Range}, Req) ->
+    Req2 = cowboy_req:set_resp_header(<<"content-range">>, render_range(Range), Req),
+    cowboy_req:set_resp_header(<<"accept-ranges">>, <<"entity">>, Req2).
+    
+
+render_range({S, E, undefined}) when is_integer(S),
+				     is_integer(E) ->
+    iolist_to_binary([<<"entity ">>, integer_to_binary(S), <<"-">>, integer_to_binary(E)]);
+render_range({S, E, T}) when is_integer(S),
+			     is_integer(E),
+			     is_integer(T) ->
+    iolist_to_binary([<<"entity ">>, 
+		      integer_to_binary(S), <<"-">>, 
+		      integer_to_binary(E), <<"/">>, 
+		      integer_to_binary(T)]).
 
 
 save_entity(Req, #state{env=Env, user=User, node=Node, ct=#content_type{parser=Parser}}=State) ->
@@ -590,6 +611,6 @@ get_caps_node(_) ->
     {ok, [#occi_node{}=N]} = occi_store:find(?caps),
     N.
 
-get_host(Req) ->
-    {HostUrl, _} = cowboy_req:host_url(Req),
-    occi_uri:parse(HostUrl).
+get_req_url(Req) ->
+    {ReqUrl, _} = cowboy_req:url(Req),
+    occi_uri:parse(ReqUrl).

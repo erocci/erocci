@@ -43,59 +43,7 @@
 %%% occi_backend callbacks
 %%%===================================================================
 init(#occi_backend{opts=Opts}) ->
-    init_db(),
-    case proplists:get_value(schemas, Opts) of
-	undefined -> 
-	    {ok, [], #state{}};
-	Schemas ->
-	    F = fun() -> mnesia:match_object(#occi_node{type=capabilities, _='_'}) end,
-	    case mnesia:transaction(F) of
-		{atomic, []} -> 
-		    {ok, [{schemas, Schemas}], #state{}};
-		{atomic, MixinsNodes} ->
-		    Mixins = [ Mixin || #occi_node{data=Mixin} <- MixinsNodes],
-		    {ok, [{schemas, lists:flatten([Schemas, Mixins])}], #state{}};
-		{aborted, Reason} ->
-		    {error, Reason}
-	    end
-    end.
-
-init_db() ->
-    case mnesia:system_info(running_db_nodes) of
-	[] ->
-	    mnesia:create_schema([node()]);
-	_ ->
-	    ok
-    end,
-    application:start(mnesia, permanent),
-    mnesia:create_table(occi_collection,
-			[{disc_copies, [node()]},
-			 {attributes, record_info(fields, occi_collection)}]),
-    mnesia:create_table(occi_resource,
-			[{disc_copies, [node()]},
-			 {attributes, record_info(fields, occi_resource)},
-			 {index, [#occi_resource.id, #occi_resource.cid]}]),
-    mnesia:create_table(occi_link,
-			[{disc_copies, [node()]},
-			 {attributes, record_info(fields, occi_link)},
-			 {index, [#occi_link.id, #occi_link.cid]}]),
-    mnesia:create_table(occi_mixin,
-			[{disc_copies, [node()]},
-			 {attributes, record_info(fields, occi_mixin)}]),
-    mnesia:create_table(occi_node,
-			[{disc_copies, [node()]},
-			 {attributes, record_info(fields, occi_node)},
-			 {index, [#occi_node.id, #occi_node.objid]}]),
-    mnesia:create_table(occi_user, 
-			[{disc_copies, [node()]},
-			 {attributes, record_info(fields, occi_user)}]),
-    mnesia:wait_for_tables([occi_collection, 
-			    occi_resource,
-			    occi_link,
-			    occi_mixin,
-			    occi_node,
-			    occi_node, 
-			    occi_user], 5000).
+    init_schema(Opts).
 
 
 terminate(#state{}) ->
@@ -168,29 +116,10 @@ find_node_t(#occi_node{id=Id}) ->
 	[Node] -> [Node#occi_node{data=undefined}]
     end.
 
-load_node_t(#occi_node{type=occi_collection}=Node, Opts) ->
-    load_collection_t(Node, get_opts(Opts, {[], false, -1, undefined}));
-
-load_node_t(#occi_node{id=CollId, type=occi_collection}, Opts) ->
-    case mnesia:wread({occi_node, CollId}) of
-	[] ->
-	    mnesia:abort({unknown_node, CollId});
-	[#occi_node{data=#occi_collection{entities=Entities}=Coll}=Node] ->
-	    F = fun ({entity, Id}, Acc) -> 
-			case proplists:get_bool(deep, Opts) of
-			    true ->
-				ordsets:add_element(get_node_t(Id), Acc);
-			    false ->
-				ordsets:add_element(Id, Acc)
-			end;
-		    ({collection, Id}, Acc) ->
-			#occi_node{data=#occi_collection{entities=Entities2}} = 
-			    load_node_t(#occi_node{id=Id, type=occi_collection}, Opts),
-			ordsets:union(Acc, Entities2)
-		end,
-	    NewColl = Coll#occi_collection{entities=ordsets:fold(F, ordsets:new(), Entities)},
-	    Node#occi_node{data=NewColl}
-    end;
+load_node_t(#occi_node{objid=Id, type=occi_collection}=Node, Opts) ->
+    {F, D, L, M} = get_opts(Opts, {[], false, -1, 0}),
+    QH = get_collection_qh(Id, F, D),
+    Node#occi_node{data=load_collection_t(Id, QH, L, M)};
 
 load_node_t(#occi_node{type=occi_resource, objid=Id}=Node, _Opts) ->
     Node2 = load_object_t(Node, occi_resource, Id),
@@ -208,29 +137,16 @@ load_object_t(Node, Type, Id) ->
     end.
 
 
-load_collection_t(#occi_node{objid=#occi_cid{class=kind}=Cid}=Node, {[], Deep, -1, undefined}) ->
-    EntityType = get_category_parent_t(Cid),
-    Q = case Deep of
-	    true ->
-		Q1 = qlc:q([ N#occi_node{data=E} || N <- mnesia:table(occi_node), 
-						    E <- mnesia:table(EntityType),
-						    N#occi_node.type =:= EntityType,
-						    element(3, E) =:= Cid,
-						    N#occi_node.objid =:= element(2, E)]),
-		case EntityType of
-		    occi_resource ->
-			qlc:fold(fun (E, Acc) -> [load_resource_node_t(E) | Acc] end, [], Q1);
-		    occi_link ->
-			Q1
-		end;
-	    false ->
-		qlc:q([ element(2, N) || N <- mnesia:table(occi_node), 
-					 E <- mnesia:table(EntityType),
-					 N#occi_node.type =:= EntityType,
-					 element(3, E) =:= Cid,
-					 N#occi_node.objid =:= element(2, E)])
-	end,
-    Node#occi_node{data=occi_collection:new(Cid, qlc:eval(Q))}.
+load_collection_t(Id, QH, -1, 0) ->
+    Entities = qlc:e(QH),
+    occi_collection:new(Id, Entities);
+
+load_collection_t(Id, QH, L, _M) ->
+    QC = qlc:cursor(QH),
+    Ret = qlc:next_answers(QC, L),
+    qlc:delete_cursor(QC),
+    M = <<"themarker">>,
+    #occi_collection{id=Id, range={0, L-1, undefined}, marker=M, entities=ordsets:from_list(Ret)}.
 
 
 load_resource_node_t(#occi_node{data=#occi_resource{links=OrigLinks}=Res}=Node) ->
@@ -547,21 +463,6 @@ get_resource_t(Id) ->
     end.
 
 
-get_node_t(Id) ->
-    case mnesia:wread({occi_node, Id}) of
-	[] -> mnesia:abort({unknown_object, Id});
-	[#occi_node{objid=ObjId}=N] ->
-	    case mnesia:wread({occi_resource, ObjId}) of
-		[] -> 
-		    case mnesia:wread({occi_link, ObjId}) of
-			[] -> mnesia:abort({unknown_object, Id});
-			[Link] -> N#occi_node{data=Link}
-		    end;
-		[Res] -> load_resource_node_t(N#occi_node{data=Res})
-	    end
-    end.
-    
-
 get_entity_t(Id) ->
     case mnesia:wread({occi_node, Id}) of
 	[] -> false;
@@ -624,13 +525,159 @@ get_opts([{marker, M} | Opts], {F, D, L, _}) ->
     get_opts(Opts, {F, D, L, M}).
 
 
-build_filters([], Acc) ->
-    lists:reverse(Acc);
+%% build_filters([], Acc) ->
+%%     lists:reverse(Acc);
 
-build_filters([#occi_cid{}=Cid | Rest], Acc) ->
-    F = fun (Entity) -> occi_entity:has_entity(Entity, Cid) end,
-    build_filters(Rest, [F | Acc]);
+%% build_filters([#occi_cid{}=Cid | Rest], Acc) ->
+%%     F = fun (Entity) -> occi_entity:has_entity(Entity, Cid) end,
+%%     build_filters(Rest, [F | Acc]);
 
-build_filters([{Op, Name, Match} | Rest], Acc) ->
-    F = fun (Entity) -> occi_entity:match_attr(Entity, Name, {Op, Match}) end,
-    build_filters(Rest, [F | Acc]).
+%% build_filters([{Op, Name, Match} | Rest], Acc) ->
+%%     F = fun (Entity) -> occi_entity:match_attr(Entity, Name, {Op, Match}) end,
+%%     build_filters(Rest, [F | Acc]).
+
+
+get_collection_qh(#occi_cid{class=kind}=Cid, [], true) ->
+    EntityType = get_category_parent_t(Cid),
+    Q1 = qlc:q([ N#occi_node{data=E} || N <- mnesia:table(occi_node), 
+					E <- mnesia:table(EntityType),
+					N#occi_node.type =:= EntityType,
+					element(3, E) =:= Cid,
+					N#occi_node.objid =:= element(2, E)]),
+    case EntityType of
+	occi_resource ->
+	    qlc:fold(fun (E, Acc) -> [load_resource_node_t(E) | Acc] end, [], Q1);
+	occi_link ->
+	    Q1
+    end;
+
+get_collection_qh(#occi_cid{class=kind}=Cid, [], false) ->
+    EntityType = get_category_parent_t(Cid),
+    qlc:q([ element(2, N) || N <- mnesia:table(occi_node), 
+			     E <- mnesia:table(EntityType),
+			     N#occi_node.type =:= EntityType,
+			     element(3, E) =:= Cid,
+			     N#occi_node.objid =:= element(2, E)]);
+
+get_collection_qh(#occi_cid{class=mixin}=Cid, [], true) ->
+    Q1 = qlc:q([ N#occi_node{data=R} || N <- mnesia:table(occi_node), 
+					R <- mnesia:table(occi_resource),
+					N#occi_node.objid =:= element(2, R),
+					N#occi_node.type =:= occi_resource,
+					occi_resource:has_category(R, Cid)]),
+    Q2 = qlc:fold(fun (E, Acc) -> [load_resource_node_t(E) | Acc] end, [], Q1),
+    Q3 = qlc:q([ N#occi_node{data=L} || N <- mnesia:table(occi_node), 
+					L <- mnesia:table(occi_link),
+					N#occi_node.objid =:= element(2, L),
+					N#occi_node.type =:= occi_link,
+					occi_link:has_category(L, Cid)]),
+    qlc:append(Q2, Q3);
+
+get_collection_qh(#occi_cid{class=mixin}=Cid, [], false) ->
+    Q1 = qlc:q([ element(2, N) || N <- mnesia:table(occi_node), 
+				  R <- mnesia:table(occi_resource),
+				  N#occi_node.objid =:= element(2, R),
+				  N#occi_node.type =:= occi_resource,
+				  occi_resource:has_category(R, Cid)]),
+    Q2 = qlc:q([ element(2, L) || N <- mnesia:table(occi_node), 
+				  L <- mnesia:table(occi_link),
+				  N#occi_node.objid =:= element(2, L),
+				  N#occi_node.type =:= occi_link,
+				  occi_link:has_category(L, Cid)]),
+    qlc:append(Q1, Q2);
+
+get_collection_qh(#uri{}=CollId, [], Deep) ->
+    case mnesia:wread({occi_node, CollId}) of
+	[] ->
+	    mnesia:abort({unknown_node, CollId});
+	[#occi_node{data=#occi_collection{entities=Entities}}] ->
+	    F = fun ({entity, Id}, Acc) -> 
+			[Acc, get_node_t(Id, Deep)];
+		    ({collection, Id}, Acc) ->
+			[Acc, get_collection_qh(Id, [], Deep) ]
+		end,
+	    lists:flatten(ordsets:fold(F, [], Entities))
+    end.
+
+
+get_node_t(Id, false) ->
+    Id;
+get_node_t(Id, true) ->
+    case mnesia:wread({occi_node, Id}) of
+	[] -> mnesia:abort({unknown_node, Id});
+	[#occi_node{type=Type, objid=ObjId}=Node] ->
+	    case mnesia:wread({Type, ObjId}) of
+		[] -> mnesia:abort({unknown_entity, ObjId});
+		[Entity] -> Node#occi_node{data=Entity}
+	    end
+    end.
+
+init_schema(Opts) ->
+    case mnesia:create_schema([node()]) of
+	ok ->
+	    init_db(Opts);
+	{error, {_, {already_exists, _}}} ->
+	    init_db(Opts);
+	{error, Err} ->
+	    lager:error("Error creating mnesia schema on node ~p: ~p~n", [node(), Err]),
+	    {error, Err}
+    end.
+
+init_db(Opts) ->
+    application:start(mnesia, permanent),
+    Tables = [{occi_collection, [{disc_copies, [node()]},
+				 {attributes, record_info(fields, occi_collection)}]},
+	      {occi_resource, [{disc_copies, [node()]},
+			       {attributes, record_info(fields, occi_resource)},
+			       {index, [#occi_resource.cid]}]},
+	      {occi_link, [{disc_copies, [node()]},
+			   {attributes, record_info(fields, occi_link)},
+			   {index, [#occi_link.cid]}]},
+	      {occi_mixin, [{disc_copies, [node()]},
+			    {attributes, record_info(fields, occi_mixin)}]},
+	      {occi_node, [{disc_copies, [node()]}, 
+			   {attributes, record_info(fields, occi_node)},
+			   {index, [#occi_node.objid]},
+			   {type, 'ordered_set'}]},
+	      {occi_user, [{disc_copies, [node()]},
+			   {attributes, record_info(fields, occi_user)}]}],
+    case init_tables(Tables) of
+	ok ->
+	    mnesia:wait_for_tables([occi_collection, occi_resource, occi_link,
+				    occi_mixin, occi_node, occi_user], 5000),
+	    init_backend(Opts);
+	{error, Err} ->
+	    lager:error("Error creating mnesia tables: ~p~n", [Err]),
+	    {error, Err}
+    end.
+
+init_tables([]) ->
+    ok;
+init_tables([{Name, TabDef} | Tables]) ->
+    case mnesia:create_table(Name, TabDef) of
+	{atomic, ok} ->
+	    lager:debug("mnesia: created table: ~p~n", [Name]),
+	    init_tables(Tables);
+	{aborted, {already_exists, Name}} ->
+	    lager:debug("mnesia: table ~p already exists~n", [Name]),
+	    init_tables(Tables);
+	{aborted, Reason} ->
+	    {error, Reason}
+    end.
+
+init_backend(Opts) ->
+    case proplists:get_value(schemas, Opts) of
+	undefined -> 
+	    {ok, [], #state{}};
+	Schemas ->
+	    F = fun() -> mnesia:match_object(#occi_node{type=capabilities, _='_'}) end,
+	    case mnesia:transaction(F) of
+		{atomic, []} -> 
+		    {ok, [{schemas, Schemas}], #state{}};
+		{atomic, MixinsNodes} ->
+		    Mixins = [ Mixin || #occi_node{data=Mixin} <- MixinsNodes],
+		    {ok, [{schemas, lists:flatten([Schemas, Mixins])}], #state{}};
+		{aborted, Reason} ->
+		    {error, Reason}
+	    end
+    end.

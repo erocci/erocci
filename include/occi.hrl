@@ -26,7 +26,7 @@
 				 | pagination
 				 | deep.
 
--record(occi_env, {host, req}).
+-record(occi_env, {req_uri, req}).
 -type occi_env() :: #occi_env{}.
 
 -type(occi_class() :: kind | mixin | action).
@@ -57,6 +57,10 @@
 -type(occi_extension() :: #occi_extension{}).
 
 -record(occi_collection, {id                     :: uri() | occi_cid(),
+			  range                  :: {integer() | undefined, 
+						     integer() | undefined, 
+						     integer() | undefined},
+			  marker                 :: binary(),
 			  entities  = undefined  :: term()}). % ordset()
 -type(occi_collection() :: #occi_collection{}).
 

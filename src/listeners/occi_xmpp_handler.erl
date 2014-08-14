@@ -61,7 +61,7 @@ handle_iq(#received_packet{from={Node, Domain, _Res}, raw_packet=Raw}, #state{ji
         {ok, Op} ->
             Endpoint = occi_uri:parse(Jid),
             handle_filters(Raw2, S#state{op=Op, from=exmpp_jid:make({Node, Domain, undefined}), 
-                                         env=#occi_env{host=Endpoint}});
+                                         env=#occi_env{req_uri=Endpoint}});
         error ->
             respond(Raw, S, 'bad-request'),
             terminate(S)

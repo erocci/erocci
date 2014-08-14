@@ -62,6 +62,8 @@
 	    <xs:element name="entity" type="occi:entityType" />
 	  </xs:sequence>
 	  <xs:attributeGroup ref="occi:categoryGroup"></xs:attributeGroup>
+	  <xs:attribute name="range" type="xs:string" />
+	  <xs:attribute name="next" type="xs:anyURI" />
 	</xs:complexType>
 	
 	<!-- 

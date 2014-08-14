@@ -65,7 +65,7 @@ set(Name, Value) ->
 -spec gen_id(string() | binary(), occi_env()) -> uri().
 gen_id(Prefix, Env) when is_binary(Prefix) ->
     gen_id(binary_to_list(Prefix), Env);
-gen_id(Prefix, #occi_env{host=#uri{host=Host}}) when is_list(Prefix) ->
+gen_id(Prefix, #occi_env{req_uri=#uri{host=Host}}) when is_list(Prefix) ->
     Id = uuid:to_string(uuid:uuid3(uuid:uuid4(), Host)),
     #uri{path=Prefix++Id}.
 

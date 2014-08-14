@@ -141,15 +141,15 @@ get_parent(#uri{path=Path}=Uri) ->
 	    Uri#uri{path=filename:join(lists:reverse(Parent))}
     end.
 
--spec to_url(Host :: #uri{}, Uri :: #uri{}) -> #uri{}.
+-spec to_url(Endpoint :: #uri{}, Uri :: #uri{}) -> #uri{}.
 to_url(#uri{scheme=Scheme, host=Host, userinfo=UI, port=Port}, 
        #uri{scheme=undefined}=Uri) ->
     Uri#uri{scheme=Scheme, host=Host, userinfo=UI, port=Port};
 
-to_url(#uri{}=_Host, Uri) ->
+to_url(#uri{}=_Endpoint, Uri) ->
     Uri.
 
-to_iolist(Uri, #occi_env{host=#uri{}=Host}) ->
+to_iolist(Uri, #occi_env{req_uri=#uri{}=Host}) ->
     to_iolist(to_url(Host, Uri)).
 
 to_iolist(undefined) ->
@@ -163,14 +163,14 @@ to_iolist(#uri{scheme=urn, path=Path}) ->
 to_iolist(#uri{scheme=Scheme, userinfo=Auth, host=Host, port=Port, path=Path, query=Query}) ->
     uri:to_iolist({Scheme, Auth, Host, Port, Path, Query}).
 
-to_binary(Uri, #occi_env{host=#uri{}=Host}) ->
+to_binary(Uri, #occi_env{req_uri=#uri{}=Host}) ->
     to_binary(to_url(Host, Uri)).
 
 to_binary(Uri) ->
     iolist_to_binary(to_iolist(Uri)).
 
-to_string(Uri, #occi_env{host=#uri{}=Host}) ->
-    to_string(to_url(Host, Uri)).
+to_string(Uri, #occi_env{req_uri=#uri{}=Endpoint}) ->
+    to_string(to_url(Endpoint, Uri)).
 
 to_string(Uri) ->
     binary_to_list(to_binary(Uri)).
