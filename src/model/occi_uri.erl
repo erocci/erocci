@@ -29,7 +29,8 @@
 -include_lib("eunit/include/eunit.hrl").
 -endif.
 
--export([parse/1,
+-export([new/3, 
+	 parse/1,
 	 gen_urn/2,
 	 add_prefix/2,
 	 rm_prefix/2,
@@ -51,6 +52,11 @@
 %%%
 %%% API
 %%%
+-spec new(Host :: binary(), Path :: binary(), QsVals :: [{binary(), term()}]) -> uri().
+new(Host, Path, QsVals) when is_binary(Host), is_binary(Path) ->
+    parse(<<Host/binary, Path/binary, (encode_qsvals(QsVals, <<>>))/binary>>).
+
+
 -spec parse(undefined | binary()) -> uri().
 parse(undefined) ->
     throw({error, invalid_uri});
@@ -201,6 +207,16 @@ substr([], S2, true) ->
     {ok, filename:join(S2)};
 substr(_S1, _S2, false) ->
     none.
+
+encode_qsvals([], <<>>) ->
+    <<>>;
+encode_qsvals([], <<$&, Qs/binary>>) ->
+    <<$?, Qs/binary>>;
+encode_qsvals([{Name, true} | QsVals], Acc) ->
+    encode_qsvals(QsVals, <<Acc/binary, $&, Name/binary>>);
+encode_qsvals([{Name, Value} | QsVals], Acc) ->
+    encode_qsvals(QsVals, <<Acc/binary, $&, Name/binary, $=, (cow_qs:urlencode(Value))/binary>>).
+
 
 %%%
 %%% EUNIT

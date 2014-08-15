@@ -283,10 +283,19 @@ render(Req, #state{node=Node, ct=#content_type{renderer=Renderer}, filters=Filte
 
 render_collection(#occi_collection{range=undefined}, Req) ->
     Req;
-render_collection(#occi_collection{range=Range}, Req) ->
+render_collection(#occi_collection{marker=Marker, range=Range}, Req) ->
     Req2 = cowboy_req:set_resp_header(<<"content-range">>, render_range(Range), Req),
-    cowboy_req:set_resp_header(<<"accept-ranges">>, <<"entity">>, Req2).
-    
+    Req3 = cowboy_req:set_resp_header(<<"accept-ranges">>, <<"entity">>, Req2),
+    case Marker of
+	undefined ->
+	    Req3;
+	_ ->
+	    {NextUri, Req4} = update_qs_val(<<"marker">>, Marker, Req3),
+	    NextLink = <<"<", (occi_uri:to_binary(NextUri#uri{'query'=""}))/binary, ">;next=", 
+			 (occi_uri:to_binary(NextUri))/binary>>,
+	    cowboy_req:set_resp_header(<<"link">>, NextLink, Req4)
+    end.
+
 
 render_range({S, E, undefined}) when is_integer(S),
 				     is_integer(E) ->
@@ -614,3 +623,9 @@ get_caps_node(_) ->
 get_req_url(Req) ->
     {ReqUrl, _} = cowboy_req:url(Req),
     occi_uri:parse(ReqUrl).
+
+update_qs_val(Name, Value, Req) ->
+    {Host, _} = cowboy_req:host_url(Req),
+    {Path, _} = cowboy_req:path(Req),
+    {QsVals, Req2} = cowboy_req:qs_vals(Req),
+    {occi_uri:new(Host, Path, lists:keystore(Name, 1, QsVals, {Name, Value})), Req2}.

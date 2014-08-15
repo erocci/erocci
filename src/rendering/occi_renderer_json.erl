@@ -65,28 +65,9 @@ render(#occi_node{id=Id, type=capabilities, data=Mixin}, Env) ->
     {jiffy:encode(MixinJson, [pretty]), Env};
 
 render(#occi_node{type=occi_collection, data=#occi_collection{entities=Entities}}, Env) ->
-    F = fun (#uri{}=Id, {AccRes, AccLinks, AccUris}) ->
-		{ AccRes, AccLinks, [Id | AccUris]};
-	    (#occi_node{id=Id, type=occi_resource, data=Res}, {AccRes, AccLinks, AccUris}) ->
-		{ [ render_ejson(Id, Res, Env) | AccRes ], AccLinks, AccUris};
-	    (#occi_node{id=Id, type=occi_link, data=Link}, {AccRes, AccLinks, AccUris}) ->
-		{ AccRes, [ render_ejson(Id, Link, Env) | AccLinks ], AccUris}
-	end,
-    case ordsets:fold(F, {[], [], []}, Entities) of
-	{[], [], Uris} ->
-	    {jiffy:encode([ occi_uri:to_binary(Entity, Env) || Entity <- Uris ], 
-			  [pretty]),
-	     Env};
-	{EjsonRes, [], []} ->
-	    Content = [{<<"resources">>, EjsonRes}],
-	    {jiffy:encode({Content}, [pretty]), Env};
-	{[], EjsonLinks, []} ->
-	    Content = [{<<"links">>, EjsonLinks}],
-	    {jiffy:encode({Content}, [pretty]), Env};
-	{EjsonRes, EjsonLinks, []} ->
-	    Content = [{<<"resources">>, EjsonRes}, {<<"links">>, EjsonLinks}],
-	    {jiffy:encode({Content}, [pretty]), Env}
-    end.
+    Ejson = render_entities(Entities, Env),
+    {jiffy:encode(Ejson, [pretty]), Env}.
+
 
 %%%
 %%% Private
@@ -158,6 +139,7 @@ render_ejson(_, #occi_cid{}=Cid, _) ->
 		{term, Cid#occi_cid.term}, 
 		{class, Cid#occi_cid.class}]).
 
+
 render_cid_uri(undefined) ->
     undefined;
 render_cid_uri(#occi_cid{}=Cid) ->
@@ -197,6 +179,26 @@ render_attribute_values([#occi_attr{}=Attr|Tail], Acc, Env) ->
 	    render_attribute_values(Tail, insert_attr(Id, list_to_binary(Value), Acc), Env);
 	Value ->
 	    render_attribute_values(Tail, insert_attr(Id, Value, Acc), Env)
+    end.
+
+
+render_entities(Entities, Env) ->
+    F = fun (#uri{}=Id, {AccRes, AccLinks, AccUris}) ->
+		{ AccRes, AccLinks, [Id | AccUris]};
+	    (#occi_node{id=Id, type=occi_resource, data=Res}, {AccRes, AccLinks, AccUris}) ->
+		{ [ render_ejson(Id, Res, Env) | AccRes ], AccLinks, AccUris};
+	    (#occi_node{id=Id, type=occi_link, data=Link}, {AccRes, AccLinks, AccUris}) ->
+		{ AccRes, [ render_ejson(Id, Link, Env) | AccLinks ], AccUris}
+	end,
+    case ordsets:fold(F, {[], [], []}, Entities) of
+	{[], [], Uris} ->
+	    [ occi_uri:to_binary(Entity, Env) || Entity <- Uris ];
+	{EjsonRes, [], []} ->
+	    [{<<"resources">>, EjsonRes}];
+	{[], EjsonLinks, []} ->
+	    [{<<"links">>, EjsonLinks}];
+	{EjsonRes, EjsonLinks, []} ->
+	    [{<<"resources">>, EjsonRes}, {<<"links">>, EjsonLinks}]
     end.
 
 %

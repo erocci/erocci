@@ -60,7 +60,7 @@
 			  range                  :: {integer() | undefined, 
 						     integer() | undefined, 
 						     integer() | undefined},
-			  marker                 :: binary(),
+			  marker    = undefined  :: binary(),
 			  entities  = undefined  :: term()}). % ordset()
 -type(occi_collection() :: #occi_collection{}).
 

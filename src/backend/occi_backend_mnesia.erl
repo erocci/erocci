@@ -141,13 +141,42 @@ load_collection_t(Id, QH, -1, 0) ->
     Entities = qlc:e(QH),
     occi_collection:new(Id, Entities);
 
-load_collection_t(Id, QH, L, _M) ->
+load_collection_t(Id, QH, L, M) ->
     QC = qlc:cursor(QH),
-    Ret = qlc:next_answers(QC, L),
-    qlc:delete_cursor(QC),
-    M = <<"themarker">>,
-    #occi_collection{id=Id, range={0, L-1, undefined}, marker=M, entities=ordsets:from_list(Ret)}.
+    case get_range_t(QC, M, L) of
+	{Ret, 0, Count} ->
+	    qlc:delete_cursor(QC),
+	    #occi_collection{id=Id, range={M, Count, 0}, entities=ordsets:from_list(Ret)};
+	{Ret, M2, Count} ->
+	    qlc:delete_cursor(QC),
+	    #occi_collection{id=Id, range={M, Count, 0}, marker=integer_to_binary(M2), 
+			     entities=ordsets:from_list(Ret)}
+    end.
 
+
+get_range_t(QC, 0, Limit) ->
+    Ret = qlc:next_answers(QC, Limit),
+    Count = length(Ret),
+    if Count < Limit ->
+	    {Ret, 0, Count};
+       true ->
+	    {Ret, Limit+1, Count}
+    end;
+
+get_range_t(QC, Start, Limit) ->
+    case get_range_t(QC, 0, Start-1) of
+	{_, 0, _} ->
+	    {[], 0, 0};
+	{_, NewStart, _} ->
+	    Ret = qlc:next_answers(QC, Limit),
+	    Count = length(Ret),
+	    if Count < Limit ->
+		    {Ret, 0, Count};
+	       true ->
+		    {Ret, NewStart+Limit, Count}
+	    end
+    end.
+	
 
 load_resource_node_t(#occi_node{data=#occi_resource{links=OrigLinks}=Res}=Node) ->
     Links = sets:fold(fun (#uri{}=LinkId, Acc) ->
@@ -521,8 +550,13 @@ get_opts([deep | Opts], {F, _, L, M}) ->
 get_opts([{limit, L} | Opts], {F, D, _, M}) ->
     get_opts(Opts, {F, D, L, M});
 
-get_opts([{marker, M} | Opts], {F, D, L, _}) ->
-    get_opts(Opts, {F, D, L, M}).
+get_opts([{marker, Bin} | Opts], {F, D, L, _}) ->
+    try binary_to_integer(Bin) of
+	I when I >= 0 -> get_opts(Opts, {F, D, L, I});
+	_ -> get_opts(Opts,{F, D, L, 0})
+    catch 
+	error:badarg -> get_opts(Opts, {F, D, L, 0})
+    end.	    
 
 
 %% build_filters([], Acc) ->
