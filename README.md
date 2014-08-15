@@ -11,6 +11,8 @@ erocci is a framework for building OCCI like API, with the following objectives:
 
 [Travis-CI](http://travis-ci.org/jeanparpaillon/erocci) :: ![Travis-CI](https://secure.travis-ci.org/jeanparpaillon/erocci.png)
 
+[![Project Stats](https://www.openhub.net/p/erocci/widgets/project_thin_badge.gif)](https://www.openhub.net/p/erocci)
+
 ## Architecture
 
 <img src="https://raw.github.com/jeanparpaillon/erocci/master/doc/erocci.png" alt="erocci Architectrue diagram" />
