@@ -15,9 +15,11 @@
 -define(cid_link, #occi_cid{scheme=?scheme_core, term=link}).
 
 -type occi_marker() :: binary().
--type load_opt() :: {marker, occi_marker()}
-		  | {limit, integer()}
-		  | deep.
+-type occi_load_opts() :: {NodFilters    :: [occi_filter()],
+			   EntityFilters :: [occi_filter()], 
+			   Deep          :: boolean(), 
+			   Limit         :: integer(),
+			   Marker        :: binary()}.
 -type occi_schema() :: binary()
 		     | occi_mixin()
 		     | [{path, string()}].
@@ -136,7 +138,7 @@
 -type(occi_entity() :: #occi_entity{}).
 
 %%% OCCI Filter
--type(occi_filter() :: occi_cid() | iolist() | {iolist(), iolist()}).
+-type(occi_filter() :: occi_cid() | iolist() | {iolist(), iolist()} | fun()).
 -type(occi_filters() :: occi_filter()).
 
 %%% OCCI hooks

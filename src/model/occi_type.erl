@@ -146,6 +146,7 @@ to_float(X) when is_list(X) ->
 to_float(X) ->
     throw({error, {einval, X}}).
 
+match_string(undefined, _) -> false;
 match_string(<<>>, <<>>) -> true;
 match_string(_, <<>>) -> true;
 match_string(<<>>, _) -> false;
