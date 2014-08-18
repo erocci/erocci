@@ -1,7 +1,7 @@
 *~
 *.pyc
 erl_crash.dump
-ebin
+*.beam
 .eunit
 deps/
 Mnesia.nonode@nohost/
