@@ -65,8 +65,9 @@ new(#occi_resource{id=#uri{path=Path}}=Data, Owner) ->
 	       data=Data#occi_resource{id=undefined}};
 
 new(#occi_link{id=#uri{path=Path}}=Data, Owner) ->
-    #occi_node{id=#uri{path=Path}, objid=undefined, type=occi_link, owner=Owner, 
-	       data=Data#occi_link{id=undefined}};
+    ObjId = make_ref(),
+    #occi_node{id=#uri{path=Path}, objid=ObjId, type=occi_link, owner=Owner, 
+	       data=Data#occi_link{id=ObjId}};
 
 new(#occi_mixin{id=ObjId, location=#uri{path=Path}}=Data, Owner) ->
     #occi_node{id=#uri{path=Path}, objid=ObjId, type=capabilities, owner=Owner, data=Data}.

@@ -174,8 +174,8 @@ is_conflict(Req, State) ->
 delete_resource(Req, #state{node=#occi_node{type=capabilities, data=undefined}}=State) ->
     {true, Req, State};
     
-delete_resource(Req, #state{node=Node}=State) ->
-    case occi_store:delete(Node) of
+delete_resource(Req, #state{node=Node, user=User}=State) ->
+    case occi_store:delete(Node, User) of
 	{error, Reason} ->
 	    lager:error("Error deleting node: ~p~n", [Reason]),
 	    {false, Req, State};
@@ -260,10 +260,10 @@ update(Req, #state{node=#occi_node{type=undefined}}=State) ->
     update_entity(Req, State).
 
 
-render(Req, #state{node=Node, ct=#content_type{renderer=Renderer}, filters=Filters, env=Env}=State) ->
+render(Req, #state{node=Node, ct=#content_type{renderer=Renderer}, filters=Filters, user=User, env=Env}=State) ->
     try parse_load_opts(Req) of
-	Opts ->
-	    case occi_store:load(Node, [{filters, Filters} | Opts]) of
+	{D, L, M} ->
+	    case occi_store:load(Node, {[], Filters, D, L, M}, User) of
 		{ok, #occi_node{type=occi_collection, data=Coll}=Node2} ->
 		    {Body, #occi_env{req=Req2}} = Renderer:render(Node2, Env#occi_env{req=Req}),
 		    {[Body, "\n"], render_collection(Coll, Req2), State};
@@ -297,7 +297,7 @@ render_collection(#occi_collection{marker=Marker, range=Range}, Req) ->
     end.
 
 
-render_range({S, E, undefined}) when is_integer(S),
+render_range({S, E, 0}) when is_integer(S),
 				     is_integer(E) ->
     iolist_to_binary([<<"entity ">>, integer_to_binary(S), <<"-">>, integer_to_binary(E)]);
 render_range({S, E, T}) when is_integer(S),
@@ -575,25 +575,25 @@ parse_attr_filter([ Attr | Rest ], Acc) ->
     end.
 
 parse_load_opts(Req) ->
-    parse_marker(Req, []).
+    parse_marker(Req, {false, -1, 0}).
 
-parse_marker(Req, Acc) ->
+parse_marker(Req, {D, L, _}) ->
     case cowboy_req:qs_val(<<"marker">>, Req) of
-	{undefined, _} -> parse_limit(Req, Acc);
-	{Bin, _} -> parse_limit(Req, [{marker, Bin} | Acc])
+	{undefined, _} -> parse_limit(Req, {D, L, 0});
+	{Bin, _} -> parse_limit(Req, {D, L, Bin})
     end.
 
-parse_limit(Req, Acc) ->
+parse_limit(Req, {D, _, M}) ->
     case cowboy_req:qs_val(<<"limit">>, Req) of
-	{undefined, _} -> parse_deep(Req, Acc);
-	{Bin, _} -> parse_deep(Req, [ {limit, binary_to_integer(Bin)} | Acc ])
+	{undefined, _} -> parse_deep(Req, {D, -1, M});
+	{Bin, _} -> parse_deep(Req, {D, binary_to_integer(Bin), M})
     end.
 
-parse_deep(Req, Acc) ->
+parse_deep(Req, {_, L, M}) ->
     case cowboy_req:qs_val(<<"deep">>, Req) of
-	{true, _} -> [deep | Acc];
-	{<<"1">>, _} -> [deep | Acc];
-	_ -> Acc
+	{true, _} -> {true, L, M};
+	{<<"1">>, _} -> {true, L, M};
+	_ -> {false, L, M}
     end.
 
 get_node(Path) ->

@@ -214,12 +214,20 @@ reset(#occi_link{attributes=Attrs}=Link) ->
 
 -spec add_prefix(occi_link(), string()) -> occi_link().
 add_prefix(#occi_link{source=Src, target=Target}=Link, Prefix) ->
-    Link#occi_link{source=occi_uri:add_prefix(Src, Prefix),
+    Link#occi_link{id=case Link#occi_link.id of
+			  #uri{}=Uri -> occi_uri:add_prefix(Uri, Prefix);
+			  Else -> Else
+		      end,
+		   source=occi_uri:add_prefix(Src, Prefix),
 		   target=occi_uri:add_prefix(Target, Prefix)}.
 
 -spec rm_prefix(occi_link(), string()) -> occi_link().
 rm_prefix(#occi_link{source=Src, target=Target}=Link, Prefix) ->
-    Link#occi_link{source=occi_uri:rm_prefix(Src, Prefix),
+    Link#occi_link{id=case Link#occi_link.id of
+			  #uri{}=Uri -> occi_uri:rm_prefix(Uri, Prefix);
+			  Else -> Else
+		      end,
+		   source=occi_uri:rm_prefix(Src, Prefix),
 		   target=occi_uri:rm_prefix(Target, Prefix)}.
 
 

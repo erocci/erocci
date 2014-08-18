@@ -245,6 +245,7 @@ match_attr2([], _) ->
     false;
 
 match_attr2([{_, Attr} | Rest], Val) ->
+    lager:debug("### matching ~p vs ~p~n", [Attr, Val]),
     case occi_attribute:match_value(Attr, Val) of
 	true -> true;
 	false -> match_attr2(Rest, Val)

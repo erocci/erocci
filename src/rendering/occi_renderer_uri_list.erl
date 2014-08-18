@@ -35,8 +35,11 @@
 %%% API
 %%%===================================================================
 render(#occi_node{type=occi_collection, data=Coll}, Env) ->
-    Data = occi_renderer:join([ occi_uri:to_iolist(Id, Env) 
-				|| Id <- occi_collection:get_entities(Coll) ], <<"\n">>),
+    Data = lists:map(fun (#uri{}=Id) ->
+			     [ occi_uri:to_iolist(Id, Env), "\n"];
+			 (#occi_node{id=Id}) ->
+			     [ occi_uri:to_iolist(Id, Env), "\n" ]
+		     end, occi_collection:get_entities(Coll)),
     {Data, Env};
 
 render(#occi_node{type=capabilities, data={Kinds, Mixins, Actions}}, Env) ->

@@ -68,7 +68,7 @@
     {{ok, [occi_node()]}, term()} |
     {{error, Reason :: term()}, State :: term()}.
 
--callback load(State :: term(), Node :: occi_node(), Opts :: [load_opt()]) ->
+-callback load(State :: term(), Node :: occi_node(), Opts :: occi_load_opts()) ->
     {{ok, occi_node()}, term()} |
     {{ok, occi_node(), occi_marker()}, term()} |
     {{error, Reason :: term()}, State :: term()}.

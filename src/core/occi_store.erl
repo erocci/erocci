@@ -40,10 +40,10 @@
 -export([get/1]).
 -export([save/1,
 	 update/1,
-	 delete/1,
+	 delete/2,
 	 find/1,
 	 load/1,
-	 load/2,
+	 load/3,
 	 action/2]).
 
 %% supervisor callbacks
@@ -51,6 +51,7 @@
 
 -define(SUPERVISOR, ?MODULE).
 -define(TABLE, ?MODULE).
+-define(DEFAULT_LOAD_OPTS, {[], [], false, -1, 0}).
 
 -type(backend_ref() :: atom()).
 -type(backend_mod() :: atom()).
@@ -136,40 +137,13 @@ update(#occi_node{id=#uri{path=Path}}=Node) ->
 	    {error, Err}
     end.
 
--spec delete(occi_node()) -> ok | {error, term()}.
-delete(#occi_node{type=occi_collection, objid=#occi_cid{}, data=undefined}=Node) ->
-    case load(Node) of
-	{ok, N2} -> delete(N2);
+-spec delete(occi_node(), occi_user()) -> ok | {error, term()}.
+delete(#occi_node{data=undefined}=Node, User) ->
+    case load(Node, ?DEFAULT_LOAD_OPTS, User) of
+	{ok, Node2} -> delete(Node2);
 	{error, Err} -> {error, Err}
-    end;
+    end.
 
-delete(#occi_node{type=occi_collection, objid=#occi_cid{}}=Node) ->
-    lager:debug("occi_store:delete(~p)~n", [lager:pr(Node, ?MODULE)]),
-    cast(delete, filter_collection(Node));
-
-delete(#occi_node{id=#uri{path=Path}, type=capabilities, data=#occi_mixin{}=Mixin}=Node) ->
-    lager:debug("occi_store:delete(~p)~n", [lager:pr(Node, ?MODULE)]),
-    case get_backend(Path) of
-	{ok, #occi_node{id=#uri{path=Prefix}, objid=Ref}} ->
-	    Res = occi_backend:delete(Ref, occi_node:rm_prefix(Node, Prefix)),
-	    occi_category_mgr:unregister_mixin(Mixin),
-	    Res;
-	{error, Err} ->
-	    {error, Err}
-    end;
-
-delete(#occi_node{id=#uri{path=Path}}=Node) ->
-    lager:debug("occi_store:delete(~p)~n", [lager:pr(Node, ?MODULE)]),
-    case get_backend(Path) of
-	{ok, #occi_node{id=#uri{path=Prefix}, objid=Ref}} ->
-	    occi_backend:delete(Ref, occi_node:rm_prefix(Node, Prefix));
-	{error, Err} ->
-	    {error, Err}
-    end;
-
-delete(_Node) ->
-    lager:debug("occi_store:delete(~p)~n", [_Node]),
-    {error, unsupported_node}.
 
 -spec get(occi_cid()) -> {ok, occi_category()} | {error, term()}.
 get(Cid) ->
@@ -242,28 +216,26 @@ find(#occi_node{id=#uri{path=Path}=Id}=Req) ->
 
 -spec load(occi_node()) -> {ok, occi_node()} | {error, term()}.
 load(Req) ->
-    load(Req, []).
+    load(Req, ?DEFAULT_LOAD_OPTS, anonymous).
 
--spec load(occi_node(), [load_opt()]) -> {ok, occi_node()} | {error, term()}.
-load(#occi_node{type=capabilities, data=undefined}=Req, _Opts) ->
+-spec load(occi_node(), occi_load_opts(), occi_user()) -> {ok, occi_node()} | {error, term()}.
+load(#occi_node{type=capabilities, data=undefined}=Req, _Opts, _User) ->
     {ok, [Res]} = find(Req),
     {ok, Res};
 
-load(#occi_node{objid=#occi_cid{}=Cid, type=occi_collection, data=undefined}=Node, Opts) ->
-    lager:debug("occi_store:load(~p, ~p)~n", [lager:pr(Node, ?MODULE), Opts]),
-    Merge = fun (_B, #occi_node{data=undefined}, Acc) ->
-		    Acc;
-		(#occi_node{id=#uri{path=Prefix}}, #occi_node{data=C}, Acc) ->
-		    occi_collection:merge(Acc, occi_collection:add_prefix(C, Prefix))
-	    end,
-    case fold(Merge, occi_collection:new(Cid), load, [Node, Opts]) of
-	{ok, Coll} ->
-	    {ok, Node#occi_node{data=Coll}};
-	{error, Err} ->
-	    {error, Err}
-    end;
+load(#occi_node{type=occi_collection, data=undefined}=Node, {NF, EF, false, L, M}, _User) ->
+    load_collection(Node, {NF, EF, false, L, M});
 
-load(#occi_node{id=#uri{path=Path}, data=undefined}=Node, Opts) ->
+load(#occi_node{type=occi_collection, data=undefined}=Node, {NF, EF, true, L, M}, User) ->
+    AuthFun = fun (N) ->
+		      case occi_acl:check(read, N, User) of
+			  allow -> true;
+			  deny -> false
+		      end
+	      end,
+    load_collection(Node, {[AuthFun | NF], EF, true, L, M});
+
+load(#occi_node{id=#uri{path=Path}, data=undefined}=Node, Opts, _User) ->
     lager:debug("occi_store:load(~p, ~p)~n", [lager:pr(Node, ?MODULE), Opts]),
     case get_backend(Path) of
 	{ok, #occi_node{id=#uri{path=Prefix}, objid=Ref}} ->
@@ -277,7 +249,7 @@ load(#occi_node{id=#uri{path=Path}, data=undefined}=Node, Opts) ->
 	    {error, Err}
     end;
 
-load(#occi_node{data=_}=Node, Opts) ->
+load(#occi_node{data=_}=Node, Opts, _User) ->
     lager:debug("occi_store:load(~p, ~p)~n", [lager:pr(Node, ?MODULE), Opts]),
     {ok, Node}.
 
@@ -325,6 +297,64 @@ init([]) ->
 %%%===================================================================
 %%% internals
 %%%===================================================================
+delete(#occi_node{type=occi_collection, objid=#occi_cid{}}=Node) ->
+    lager:debug("occi_store:delete(~p)~n", [lager:pr(Node, ?MODULE)]),
+    cast(delete, filter_collection(Node));
+
+delete(#occi_node{id=#uri{path=Path}, type=capabilities, data=#occi_mixin{}=Mixin}=Node) ->
+    lager:debug("occi_store:delete(~p)~n", [lager:pr(Node, ?MODULE)]),
+    case get_backend(Path) of
+	{ok, #occi_node{id=#uri{path=Prefix}, objid=Ref}} ->
+	    Res = occi_backend:delete(Ref, occi_node:rm_prefix(Node, Prefix)),
+	    occi_category_mgr:unregister_mixin(Mixin),
+	    Res;
+	{error, Err} ->
+	    {error, Err}
+    end;
+
+delete(#occi_node{id=#uri{path=Path}}=Node) ->
+    lager:debug("occi_store:delete(~p)~n", [lager:pr(Node, ?MODULE)]),
+    case get_backend(Path) of
+	{ok, #occi_node{id=#uri{path=Prefix}, objid=Ref}} ->
+	    occi_backend:delete(Ref, occi_node:rm_prefix(Node, Prefix));
+	{error, Err} ->
+	    {error, Err}
+    end;
+
+delete(_Node) ->
+    lager:debug("occi_store:delete(~p)~n", [_Node]),
+    {error, unsupported_node}.
+
+
+load_collection(#occi_node{objid=#occi_cid{}=Cid, type=occi_collection, data=undefined}=Node, Opts) ->
+    lager:debug("occi_store:load(~p, ~p)~n", [lager:pr(Node, ?MODULE), Opts]),
+    Merge = fun (_B, #occi_node{data=undefined}, Acc) ->
+		    Acc;
+		(#occi_node{id=#uri{path=Prefix}}, #occi_node{data=C}, Acc) ->
+		    occi_collection:merge(Acc, occi_collection:add_prefix(C, Prefix))
+	    end,
+    case fold(Merge, occi_collection:new(Cid), load, [Node, Opts]) of
+	{ok, Coll} ->
+	    {ok, Node#occi_node{data=Coll}};
+	{error, Err} ->
+	    {error, Err}
+    end;
+
+load_collection(#occi_node{id=#uri{path=Path}, data=undefined}=Node, Opts) ->
+    lager:debug("occi_store:load(~p, ~p)~n", [lager:pr(Node, ?MODULE), Opts]),
+    case get_backend(Path) of
+	{ok, #occi_node{id=#uri{path=Prefix}, objid=Ref}} ->
+	    case occi_backend:load(Ref, occi_node:rm_prefix(Node, Prefix), Opts) of
+		{ok, Node2} ->
+		    {ok, occi_node:add_prefix(Node2, Prefix)};
+		{error, Err} ->
+		    {error, Err}
+	    end;
+	{error, Err} ->
+	    {error, Err}
+    end.
+
+
 -spec get_mounts() -> term(). % set()
 get_mounts() ->
     ets:lookup_element(?TABLE, set, 2).

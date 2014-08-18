@@ -65,79 +65,79 @@ render(#occi_node{id=Id, type=capabilities, data=Mixin}, Env) ->
     {jiffy:encode(MixinJson, [pretty]), Env};
 
 render(#occi_node{type=occi_collection, data=#occi_collection{entities=Entities}}, Env) ->
-    Ejson = render_entities(Entities, Env),
-    {jiffy:encode(Ejson, [pretty]), Env}.
+    Content = {<<"collection">>, render_entities(Entities, Env)},
+    {jiffy:encode({[Content]}, [pretty]), Env}.
 
 
 %%%
 %%% Private
 %%%
 render_ejson(_, #occi_kind{location=Uri}=Kind, Env) ->
-    strip_list([{term, occi_kind:get_term(Kind)}
-		,{scheme, occi_kind:get_scheme(Kind)}
-		,{class, kind}
-		,{title, occi_kind:get_title(Kind)}
-		,{parent, render_cid_uri(occi_kind:get_parent(Kind))}
-		,{attributes, render_attribute_specs(occi_kind:get_attr_list(Kind), Env)}
-		,{actions, lists:map(fun(Action) -> 
-					     render_cid_uri(occi_action:get_id(Action)) 
-				     end, occi_kind:get_actions(Kind))}
-		,{location, occi_uri:to_binary(Uri, Env)}
-	       ]);
+    { strip_list([{term, occi_kind:get_term(Kind)}
+		  ,{scheme, occi_kind:get_scheme(Kind)}
+		  ,{class, kind}
+		  ,{title, occi_kind:get_title(Kind)}
+		  ,{parent, render_cid_uri(occi_kind:get_parent(Kind))}
+		  ,{attributes, render_attribute_specs(occi_kind:get_attr_list(Kind), Env)}
+		  ,{actions, lists:map(fun(Action) -> 
+					       render_cid_uri(occi_action:get_id(Action)) 
+				       end, occi_kind:get_actions(Kind))}
+		  ,{location, occi_uri:to_binary(Uri, Env)}
+		 ]) };
 
 render_ejson(_, #occi_mixin{location=Uri}=Mixin, Env) ->
-    strip_list([{term, occi_mixin:get_term(Mixin)}
-		,{scheme, occi_mixin:get_scheme(Mixin)}
-		,{class, mixin}
-		,{depends, lists:map(fun(Cid) -> render_cid_uri(Cid) end, 
-				     occi_mixin:get_depends(Mixin))}
-		,{applies, lists:map(fun(Cid) -> render_cid_uri(Cid) end, 
-				     occi_mixin:get_applies(Mixin))}
-		,{title, occi_mixin:get_title(Mixin)}
-		,{attributes, render_attribute_specs(occi_mixin:get_attr_list(Mixin), Env)}
-		,{actions, lists:map(fun(Action) -> 
-					     render_cid_uri(occi_action:get_id(Action))
-				     end, occi_mixin:get_actions(Mixin))}
-		,{location, occi_uri:to_binary(Uri, Env)}]);
+    { strip_list([{term, occi_mixin:get_term(Mixin)}
+		  ,{scheme, occi_mixin:get_scheme(Mixin)}
+		  ,{class, mixin}
+		  ,{depends, lists:map(fun(Cid) -> render_cid_uri(Cid) end, 
+				       occi_mixin:get_depends(Mixin))}
+		  ,{applies, lists:map(fun(Cid) -> render_cid_uri(Cid) end, 
+				       occi_mixin:get_applies(Mixin))}
+		  ,{title, occi_mixin:get_title(Mixin)}
+		  ,{attributes, render_attribute_specs(occi_mixin:get_attr_list(Mixin), Env)}
+		  ,{actions, lists:map(fun(Action) -> 
+					       render_cid_uri(occi_action:get_id(Action))
+				       end, occi_mixin:get_actions(Mixin))}
+		  ,{location, occi_uri:to_binary(Uri, Env)}]) };
 
 render_ejson(_, #occi_action{}=Action, Env) ->
-    strip_list([{term, occi_action:get_term(Action)}
-		,{scheme, occi_action:get_scheme(Action)}
-		,{class, action}
-		,{title, occi_action:get_title(Action)}
-		,{attributes, render_attribute_specs(occi_action:get_attr_list(Action), Env)}
-	       ]);
+    { strip_list([{term, occi_action:get_term(Action)}
+		  ,{scheme, occi_action:get_scheme(Action)}
+		  ,{class, action}
+		  ,{title, occi_action:get_title(Action)}
+		  ,{attributes, render_attribute_specs(occi_action:get_attr_list(Action), Env)}
+		 ]) };
 
 render_ejson(ResId, #occi_resource{}=Res, Env) ->
-    strip_list([{kind, render_cid_uri(occi_resource:get_cid(Res))}
-		,{id, occi_uri:to_binary(ResId)}
-		,{mixins, sets:fold(fun (Id, Acc) ->
-					    [render_cid_uri(Id)|Acc]
-				    end, [], occi_resource:get_mixins(Res))}
-		,{attributes, render_attribute_values(occi_resource:get_attributes(Res), Env)}
-		,{links, lists:map(fun (#uri{}=Link) ->
-					   occi_uri:to_binary(Link, Env);
-				       (#occi_link{id=LinkId}=Link) ->
-					   render_ejson(LinkId, Link, Env)
-				   end, occi_resource:get_links(Res))}
-	       ]);
+    { strip_list([{kind, render_cid_uri(occi_resource:get_cid(Res))}
+		  ,{id, occi_uri:to_binary(ResId)}
+		  ,{mixins, sets:fold(fun (Id, Acc) ->
+					      [render_cid_uri(Id)|Acc]
+				      end, [], occi_resource:get_mixins(Res))}
+		  ,{attributes, render_attribute_values(occi_resource:get_attributes(Res), Env)}
+		  ,{links, lists:map(fun (#uri{}=Link) ->
+					     occi_uri:to_binary(Link, Env);
+					 (#occi_link{id=LinkId}=Link) ->
+					     render_ejson(LinkId, Link, Env)
+				     end, occi_resource:get_links(Res)) }
+		 ]) };
 
 render_ejson(LinkId, #occi_link{}=Link, Env) ->
     Attrs = [ occi_link:get_attr(Link, 'occi.core.source'), 
 	      occi_link:get_attr(Link, 'occi.core.target') 
 	      | occi_link:get_attributes(Link)],
-    strip_list([{kind, render_cid_uri(occi_link:get_cid(Link))}
-		,{id, occi_uri:to_binary(LinkId)}
-		,{mixins, sets:fold(fun (Id, Acc) ->
-					    [render_cid_uri(Id)|Acc]
-				    end, [], occi_link:get_mixins(Link))}
-		,{attributes, render_attribute_values(Attrs, Env)}
-	       ]);
+    { strip_list([{kind, render_cid_uri(occi_link:get_cid(Link))}
+		  ,{id, occi_uri:to_binary(LinkId, Env)}
+		  ,{mixins, sets:fold(fun (Id, Acc) ->
+					      [render_cid_uri(Id)|Acc]
+				      end, [], occi_link:get_mixins(Link))}
+		  ,{attributes, render_attribute_values(Attrs, Env)}
+		 ]) };
 
 render_ejson(_, #occi_cid{}=Cid, _) ->
-    strip_list([{scheme, to_binary(Cid#occi_cid.scheme)}, 
-		{term, Cid#occi_cid.term}, 
-		{class, Cid#occi_cid.class}]).
+    { strip_list([{scheme, to_binary(Cid#occi_cid.scheme)}, 
+		  {term, Cid#occi_cid.term}, 
+		  {class, Cid#occi_cid.class}]) }.
 
 
 render_cid_uri(undefined) ->
@@ -161,7 +161,7 @@ render_attribute_specs([#occi_attr{}=Attr|Tail], Acc, Env) ->
 	 {default, occi_attribute:get_default(Attr)}
 	],
     Id = split_attr_id(occi_attribute:get_id(Attr)),
-    render_attribute_specs(Tail, insert_attr(Id, strip_list(L), Acc), Env).
+    render_attribute_specs(Tail, insert_attr(Id, { strip_list(L) }, Acc), Env).
 
 render_attribute_values(Attr, Env) ->
     render_attribute_values(Attr, {[]}, Env).
@@ -183,23 +183,14 @@ render_attribute_values([#occi_attr{}=Attr|Tail], Acc, Env) ->
 
 
 render_entities(Entities, Env) ->
-    F = fun (#uri{}=Id, {AccRes, AccLinks, AccUris}) ->
-		{ AccRes, AccLinks, [Id | AccUris]};
-	    (#occi_node{id=Id, type=occi_resource, data=Res}, {AccRes, AccLinks, AccUris}) ->
-		{ [ render_ejson(Id, Res, Env) | AccRes ], AccLinks, AccUris};
-	    (#occi_node{id=Id, type=occi_link, data=Link}, {AccRes, AccLinks, AccUris}) ->
-		{ AccRes, [ render_ejson(Id, Link, Env) | AccLinks ], AccUris}
+    F = fun (#uri{}=Id, Acc) ->
+		[ occi_uri:to_binary(Id, Env) | Acc ];
+	    (#occi_node{id=Id, type=occi_resource, data=Res}, Acc) ->
+		[ render_ejson(Id, Res, Env) | Acc ];
+	    (#occi_node{id=Id, type=occi_link, data=Link}, Acc) ->
+		[ render_ejson(Id, Link, Env) | Acc ]
 	end,
-    case ordsets:fold(F, {[], [], []}, Entities) of
-	{[], [], Uris} ->
-	    [ occi_uri:to_binary(Entity, Env) || Entity <- Uris ];
-	{EjsonRes, [], []} ->
-	    [{<<"resources">>, EjsonRes}];
-	{[], EjsonLinks, []} ->
-	    [{<<"links">>, EjsonLinks}];
-	{EjsonRes, EjsonLinks, []} ->
-	    [{<<"resources">>, EjsonRes}, {<<"links">>, EjsonLinks}]
-    end.
+    ordsets:fold(F, [], Entities).
 
 %
 % insert attribute name/value into ejson tree.
@@ -217,7 +208,7 @@ split_attr_id(Name) ->
     [ T || T <- binary:split(to_binary(Name), <<".">>, [global])].
 
 strip_list(L) ->
-    {strip_list(L, [])}.
+    strip_list(L, []).
 
 strip_list([], Acc) ->
     lists:reverse(Acc);

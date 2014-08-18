@@ -46,7 +46,7 @@ render(#occi_node{type=capabilities, data={Kinds, Mixins, Actions}}, Env, Render
 			  end, orddict:from_list([{<<"category">>, []}]), Kinds ++ Mixins ++ Actions),
     Renderer(Headers, Env);
 
-render(#occi_node{type=occi_collection, data=Coll}, Env, Renderer) ->
+render(#occi_node{type=occi_collection, data=Coll}=_N, Env, Renderer) ->
     F = fun (#uri{}=EntityId, Acc) ->
 		Uris = orddict:fetch(<<"x-occi-location">>, Acc),
 		orddict:store(<<"x-occi-location">>, 
