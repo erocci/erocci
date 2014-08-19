@@ -11,6 +11,8 @@ erocci is a framework for building OCCI like API, with the following objectives:
 
 [Travis-CI](http://travis-ci.org/jeanparpaillon/erocci) :: ![Travis-CI](https://secure.travis-ci.org/jeanparpaillon/erocci.png)
 
+[![Project Stats](https://www.openhub.net/p/erocci/widgets/project_thin_badge.gif)](https://www.openhub.net/p/erocci)
+
 ## Architecture
 
 <img src="https://raw.github.com/jeanparpaillon/erocci/master/doc/erocci.png" alt="erocci Architectrue diagram" />
@@ -24,11 +26,21 @@ install the following dependancies (thanks Augusto Ciuffoletti for the
 notice):
 
 * erlang/OTP, version 15b1 or greater
+* rebar
 * openssl and headers
 * libxml2 and headers
 * libexpat and headers
 
-Debian and Ubuntu: apt-get install erlang libssl-dev libexpat1-dev libxml2-dev
+Optinal features requires the following dependancies:
+* htpasswd based authentication: Apache Runtime Library utils headers
+* XMPP link-local support: Avahi headers
+
+As of today, build is not modular, so the above dependancies are required.
+
+Debian and Ubuntu: apt-get install erlang rebar libssl-dev libexpat1-dev libxml2-dev libaprutil1-dev libavahi-compat-libdnssd-dev
+
+Fedora: yum install erlang rebar curl gcc openssl openssl-devel  mod_ssl libxml2-devel gcc-c++ expat-devel apr-util-devel avahi-compat-libdns_sd-devel
+
 
 Fedora: yum install erlang rebar curl gcc openssl openssl-devel mod_ssl libxml2-devel gcc-c++ expat-devel apr-util-devel
 

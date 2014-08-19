@@ -1,0 +1,5 @@
+<iq to="user-1@localhost/erocci" type="set">
+<query xmlns="http://schemas.ogf.org/occi-xmpp" op="delete" node="/store/mylinks/xmpp/networkinterface/id1">
+</query>
+</iq>
+

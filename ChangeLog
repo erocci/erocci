@@ -1,3 +1,13 @@
+0.6 Jean Parpaillon <jean.parpaillon@free.fr>
+	* Add filters
+	* HTTP handler cleaning
+	* Update backend API: user mixins are 'capabilities' nodes
+	* Optimize categories management: occi_category_mgr acts as cache for user mixins
+	* Change in backend API (init must return schemas)
+	* Allow multiple listeners to run simultaneously
+
+	-- To be releases
+
 0.5 Jean Parpaillon <jean.parpaillon@free.fr>
 	* Basic XMPP transport ok: CRUD operations
 	* 0-code mode: framework can be run with only config file. See start.sh script

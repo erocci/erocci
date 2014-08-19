@@ -14,12 +14,13 @@
 -compile([{parse_transform,lager_transform}]).
 
 -include_lib("eunit/include/eunit.hrl").
-
 -include_lib("common_test/include/ct.hrl").
-
 -include_lib("kernel/include/file.hrl").
 
 -include("occi.hrl").
+
+-define(PORT, 8080).
+-define(NAME, "http://localhost:8080").
 
 %%--------------------------------------------------------------------
 %% @spec suite() -> Info
@@ -37,15 +38,25 @@ suite() ->
 %% @end
 %%--------------------------------------------------------------------
 init_per_suite(Config) ->
+    application:set_env(lager, handlers, [{lager_console_backend, debug}]),
     application:start(occi),
     DataDir = proplists:get_value(data_dir, Config),
-    Schemas = {schemas, [{xml, DataDir ++ "occi-infrastructure.xml"}]},
+    Schemas = {schemas, [{path, DataDir ++ "occi-infrastructure.xml"}]},
     Backends = {backends, 
-		[{mnesia, occi_backend_mnesia, [Schemas], "/"}]},
+		[{mnesia, occi_backend_mnesia, [Schemas], <<"/">>}]},
     Listeners = {listeners, 
-		 [{http, occi_http, [{port, 8080}]}]
+		 [{http, occi_http, [{port, ?PORT}]}]
 		},
-    occi:config([{name, "http://localhost:8080"}, Backends, Listeners]),
+    Acls = {acl, [
+		  {allow, delete, capabilities, owner},
+		  {allow, '_', capabilities, '_'},
+		  {allow, create, '_', '_'},
+		  {allow, read, '_', group},
+		  {allow, update, '_', owner},
+		  {allow, delete, '_', owner},
+		  {deny, '_', '_', '_'}
+		 ]},
+    occi:config([{name, ?NAME}, Backends, Listeners, Acls]),
     Config.
 
 %%--------------------------------------------------------------------
@@ -86,8 +97,7 @@ end_per_group(_GroupName, _Config) ->
 %% Reason = term()
 %% @end
 %%--------------------------------------------------------------------
-init_per_testcase(TestCase, Config) ->
-    
+init_per_testcase(_TestCase, Config) ->    
     Config.
 
 %%--------------------------------------------------------------------
@@ -98,7 +108,7 @@ init_per_testcase(TestCase, Config) ->
 %% Reason = term()
 %% @end
 %%--------------------------------------------------------------------
-end_per_testcase(TestCase, _Config) ->    
+end_per_testcase(_TestCase, _Config) ->    
     ok.
 
 %%--------------------------------------------------------------------
@@ -116,54 +126,28 @@ end_per_testcase(TestCase, _Config) ->
 %%--------------------------------------------------------------------
 groups() ->
     [
-     {test_json,
-      [],
+     {create_test_resources, [], [ put_resources, put_link_new ]},
+     {test_json, [],
       [{group,test_resource}]},
-     {test_resource,
-      [],
-      [put_resource_new,
-       %put_resource,      % Code http: {expected,409}, {value,200}
-       get_resource,  
-       post_resource_new,post_resource,
-       get_resource,   
-       delete_resource,get_resource_delete,{group,test_link}
-      ]},
-     {test_link,
-      [],
-      [put_resources,put_link_new,
-       %put_link,         %Code http: {expected,409}, {value,200}
-       get_link,    
-       %post_link_new,    %Code http: {expected,200}, {value,500}
-       post_link,
-       get_link,    
-       delete_link,get_link_delete
-       ,{group,test_kind_col} 
-      ]},
-     {test_kind_col,
-      [],
-      [put_kind_col,get_kind_col,post_kind_col,get_kind_col,delete_kind_col,get_kind_col_delete
-      ,{group,test_mixin_col}
-      ]},
-     {test_mixin_col,
-      [],
-      [
-       %put_mixin_col,       %Code http: {expected,200}, {value,500}
-       %get_mixin_col,
-       %post_mixin_col,      %Code http: {expected,200}, {value,500}
-       %get_mixin_col,
-       %delete_mixin_col,    %Code http: {expected,200}, {value,500}
-       %get_mixin_col_delete, %Code http: {expected,404}, {value,200}
-       {group,test_query}
-      ]},
-     {test_query,
-      [],
-      [get_query,{group,test_dir}
-      ]},
-     {test_dir,
-      [],
-      [
-      %put_resource_dir,get_dir  %Code http: {expected,200}, {value,500}
-      ]}
+     {test_resource, [],
+      [ put_resource_new, put_resource, get_resource, post_resource_new, post_resource, 
+	get_resource, delete_resource, get_resource_delete, 
+	{group, test_link} ]},
+     {test_link, [],
+      [ {group, create_test_resources}, put_link, get_link, post_link_new, post_link, 
+	get_link, delete_link, get_link_delete, 
+	{group, test_kind_col} ]},
+     {test_kind_col, [],
+      [ put_kind_col, get_kind_col, post_kind_col, get_kind_col, delete_kind_col, 
+	{group,test_mixin_col} ]},
+     {test_mixin_col, [],
+      [ {group, create_test_resources}, put_mixin_col, get_mixin_col, post_mixin_col, 
+	get_mixin_col, delete_mixin_col, {group,test_query} ]},
+     {test_query, [],
+      [ get_query, 
+	{group, test_dir} ]},
+     {test_dir, [],
+      [ put_resource_dir, get_dir ]}
     ].
 
 %%--------------------------------------------------------------------
@@ -179,215 +163,336 @@ all() ->
      {group,test_json}
     ].   
 
-
+%
+% @doc Test creation of a new resource on a new ID. 
+% expect: 201(created)
+% %end
+%
 put_resource_new(_Config) ->
-    FileName=proplists:get_value(data_dir, _Config) ++ "res1.json",
-    {ok,File}=file:read_file(FileName),
-    Id = "http://localhost:8080/myresources/id",
-    {ok,{{_Protocol,Code,_Status},Headers,_Body}} =  httpc:request(put,{Id,[],"application/json",File},[],[]),
-    ?assertEqual(201,Code),
-    lager:info("#####PUT_RESOURCE_NEW ~p",[Headers]).
-    
+    FileName = proplists:get_value(data_dir, _Config) ++ "resource1.json",
+    {ok, File} = file:read_file(FileName),
+    Id = ?NAME ++ "/myresources/id",
+    {ok, {{_Protocol, Code, _Status}, _Headers, _Body}} =  
+	httpc:request(put, {Id, [], "application/json", File}, [], []),
+    ?assertEqual(201, Code).
+
+%
+% @doc Test creation of a resource on an existing ID
+% expect: 409 (conflict)
+% @end
+%
 put_resource(_Config) ->
-    FileName=proplists:get_value(data_dir, _Config) ++ "res1.json",
-    {ok,File}=file:read_file(FileName),
-    Id = "http://localhost:8080/myresources/id",
-    lager:info("####FILE : ~p",[File]),
-    {ok,{{_Protocol,Code,_Status},_Headers,_Body}} =  httpc:request(put,{Id,[],"application/json",File},[],[]),
-    ?assertEqual(409,Code).
+    FileName = proplists:get_value(data_dir, _Config) ++ "resource1.json",
+    {ok, File} = file:read_file(FileName),
+    Id = ?NAME ++ "/myresources/id",
+    {ok, {{_Protocol, Code, _Status}, _Headers, _Body}} =  
+	httpc:request(put, {Id, [], "application/json", File}, [], []),
+    ?assertEqual(409, Code).
 
+%
+% @doc Test creation of three resources for the test of link.
+% expect: 201(created)
+% end
+% 
 put_resources(_Config) ->
-    FileName=proplists:get_value(data_dir, _Config) ++ "res1.json",
-    FileName1=proplists:get_value(data_dir, _Config) ++ "res2.json",
-    FileName2=proplists:get_value(data_dir, _Config) ++ "res3.json",
-    {ok,File}=file:read_file(FileName),
-    {ok,File1}=file:read_file(FileName1),
-    {ok,File2}=file:read_file(FileName2),
-    Id = "http://localhost:8080/myresources/id",
-    Id1 = "http://localhost:8080/myresources/id2",
-    Id2 = "http://localhost:8080/myresources/id3",
-    {ok,{{_Protocol,Code,_Status},_Headers,_Body}} =  httpc:request(put,{Id,[],"application/json",File},[],[]),
-    {ok,{{_Protocol1,Code1,_Status1},_Headers1,_Body1}} =  httpc:request(put,{Id1,[],"application/json",File1},[],[]),
-    {ok,{{_Protocol2,Code2,_Status2},_Headers2,_Body2}} =  httpc:request(put,{Id2,[],"application/json",File2},[],[]),
-    ?assertEqual(201,Code),
-    ?assertEqual(201,Code1),
-    ?assertEqual(201,Code2).
+    FileName = proplists:get_value(data_dir, _Config) ++ "resource1.json",
+    FileName1 = proplists:get_value(data_dir, _Config) ++ "resource2.json",
+    FileName2 = proplists:get_value(data_dir, _Config) ++ "resource3.json",
+    {ok, File} = file:read_file(FileName),
+    {ok, File1} = file:read_file(FileName1),
+    {ok, File2} = file:read_file(FileName2),
+    Id = ?NAME ++ "/myresources/id",
+    Id1 = ?NAME ++ "/myresources/id2",
+    Id2 = ?NAME ++ "/myresources/id3",
+    {ok, {{_Protocol, Code, _Status}, _Headers, _Body}} =  
+	httpc:request(put, {Id, [], "application/json", File}, [], []),
+    {ok, {{_Protocol1, Code1, _Status1}, _Headers1, _Body1}} =  
+	httpc:request(put, {Id1, [], "application/json", File1}, [], []),
+    {ok, {{_Protocol2, Code2, _Status2}, _Headers2, _Body2}} =  
+	httpc:request(put, {Id2, [], "application/json", File2}, [], []),
+    ?assertEqual(201, Code),
+    ?assertEqual(201, Code1),
+    ?assertEqual(201, Code2).
 
+% 
+% @doc Test creation of a link on a new ID.
+% expect: 201(created)
+% end
+%
 put_link_new(_Config) ->
-    FileName=proplists:get_value(data_dir, _Config) ++ "link1.json",
-    {ok,File}=file:read_file(FileName),
-    Id = "http://localhost:8080/myresources/id4",
-    {ok,{{_Protocol,Code,_Status},Headers,_Body}} =  httpc:request(put,{Id,[],"application/json",File},[],[]),
-    ?assertEqual(201,Code),
-    lager:info("####FILE_LINK : ~p",[File]),
-    lager:info("#####PUT_LINK_NEW ~p",[Headers]).
+    FileName = proplists:get_value(data_dir, _Config) ++ "link1.json",
+    {ok, File} = file:read_file(FileName),
+    Id = ?NAME ++ "/myresources/id4",
+    {ok, {{_Protocol, Code, _Status}, _Headers, _Body}} =  
+	httpc:request(put, {Id, [], "application/json", File}, [], []),
+    ?assertEqual(201, Code).
 
+% 
+% @doc Test creation of a link on an existing ID.
+% expect: 409(conflict)
+% end
+%
 put_link(_Config) ->
-    FileName=proplists:get_value(data_dir, _Config) ++ "link1.json",
-    {ok,File}=file:read_file(FileName),
-    Id = "http://localhost:8080/myresources/id4",
-    {ok,{{_Protocol,Code,_Status},_Headers,_Body}} =  httpc:request(put,{Id,[],"application/json",File},[],[]),
-    ?assertEqual(409,Code).
+    FileName = proplists:get_value(data_dir, _Config) ++ "link1.json",
+    {ok, File} = file:read_file(FileName),
+    Id = ?NAME ++ "/myresources/id4",
+    {ok, {{_Protocol, Code, _Status}, _Headers, _Body}} =  
+	httpc:request(put, {Id, [], "application/json", File}, [], []),
+    ?assertEqual(409, Code).
 
+%
+% @doc Test creation of a resource by updating a kind collection.
+% expect: 405(method not allowed)
+% end
+%
 put_kind_col(_Config) ->
-    FileName=proplists:get_value(data_dir, _Config) ++ "res5.json",
-    {ok,File}=file:read_file(FileName),
-    Id = "http://localhost:8080/collections/compute",
-    {ok,{{_Protocol,Code,_Status},Headers,_Body}} =  httpc:request(put,{Id,[],"application/json",File},[],[]),
-    ?assertEqual(201,Code),
-    lager:info("####FILE_KIND : ~p",[File]),
-    lager:info("#####PUT_KIND ~p",[Headers]).
+    FileName = proplists:get_value(data_dir, _Config) ++ "kind1.json",
+    {ok, File} = file:read_file(FileName),
+    Id = ?NAME ++ "/collections/compute/",
+    {ok, {{_Protocol, Code, _Status}, _Headers, _Body}} =  
+	httpc:request(put, {Id, [], "application/json", File}, [], []),
+    ?assertEqual(405, Code).
 
+%
+% @doc Test creation of a resource by updating a mixin collection.
+% expect: 201(created)
+% end
+%
 put_mixin_col(_Config) ->
-    FileName=proplists:get_value(data_dir, _Config) ++ "res6.json",
-    {ok,File}=file:read_file(FileName),
-    Id = "http://localhost:8080/collections/os_tpl/",
-    {ok,{{_Protocol,Code,_Status},Headers,_Body}} =  httpc:request(put,{Id,[],"application/json",File},[],[]),   
-    lager:info("#####PUT_MIXIN ~p",[Headers]),
-     ?assertEqual(201,Code).
+    FileName = proplists:get_value(data_dir, _Config) ++ "mixin1.json",
+    {ok, File} = file:read_file(FileName),
+    Id = ?NAME ++ "/collections/os_tpl/",
+    {ok, {{_Protocol, Code, _Status}, _Headers, _Body}} =  
+	httpc:request(put, {Id, [], "application/json", File}, [], []),   
+    ?assertEqual(204, Code).
 
+%
+% @doc Test updating of an existing resource 
+% expect: 200(ok)
+% end 
+%
 post_resource_new(_Config) ->
-    Id = "http://localhost:8080/myresources/id",
-    {ok,{{_Protocol,Code,_Status},_Headers,_Body}} =  httpc:request(post,{Id,[],"application/json","{ \"resources\": [  {  \"kind\": \"http://schemas.ogf.org/occi/infrastructure#compute\",  \"attributes\": {  \"occi\":{\"compute\":{\"speed\": 2,\"memory\": 2,\"cores\": 2}} } } ]}"},[],[]),
-    ?assertEqual(200,Code).
+    Id = ?NAME ++ "/myresources/id",
+    Content = "{ \"resources\": [  {  \"kind\": \"http://schemas.ogf.org/occi/infrastructure#compute\", "
+	++ " \"attributes\": {  \"occi\":{\"compute\":{\"speed\": 2,\"memory\": 2,\"cores\": 2}} } } ]}",
+    {ok, {{_Protocol, Code, _Status}, _Headers, _Body}} =  
+	httpc:request(post, {Id, [],"application/json", Content}, [], []),
+    ?assertEqual(200, Code).
 
+%
+% @doc Test creation of a resource on an ID which is not existing.
+% expect: 404(not found)
+% end
+%
 post_resource(_Config) ->
-    FileName=proplists:get_value(data_dir, _Config) ++ "res1.json",
-    {ok,File}=file:read_file(FileName),
-    Id = "http://localhost:8080/myresources/id11",
-    {ok,{{_Protocol,Code,_Status},_Headers,_Body}} =  httpc:request(post,{Id,[],"application/json",File},[],[]),
-    ?assertEqual(404,Code).
-    
+    FileName = proplists:get_value(data_dir, _Config) ++ "resource1.json",
+    {ok, File} = file:read_file(FileName),
+    Id = ?NAME ++ "/myresources/id11",
+    {ok, {{_Protocol, Code, _Status}, _Headers, _Body}} =  
+	httpc:request(post, {Id, [], "application/json", File}, [], []),
+    ?assertEqual(404, Code).
+ 
+%
+% @doc Test updating of a existing link.
+% expect: 204(no content)
+% end
+%  
 post_link_new(_Config) ->
-    Id = "http://localhost:8080/myresources/id4",
-    {ok,{{_Protocol,Code,_Status},_Headers,_Body}} =  httpc:request(post,{Id,[],"application/json","{ \"links\": [{  \"kind\": \"http://schemas.ogf.org/occi/infrastructure#networkinterface\", \"attributes\": {\"occi\": {  \"core\": {\"source\": \"http://localhost:8080/myresources/id\",\"target\": \"http://localhost:8080/myresources/id3\" },  \"networkinterface\": {\"interface\": \"eth0\",\"mac\": \"00:80:41:ae:fd:7e\" } } } } ]}"},[],[]),
-    ?assertEqual(200,Code).
+    Id = ?NAME ++ "/myresources/id4",
+    Content = "{ \"links\": [{  \"kind\": \"http://schemas.ogf.org/occi/infrastructure#networkinterface\", "
+	++ "\"attributes\": {\"occi\": {  \"core\": {\"source\": \"" 
+	++ ?NAME ++ "/myresources/id\",\"target\": \"" 
+	++ ?NAME ++ "/myresources/id3\" },  \"networkinterface\": {\"interface\": \"eth0\",\"mac\": "
+	++ "\"00:80:41:ae:fd:7e\" } } } } ]}",
+    {ok, {{_Protocol, Code, _Status}, _Headers, _Body}} =  
+	httpc:request(post, {Id, [], "application/json", Content}, [], []),
+    ?assertEqual(200, Code).
 
+%
+% @doc Test creation of a link on an ID which is not existing.
+% expect: 404(not found)
+% end 
+%
 post_link(_Config) ->
-    FileName=proplists:get_value(data_dir, _Config) ++ "link1.json",
-    {ok,File}=file:read_file(FileName),
-    Id = "http://localhost:8080/myresources/id11",
-    {ok,{{_Protocol,Code,_Status},_Headers,_Body}} =  httpc:request(post,{Id,[],"application/json",File},[],[]),
-    ?assertEqual(404,Code).
+    FileName = proplists:get_value(data_dir, _Config) ++ "link1.json",
+    {ok, File} = file:read_file(FileName),
+    Id = ?NAME ++ "/myresources/id11",
+    {ok, {{_Protocol, Code, _Status}, _Headers, _Body}} =  
+	httpc:request(post, {Id, [], "application/json", File}, [], []),
+    ?assertEqual(404, Code).
 
+%
+% @doc Test creation of a resource by updating a kind collection.
+% expect: 200(ok)
+% end
+%
 post_kind_col(_Config) ->
-    FileName=proplists:get_value(data_dir, _Config) ++ "res4.json",
-    {ok,File}=file:read_file(FileName),
-    Id = "http://localhost:8080/collections/compute",
-    {ok,{{_Protocol,Code,_Status},Headers,_Body}} =  httpc:request(post,{Id,[],"application/json", File},[],[]),
-    lager:info("###POST-KIND ~p",[Headers]),
-    %%?assert(lists:member({"location",Id}, Headers)),
-    ?assertEqual(200,Code).
+    FileName = proplists:get_value(data_dir, _Config) ++ "kind2.json",
+    {ok, File} = file:read_file(FileName),
+    Id = ?NAME ++ "/collections/compute/",
+    {ok, {{_Protocol, Code, _Status}, _Headers, _Body}} =
+	httpc:request(post, {Id, [], "application/json", File}, [], []),
+    ?assertEqual(200, Code).
   
-
+%
+% @doc Test creation of a resource by updating a mixin collection.
+% expect: 200(ok)
+% end
+%
 post_mixin_col(_Config) ->
-    FileName=proplists:get_value(data_dir, _Config) ++ "res7.json",
-    {ok,File}=file:read_file(FileName),
-    Id = "http://localhost:8080/collections/os_tpl/",
-    {ok,{{_Protocol,Code,_Status},Headers,_Body}} =  httpc:request(post,{Id,[],"application/json",File},[],[]),
-     lager:info("#####POST_MIXIN ~p",[Headers]),
-    ?assertEqual(200,Code).
-   
+    FileName = proplists:get_value(data_dir, _Config) ++ "mixin2.json",
+    {ok, File} = file:read_file(FileName),
+    Id = ?NAME ++ "/collections/os_tpl/",
+    {ok, {{_Protocol, Code, _Status}, _Headers, _Body}} = 
+	httpc:request(post, {Id, [], "application/json", File}, [], []),
+    ?assertEqual(204, Code).
 
+%
+% @doc Test deletion of URL
+% expect: 204(no content)
+% end
+%
 delete_resource(_Config) ->
-    FileName=proplists:get_value(data_dir, _Config) ++ "res1.json",
-    {ok,File}=file:read_file(FileName),
-    Id = "http://localhost:8080/myresources/id",
-    {ok,{{_Protocol,Code,_Status},_Headers,_Body}} =  httpc:request(delete,{Id,[],"application/json",File},[],[]),
-    ?assertEqual(204,Code).
+    Id = ?NAME ++ "/myresources/id",
+    {ok, {{_Protocol, Code, _Status}, _Headers, _Body}} =  
+	httpc:request(delete, {Id, []}, [], []),
+    ?assertEqual(204, Code).
 
+%
+% @doc Test deleting of URL
+% expect: 204(no content)
+% end
+%
 delete_link(_Config) ->
-    FileName=proplists:get_value(data_dir, _Config) ++ "link1.json",
-    {ok,File}=file:read_file(FileName),
-    Id = "http://localhost:8080/myresources/id4",
-    {ok,{{_Protocol,Code,_Status},_Headers,_Body}} =  httpc:request(delete,{Id,[],"application/json",File},[],[]),
-    ?assertEqual(204,Code).
+    Id = ?NAME ++ "/myresources/id4",
+    {ok, {{_Protocol, Code, _Status}, _Headers, _Body}} =  
+	httpc:request(delete, {Id, []}, [], []),
+    ?assertEqual(204, Code).
 
+%
+% @doc Test deleting of URL
+% expect: 204(no content)
+% end
+%
 delete_kind_col(_Config) ->
-    FileName=proplists:get_value(data_dir, _Config) ++ "res4.json",
-    {ok,File}=file:read_file(FileName),
-    Id = "http://localhost:8080/collections/compute",
-    {ok,{{_Protocol,Code,_Status},_Headers,_Body}} =  httpc:request(delete,{Id,[],"application/json",File},[],[]),
-    ?assertEqual(204,Code).
+    Id = ?NAME ++ "/collections/compute/",
+    {ok, {{_Protocol, Code, _Status}, _Headers, _Body}} =  
+	httpc:request(delete, {Id, []}, [], []),
+    ?assertEqual(204, Code).
 
+%
+% @doc Test deleting of URL
+% expect: 204(no content)
+% end
+%
 delete_mixin_col(_Config) ->
-    FileName=proplists:get_value(data_dir, _Config) ++ "res6.json",
-    {ok,File}=file:read_file(FileName),
-    Id = "http://localhost:8080/collections/os_tpl/",
-    {ok,{{_Protocol,Code,_Status},Headers,_Body}} =  httpc:request(delete,{Id,[],"application/json",File},[],[]),
-    ?assertEqual(204,Code),
-    lager:info("#####DELETE_MIXIN  ~p",[Headers]).
+    Id = ?NAME ++ "/collections/os_tpl/",
+    {ok, {{_Protocol, Code, _Status}, _Headers, _Body}} =  
+	httpc:request(delete, {Id, []}, [], []),
+    ?assertEqual(204, Code).
 
-
-
+%
+% @doc Test obtaining the infomation of an ID for testing if PUT and POST work. 
+% expect: 200(ok)
+% end
+%
 get_resource(_Config) ->
-    Id = "http://localhost:8080/myresources/id", 
-    {ok, {{_Protocol,Code,_Status}, _Headers, _Body}} = httpc:request(get, {Id, [{"accept","application/json"}]}, [], []),  
+    Id = ?NAME ++ "/myresources/id", 
+    {ok, {{_Protocol,Code,_Status}, _Headers, _Body}} = 
+	httpc:request(get, {Id, [{"accept","application/json"}]}, [], []),  
     ?assertEqual(200, Code).
 
+%
+% @doc Test obtaining the infomation of an ID for testing if DELETE works.
+% expect: 404(not found)
+% end
+%
 get_resource_delete(_Config) ->
-    Id = "http://localhost:8080/myresources/id",
-    {ok, {{_Protocol,Code,_Status}, _Headers, _Body}} = httpc:request(get, {Id, [{"accept","application/json"}]}, [], []),   
+    Id = ?NAME ++ "/myresources/id",
+    {ok, {{_Protocol,Code,_Status}, _Headers, _Body}} = 
+	httpc:request(get, {Id, [{"accept","application/json"}]}, [], []),   
     ?assertEqual(404, Code).
 
+%
+% @doc Test obtaining the information of an ID for testing if PUT and POST work. 
+% expect: 200(ok)
+% end
+%
 get_link(_Config) ->
-    Id = "http://localhost:8080/myresources/id4",
-    {ok, {{_Protocol,Code,_Status}, _Headers, _Body}} = httpc:request(get, {Id, [{"accept","application/json"}]}, [], []),   
+    Id = ?NAME ++ "/myresources/id4",
+    {ok, {{_Protocol,Code,_Status}, _Headers, _Body}} = 
+	httpc:request(get, {Id, [{"accept","application/json"}]}, [], []),   
     ?assertEqual(200, Code).
 
+%
+% @doc Test obtaining the infomation of an ID for testing if DELETE works.
+% expect: 404(not found)
+% end
+%
 get_link_delete(_Config) ->
-    Id = "http://localhost:8080/myresources/id4",
-    {ok, {{_Protocol,Code,_Status}, _Headers, _Body}} = httpc:request(get, {Id, [{"accept","application/json"}]}, [], []),   
+    Id = ?NAME ++ "/myresources/id4",
+    {ok, {{_Protocol,Code,_Status}, _Headers, _Body}} = 
+	httpc:request(get, {Id, [{"accept","application/json"}]}, [], []),   
     ?assertEqual(404, Code).
 
+%
+% @doc Test obtaining the information of an ID for testing if PUT and POST work. 
+% expect: 200(ok)
+% end
+%
 get_kind_col(_Config) ->
-    Id = "http://localhost:8080/collections/compute",
-    {ok, {{_Protocol,Code,_Status}, _Headers, _Body}} = httpc:request(get, {Id, [{"accept","application/json"}]}, [], []),   
+    Id = ?NAME ++ "/collections/compute/",
+    {ok, {{_Protocol,Code,_Status}, _Headers, _Body}} = 
+	httpc:request(get, {Id, [{"accept","application/json"}]}, [], []),   
     ?assertEqual(200, Code).
 
-get_kind_col_delete(_Config) ->
-    Id = "http://localhost:8080/collections/compute",
-    {ok, {{_Protocol,Code,_Status}, _Headers, _Body}} = httpc:request(get, {Id, [{"accept","application/json"}]}, [], []),   
-    ?assertEqual(404, Code).
-
-
+%
+% @doc Test obtaining the information of an ID for testing if PUT and POST work. 
+% expect: 200(ok)
+% end
+%
 get_mixin_col(_Config) ->
-     Id = "http://localhost:8080/collections/os_tpl/",
-    {ok, {{_Protocol,Code,_Status}, Headers, _Body}} = httpc:request(get, {Id, [{"accept","application/json"}]}, [], []),   
-    lager:info("#### GET_MIXIN:::~p",[Headers]),
+     Id = ?NAME ++ "/collections/os_tpl/",
+    {ok, {{_Protocol,Code,_Status}, _Headers, _Body}} = 
+	httpc:request(get, {Id, [{"accept","application/json"}]}, [], []),   
     ?assertEqual(200, Code).
 
-get_mixin_col_delete(_Config) ->
-     Id = "http://localhost:8080/collections/os_tpl/",
-    {ok, {{_Protocol,Code,_Status}, Headers, _Body}} = httpc:request(get, {Id, [{"accept","application/json"}]}, [], []),   
-    lager:info("#### GET_MIXIN_DELETE:::~p",[Headers]),
-    ?assertEqual(404, Code).
-
-
+%
+% @doc Test obtaining all the information. 
+% expect: 200(ok)
+% end
+%
 get_query(_Config) ->
-    {ok,{{_Protocol, Code, _Status}, Headers, _Body}} = httpc:request(get,{"http://localhost:8080/-/",[{"accept","application/json"}]},[],[]),
-    ?assertEqual(200,Code),
+    {ok, {{_Protocol, Code, _Status}, Headers, _Body}} = httpc:
+	request(get, {?NAME ++ "/-/", [{"accept","application/json"}]}, [], []),
+    ?assertEqual(200, Code),
     ?assert(lists:member({"content-type","application/json"}, Headers)).
 
-
+%
+% @doc Test creation of two resources on differents ID for testing get_dir.
+% expect: 201(created)
+% end
+% 
 put_resource_dir(_Config) ->
-    FileName=proplists:get_value(data_dir, _Config) ++ "res1.json",
-    FileName1=proplists:get_value(data_dir, _Config) ++ "res4.json",
-    {ok,File}=file:read_file(FileName),
-    {ok,File1}=file:read_file(FileName1),
-    Id = "http://localhost:8080/myresources/id1",
-    Id1 = "http://localhost:8080/myresources/subdir/id5",
-    {ok,{{_Protocol,Code,_Status},_Headers,_Body}} =  httpc:request(put,{Id,[],"application/json",File},[],[]),
-    {ok,{{_Protocol1,Code1,_Status1},_Headers1,_Body1}} =  httpc:request(put,{Id1,[],"application/json",File1},[],[]),
-    ?assertEqual(201,Code),
-    ?assertEqual(201,Code1).
+    FileName = proplists:get_value(data_dir, _Config) ++ "resource1.json",
+    FileName1 = proplists:get_value(data_dir, _Config) ++ "resource2.json",
+    {ok, File} = file:read_file(FileName),
+    {ok, File1} = file:read_file(FileName1),
+    Id = ?NAME ++ "/myresources/id1",
+    Id1 = ?NAME ++ "/myresources/subdir/id5",
+    {ok, {{_Protocol, Code, _Status}, _Headers, _Body}} = 
+	httpc:request(put, {Id, [], "application/json", File}, [], []),
+    {ok, {{_Protocol1, Code1, _Status1}, _Headers1, _Body1}} =
+	httpc:request(put, {Id1, [], "application/json", File1}, [], []),
+    ?assertEqual(201, Code),
+    ?assertEqual(201, Code1).
 
-
-
+%
+% @doc Test obtaining a list of URLs under a directory. 
+% expect: 200(ok)
+% end
+%
 get_dir(_Config) ->
-    {ok,{{_Protocol, Code, _Status}, Headers, Body}} = httpc:request(get,{"http://localhost:8080/myresources/",[{"accept","application/json"}]},[],[]),
-    lager:info("### GET DIR Headers~p",[Headers]),
-    lager:info("### GET DIR Body ~p",[Body]),
-    ?assertEqual(200,Code).
-
-
+    {ok, {{_Protocol, Code, _Status}, _Headers, _Body}} = 
+	httpc:request(get,{?NAME ++ "/myresources/", [{"accept","application/json"}]}, [], []),
+    ?assertEqual(200, Code).

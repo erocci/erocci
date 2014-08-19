@@ -1,0 +1,16 @@
+<iq to="user-1@localhost/erocci" type="set" >
+<query xmlns="http://schemas.ogf.org/occi-xmpp" node="/store/mylinks/xmpp/networkinterfaces/id2" >
+<occi:link xmlns="http://schemas.ogf.org/occi"
+xmlns:xl="http://www.w3.org/2008/06/xlink" >
+<occi:kind scheme="http://schemas.ogf.org/occi/infrastructure#" term="networkinterface" />
+<occi:mixin scheme="http://schemas.ogf.org/occi/infrastructure/networkinterface#" term="ipnetworkinterface" />
+<occi:attribute name="occi.networkinterface.interface" value="eth0" />
+<occi:attribute name="occi.networkinterface.mac" value="00:80:41:ae:fd:32" />
+<occi:attribute name="occi.networkinterface.address" value="192.168.3.4" />
+<occi:attribute name="occi.networkinterface.gateway" value="192.168.3.0" />
+<occi:attribute name="occi.networkinterface.allocation" value="dynamic" />
+<occi:attribute name="occi.core.target" xl:href="http://localhost:8080/store/myresources/xmpp/network/id1" />
+<occi:attribute name="occi.core.source" xl:href="http://localhost:8080/store/myresources/xmpp/compute/id1" />
+</occi:link>
+</query>
+</iq>

@@ -2,13 +2,6 @@
 {application, occi,
  [
   {description, "occi"},
-  {vsn, git},
   {modules, []},
-  {registered, []},
-  {applications, [
-                  kernel,
-                  stdlib
-                 ]},
-  {mod, { occi_app, []}},
-  {env, []}
+  {vsn, git}
  ]}.
