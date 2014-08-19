@@ -2,5 +2,6 @@
 {application, occi,
  [
   {description, "occi"},
-  {modules, []}
+  {modules, []},
+  {vsn, git}
  ]}.

@@ -14,7 +14,7 @@ function usage() {
 }
 
 function join {
-    local IFS="$1"; shift; echo "$*"
+    local IFS="$1"; shift; echo -n "$*"
 }
 
 ssldir=${basedir}/priv/ssl
@@ -28,8 +28,8 @@ debug=info
 configdir=${basedir}/priv/configs
 config=${configdir}/default.config
 idx=-1
-listeners[0]="{http, occi_http, [{port, 8080}]}"
-epasswd="{htpasswd, \"$htpasswd\" }"
+http_listener="{http, occi_http, [{port, 8080}, {auth, {htpasswd, \"$htpasswd\"}}]}"
+listeners[0]=${http_listener}
 while getopts ":hdqtsc:x:p:" opt; do
     case $opt in
 	d)
@@ -41,11 +41,11 @@ while getopts ":hdqtsc:x:p:" opt; do
 	    ;;
 	t)
 	    idx=$(( $idx + 1 ))
-	    listeners[$idx]="{http, occi_http, [{port, 8080}]}"
+	    listeners[$idx]=${http_listener}
 	    ;;
 	s)
 	    idx=$(( $idx + 1 ))
-	    listeners[$idx]="{https, occi_https, [{port, 8443}, {cacertfile, \"$cacertfile\"}, {certfile, \"$certfile\"}, {keyfile, \"$keyfile\"}]}"
+	    listeners[$idx]="{https, occi_https, [{port, 8443}, {cacertfile, \"$cacertfile\"}, {certfile, \"$certfile\"}, {keyfile, \"$keyfile\"}, {auth, {htpasswd, \"$htpasswd\"}}]}"
 	    ;;
 	x)
 	    jid=$OPTARG
@@ -55,14 +55,12 @@ while getopts ":hdqtsc:x:p:" opt; do
 		    ;;
 		*@local)
 		    idx=$(( $idx + 1 ))
-		    listeners[$idx]="{xmpplocal, occi_xmpp_client, [{jid, \"$jid\"}]}"
-		    epasswd="{xmpp, \"\" }"
+		    listeners[$idx]="{xmpplocal, occi_xmpp_client, [{jid, \"$jid\"}, {auth, {xmpp, []}}]}"
 		    ;;
 		*)
 		    read -s -p "Password:" passwd
 		    idx=$(( $idx + 1 ))
-		    listeners[$idx]="{xmppc, occi_xmpp_client, [{jid, \"$jid\"}, {passwd, \"$passwd\"}]}"
-		    epasswd="{xmpp, \"\" }"
+		    listeners[$idx]="{xmppc, occi_xmpp_client, [{jid, \"$jid\"}, {passwd, \"$passwd\"}, {auth, {xmpp, []}}]}"
 		    ;;
 	    esac
 	    ;;
@@ -105,17 +103,17 @@ case $debug in
 	;;
 esac
 
-listeners=$(echo "["; join , "${listeners[@]}"; echo "]")
+listeners=$(echo -n "["; join , "${listeners[@]}"; echo -n "]")
 #echo $listeners
 #exit 0
 
 cd ${basedir}
 exec erl -pa $PWD/ebin \
-    $depsbin/*/ebin \
-    -boot start_sasl \
-    -config $config \
-    -kernel error_logger silent \
-    -lager handlers "[{lager_console_backend, $debug}]" \
-    -epasswd mod "$epasswd" \
-    -occi listeners "$listeners" \
-    $debug_app -s occi
+     $depsbin/*/ebin \
+     -boot start_sasl \
+     -config $config \
+     -kernel error_logger silent \
+     -mnesia dir "\"${basedir}/priv/Mnesia\"" \
+     -lager handlers "[{lager_console_backend, $debug}]" \
+     -erocci_core listeners "$listeners" \
+     $debug_app -s occi

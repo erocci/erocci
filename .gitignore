@@ -17,3 +17,5 @@ test/*.beam
 /doc/stylesheet.css
 /doc/utf8/
 /.rebar
+/priv/Mnesia
+/ebin
