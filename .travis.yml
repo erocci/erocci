@@ -1,7 +1,7 @@
 branches:
   only:
     - master
-    - next
+#    - next
   
 language: erlang
 otp_release:
