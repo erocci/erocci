@@ -17,7 +17,7 @@
 -include_lib("common_test/include/ct.hrl").
 -include_lib("kernel/include/file.hrl").
 
--include("occi.hrl").
+-include_lib("erocci_core/include/occi.hrl").
 
 -define(PORT, 8080).
 -define(NAME, "http://localhost:8080").
@@ -39,7 +39,7 @@ suite() ->
 %%--------------------------------------------------------------------
 init_per_suite(Config) ->
     application:set_env(lager, handlers, [{lager_console_backend, debug}]),
-    application:start(occi),
+    application:start(erocci_core),
     DataDir = proplists:get_value(data_dir, Config),
     Schemas = {schemas, [{path, DataDir ++ "occi-infrastructure.xml"}]},
     Backends = {backends, 
@@ -48,13 +48,7 @@ init_per_suite(Config) ->
 		 [{http, occi_http, [{port, ?PORT}]}]
 		},
     Acls = {acl, [
-		  {allow, delete, capabilities, owner},
-		  {allow, '_', capabilities, '_'},
-		  {allow, create, '_', '_'},
-		  {allow, read, '_', group},
-		  {allow, update, '_', owner},
-		  {allow, delete, '_', owner},
-		  {deny, '_', '_', '_'}
+		  {allow, '_', '_', '_'}
 		 ]},
     occi:config([{name, ?NAME}, Backends, Listeners, Acls]),
     Config.
