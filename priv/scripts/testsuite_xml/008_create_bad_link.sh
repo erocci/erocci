@@ -20,6 +20,6 @@ content=$(cat <<EOF
 EOF
 	   )
 
-put 422 ${id} "application/xml" "$content"
+put 400 ${id} "application/xml" "$content"
 
 

@@ -8,4 +8,4 @@ content=$(cat <<EOF
 category: badterm; scheme="http://schemas.ogf.org/occi/infrastructure#"; class="kind"
 EOF
 	   )
-put 422 ${id} "text/plain" "$content"
+put 400 ${id} "text/plain" "$content"

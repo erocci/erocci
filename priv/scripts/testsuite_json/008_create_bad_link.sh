@@ -30,4 +30,4 @@ content=$(cat <<EOF
 EOF
        )
 
-put 422 ${id} "application/json" "$content"
+put 400 ${id} "application/json" "$content"

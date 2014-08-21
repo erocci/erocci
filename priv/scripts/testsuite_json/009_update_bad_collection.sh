@@ -7,4 +7,4 @@ content=$(cat <<EOF
 EOF
        )
 
-post 422 /collections/os_tpl/ "application/json" "$content"
+post 400 /collections/os_tpl/ "application/json" "$content"

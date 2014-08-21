@@ -16,4 +16,4 @@ x-occi-attribute: occi.core.source="bad_value"
 EOF
        )
 
-put 422 ${id} "text/plain" "$content"
+put 400 ${id} "text/plain" "$content"
