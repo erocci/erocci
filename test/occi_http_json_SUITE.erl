@@ -9,9 +9,7 @@
 %%%-------------------------------------------------------------------
 -module(occi_http_json_SUITE).
 
--compile(export_all).
-
--compile([{parse_transform,lager_transform}]).
+-compile([{parse_transform,lager_transform}, export_all]).
 
 -include_lib("eunit/include/eunit.hrl").
 -include_lib("common_test/include/ct.hrl").
@@ -22,88 +20,43 @@
 -define(PORT, 8080).
 -define(NAME, "http://localhost:8080").
 
-%%--------------------------------------------------------------------
-%% @spec suite() -> Info
-%% Info = [tuple()]
-%% @end
-%%--------------------------------------------------------------------
+
 suite() ->
     [{timetrap,{seconds,30}}].
 
-%%--------------------------------------------------------------------
-%% @spec init_per_suite(Config0) ->
-%%     Config1 | {skip,Reason} | {skip_and_save,Reason,Config1}
-%% Config0 = Config1 = [tuple()]
-%% Reason = term()
-%% @end
-%%--------------------------------------------------------------------
 init_per_suite(Config) ->
     application:set_env(lager, handlers, [{lager_console_backend, debug}]),
     application:start(erocci_core),
-    DataDir = proplists:get_value(data_dir, Config),
-    Schemas = {schemas, [{path, DataDir ++ "occi-infrastructure.xml"}]},
+    Schemas = {schemas, [{path, get_data_path("occi.xml", Config)}]},
     Backends = {backends, 
 		[{mnesia, occi_backend_mnesia, [Schemas], <<"/">>}]},
     Listeners = {listeners, 
 		 [{http, occi_http, [{port, ?PORT}]}]
 		},
-    Acls = {acl, [
-		  {allow, '_', '_', '_'}
-		 ]},
-    occi:config([{name, ?NAME}, Backends, Listeners, Acls]),
+    Acls = {acl, [{allow, '_', '_', '_'}]},
+    application:start(erocci_core),
+    occi:config([{name, ?NAME}, Schemas, Backends, Listeners, Acls]),
     Config.
 
-%%--------------------------------------------------------------------
-%% @spec end_per_suite(Config0) -> void() | {save_config,Config1}
-%% Config0 = Config1 = [tuple()]
-%% @end
-%%--------------------------------------------------------------------
 end_per_suite(_Config) ->
-    application:stop(occi),
+    application:stop(erocci_core),
     ok.
 
-%%--------------------------------------------------------------------
-%% @spec init_per_group(GroupName, Config0) ->
-%%               Config1 | {skip,Reason} | {skip_and_save,Reason,Config1}
-%% GroupName = atom()
-%% Config0 = Config1 = [tuple()]
-%% Reason = term()
-%% @end
-%%--------------------------------------------------------------------
-init_per_group(_GroupName, Config) ->
+
+init_per_group(all_json, Config) ->
+    [{ct, {"application/json", "json"}} | Config];
+
+init_per_group(all_xml, Config) ->
+    [{ct, {"application/xml", "xml"}} | Config];
+
+init_per_group(all_plain, Config) ->
+    [{ct, {"text/plain", "plain"}} | Config];
+
+init_per_group(_, Config) ->
     Config.
 
-%%--------------------------------------------------------------------
-%% @spec end_per_group(GroupName, Config0) ->
-%%               void() | {save_config,Config1}
-%% GroupName = atom()
-%% Config0 = Config1 = [tuple()]
-%% @end
-%%--------------------------------------------------------------------
-end_per_group(_GroupName, _Config) ->
-    ok.
-
-%%--------------------------------------------------------------------
-%% @spec init_per_testcase(TestCase, Config0) ->
-%%               Config1 | {skip,Reason} | {skip_and_save,Reason,Config1}
-%% TestCase = atom()
-%% Config0 = Config1 = [tuple()]
-%% Reason = term()
-%% @end
-%%--------------------------------------------------------------------
-init_per_testcase(_TestCase, Config) ->    
+end_per_group(_, Config) ->
     Config.
-
-%%--------------------------------------------------------------------
-%% @spec end_per_testcase(TestCase, Config0) ->
-%%               void() | {save_config,Config1} | {fail,Reason}
-%% TestCase = atom()
-%% Config0 = Config1 = [tuple()]
-%% Reason = term()
-%% @end
-%%--------------------------------------------------------------------
-end_per_testcase(_TestCase, _Config) ->    
-    ok.
 
 %%--------------------------------------------------------------------
 %% @spec groups() -> [Group]
@@ -120,28 +73,10 @@ end_per_testcase(_TestCase, _Config) ->
 %%--------------------------------------------------------------------
 groups() ->
     [
-     {create_test_resources, [], [ put_resources, put_link_new ]},
-     {test_json, [],
-      [{group,test_resource}]},
-     {test_resource, [],
-      [ put_resource_new, put_resource, get_resource, post_resource_new, post_resource, 
-	get_resource, delete_resource, get_resource_delete, 
-	{group, test_link} ]},
-     {test_link, [],
-      [ {group, create_test_resources}, put_link, get_link, post_link_new, post_link, 
-	get_link, delete_link, get_link_delete, 
-	{group, test_kind_col} ]},
-     {test_kind_col, [],
-      [ put_kind_col, get_kind_col, post_kind_col, get_kind_col, delete_kind_col, 
-	{group,test_mixin_col} ]},
-     {test_mixin_col, [],
-      [ {group, create_test_resources}, put_mixin_col, get_mixin_col, post_mixin_col, 
-	get_mixin_col, delete_mixin_col, {group,test_query} ]},
-     {test_query, [],
-      [ get_query, 
-	{group, test_dir} ]},
-     {test_dir, [],
-      [ put_resource_dir, get_dir ]}
+     {create, [], [ create_resource ]},
+     {all_json, [], [ {group, create} ]},
+     {all_xml, [], [ {group, create} ]},
+     {all_plain, [], [ {group, create} ]}
     ].
 
 %%--------------------------------------------------------------------
@@ -153,21 +88,20 @@ groups() ->
 %% @end
 %%--------------------------------------------------------------------
 all() -> 
-    [
-     {group,test_json}
-    ].   
+    [ {group, all_json},
+      {group, all_xml},
+      {group, all_plain} ].
 
 %
 % @doc Test creation of a new resource on a new ID. 
 % expect: 201(created)
 % %end
 %
-put_resource_new(_Config) ->
-    FileName = proplists:get_value(data_dir, _Config) ++ "resource1.json",
-    {ok, File} = file:read_file(FileName),
-    Id = ?NAME ++ "/myresources/id",
+create_resource(Config) ->
+    {Type, Ext, Content} = read_content("resource1", Config),
+    Id = ?NAME ++ "/" ++ Ext ++ "/id1",
     {ok, {{_Protocol, Code, _Status}, _Headers, _Body}} =  
-	httpc:request(put, {Id, [], "application/json", File}, [], []),
+	httpc:request(put, {Id, [], Type, Content}, [], []),
     ?assertEqual(201, Code).
 
 %
@@ -490,3 +424,17 @@ get_dir(_Config) ->
     {ok, {{_Protocol, Code, _Status}, _Headers, _Body}} = 
 	httpc:request(get,{?NAME ++ "/myresources/", [{"accept","application/json"}]}, [], []),
     ?assertEqual(200, Code).
+
+
+%%%
+%%% Priv
+%%%
+get_data_path(Path, Config) ->
+    DataDir = proplists:get_value(data_dir, Config),
+    filename:join([DataDir, Path]).
+
+read_content(Path, Config) ->
+    {Type, Ext} = proplists:get_value(ct, Config),
+    Fullpath = get_data_path(Path ++ "." ++ Ext, Config),
+    {ok, Content} = file:read_file(Fullpath),
+    {Type, Ext, Content}.
