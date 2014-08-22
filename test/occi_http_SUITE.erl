@@ -7,7 +7,7 @@
 %%% @end
 %%% Created :  4 Feb 2014 by Jean Parpaillon <jean.parpaillon@free.fr>
 %%%-------------------------------------------------------------------
--module(occi_http_json_SUITE).
+-module(occi_http_SUITE).
 
 -compile([{parse_transform,lager_transform}, export_all]).
 
