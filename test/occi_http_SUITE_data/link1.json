@@ -1,21 +1,18 @@
 {
     "links": [
 	{
-	    "kind": "http://schemas.ogf.org/occi/infrastructure#networkinterface",
+	    "kind": "http://example.org/occi/test#link",
 	    "attributes": {
 		"occi": {
 		    "core": {
-			"source": "http://localhost:8080/myresources/id2",
-			"target": "http://localhost:8080/myresources/id3"
-		    },
-		    "networkinterface": {
-			"interface": "eth0",
-			"mac": "00:80:41:ae:fd:7e"
+			"source": "http://localhost:8080/json/id1",
+			"target": "http://localhost:8080/json/id2"
 		    }
-		    
+		},
+		"example": {
+		    "string": "my string attribute"
 		}
 	    }
-	 
 	}
     ]
 }
