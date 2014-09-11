@@ -43,26 +43,25 @@ init_per_suite(Config) ->
     DataDir = proplists:get_value(data_dir, Config),
     Schemas = {schemas, [{path, DataDir ++ "occi-infrastructure.xml"}]},
     Backends = {backends, 
-        [{mnesia, occi_backend_mnesia, [Schemas], <<"/">>}]},
+                [{mnesia, occi_backend_mnesia, [Schemas], <<"/">>}]},
     Listeners = {listeners, 
-         [{xmppc, occi_xmpp_client, [{jid, "user-1@localhost"}, {passwd, "test"}]}]
-        },
+                 [{xmpplocal, occi_xmpp_client, [{jid, "test@local"}]}]
+                },
     Acls = {acl, [
-          {allow, '_', '_', '_'}
-         ]},
+                  {allow, '_', '_', '_'}
+                 ]},    
     occi:config([{name, ?NAME}, Backends, Listeners, Acls]),
     Config.
 
 connect() ->
-    Session = exmpp_session:start_link(),
-    Jid = exmpp_jid:make("user-1", "localhost", "ero"),
-    exmpp_session:auth_basic(Session, Jid, "test"),    
-    exmpp_session:connect_TCP(Session, "localhost"),
-    exmpp_session:login(Session),
-    Session.
+    {ok, Sock} = gen_tcp:connect("localhost", 5562, [binary, {packet, raw}, {active, false}]),
+    Stream = <<"<stream:stream xmlns='jabber:client' from='test@local' to='test@local' version='1.0'  xmlns:stream='http://etherx.jabber.org/streams'>">>,    
+    gen_tcp:send(Sock, Stream),
+    gen_tcp:recv(Sock, 0),
+    Sock.                                    
 
-disconnect(Session) ->
-    exmpp_session:stop(Session).
+disconnect() ->
+    dnssd:stop().
 
 %%--------------------------------------------------------------------
 %% @spec end_per_suite(Config0) -> void() | {saveConfig,Config1}
@@ -70,7 +69,7 @@ disconnect(Session) ->
 %% @end
 %%--------------------------------------------------------------------
 end_per_suite(_Config) ->
-    application:stop(occi),
+    application:stop(erocci_core),
     ok.
 
 %%--------------------------------------------------------------------
@@ -103,8 +102,8 @@ end_per_group(_GroupName, _Config) ->
 %% @end
 %%--------------------------------------------------------------------
 init_per_testcase(_TestCase, Config) ->    
-    Session = connect(),
-    Config1 = [{session, Session} | Config],
+    Sock = connect(),
+    Config1 = [{sock, Sock} | Config],
     Config1.
 
 %%--------------------------------------------------------------------
@@ -115,9 +114,8 @@ init_per_testcase(_TestCase, Config) ->
 %% Reason = term()
 %% @end
 %%--------------------------------------------------------------------
-end_per_testcase(_TestCase, Config) ->  
-    Session = proplists:get_value(session, Config),
-    disconnect(Session),
+end_per_testcase(_TestCase, _Config) ->  
+    disconnect(),
     ok.
 
 %%--------------------------------------------------------------------
@@ -133,9 +131,10 @@ end_per_testcase(_TestCase, Config) ->
 %% N = integer() | forever
 %% @end
 %%--------------------------------------------------------------------
+%% get_query, 
 groups() ->
     [
-     {test_all, [], [get_query, put_resource_new]},
+     {test_all, [], [put_resource_new]},
      {create_test_resources, [], [ put_resource_new]},
      {test_xmpp, [],
       [{group,test_resource}]},
@@ -161,7 +160,7 @@ groups() ->
         {group, test_link2} ]},     
      {test_link2, [],
       [put_resource2, put_link2, put_resource, put_link_new, get_resource,
-        {group, test_delete} ]},
+       {group, test_delete} ]},
      {test_delete, [], [delete_all]}
     ].
 
@@ -175,7 +174,7 @@ groups() ->
 %%--------------------------------------------------------------------
 all() -> 
     [
-     %{group, test_xmpp}
+     {group, test_all}
     ].   
 
 %
@@ -186,15 +185,15 @@ all() ->
 put_resource_new(Config) ->
     FileName = proplists:get_value(data_dir, Config) ++ "resource1.xml",
     {ok, File} = file:read_file(FileName),
-    File1 = exmpp_xml:parse_document(File, []),
-    [H | _T] = File1,
-    Session = proplists:get_value(session, Config),
-    exmpp_session:send_packet(Session, H),
-    R = receive
-            #received_packet{type_attr = V} -> V
-        after 1000 -> ko
-        end,
-    ?assertEqual(R, "result").
+    Sock = proplists:get_value(sock, Config),
+    gen_tcp:send(Sock, File),
+    case gen_tcp:recv(Sock, 0) of
+        {ok, V} ->  [B1 | _T] = exmpp_xml:parse_document(V),
+                    Result = exmpp_xml:get_attribute(B1, <<"type">>, "not found");
+        {error, _Result} ->
+            Result = ko
+    end,
+    ?assertEqual(Result, <<"result">>).
 
 %
 % @doc Test creation of a resource on an existing ID
@@ -204,15 +203,15 @@ put_resource_new(Config) ->
 put_resource(Config) ->
     FileName = proplists:get_value(data_dir, Config) ++ "resource1.xml",
     {ok, File} = file:read_file(FileName),
-    File1 = exmpp_xml:parse_document(File, []),
-    [H | _T] = File1,
-    Session = proplists:get_value(session, Config), 
-    exmpp_session:send_packet(Session, H),
-    R = receive
-            #received_packet{type_attr = V} -> V
-        after 1000 -> ko
-        end,
-    ?assertEqual(R, "error").
+    Sock = proplists:get_value(sock, Config),
+    gen_tcp:send(Sock, File),
+    case gen_tcp:recv(Sock, 0) of
+        {ok, V} ->  [B1 | _T] = exmpp_xml:parse_document(V),
+                    Result = exmpp_xml:get_attribute(B1, <<"type">>, "not found");
+        {error, _Result} ->
+            Result = ko
+    end,
+    ?assertEqual(Result, <<"error">>).
 
 %
 % @doc Test creation of a new resource on a new ID. 
@@ -222,15 +221,15 @@ put_resource(Config) ->
 put_resource2(Config) ->
     FileName = proplists:get_value(data_dir, Config) ++ "storage_res1.xml",
     {ok, File} = file:read_file(FileName),
-    File1 = exmpp_xml:parse_document(File, []),
-    [H | _T] = File1,
-    Session = proplists:get_value(session, Config),
-    exmpp_session:send_packet(Session, H),
-    R = receive
-            #received_packet{type_attr = V} -> V
-        after 1000 -> ko
-        end,
-    ?assertEqual(R, "result").
+    Sock = proplists:get_value(sock, Config),
+    gen_tcp:send(Sock, File),
+    case gen_tcp:recv(Sock, 0) of
+        {ok, V} ->  [B1 | _T] = exmpp_xml:parse_document(V),
+                    Result = exmpp_xml:get_attribute(B1, <<"type">>, "not found");
+        {error, _Result} ->
+            Result = ko
+    end,
+    ?assertEqual(Result, <<"result">>).
 
 %
 % @doc Test creation of a new link on a new ID. 
@@ -240,15 +239,15 @@ put_resource2(Config) ->
 put_link2(Config) ->
     FileName = proplists:get_value(data_dir, Config) ++ "storage_link.xml",
     {ok, File} = file:read_file(FileName),
-    File1 = exmpp_xml:parse_document(File, []),
-    [H | _T] = File1,
-    Session = proplists:get_value(session, Config),
-    exmpp_session:send_packet(Session, H),
-    R = receive
-            #received_packet{type_attr = V} -> V
-        after 1000 -> ko
-        end,
-    ?assertEqual(R, "result").
+    Sock = proplists:get_value(sock, Config),
+    gen_tcp:send(Sock, File),
+    case gen_tcp:recv(Sock, 0) of
+        {ok, V} ->  [B1 | _T] = exmpp_xml:parse_document(V),
+                    Result = exmpp_xml:get_attribute(B1, <<"type">>, "not found");
+        {error, _Result} ->
+            Result = ko
+    end,
+    ?assertEqual(Result, <<"result">>).
 
 %
 % @doc Test creation of three resources for the test of link.
@@ -259,34 +258,33 @@ put_resources(Config) ->
     FileName = proplists:get_value(data_dir, Config) ++ "resource1.xml",
     FileName1 = proplists:get_value(data_dir, Config) ++ "network1.xml",
     FileName2 = proplists:get_value(data_dir, Config) ++ "resource3.xml",
-    Session = proplists:get_value(session, Config),
     {ok, File} = file:read_file(FileName),
+    Sock = proplists:get_value(sock, Config),
+    gen_tcp:send(Sock, File),
+    case gen_tcp:recv(Sock, 0) of
+        {ok, V} ->  [B1 | _T] = exmpp_xml:parse_document(V),
+                    Result = exmpp_xml:get_attribute(B1, <<"type">>, "not found");
+        {error, _Result} ->
+            Result = ko
+    end,
     {ok, File1} = file:read_file(FileName1),
+    gen_tcp:send(Sock, File1),
+    case gen_tcp:recv(Sock, 0) of
+        {ok, V1} ->  [B2 | _T2] = exmpp_xml:parse_document(V1),
+                     Result1 = exmpp_xml:get_attribute(B2, <<"type">>, "not found");
+        {error, _Result1} ->
+            Result1 = ko
+    end,
     {ok, File2} = file:read_file(FileName2),
-    File11 = exmpp_xml:parse_document(File, []),
-    [H1 | _T] = File11,
-    File12 = exmpp_xml:parse_document(File1, []),
-    [H2 | _T] = File12,    
-    File13 = exmpp_xml:parse_document(File2, []),
-    [H3 | _T] = File13,
-    exmpp_session:send_packet(Session, H1),
-    R = receive
-            #received_packet{type_attr = V} -> V
-        after 1000 -> ko
-        end,
-    exmpp_session:send_packet(Session, H2),
-    R1 = receive
-             #received_packet{type_attr = V1} -> V1
-         after 1000 -> ko
-         end,
-    exmpp_session:send_packet(Session, H3),
-    R2 = receive
-             #received_packet{type_attr = V2} -> V2
-         after 1000 -> ko
-         end,
-    R3 = string:concat(R, R1),
-    R4 = string:concat(R3, R2),
-    ?assertEqual(R4, "errorresultresult").
+    gen_tcp:send(Sock, File2),
+    case gen_tcp:recv(Sock, 0) of
+        {ok, V2} ->  [B3 | _T3] = exmpp_xml:parse_document(V2),
+                     Result2 = exmpp_xml:get_attribute(B3, <<"type">>, "not found");
+        {error, _Result2} ->
+            Result2 = ko
+    end,
+    Result3 = <<Result/binary, Result1/binary, Result2/binary>>,
+    ?assertEqual(Result3, <<"errorresultresult">>).
 
 % 
 % @doc Test creation of a link on a new ID.
@@ -296,15 +294,15 @@ put_resources(Config) ->
 put_link_new(Config) ->
     FileName = proplists:get_value(data_dir, Config) ++ "link1.xml",
     {ok, File} = file:read_file(FileName),
-    File1 = exmpp_xml:parse_document(File, []),
-    [H | _T] = File1,
-    Session = proplists:get_value(session, Config),
-    exmpp_session:send_packet(Session, H),
-    R = receive
-            #received_packet{type_attr = V} -> V
-        after 1000 -> ko
-        end,
-    ?assertEqual(R, "result").
+    Sock = proplists:get_value(sock, Config),
+    gen_tcp:send(Sock, File),
+    case gen_tcp:recv(Sock, 0) of
+        {ok, V} ->  [B1 | _T] = exmpp_xml:parse_document(V),
+                    Result = exmpp_xml:get_attribute(B1, <<"type">>, "not found");
+        {error, _Result} ->
+            Result = ko
+    end,
+    ?assertEqual(Result, <<"result">>).
 
 % 
 % @doc Test creation of a link on an existing ID.
@@ -314,15 +312,15 @@ put_link_new(Config) ->
 put_link(Config) ->
     FileName = proplists:get_value(data_dir, Config) ++ "link1.xml",
     {ok, File} = file:read_file(FileName),
-    File1 = exmpp_xml:parse_document(File, []),
-    [H | _T] = File1,
-    Session = proplists:get_value(session, Config),
-    exmpp_session:send_packet(Session, H),
-    R = receive
-            #received_packet{type_attr = V} -> V
-        after 1000 -> ko
-        end,
-    ?assertEqual(R, "error").
+    Sock = proplists:get_value(sock, Config),
+    gen_tcp:send(Sock, File),
+    case gen_tcp:recv(Sock, 0) of
+        {ok, V} ->  [B1 | _T] = exmpp_xml:parse_document(V),
+                    Result = exmpp_xml:get_attribute(B1, <<"type">>, "not found");
+        {error, _Result} ->
+            Result = ko
+    end,
+    ?assertEqual(Result, <<"error">>).
 
 % 
 % @doc Test creation of a resource with mixin.
@@ -332,15 +330,15 @@ put_link(Config) ->
 put_mixin(Config) ->
     FileName = proplists:get_value(data_dir, Config) ++ "res_mixin1.xml",
     {ok, File} = file:read_file(FileName),
-    File1 = exmpp_xml:parse_document(File, []),
-    [H | _T] = File1,
-    Session = proplists:get_value(session, Config),
-    exmpp_session:send_packet(Session, H),
-    R = receive
-            #received_packet{type_attr = V} -> V
-        after 1000 -> ko
-        end,
-    ?assertEqual(R, "result").
+    Sock = proplists:get_value(sock, Config),
+    gen_tcp:send(Sock, File),
+    case gen_tcp:recv(Sock, 0) of
+        {ok, V} ->  [B1 | _T] = exmpp_xml:parse_document(V),
+                    Result = exmpp_xml:get_attribute(B1, <<"type">>, "not found");
+        {error, _Result} ->
+            Result = ko
+    end,
+    ?assertEqual(Result, <<"result">>).
 
 %
 % @doc Test creation of a resource by updating a kind collection.
@@ -350,15 +348,15 @@ put_mixin(Config) ->
 put_kind_col(Config) ->
     FileName = proplists:get_value(data_dir, Config) ++ "kind1.xml",
     {ok, File} = file:read_file(FileName),
-    File1 = exmpp_xml:parse_document(File, []),
-    [H | _T] = File1,
-    Session = proplists:get_value(session, Config),
-    exmpp_session:send_packet(Session, H),
-    R = receive
-            #received_packet{type_attr = V} -> V
-        after 1000 -> ko
-        end,
-    ?assertEqual(R, "error").
+    Sock = proplists:get_value(sock, Config),
+    gen_tcp:send(Sock, File),
+    case gen_tcp:recv(Sock, 0) of
+        {ok, V} ->  [B1 | _T] = exmpp_xml:parse_document(V),
+                    Result = exmpp_xml:get_attribute(B1, <<"type">>, "not found");
+        {error, _Result} ->
+            Result = ko
+    end,
+    ?assertEqual(Result, <<"error">>).
 
 %
 % @doc Test updating of an existing resource 
@@ -368,15 +366,15 @@ put_kind_col(Config) ->
 post_resource_new(Config) ->
     FileName = proplists:get_value(data_dir, Config) ++ "update_res.xml",
     {ok, File} = file:read_file(FileName),
-    File1 = exmpp_xml:parse_document(File, []),
-    [H | _T] = File1,
-    Session = proplists:get_value(session, Config),
-    exmpp_session:send_packet(Session, H),
-    R = receive
-            #received_packet{type_attr = V} -> V
-        after 1000 -> ko
-        end,
-    ?assertEqual(R, "result").
+    Sock = proplists:get_value(sock, Config),
+    gen_tcp:send(Sock, File),
+    case gen_tcp:recv(Sock, 0) of
+        {ok, V} ->  [B1 | _T] = exmpp_xml:parse_document(V),
+                    Result = exmpp_xml:get_attribute(B1, <<"type">>, "not found");
+        {error, _Result} ->
+            Result = ko
+    end,
+    ?assertEqual(Result, <<"result">>).
 
 %
 % @doc Test updating of a resource on an ID which is not existing.
@@ -386,15 +384,15 @@ post_resource_new(Config) ->
 post_resource(Config) ->
     FileName = proplists:get_value(data_dir, Config) ++ "ko_update.xml",
     {ok, File} = file:read_file(FileName),
-    File1 = exmpp_xml:parse_document(File, []),
-    [H | _T] = File1,
-    Session = proplists:get_value(session, Config),
-    exmpp_session:send_packet(Session, H),
-    R = receive
-            #received_packet{type_attr = V} -> V
-        after 1000 -> ko
-        end,
-    ?assertEqual(R, "error").
+    Sock = proplists:get_value(sock, Config),
+    gen_tcp:send(Sock, File),
+    case gen_tcp:recv(Sock, 0) of
+        {ok, V} ->  [B1 | _T] = exmpp_xml:parse_document(V),
+                    Result = exmpp_xml:get_attribute(B1, <<"type">>, "not found");
+        {error, _Result} ->
+            Result = ko
+    end,
+    ?assertEqual(Result, <<"error">>).
 
 %
 % @doc Test updating of a existing link.
@@ -404,15 +402,15 @@ post_resource(Config) ->
 post_link_new(Config) ->
     FileName = proplists:get_value(data_dir, Config) ++ "update_link.xml",
     {ok, File} = file:read_file(FileName),
-    File1 = exmpp_xml:parse_document(File, []),
-    [H | _T] = File1,
-    Session = proplists:get_value(session, Config),
-    exmpp_session:send_packet(Session, H),
-    R = receive
-            #received_packet{type_attr = V} -> V
-        after 1000 -> ko
-        end,
-    ?assertEqual(R, "result").
+    Sock = proplists:get_value(sock, Config),
+    gen_tcp:send(Sock, File),
+    case gen_tcp:recv(Sock, 0) of
+        {ok, V} ->  [B1 | _T] = exmpp_xml:parse_document(V),
+                    Result = exmpp_xml:get_attribute(B1, <<"type">>, "not found");
+        {error, _Result} ->
+            Result = ko
+    end,
+    ?assertEqual(Result, <<"result">>).
 
 %
 % @doc Test creation of a link on an ID which is not existing.
@@ -422,15 +420,15 @@ post_link_new(Config) ->
 post_link(Config) ->
     FileName = proplists:get_value(data_dir, Config) ++ "ko_update_link.xml",
     {ok, File} = file:read_file(FileName),
-    File1 = exmpp_xml:parse_document(File, []),
-    [H | _T] = File1,
-    Session = proplists:get_value(session, Config),
-    exmpp_session:send_packet(Session, H),
-    R = receive
-            #received_packet{type_attr = V} -> V
-        after 1000 -> ko
-        end,
-    ?assertEqual(R, "error").
+    Sock = proplists:get_value(sock, Config),
+    gen_tcp:send(Sock, File),
+    case gen_tcp:recv(Sock, 0) of
+        {ok, V} ->  [B1 | _T] = exmpp_xml:parse_document(V),
+                    Result = exmpp_xml:get_attribute(B1, <<"type">>, "not found");
+        {error, _Result} ->
+            Result = ko
+    end,
+    ?assertEqual(Result, <<"error">>).
 
 %
 % @doc Test deletion of URL
@@ -440,15 +438,15 @@ post_link(Config) ->
 delete_resource(Config) ->
     FileName = proplists:get_value(data_dir, Config) ++ "delete_res.xml",
     {ok, File} = file:read_file(FileName),
-    File1 = exmpp_xml:parse_document(File, []),
-    [H | _T] = File1,
-    Session = proplists:get_value(session, Config),
-    exmpp_session:send_packet(Session, H),
-    R = receive
-            #received_packet{type_attr = V} -> V
-        after 1000 -> ko
-        end,
-    ?assertEqual(R, "result").
+    Sock = proplists:get_value(sock, Config),
+    gen_tcp:send(Sock, File),
+    case gen_tcp:recv(Sock, 0) of
+        {ok, V} ->  [B1 | _T] = exmpp_xml:parse_document(V),
+                    Result = exmpp_xml:get_attribute(B1, <<"type">>, "not found");
+        {error, _Result} ->
+            Result = ko
+    end,
+    ?assertEqual(Result, <<"result">>).
 
 %
 % @doc Test deleting of URL
@@ -458,15 +456,15 @@ delete_resource(Config) ->
 delete_link(Config) ->
     FileName = proplists:get_value(data_dir, Config) ++ "delete_link.xml",
     {ok, File} = file:read_file(FileName),
-    File1 = exmpp_xml:parse_document(File, []),
-    [H | _T] = File1,
-    Session = proplists:get_value(session, Config),
-    exmpp_session:send_packet(Session, H),
-    R = receive
-            #received_packet{type_attr = V} -> V
-        after 1000 -> ko
-        end,
-    ?assertEqual(R, "result").
+    Sock = proplists:get_value(sock, Config),
+    gen_tcp:send(Sock, File),
+    case gen_tcp:recv(Sock, 0) of
+        {ok, V} ->  [B1 | _T] = exmpp_xml:parse_document(V),
+                    Result = exmpp_xml:get_attribute(B1, <<"type">>, "not found");
+        {error, _Result} ->
+            Result = ko
+    end,
+    ?assertEqual(Result, <<"result">>).
 
 %
 % @doc Test obtaining the infomation of an ID for testing if PUT and POST work. 
@@ -476,15 +474,15 @@ delete_link(Config) ->
 get_resource(Config) ->
     FileName = proplists:get_value(data_dir, Config) ++ "get_res.xml",
     {ok, File} = file:read_file(FileName),
-    File1 = exmpp_xml:parse_document(File, []),
-    [H | _T] = File1,
-    Session = proplists:get_value(session, Config),
-    exmpp_session:send_packet(Session, H),
-    R = receive
-            #received_packet{type_attr = V} -> V
-        after 1000 -> ko
-        end,
-    ?assertEqual(R, "result").
+    Sock = proplists:get_value(sock, Config),
+    gen_tcp:send(Sock, File),
+    case gen_tcp:recv(Sock, 0) of
+        {ok, V} ->  [B1 | _T] = exmpp_xml:parse_document(V),
+                    Result = exmpp_xml:get_attribute(B1, <<"type">>, "not found");
+        {error, _Result} ->
+            Result = ko
+    end,
+    ?assertEqual(Result, <<"result">>).
 
 %
 % @doc Test obtaining the infomation of an ID for testing if DELETE works.
@@ -494,15 +492,15 @@ get_resource(Config) ->
 get_resource_delete(Config) ->
     FileName = proplists:get_value(data_dir, Config) ++ "get_res.xml",
     {ok, File} = file:read_file(FileName),
-    File1 = exmpp_xml:parse_document(File, []),
-    [H | _T] = File1,
-    Session = proplists:get_value(session, Config),
-    exmpp_session:send_packet(Session, H),
-    R = receive
-            #received_packet{type_attr = V} -> V
-        after 1000 -> ko
-        end,
-    ?assertEqual(R, "error").
+    Sock = proplists:get_value(sock, Config),
+    gen_tcp:send(Sock, File),
+    case gen_tcp:recv(Sock, 0) of
+        {ok, V} ->  [B1 | _T] = exmpp_xml:parse_document(V),
+                    Result = exmpp_xml:get_attribute(B1, <<"type">>, "not found");
+        {error, _Result} ->
+            Result = ko
+    end,
+    ?assertEqual(Result, <<"error">>).
 
 %
 % @doc Test obtaining the information of an ID for testing if PUT and POST work. 
@@ -512,15 +510,15 @@ get_resource_delete(Config) ->
 get_link(Config) ->
     FileName = proplists:get_value(data_dir, Config) ++ "get_link.xml",
     {ok, File} = file:read_file(FileName),
-    File1 = exmpp_xml:parse_document(File, []),
-    [H | _T] = File1,
-    Session = proplists:get_value(session, Config),
-    exmpp_session:send_packet(Session, H),
-    R = receive
-            #received_packet{type_attr = V} -> V
-        after 1000 -> ko
-        end,
-    ?assertEqual(R, "result").
+    Sock = proplists:get_value(sock, Config),
+    gen_tcp:send(Sock, File),
+    case gen_tcp:recv(Sock, 0) of
+        {ok, V} ->  [B1 | _T] = exmpp_xml:parse_document(V),
+                    Result = exmpp_xml:get_attribute(B1, <<"type">>, "not found");
+        {error, _Result} ->
+            Result = ko
+    end,
+    ?assertEqual(Result, <<"result">>).
 
 %
 % @doc Test obtaining the infomation of an ID for testing if DELETE works.
@@ -530,15 +528,15 @@ get_link(Config) ->
 get_link_delete(Config) ->
     FileName = proplists:get_value(data_dir, Config) ++ "get_link.xml",
     {ok, File} = file:read_file(FileName),
-    File1 = exmpp_xml:parse_document(File, []),
-    [H | _T] = File1,
-    Session = proplists:get_value(session, Config),
-    exmpp_session:send_packet(Session, H),
-    R = receive
-            #received_packet{type_attr = V} -> V
-        after 1000 -> ko
-        end,
-    ?assertEqual(R, "error").
+    Sock = proplists:get_value(sock, Config),
+    gen_tcp:send(Sock, File),
+    case gen_tcp:recv(Sock, 0) of
+        {ok, V} ->  [B1 | _T] = exmpp_xml:parse_document(V),
+                    Result = exmpp_xml:get_attribute(B1, <<"type">>, "not found");
+        {error, _Result} ->
+            Result = ko
+    end,
+    ?assertEqual(Result, <<"error">>).
 
 %
 % @doc Test obtaining all the information. 
@@ -548,15 +546,15 @@ get_link_delete(Config) ->
 get_query(Config) ->
     FileName = proplists:get_value(data_dir, Config) ++ "get_all.xml",
     {ok, File} = file:read_file(FileName),
-    File1 = exmpp_xml:parse_document(File, []),
-    [H | _T] = File1,
-    Session = proplists:get_value(session, Config),
-    exmpp_session:send_packet(Session, H),
-    R = receive
-            #received_packet{type_attr = V} -> V
-        after 1000 -> ko
-        end,
-    ?assertEqual(R, "result").
+    Sock = proplists:get_value(sock, Config),
+    gen_tcp:send(Sock, File),
+    case gen_tcp:recv(Sock, 0) of
+        {ok, V} ->  [B1 | _T] = exmpp_xml:parse_document(V),
+                    Result = exmpp_xml:get_attribute(B1, <<"type">>, "not found");
+        {error, _Result} ->
+            Result = ko
+    end,
+    ?assertEqual(Result, <<"result">>).
 
 %
 % @doc Test creation of two resources on differents ID for testing get_dir.
@@ -567,24 +565,24 @@ put_resource_dir(Config) ->
     FileName = proplists:get_value(data_dir, Config) ++ "resource1.xml",
     FileName1 = proplists:get_value(data_dir, Config) ++ "resource_dir.xml",
     {ok, File} = file:read_file(FileName),
+    Sock = proplists:get_value(sock, Config),
+    gen_tcp:send(Sock, File),
+    case gen_tcp:recv(Sock, 0) of
+        {ok, V} ->  [B1 | _T] = exmpp_xml:parse_document(V),
+                    Result = exmpp_xml:get_attribute(B1, <<"type">>, "not found");
+        {error, _Result} ->
+            Result = ko
+    end,
     {ok, File1} = file:read_file(FileName1),
-    File11 = exmpp_xml:parse_document(File, []),
-    [H | _T] = File11,
-    Session = proplists:get_value(session, Config),
-    File12 = exmpp_xml:parse_document(File1, []),
-    [H1 | _T] = File12,
-    exmpp_session:send_packet(Session, H),
-    R = receive
-            #received_packet{type_attr = V} -> V
-        after 1000 -> ko
-        end,
-    exmpp_session:send_packet(Session, H1),
-    R1 = receive
-             #received_packet{type_attr = V1} -> V1
-         after 1000 -> ko
-         end,
-    R2 = string:concat(R, R1),
-    ?assertEqual(R2, "errorresult").
+    gen_tcp:send(Sock, File1),
+    case gen_tcp:recv(Sock, 0) of
+        {ok, V1} ->  [B2 | _T2] = exmpp_xml:parse_document(V1),
+                     Result1 = exmpp_xml:get_attribute(B2, <<"type">>, "not found");
+        {error, _Result1} ->
+            Result1 = ko
+    end,
+    Result2 = <<Result/binary, Result1/binary>>,
+    ?assertEqual(Result2, <<"errorresult">>).
 
 %
 % @doc Test obtaining a list of URLs under a directory. 
@@ -594,15 +592,15 @@ put_resource_dir(Config) ->
 get_dir(Config) ->
     FileName = proplists:get_value(data_dir, Config) ++ "get_dir.xml",
     {ok, File} = file:read_file(FileName),
-    File1 = exmpp_xml:parse_document(File, []),
-    [H | _T] = File1,
-    Session = proplists:get_value(session, Config),
-    exmpp_session:send_packet(Session, H),
-    R = receive
-            #received_packet{type_attr = V} -> V
-        after 1000 -> ko
-        end,
-    ?assertEqual(R, "result").
+    Sock = proplists:get_value(sock, Config),
+    gen_tcp:send(Sock, File),
+    case gen_tcp:recv(Sock, 0) of
+        {ok, V} ->  [B1 | _T] = exmpp_xml:parse_document(V),
+                    Result = exmpp_xml:get_attribute(B1, <<"type">>, "not found");
+        {error, _Result} ->
+            Result = ko
+    end,
+    ?assertEqual(Result, <<"result">>).
 
 %
 % @doc Test delete link and resource. 
@@ -614,21 +612,21 @@ delete_all(Config) ->
     FileName = proplists:get_value(data_dir, Config) ++ "delete_all.xml",
     FileName1 = proplists:get_value(data_dir, Config) ++ "delete_all2.xml",
     {ok, File} = file:read_file(FileName),
+    Sock = proplists:get_value(sock, Config),
+    gen_tcp:send(Sock, File),
+    case gen_tcp:recv(Sock, 0) of
+        {ok, V} ->  [B1 | _T] = exmpp_xml:parse_document(V),
+                    Result = exmpp_xml:get_attribute(B1, <<"type">>, "not found");
+        {error, _Result} ->
+            Result = ko
+    end,
     {ok, File1} = file:read_file(FileName1),
-    File11 = exmpp_xml:parse_document(File, []),
-    [H | _T] = File11,
-    File12 = exmpp_xml:parse_document(File1, []),
-    [H1 | _T] = File12,
-    Session = proplists:get_value(session, Config),
-    exmpp_session:send_packet(Session, H),
-     R = receive
-            #received_packet{type_attr = V1} -> V1
-        after 1000 -> ko
-        end,
-    exmpp_session:send_packet(Session, H1),
-    R1 = receive
-            #received_packet{type_attr = V} -> V
-        after 1000 -> ko
-        end,
-    R3 = string:concat(R, R1),
-    ?assertEqual(R3, "resultresult").
+    gen_tcp:send(Sock, File1),
+    case gen_tcp:recv(Sock, 0) of
+        {ok, V1} ->  [B2 | _T2] = exmpp_xml:parse_document(V1),
+                     Result1 = exmpp_xml:get_attribute(B2, <<"type">>, "not found");
+        {error, _Result1} ->
+            Result1 = ko
+    end,
+    Result2 = <<Result/binary, Result1/binary>>,
+    ?assertEqual(Result2, <<"resultresult">>).

@@ -1,4 +1,4 @@
-<iq to="user-1@localhost/erocci" type="get">
+<iq to="user-1@localhost/erocci" type="get" xmlns="jabber:client">
 <query xmlns="http://schemas.ogf.org/occi-xmpp" node="/store">
 </query>
 </iq>
