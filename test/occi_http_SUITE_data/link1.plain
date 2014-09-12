@@ -1,0 +1,4 @@
+category: link; scheme="http://example.org/occi/test#"; class="kind"
+x-occi-attribute: occi.core.source="http://localhost:8080/plain/id1"
+x-occi-attribute: occi.core.target="http://localhost:8080/plain/id2"
+x-occi-attribute: example.string="My string attribute"

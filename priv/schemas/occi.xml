@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<occi:extension xmlns:occi="http://schemas.ogf.org/occi"
+		xmlns:xs="http://www.w3.org/2001/XMLSchema"
+		xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		xsi:schemaLocation="http://example.org/occi occi.xsd " name="Test schema"
+		status="stable" version="1">
+  <occi:kind scheme="http://example.org/occi/test#" term="resource" title="Example Resource">
+    <occi:parent scheme="http://schemas.ogf.org/occi/core#" term="resource" />
+    <occi:attribute name="example.required" type="xs:string" title="A Required attribute" use="required" />
+    <occi:attribute name="example.immutable" type="xs:string" title="A Immutable attribute" immutable="true" />
+    <occi:attribute name="example.string" type="xs:string" title="A String attribute" />
+    <occi:attribute name="example.integer" type="xs:integer" title="A Integer attribute" />
+    <occi:attribute name="example.float" type="xs:float" title="A Float attribute" />
+  </occi:kind>
+
+  <occi:kind scheme="http://example.org/occi/test#" term="link" title="Example Link">
+    <occi:parent scheme="http://schemas.ogf.org/occi/core#" term="link" />
+    <occi:attribute name="example.string" type="xs:string" title="A String attribute" />
+  </occi:kind>
+
+  <occi:mixin scheme="http://example.org/occi/test#" term="mixin" title="An example mixin" >
+    <occi:attribute name="example.mixin.string" type="xs:string" title="A String attribute in a mixin" />
+  </occi:mixin>
+</occi:extension>

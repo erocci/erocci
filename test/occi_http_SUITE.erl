@@ -73,10 +73,18 @@ end_per_group(_, Config) ->
 %%--------------------------------------------------------------------
 groups() ->
     [
-     {create, [], [ create_resource ]},
-     {all_json, [], [ {group, create} ]},
-     {all_xml, [], [ {group, create} ]},
-     {all_plain, [], [ {group, create} ]}
+     {create, [],        [ create_resource,
+			   create_resource_link,
+			   create_link,
+			   update_kind_collection ]},
+     {update, [],        [ ]},
+
+     {all_json, [],      [ {group, create},
+			   {group, update} ]},
+     {all_xml, [],       [ {group, create},
+			   {group, update} ]},
+     {all_plain, [],     [ {group, create},
+			   {group, update} ]}
     ].
 
 %%--------------------------------------------------------------------
@@ -98,11 +106,36 @@ all() ->
 % %end
 %
 create_resource(Config) ->
-    {Type, Ext, Content} = read_content("resource1", Config),
-    Id = ?NAME ++ "/" ++ Ext ++ "/id1",
+    create_resource(Config, "/id1").
+
+%
+% @doc Test creation of a new resource with inline link.
+% expect: 201(created)
+% %end
+%
+create_resource_link(_Config) ->
+    ok.
+
+%
+% @doc Test creation of a new link on a new ID.
+% expect: 201(created)
+% %end
+%
+create_link(Config) ->
+    create_resource(Config, "/id2"),
+    {Type, Ext, Content} = read_content("link1", Config),
+    Id = ?NAME ++ "/" ++ Ext ++ "/link1",
     {ok, {{_Protocol, Code, _Status}, _Headers, _Body}} =  
 	httpc:request(put, {Id, [], Type, Content}, [], []),
     ?assertEqual(201, Code).
+
+%
+% @doc Test creation of a new resource by updating kind collection
+% expect: 201(created)
+% %end
+%
+update_kind_collection(_Config) ->
+    ok.
 
 %
 % @doc Test creation of a resource on an existing ID
@@ -438,3 +471,10 @@ read_content(Path, Config) ->
     Fullpath = get_data_path(Path ++ "." ++ Ext, Config),
     {ok, Content} = file:read_file(Fullpath),
     {Type, Ext, Content}.
+
+create_resource(Config, Suffix) ->
+    {Type, Ext, Content} = read_content("resource1", Config),
+    Id = ?NAME ++ "/" ++ Ext ++ Suffix,
+    {ok, {{_Protocol, Code, _Status}, _Headers, _Body}} =  
+	httpc:request(put, {Id, [], Type, Content}, [], []),
+    ?assertEqual(201, Code).

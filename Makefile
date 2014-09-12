@@ -38,7 +38,7 @@ endif
 .PHONY: all compile doc clean test dialyzer typer shell distclean pdf \
   update-deps clean-common-test-data rebuild
 
-all: deps compile dialyzer test
+all: deps compile test
 
 # =============================================================================
 # Rules to build the system
