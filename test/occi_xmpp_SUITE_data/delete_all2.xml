@@ -1,3 +1,3 @@
-<iq to="user-1@localhost/erocci" type="set" xmlns="jabber:client">
+<iq to="test@local/local" type="set" xmlns="jabber:client">
 <query xmlns="http://schemas.ogf.org/occi-xmpp" op="delete" node="/store/mylinks/xmpp/networkinterface/id1"/>
 </iq>

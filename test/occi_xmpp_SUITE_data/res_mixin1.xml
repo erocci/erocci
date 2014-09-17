@@ -1,4 +1,4 @@
-<iq to="user-1@localhost/erocci" type="set" xmlns="jabber:client">
+<iq to="test@local/local" type="set" xmlns="jabber:client">
 <query xmlns="http://schemas.ogf.org/occi-xmpp" node="/store/myresources/xmpp/compute/id4" >
 <occi:resource xmlns:occi="http://schemas.ogf.org/occi" title="Machine a tata mix" >
 <occi:kind scheme="http://schemas.ogf.org/occi/infrastructure#" term="compute" />
