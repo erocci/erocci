@@ -2,23 +2,34 @@
 <occi:extension xmlns:occi="http://schemas.ogf.org/occi"
 		xmlns:xs="http://www.w3.org/2001/XMLSchema"
 		xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-		xsi:schemaLocation="http://example.org/occi occi.xsd " name="Test schema"
-		status="stable" version="1">
-  <occi:kind scheme="http://example.org/occi/test#" term="resource" title="Example Resource">
+		xsi:schemaLocation="http://example.org/occi occi.xsd " name="A REST blog"
+		status="experimental" version="1">
+  
+  <occi:kind scheme="http://example.org/occi/test#" term="blog" title="A Blog">
     <occi:parent scheme="http://schemas.ogf.org/occi/core#" term="resource" />
-    <occi:attribute name="example.required" type="xs:string" title="A Required attribute" use="required" />
-    <occi:attribute name="example.immutable" type="xs:string" title="A Immutable attribute" immutable="true" />
-    <occi:attribute name="example.string" type="xs:string" title="A String attribute" />
-    <occi:attribute name="example.integer" type="xs:integer" title="A Integer attribute" />
-    <occi:attribute name="example.float" type="xs:float" title="A Float attribute" />
+    <occi:attribute name="example.blog.title" type="xs:string" title="Blog title"
+		    use="required" />
   </occi:kind>
 
-  <occi:kind scheme="http://example.org/occi/test#" term="link" title="Example Link">
+  <occi:kind scheme="http://example.org/occi/test#" term="entry" title="entry">
+    <occi:parent scheme="http://schemas.ogf.org/occi/core#" term="resource" />
+    <occi:attribute name="blog.entry.title" type="xs:string" title="Blog entry title"
+		    use="required" />
+    <occi:attribute name="blog.entry.date" type="xs:string" title="Creation date"
+		    use="optional" />
+    <occi:attribute name="blog.entry.content" type="xs:string" title="Entry content"
+		    use="required" />
+  </occi:kind>
+
+  <occi:kind scheme="http://example.org/occi/test#" term="user" title="Blog user">
+    <occi:parent scheme="http://schemas.ogf.org/occi/core#" term="resources" />
+    <occi:attribute name="blog.user.name" type="xs:string" title="User name"
+		    use="required" />
+    <occi:attribute name="blog.user.email" type="xs:string" title="User email" />
+    <occi:attribute name="blog.user.role" type="xs:string" title="User role" />
+  </occi:kind>
+
+  <occi:kind scheme="http://example.org/occi/test#" term="author" title="Author">
     <occi:parent scheme="http://schemas.ogf.org/occi/core#" term="link" />
-    <occi:attribute name="example.string" type="xs:string" title="A String attribute" />
   </occi:kind>
-
-  <occi:mixin scheme="http://example.org/occi/test#" term="mixin" title="An example mixin" >
-    <occi:attribute name="example.mixin.string" type="xs:string" title="A String attribute in a mixin" />
-  </occi:mixin>
 </occi:extension>
