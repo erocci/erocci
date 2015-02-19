@@ -16,17 +16,7 @@
 #
 SUBDIRS = apps
 
-#DEPS = jiffy erim_xml uuid uri erocci_listener_http erocci_listener_xmpp erocci_backend_mnesia erocci_authnz_htpasswd
-#dep_jiffy = git git://github.com/davisp/jiffy.git 0.9.0
-#dep_erim_xml = git git://github.com/lizenn/erim_xml.git master
-#dep_uuid = git git://gitorious.org/avtobiff/erlang-uuid.git v0.4.6
-#dep_uri = git git://github.com/heroku/uri.git master
-#dep_erocci_authnz = git git://github.com/erocci/erocci_authnz.git master
-#dep_erocci_listener_http = git://github.com/erocci/erocci_listener_http.git master
-#dep_erocci_listener_xmpp = git://github.com/erocci/erocci_listener_xmpp.git master
-#dep_erocci_backend_mnesia = git://github.com/erocci/erocci_backend_mnesia.git master
-#dep_erocci_authnz_htpasswd = git://github.com/erocci/erocci_authnz_htpasswd.git master
+erlang_APPS = erocci
+erocci_MODULES = erocci
 
-#ERLC_OPTS = -Ideps/*/include -Iapps/*/include -Ideps -I.
-
-@ERLANG_MK@
+include $(top_srcdir)/erlang.mk
