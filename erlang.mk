@@ -55,14 +55,15 @@ clean-erlang:
 	done
 
 dist-erlang:
-	@for file in $(wildcard $(addsuffix .in,$(addprefix $(esrcdir)/,$(erlang_APPS)))) \
-		$(foreach mod,$(addprefix, $(esrcdir)/,$(foreach app,$(erlang_APPS),$($(app)_MODULES))), \
-		   $(if $(wildcard $(mod).xrl), \
-		      $(mod).xrl), \
-		      $(if (wildcard $(mod).yrl), \
-		         $(mod).yrl), \
-		         $(mod).erl); do \
-	  $(MKDIR_P) $(dirname $$file); \
+	@for file in  $(wildcard $(addsuffix .app.in,$(addprefix $(esrcdir)/,$(erlang_APPS)))) \
+		$(foreach mod,$(addprefix $(esrcdir)/,$(foreach app,$(erlang_APPS),$($(app)_MODULES))), \
+	           $(if $(wildcard $(mod).xrl), \
+	              $(mod).xrl, \
+	              $(if $(wildcard $(mod).yrl), \
+	                 $(mod).yrl, \
+	                 $(mod).erl))); do \
+	  dirname=`echo $$file | sed -e 's,/*[^/]\+/*$$,,'`; \
+	  $(MKDIR_P) $(distdir)/$$dirname; \
 	  cp $$file $(distdir)/$$file; \
 	done
 
