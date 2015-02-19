@@ -47,6 +47,9 @@ $(ebindir)/%.beam: $(esrcdir)/%.erl
 $(esrcdir)/%.erl: $(esrcdir)/%.xrl
 	$(xyrl_v)$(ERLC) -o $(<D) $<
 
+$(esrcdir)/%.erl: $(esrcdir)/%.yrl
+	$(xyrl_v)$(ERLC) -o $(<D) $<
+
 clean-erlang:
 	-rm -rf $(appdata)
 	-rm -rf $(appbins)
