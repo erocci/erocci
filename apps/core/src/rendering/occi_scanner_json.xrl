@@ -37,6 +37,7 @@ null                           : make_atom(null, TokenLine).
 
 Erlang code.
 
+-include("occi_log.hrl").
 -include("occi_parser.hrl").
 
 -export([start/1,
