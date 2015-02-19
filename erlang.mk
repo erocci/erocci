@@ -20,8 +20,13 @@ erlc_v = $(erlc_v_@AM_V@)
 erlc_v_ = $(erlc_v_@AM_DEFAULT_V@)
 erlc_v_0 = @echo "  ERLC    " $@;
 
+xyrl_v = $(xyrl_v_@AM_V@)
+xyrl_v_ = $(xyrl_v_@AM_DEFAULT_V@)
+xyrl_v_0 = @echo "  XYRL    " $@;
+
 all-local: all-erlang
 clean-local: clean-erlang
+dist-hook: dist-erlang
 
 esrcdir = $(srcdir)/src
 ebindir = $(srcdir)/ebin
@@ -31,16 +36,39 @@ appbins = $(addprefix $(ebindir)/,$(addsuffix .beam,$(foreach app,$(erlang_APPS)
 all-erlang: $(appdata) $(appbins)
 
 $(ebindir)/%.app: $(esrcdir)/%.app.in $(top_srcdir)/config.status
-	@$(MKDIR_P) $(ebindir)
+	@$(MKDIR_P) $(@D)
 	$(AM_V_GEN)$(top_srcdir)/config.status --file=$(esrcdir)/$(@F) > /dev/null
 	@mv $(esrcdir)/$(@F) $@
 
-$(ebindir)/%.beam: $(esrcdir)/*.erl
+$(ebindir)/%.beam: $(esrcdir)/%.erl
+	@$(MKDIR_P) $(@D)
 	$(erlc_v)$(ERLC) $(ERLCFLAGS) -o $(@D) $<
+
+$(esrcdir)/%.erl: $(esrcdir)/%.xrl
+	$(xyrl_v)$(ERLC) -o $(<D) $<
 
 clean-erlang:
 	-rm -rf $(appdata)
 	-rm -rf $(appbins)
+	-for base in $(basename $(wildcard $(esrcdir)/*.erl)); do \
+	  if test -e $$base.xrl -o -e $$base.yrl; then rm -f $$base.erl; fi; \
+	done
+
+dist-erlang:
+	@for file in $(wildcard $(addsuffix .in,$(addprefix $(esrcdir)/,$(erlang_APPS)))) \
+		$(foreach mod,$(addprefix, $(esrcdir)/,$(foreach app,$(erlang_APPS),$($(app)_MODULES))), \
+		   $(if $(wildcard $(mod).xrl), \
+		      $(mod).xrl), \
+		      $(if (wildcard $(mod).yrl), \
+		         $(mod).yrl), \
+		         $(mod).erl); do \
+	  $(MKDIR_P) $(dirname $$file); \
+	  cp $$file $(distdir)/$$file; \
+	done
+
+deps:
+	$(MAKE) fetch-deps
+	$(MAKE) build-deps
 
 fetch-deps:
 	@mkdir -p $(erlangdepsdir)
@@ -77,4 +105,4 @@ build-deps: fetch-deps
 	    fi ; \
 	done
 
-.PHONY: fetch-deps build-deps
+.PHONY: deps fetch-deps build-deps

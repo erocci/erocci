@@ -20,3 +20,9 @@ test/*.beam
 /priv/Mnesia
 /ebin
 /.deps_plt
+/Makefile
+/Makefile.in
+/apps/Makefile
+/apps/Makefile.in
+/apps/core/Makefile
+/apps/core/Makefile.in
