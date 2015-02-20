@@ -22,10 +22,8 @@ AC_CHECK_PROGS([REBAR], [rebar])
 
 AC_CONFIG_FILES([
 	Makefile
-	ebin/occi.app:src/occi.app.in
 	apps/Makefile
 	apps/core/Makefile
-	apps/core/ebin/occi_core.app:apps/core/src/occi_core.app.in
 ])
 
 AC_OUTPUT

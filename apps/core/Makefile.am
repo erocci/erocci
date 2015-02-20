@@ -63,7 +63,7 @@ erlang_MODULES = \
 	rendering/occi_renderer_text
 
 EXTRA_DIST = \
-	src/rendering/occi_parser_text.hrl
+	src/rendering/occi_parser_text.hrl \
 	src/rendering/occi_parser.hrl
 
 include $(top_srcdir)/erlang.mk

@@ -19,8 +19,6 @@ AC_DEFUN([AX_ERLANG_INIT],
 	    CLEANFILES="m4_join([ ], [$CLEANFILES], erl_crash.dump)"
 
 	    AC_SUBST([erlangdepsdir], ["\$(top_srcdir)/deps"])
-	    AC_SUBST([ERL_APP], ["\${erlang_APP}"])
-	    AC_SUBST([ERL_MODULES], ["m4_join([, ], [\$(erlang_MODULES)])"])
 ]) dnl AX_ERLANG_MK
 
 # AX_ERLANG_DEP(NAME, REP_TYPE, REP_URL, [VERSION = master])

@@ -30,18 +30,26 @@ dist-hook: dist-erlang
 
 esrcdir = $(srcdir)/src
 ebindir = $(srcdir)/ebin
-appbins = $(addprefix $(ebindir)/,$(addsuffix .beam,$(erlang_MODULES)))
+appbins = $(addprefix $(ebindir)/,$(addsuffix .beam,$(foreach mod,$(erlang_MODULES),$(shell basename $(mod)))))
 
-all-erlang: $(appbins)
+
+#edit = sed \
+#	-e 's|@ERL_APP@|'$(erlang_APP)'|g' \
+#	-e 's|@ERL_MODULES@|'$()'|'
+
+all-erlang: $(appdata) $(appbins)
 
 $(ebindir)/%.app: $(esrcdir)/%.app.in config.status
 	@$(MKDIR_P) $(@D)
-	$(AM_V_GEN)$(top_srcdir)/config.status --file=$(esrcdir)/$(@F) > /dev/null
-	@mv $(esrcdir)/$(@F) $@
+	$(AM_V_GEN)$(top_srcdir)/config.status --file=$@:$< > /dev/null
 
-$(ebindir)/%.beam: $(esrcdir)/%.erl
-	@$(MKDIR_P) $(@D)
-	$(erlc_v)$(ERLC) $(ERLCFLAGS) -o $(@D) $<
+define beam_build
+$(ebindir)/$(1).beam: $(esrcdir)/$(2).erl
+	@$(MKDIR_P) $(ebindir)
+	$(erlc_v)$(ERLC) -pa $(ebindir) $(ERLCFLAGS) -o $(ebindir) $$<
+endef
+
+$(foreach mod,$(erlang_MODULES),$(eval $(call beam_build,$(shell basename $(mod)),$(mod))))
 
 $(esrcdir)/%.erl: $(esrcdir)/%.xrl
 	$(xyrl_v)$(ERLC) -o $(<D) $<
