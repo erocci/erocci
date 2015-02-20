@@ -61,6 +61,10 @@ erlang_MODULES = \
 	rendering/occi_parser_text \
 	rendering/occi_renderer_json \
 	rendering/occi_renderer_text
+erlang_FIRST = \
+	occi_listener \
+	backend/occi_backend \
+	rendering/occi_renderer
 
 EXTRA_DIST = \
 	src/rendering/occi_parser_text.hrl \

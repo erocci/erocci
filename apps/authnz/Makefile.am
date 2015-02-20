@@ -19,5 +19,7 @@ erlang_MODULES = \
 	occi_authnz_app \
 	occi_authnz \
 	occi_authnz_sup
+erlang_FIRST = \
+	occi_authnz
 
 include $(top_srcdir)/erlang.mk

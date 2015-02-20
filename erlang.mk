@@ -32,6 +32,7 @@ esrcdir = $(srcdir)/src
 ebindir = $(srcdir)/ebin
 appdata = $(ebindir)/$(erlang_APP).app
 appbins = $(addprefix $(ebindir)/,$(addsuffix .beam,$(foreach mod,$(erlang_MODULES),$(shell basename $(mod)))))
+appfirst = $(addprefix $(ebindir)/,$(addsuffix .beam,$(foreach mod,$(erlang_FIRST),$(shell basename $(mod)))))
 
 space := $(empty) $(empty)
 comma := ,
@@ -40,7 +41,13 @@ edit = sed \
 	-e 's|@ERL_APP@|'$(erlang_APP)'|g' \
 	-e 's|@ERL_MODULES@|'$(subst $(space),$(comma),$(foreach mod,$(erlang_MODULES),$(shell basename $(mod))))'|'
 
-all-erlang: $(appdata) $(appbins)
+all-erlang: $(appdata)
+	$(MAKE) all-first
+	$(MAKE) all-beams
+
+all-first: $(appfirst)
+
+all-beams: $(filter-out $(appfirst),$(appbins))
 
 $(ebindir)/%.app: $(esrcdir)/%.app.in $(top_srcdir)/config.status Makefile
 	@$(MKDIR_P) $(@D)
@@ -120,4 +127,4 @@ build-deps: fetch-deps
 	    fi ; \
 	done
 
-.PHONY: deps fetch-deps build-deps
+.PHONY: deps fetch-deps build-deps all-erlang all-first all-beams clean-erlang dist-erlang
