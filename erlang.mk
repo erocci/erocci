@@ -30,12 +30,11 @@ dist-hook: dist-erlang
 
 esrcdir = $(srcdir)/src
 ebindir = $(srcdir)/ebin
-appdata = $(addprefix $(ebindir)/,$(addsuffix .app,$(erlang_APPS)))
-appbins = $(addprefix $(ebindir)/,$(addsuffix .beam,$(foreach app,$(erlang_APPS),$($(app)_MODULES))))
+appbins = $(addprefix $(ebindir)/,$(addsuffix .beam,$(erlang_MODULES)))
 
-all-erlang: $(appdata) $(appbins)
+all-erlang: $(appbins)
 
-$(ebindir)/%.app: $(esrcdir)/%.app.in $(top_srcdir)/config.status
+$(ebindir)/%.app: $(esrcdir)/%.app.in config.status
 	@$(MKDIR_P) $(@D)
 	$(AM_V_GEN)$(top_srcdir)/config.status --file=$(esrcdir)/$(@F) > /dev/null
 	@mv $(esrcdir)/$(@F) $@
@@ -51,15 +50,14 @@ $(esrcdir)/%.erl: $(esrcdir)/%.yrl
 	$(xyrl_v)$(ERLC) -o $(<D) $<
 
 clean-erlang:
-	-rm -rf $(appdata)
 	-rm -rf $(appbins)
 	-for base in $(basename $(wildcard $(esrcdir)/*.erl)); do \
 	  if test -e $$base.xrl -o -e $$base.yrl; then rm -f $$base.erl; fi; \
 	done
 
 dist-erlang:
-	@for file in  $(wildcard $(addsuffix .app.in,$(addprefix $(esrcdir)/,$(erlang_APPS)))) \
-		$(foreach mod,$(addprefix $(esrcdir)/,$(foreach app,$(erlang_APPS),$($(app)_MODULES))), \
+	@for file in  $(wildcard $(esrcdir)/$(erlang_APP).app.in) \
+		$(foreach mod,$(addprefix $(esrcdir)/,$(erlang_MODULES)), \
 	           $(if $(wildcard $(mod).xrl), \
 	              $(mod).xrl, \
 	              $(if $(wildcard $(mod).yrl), \

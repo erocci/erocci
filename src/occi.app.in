@@ -1,0 +1,11 @@
+%%-*- mode: erlang -*-
+{application, @ERL_APP@,
+ [
+  {id, @ERL_APP@},
+  {description, "@PACKAGE_STRING@"},
+  {vsn, "@PACKAGE_VERSION@"},
+  {modules, [@ERL_MODULES@]},
+  {registered, []},
+  {applications, []},
+  {env, []}
+ ]}.

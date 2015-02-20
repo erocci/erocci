@@ -1,17 +1,16 @@
 %%-*- mode: erlang -*-
-{application, erocci_core,
+{application, @ERL_APP@,
  [
   {description, "erocci core"},
   {mod, {occi_app, []}},
-  {modules, [
-	    ]},
+  {modules, [@ERL_MODULES@]},
   {applications, [
 		  kernel,
 		  stdlib,
 		  sasl,
 		  inets,
 		  erim_xml,
-		  erocci_authnz
+		  occi_authnz
 		 ]},
-  {vsn, git}
+  {vsn, "@PACKAGE_VERSION@"}
  ]}.

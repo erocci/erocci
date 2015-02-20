@@ -13,7 +13,6 @@ AX_ERLANG_DEP([jiffy],                  [git], [git://github.com/davisp/jiffy.gi
 AX_ERLANG_DEP([erim_xml],               [git], [git://github.com/lizenn/erim_xml.git])
 AX_ERLANG_DEP([uuid],                   [git], [git://gitorious.org/avtobiff/erlang-uuid.git], [v0.4.6])
 AX_ERLANG_DEP([uri],                    [git], [git://github.com/heroku/uri.git])
-AX_ERLANG_DEP([erocci_authnz],          [git], [git://github.com/erocci/erocci_authnz.git])
 AX_ERLANG_DEP([erocci_listener_http],   [git], [git://github.com/erocci/erocci_listener_http.git])
 AX_ERLANG_DEP([erocci_listener_xmpp],   [git], [git://github.com/erocci/erocci_listener_xmpp.git])
 AX_ERLANG_DEP([erocci_backend_mnesia],  [git], [git://github.com/erocci/erocci_backend_mnesia.git])
@@ -23,8 +22,10 @@ AC_CHECK_PROGS([REBAR], [rebar])
 
 AC_CONFIG_FILES([
 	Makefile
+	ebin/occi.app:src/occi.app.in
 	apps/Makefile
 	apps/core/Makefile
+	apps/core/ebin/occi_core.app:apps/core/src/occi_core.app.in
 ])
 
 AC_OUTPUT

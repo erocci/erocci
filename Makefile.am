@@ -16,7 +16,6 @@
 #
 SUBDIRS = apps
 
-erlang_APPS = erocci
-erocci_MODULES = erocci
+erlang_APP = occi
 
 include $(top_srcdir)/erlang.mk
