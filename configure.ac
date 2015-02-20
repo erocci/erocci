@@ -24,6 +24,7 @@ AC_CONFIG_FILES([
 	Makefile
 	apps/Makefile
 	apps/core/Makefile
+	apps/authnz/Makefile
 ])
 
 AC_OUTPUT

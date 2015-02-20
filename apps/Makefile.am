@@ -14,4 +14,4 @@
 # specific language governing permissions and limitations
 # under the License.
 #
-SUBDIRS = core
+SUBDIRS = core authnz
