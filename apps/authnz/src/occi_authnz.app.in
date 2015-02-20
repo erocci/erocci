@@ -1,0 +1,7 @@
+{application, @ERL_APP@,
+ [
+  {description, "erocci authentication and authorization framework"},
+  {mod, {occi_authnz_app, []}},
+  {modules, [@ERL_MODULES@]},
+  {vsn, "@PACKAGE_VERSION@"}
+ ]}.

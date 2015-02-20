@@ -3,6 +3,8 @@
 erl_crash.dump
 *.beam
 .eunit
+config.log
+config.status
 deps/
 Mnesia.nonode@nohost/
 /log/
@@ -26,6 +28,11 @@ test/*.beam
 /apps/Makefile.in
 /apps/core/Makefile
 /apps/core/Makefile.in
+/apps/core/ebin/
+/apps/core/src/rendering/occi_scanner_json.erl
+/apps/authnz/Makefile
+/apps/authnz/Makefile.in
+/apps/authnz/ebin/
 /aclocal.m4
 /autom4te.cache
 /configure
