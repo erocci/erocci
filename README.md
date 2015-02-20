@@ -19,23 +19,16 @@ erocci is a framework for building OCCI like API, with the following objectives:
 
 ## Dependancies
 
-erocci is written in erlang. It uses the very good rebar tool for
-compiling, getting dependancies, etc.  It uses the erim application
-for XML parsing and generation.  So, before running typing 'make',
-install the following dependancies (thanks Augusto Ciuffoletti for the
-notice):
+erocci is written in erlang.
+It uses autotools for compilation, dependancies checking, etc.
 
-* erlang/OTP, version 15b1 or greater
-* rebar
-* openssl and headers
-* libxml2 and headers
-* libexpat and headers
+* erlang/OTP, version 17 or greater
+* autoconf 2.69 or greater
+* automake 1.14 or greater
 
 Optinal features requires the following dependancies:
 * htpasswd based authentication: Apache Runtime Library utils headers
 * XMPP link-local support: Avahi headers
-
-As of today, build is not modular, so the above dependancies are required.
 
 Debian and Ubuntu: apt-get install erlang rebar libssl-dev libexpat1-dev libxml2-dev libaprutil1-dev libavahi-compat-libdnssd-dev
 
@@ -47,11 +40,18 @@ Fedora: yum install erlang rebar curl gcc openssl openssl-devel mod_ssl libxml2-
 
 ## Compiling
 
+### Preparing sources
+
+$ ./autogen.sh
+$ ./configure 
+
+### Building
+
 $ make
 
-The Makefile is wrapper around rebar. Learn quickly how to use rebar
-for advanced options. The tool is particularly suited for erlang
-applications.
+### Customizing build
+
+$ ./configure --help
 
 ## Running
 
