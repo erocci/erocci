@@ -24,12 +24,25 @@ xyrl_v = $(xyrl_v_@AM_V@)
 xyrl_v_ = $(xyrl_v_@AM_DEFAULT_V@)
 xyrl_v_0 = @echo "  XYRL    " $@;
 
+install_v = $(install_v_@AM_V@)
+install_v_ = $(install_v_@AM_DEFAULT_V@)
+install_v_0 = @echo "  INSTALL " $@;
+
+rm_v = $(rm_v_@AM_V@)
+rm_v_ = $(rm_v_@AM_DEFAULT_V@)
+rm_v_0 = @echo "  INSTALL " $@;
+
 all-local: all-erlang
+install-data-local: install-erlang-app
+uninstall-local: uninstall-erlang-app
 clean-local: clean-erlang
 dist-hook: dist-erlang
 
 esrcdir = $(srcdir)/src
-ebindir = $(srcdir)/ebin
+ebindir = $(builddir)/ebin
+eincludedir = $(srcdir)/include
+eprivdir = $(srcdir)/priv
+
 appdata = $(ebindir)/$(erlang_APP).app
 appbins = $(addprefix $(ebindir)/,$(addsuffix .beam,$(foreach mod,$(erlang_MODULES),$(shell basename $(mod)))))
 appfirst = $(addprefix $(ebindir)/,$(addsuffix .beam,$(foreach mod,$(erlang_FIRST),$(shell basename $(mod)))))
@@ -41,6 +54,9 @@ edit = sed \
 	-e 's|@ERL_APP@|'$(erlang_APP)'|g' \
 	-e 's|@ERL_MODULES@|'$(subst $(space),$(comma),$(foreach mod,$(erlang_MODULES),$(shell basename $(mod))))'|'
 
+###
+### Build
+###
 all-erlang: $(appdata)
 	$(MAKE) all-first
 	$(MAKE) all-beams
@@ -69,14 +85,49 @@ $(esrcdir)/%.erl: $(esrcdir)/%.xrl
 $(esrcdir)/%.erl: $(esrcdir)/%.yrl
 	$(xyrl_v)$(ERLC) -o $(<D) $<
 
+###
+### Install / Uninstall
+###
+install-erlang-app:
+	@$(MKDIR_P) $(DESTDIR)$(ERLANG_INSTALL_LIB_DIR_$(erlang_APP))/ebin
+	@for beam in $(foreach mod,$(erlang_MODULES),$(shell basename $(mod)).beam); do \
+	  $(INSTALL_DATA) $(ebindir)/$$beam $(DESTDIR)$(ERLANG_INSTALL_LIB_DIR_$(erlang_APP))/ebin/$$beam; \
+	done
+	@$(MKDIR_P) $(DESTDIR)$(ERLANG_INSTALL_LIB_DIR_$(erlang_APP))/include
+	@for hrl in $(erlang_HRL); do \
+	  $(INSTALL_DATA) $(eincludedir)/$$hrl.hrl $(DESTDIR)$(ERLANG_INSTALL_LIB_DIR_$(erlang_APP))/include/$$hrl.hrl; \
+	done
+	@$(MKDIR_P) $(DESTDIR)$(ERLANG_INSTALL_LIB_DIR_$(erlang_APP))/priv
+	@for data in $(erlang_PRIV); do \
+	  cp -fpR $(eprivdir)/$$data $(DESTDIR)$(ERLANG_INSTALL_LIB_DIR_$(erlang_APP))/priv/$$data; \
+	done
+
+uninstall-erlang-app:
+	@for beam in $(foreach mod,$(erlang_MODULES),$(shell basename $(mod)).beam); do \
+	  rm -f $(DESTDIR)$(ERLANG_INSTALL_LIB_DIR_$(erlang_APP))/ebin/$$beam; \
+	done
+	@for hrl in $(erlang_HRL); do \
+	  rm -f $(DESTDIR)$(ERLANG_INSTALL_LIB_DIR_$(erlang_APP))/include/$$hrl.hrl; \
+	done
+	@for data in $(erlang_PRIV); do \
+	  rm -rf $(DESTDIR)$(ERLANG_INSTALL_LIB_DIR_$(erlang_APP))/priv/$$data; \
+	done
+
+###
+### Clean
+###
 clean-erlang:
 	-rm -rf $(appbins)
 	-for base in $(basename $(wildcard $(esrcdir)/*.erl)); do \
 	  if test -e $$base.xrl -o -e $$base.yrl; then rm -f $$base.erl; fi; \
 	done
 
+###
+### Dist
+###
 dist-erlang:
 	@for file in  $(wildcard $(esrcdir)/$(erlang_APP).app.in) \
+	        $(addprefix $(eincludedir)/,$(addsuffix .hrl,$(erlang_HRL))) \
 		$(foreach mod,$(addprefix $(esrcdir)/,$(erlang_MODULES)), \
 	           $(if $(wildcard $(mod).xrl), \
 	              $(mod).xrl, \
@@ -88,6 +139,9 @@ dist-erlang:
 	  cp $$file $(distdir)/$$file; \
 	done
 
+###
+### Deps management
+###
 deps:
 	$(MAKE) fetch-deps
 	$(MAKE) build-deps
@@ -127,4 +181,4 @@ build-deps: fetch-deps
 	    fi ; \
 	done
 
-.PHONY: deps fetch-deps build-deps all-erlang all-first all-beams clean-erlang dist-erlang
+.PHONY: deps fetch-deps build-deps all-erlang all-first all-beams clean-erlang dist-erlang install-erlang-app uninstall-erlang-app

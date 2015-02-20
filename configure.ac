@@ -8,7 +8,10 @@ AC_CONFIG_MACRO_DIR([m4])
 
 AM_INIT_AUTOMAKE([1.11 -Wall -Wno-portability foreign no-define tar-ustar no-dist-gzip dist-xz])
 
-AX_ERLANG_INIT
+AX_ERLANG_INIT()
+AC_ERLANG_SUBST_INSTALL_LIB_SUBDIR([occi], [${PACKAGE_VERSION}])
+AC_ERLANG_SUBST_INSTALL_LIB_SUBDIR([occi_core], [${PACKAGE_VERSION}])
+AC_ERLANG_SUBST_INSTALL_LIB_SUBDIR([occi_authnz], [${PACKAGE_VERSION}])
 AX_ERLANG_DEP([jiffy],                  [git], [git://github.com/davisp/jiffy.git], [0.9.0])
 AX_ERLANG_DEP([erim_xml],               [git], [git://github.com/lizenn/erim_xml.git])
 AX_ERLANG_DEP([uuid],                   [git], [git://gitorious.org/avtobiff/erlang-uuid.git], [v0.4.6])

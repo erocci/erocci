@@ -17,5 +17,11 @@
 SUBDIRS = apps
 
 erlang_APP = occi
+erlang_PRIV = \
+	configs \
+	htpasswd \
+	schemas \
+	scripts \
+	ssl
 
 include $(top_srcdir)/erlang.mk

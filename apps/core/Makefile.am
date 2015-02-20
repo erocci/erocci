@@ -65,6 +65,12 @@ erlang_FIRST = \
 	occi_listener \
 	backend/occi_backend \
 	rendering/occi_renderer
+erlang_HRL = \
+	occi \
+	occi_acl \
+	occi_log \
+	occi_model_store \
+	occi_xml
 
 EXTRA_DIST = \
 	src/rendering/occi_parser_text.hrl \
