@@ -14,4 +14,8 @@
 # specific language governing permissions and limitations
 # under the License.
 #
-SUBDIRS = core authnz listener_http
+erlang_APP = occi_listener_http
+erlang_MODULES = occi_http_common occi_http occi_http_handler occi_https
+erlang_HRL = occi_http
+
+include $(top_srcdir)/erlang.mk

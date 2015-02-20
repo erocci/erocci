@@ -1,0 +1,7 @@
+%%-*- mode: erlang -*-
+{application, @ERL_APP@,
+ [
+  {description, "erocci HTTP listener"},
+  {modules, [@ERL_MODULES@]},
+  {vsn, "@PACKAGE_VERSION@"}
+ ]}.

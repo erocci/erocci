@@ -2,6 +2,7 @@
 *.pyc
 erl_crash.dump
 *.beam
+*.app
 .eunit
 config.log
 config.status
@@ -20,7 +21,7 @@ test/*.beam
 /doc/utf8/
 /.rebar
 /priv/Mnesia
-/ebin
+ebin
 /.deps_plt
 /Makefile
 /Makefile.in
@@ -28,11 +29,11 @@ test/*.beam
 /apps/Makefile.in
 /apps/core/Makefile
 /apps/core/Makefile.in
-/apps/core/ebin/
 /apps/core/src/rendering/occi_scanner_json.erl
 /apps/authnz/Makefile
 /apps/authnz/Makefile.in
-/apps/authnz/ebin/
+/apps/listener_http/Makefile
+/apps/listener_http/Makefile.in
 /aclocal.m4
 /autom4te.cache
 /configure

@@ -12,11 +12,12 @@ AX_ERLANG_INIT()
 AC_ERLANG_SUBST_INSTALL_LIB_SUBDIR([occi], [${PACKAGE_VERSION}])
 AC_ERLANG_SUBST_INSTALL_LIB_SUBDIR([occi_core], [${PACKAGE_VERSION}])
 AC_ERLANG_SUBST_INSTALL_LIB_SUBDIR([occi_authnz], [${PACKAGE_VERSION}])
+AC_ERLANG_SUBST_INSTALL_LIB_SUBDIR([occi_listener_http], [${PACKAGE_VERSION}])
+AX_ERLANG_DEP([cowboy],                 [git], [git://github.com/extend/cowboy.git], [1.0.0])
 AX_ERLANG_DEP([jiffy],                  [git], [git://github.com/davisp/jiffy.git], [0.9.0])
 AX_ERLANG_DEP([erim_xml],               [git], [git://github.com/lizenn/erim_xml.git])
 AX_ERLANG_DEP([uuid],                   [git], [git://gitorious.org/avtobiff/erlang-uuid.git], [v0.4.6])
 AX_ERLANG_DEP([uri],                    [git], [git://github.com/heroku/uri.git])
-AX_ERLANG_DEP([erocci_listener_http],   [git], [git://github.com/erocci/erocci_listener_http.git])
 AX_ERLANG_DEP([erocci_listener_xmpp],   [git], [git://github.com/erocci/erocci_listener_xmpp.git])
 AX_ERLANG_DEP([erocci_backend_mnesia],  [git], [git://github.com/erocci/erocci_backend_mnesia.git])
 AX_ERLANG_DEP([erocci_authnz_htpasswd], [git], [git://github.com/erocci/erocci_authnz_htpasswd.git])
@@ -28,6 +29,7 @@ AC_CONFIG_FILES([
 	apps/Makefile
 	apps/core/Makefile
 	apps/authnz/Makefile
+	apps/listener_http/Makefile
 ])
 
 AC_OUTPUT
