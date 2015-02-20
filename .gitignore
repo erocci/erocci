@@ -26,3 +26,8 @@ test/*.beam
 /apps/Makefile.in
 /apps/core/Makefile
 /apps/core/Makefile.in
+/aclocal.m4
+/autom4te.cache
+/configure
+/install-sh
+/missing
