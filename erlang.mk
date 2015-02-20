@@ -30,18 +30,23 @@ dist-hook: dist-erlang
 
 esrcdir = $(srcdir)/src
 ebindir = $(srcdir)/ebin
+appdata = $(ebindir)/$(erlang_APP).app
 appbins = $(addprefix $(ebindir)/,$(addsuffix .beam,$(foreach mod,$(erlang_MODULES),$(shell basename $(mod)))))
 
+space := $(empty) $(empty)
+comma := ,
 
-#edit = sed \
-#	-e 's|@ERL_APP@|'$(erlang_APP)'|g' \
-#	-e 's|@ERL_MODULES@|'$()'|'
+edit = sed \
+	-e 's|@ERL_APP@|'$(erlang_APP)'|g' \
+	-e 's|@ERL_MODULES@|'$(subst $(space),$(comma),$(foreach mod,$(erlang_MODULES),$(shell basename $(mod))))'|'
 
 all-erlang: $(appdata) $(appbins)
 
-$(ebindir)/%.app: $(esrcdir)/%.app.in config.status
+$(ebindir)/%.app: $(esrcdir)/%.app.in $(top_srcdir)/config.status Makefile
 	@$(MKDIR_P) $(@D)
-	$(AM_V_GEN)$(top_srcdir)/config.status --file=$@:$< > /dev/null
+	$(AM_V_GEN)$(top_srcdir)/config.status --file=$@:$< > /dev/null; \
+	  $(edit) $@ > $@.tmp; \
+	  mv $@.tmp $@
 
 define beam_build
 $(ebindir)/$(1).beam: $(esrcdir)/$(2).erl
