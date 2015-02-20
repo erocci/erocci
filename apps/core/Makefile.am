@@ -14,7 +14,7 @@
 # specific language governing permissions and limitations
 # under the License.
 #
-erlang_APP = erocci_core
+erlang_APP = occi_core
 erlang_MODULES = \
 	occi_acl \
 	occi_app \
