@@ -34,6 +34,8 @@ ebin
 /apps/authnz/Makefile.in
 /apps/listener_http/Makefile
 /apps/listener_http/Makefile.in
+/apps/listener_xmpp/Makefile
+/apps/listener_xmpp/Makefile.in
 /aclocal.m4
 /autom4te.cache
 /configure

@@ -14,8 +14,8 @@
 # specific language governing permissions and limitations
 # under the License.
 #
-SUBDIRS = core authnz listener_http
+erlang_APP = occi_listener_xmpp
+erlang_MODULES = occi_authnz_mod_xmpp occi_iq occi_xmpp_client occi_xmpp_handler
+erlang_HRL = occi_xmpp
 
-if XMPP
-SUBDIRS += listener_xmpp
-endif
+include $(top_srcdir)/erlang.mk
