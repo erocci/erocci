@@ -68,8 +68,26 @@ AC_CONFIG_FILES([
 
 AC_OUTPUT
 
+get_apps () {
+    for app in $(echo -e "subdirs:\n\t@echo \$(SUBDIRS)\n\ninclude ./apps/Makefile" | make -f - subdirs); do
+      echo $app
+    done
+}
+
+get_plugins () {
+    get_apps | awk -e '/^'$1'_/ { sub(/^'$1'_/,""); print }'
+}
+
+listeners=$(get_plugins listener)
+backends=$(get_plugins backend)
+authnz=$(get_plugins authnz)
 echo "************************************************************************"
 echo " erocci configuration is now complete."
 echo ""
-echo " Run 'make deps' for fetching dependancies and build them."
 echo "************************************************************************"
+echo ""
+echo "Enabled components:"
+echo "    listeners : "$listeners
+echo "    backends  : "$backends
+echo "    authnz    : "$authnz
+echo ""
