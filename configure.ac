@@ -20,7 +20,7 @@ AC_ARG_ENABLE([erlang-deps],
                               [Enable erlang dependancies fetch and build @<:@default: disable@:>@])],
               [],
 	      [enable_erlang_deps=no])
-AM_CONDITIONAL([ERL_DEPS], [test "$enable_erlang_deps" = "no"])
+AM_CONDITIONAL([ERL_DEPS], [test "$enable_erlang_deps" = "yes"])
 
 AX_ERLANG_INIT()
 

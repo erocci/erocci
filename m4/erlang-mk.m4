@@ -50,7 +50,9 @@ AC_DEFUN([AX_ERLANG_DEP],
 
     AC_MSG_CHECKING([for Erlang/OTP '$1' library])
     AC_MSG_RESULT([add for fetch and build])
-    AC_SUBST([$1_FETCH], ["$3 $4 $5"])
+    AC_SUBST([$1_DEP_VCS], [$3])
+    AC_SUBST([$1_DEP_URL], [$4])
+    AC_SUBST([$1_DEP_VER], [$5])
 else
     AC_ERLANG_CHECK_LIB([$1])
 fi

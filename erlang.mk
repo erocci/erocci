@@ -32,10 +32,17 @@ rm_v = $(rm_v_@AM_V@)
 rm_v_ = $(rm_v_@AM_DEFAULT_V@)
 rm_v_0 = @echo "  INSTALL " $@;
 
+if ERL_DEPS
+all-local: all-erlang all-erlang-deps
+install-data-local: install-erlang-app install-erlang-deps
+uninstall-local: uninstall-erlang-app uninstall-erlang-deps
+clean-local: clean-erlang clean-erlang-deps
+else
 all-local: all-erlang
 install-data-local: install-erlang-app
 uninstall-local: uninstall-erlang-app
 clean-local: clean-erlang
+endif
 dist-hook: dist-erlang
 
 esrcdir = $(srcdir)/src
@@ -46,6 +53,8 @@ eprivdir = $(srcdir)/priv
 appdata = $(ebindir)/$(erlang_APP).app
 appbins = $(addprefix $(ebindir)/,$(addsuffix .beam,$(foreach mod,$(erlang_MODULES),$(shell basename $(mod)))))
 appfirst = $(addprefix $(ebindir)/,$(addsuffix .beam,$(foreach mod,$(erlang_FIRST),$(shell basename $(mod)))))
+
+depsdirs = $(addprefix $(erlangdepsdir)/,$(erlang_DEPS))
 
 space := $(empty) $(empty)
 comma := ,
@@ -85,6 +94,17 @@ $(esrcdir)/%.erl: $(esrcdir)/%.xrl
 $(esrcdir)/%.erl: $(esrcdir)/%.yrl
 	$(xyrl_v)$(ERLC) -o $(<D) $<
 
+all-erlang-deps: $(depsdirs)
+	@for dep in $(addprefix $(erlangdepsdir)/,$(erlang_DEPS)) ; do \
+	    if [ -f $$dep/GNUmakefile ] || [ -f $$dep/makefile ] || [ -f $$dep/Makefile ]; then \
+	        $(MAKE) -C $$dep ; \
+	    elif [ -f $$dep/rebar.config -a -n "$(REBAR)" ]; then \
+	        ( cd $$dep && $(REBAR) compile ); \
+	    else \
+	        echo "Can not build dependancy: $$dep" ; \
+	    fi ; \
+	done
+
 ###
 ### Install / Uninstall
 ###
@@ -113,6 +133,10 @@ uninstall-erlang-app:
 	  rm -rf $(DESTDIR)$(ERLANG_INSTALL_LIB_DIR_$(erlang_APP))/priv/$$data; \
 	done
 
+install-erlang-deps:
+
+uninstall-erlang-deps:
+
 ###
 ### Clean
 ###
@@ -120,6 +144,17 @@ clean-erlang:
 	-rm -rf $(appbins)
 	-for base in $(basename $(wildcard $(esrcdir)/*.erl)); do \
 	  if test -e $$base.xrl -o -e $$base.yrl; then rm -f $$base.erl; fi; \
+	done
+
+clean-erlang-deps:
+	@for dep in $(addprefix $(erlangdepsdir)/,$(erlang_DEPS)) ; do \
+	    if [ -f $$dep/GNUmakefile ] || [ -f $$dep/makefile ] || [ -f $$dep/Makefile ]; then \
+	        $(MAKE) -C $$dep clean; \
+	    elif [ -f $$dep/rebar.config -a -n "$(REBAR)" ]; then \
+	        ( cd $$dep && $(REBAR) clean ); \
+	    else \
+	        echo "Can not clean dependancy: $$dep" ; \
+	    fi ; \
 	done
 
 ###
@@ -142,43 +177,27 @@ dist-erlang:
 ###
 ### Deps management
 ###
-deps:
-	$(MAKE) fetch-deps
-	$(MAKE) build-deps
-
-fetch-deps:
+define dep_fetch
+$(erlangdepsdir)/$(1):
 	@mkdir -p $(erlangdepsdir)
-	for dep in $(erlang_DEPS); do \
-	  VCS=$(dep)_VCS; \
-	  URL=$(dep)_URL; \
-	  VERSION=$(dep)_VERSION; \
-	  if [ "$$$$VCS" = "git" ]; then \
-	    if [ ! -d $(erlangdepsdir)/$(dep)/.git ]; then \
-	      git clone -n -- $$$$URL $(erlangdepsdir)/$(dep); \
-	    fi; \
-	    cd $(erlangdepsdir)/$(1) && git checkout -q $$$$VERSION; \
-	  elif [ "$$$$VCS" = "hg" ]; then \
-	    if [ ! -d $(erlangdepsdir)/$(dep)/.hg ]; then \
-	      hg clone -U $$$$URL $(erlangdepsdir)/$(dep); \
-	    fi; \
-	    cd $(erlangdepsdir)/$(1) && hg update -q $$$$VERSION; \
-	  elif [ "$$$$VCS" = "svn" ]; then \
-	    svn checkout $$$$URL $(erlangdepsdir)/$(dep); \
-	  else \
-	    echo "Unknown or invalid dependency: $(dep)." >&2; \
-	    exit 78; \
+	if [ "$($(1)_DEP_VCS)" = "git" ]; then \
+	  if [ ! -d $(erlangdepsdir)/$(1)/.git ]; then \
+	    git clone -n -- $($(1)_DEP_URL) $(erlangdepsdir)/$(1); \
 	  fi; \
-	done
+	  cd $(erlangdepsdir)/$(1) && git checkout -q $($(1)_DEP_VER); \
+	elif [ "$($(1)_DEP_VCS)" = "hg" ]; then \
+	  if [ ! -d $(erlangdepsdir)/$(1)/.hg ]; then \
+	    hg clone -U $($(1)_DEP_URL) $(erlangdepsdir)/$(1); \
+	  fi; \
+	  cd $(erlangdepsdir)/$(1) && hg update -q $($(1)_DEP_VER); \
+	elif [ "$($(1)_DEP_VCS)" = "svn" ]; then \
+	  svn checkout $($(1)_DEP_URL) $(erlangdepsdir)/$(1); \
+	else \
+	  echo "Unknown or invalid dependency: $(1)." >&2; \
+	  exit 78; \
+	fi
+endef
 
-build-deps: fetch-deps
-	@for dep in $(erlang_DEPS) ; do \
-	    if [ -f $$dep/GNUmakefile ] || [ -f $$dep/makefile ] || [ -f $$dep/Makefile ]; then \
-	        $(MAKE) -C $$dep ; \
-	    elif [ -f $$dep/rebar.config -a -n "$(REBAR)" ]; then \
-	        ( cd $$dep && $(REBAR) compile ); \
-	    else \
-	        echo "Can not build dependancy: $$dep" ; \
-	    fi ; \
-	done
+$(foreach dep,$(erlang_DEPS),$(eval $(call dep_fetch,$(dep))))
 
-.PHONY: deps fetch-deps build-deps all-erlang all-first all-beams clean-erlang dist-erlang install-erlang-app uninstall-erlang-app
+.PHONY: deps all-erlang all-first all-beams clean-erlang dist-erlang install-erlang-app uninstall-erlang-app all-erlang-deps install-erlang-deps uninstall-erlang-deps clean-erlang-deps
