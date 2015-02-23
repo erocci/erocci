@@ -19,8 +19,8 @@
 
 -module(occi_http_handler).
 
--include_lib("erocci_core/include/occi.hrl").
--include_lib("erocci_core/include/occi_log.hrl").
+-include("occi.hrl").
+-include("occi_log.hrl").
 -include("occi_http.hrl").
 
 %% REST Callbacks
