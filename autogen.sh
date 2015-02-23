@@ -3,4 +3,4 @@
 set -e
 
 autoreconf
-$(dirname $0)/configure
+$(dirname $0)/configure $@
