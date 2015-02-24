@@ -17,6 +17,6 @@
 htpasswdprivdir = $(ERLANG_INSTALL_LIB_DIR_occi_authnz_htpasswd)/priv
 
 htpasswdpriv_LTLIBRARIES = htpasswd.la
-htpasswd_la_SOURCES = htpasswd.c
+htpasswd_la_SOURCES = htpasswd.c htpasswd.h
 htpasswd_la_CFLAGS = $(ERL_CFLAGS) $(APRUTIL_CFLAGS)
 htpasswd_la_LDFLAGS = $(ERL_LDFLAGS) $(APRUTIL_LDFLAGS) -module -avoid-version
