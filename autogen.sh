@@ -2,5 +2,5 @@
 
 set -e
 
-autoreconf
+autoreconf -ivf
 $(dirname $0)/configure $@
