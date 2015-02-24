@@ -12,15 +12,12 @@ AC_DEFUN([AX_ERLANG_INIT],
 	    AC_SUBST([erlang_DEPS])
 
 	    ERLCFLAGS="-I\$(top_srcdir)/include -I\$(top_srcdir)/deps -I\$(top_srcdir)/apps"
-	    for app in `ls -d apps/*`; do
-	      if test -d $app/include; then
-	        ERLCFLAGS="${ERLCFLAGS} -I\$(top_srcdir)/$app/include"
-	      fi
+	    for inc in $(find $srcdir/apps -maxdepth 2 -name include); do
+	       ERLCFLAGS="$ERLCFLAGS -I\$(top_srcdir)/$inc"
 	    done
+	    AC_MSG_NOTICE(["ERLCFLAGS="$ERLCFLAGS])
 
-	    CLEANFILES="m4_join([ ], [$CLEANFILES], erl_crash.dump)"
-
-	    AC_SUBST([erlangdepsdir], ["\$(top_srcdir)/deps"])
+	    CLEANFILES="$CLEANFILES erl_crash.dump"
 ]) dnl AX_ERLANG_MK
 
 # AX_ERLANG_DEP(NAME, BUILD, REP_TYPE, REP_URL, [VERSION = master])

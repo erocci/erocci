@@ -50,13 +50,14 @@ ebindir = $(builddir)/ebin
 ecsrcdir = $(builddir)/c_src
 eincludedir = $(srcdir)/include
 eprivdir = $(srcdir)/priv
+edepsdir = $(builddir)/deps
 
 appdata = $(ebindir)/$(erlang_APP).app
 appbins = $(addprefix $(ebindir)/,$(addsuffix .beam,$(foreach mod,$(erlang_MODULES),$(shell basename $(mod)))))
 appfirst = $(addprefix $(ebindir)/,$(addsuffix .beam,$(foreach mod,$(erlang_FIRST),$(shell basename $(mod)))))
 appports = $(addprefix $(eprivdir)/,$(addsuffix .so,$(erlang_PORTS)))
 
-depsdirs = $(addprefix $(erlangdepsdir)/,$(erlang_DEPS))
+depsdirs = $(addprefix $(edepsdir)/,$(erlang_DEPS))
 
 space := $(empty) $(empty)
 comma := ,
@@ -76,9 +77,9 @@ all-first: $(appfirst)
 
 all-beams: $(filter-out $(appfirst),$(appbins))
 
-$(ebindir)/%.app: $(esrcdir)/%.app.in $(top_srcdir)/config.status Makefile
+$(ebindir)/%.app: $(esrcdir)/%.app.in $(top_builddir)/config.status Makefile
 	@$(MKDIR_P) $(@D)
-	$(AM_V_GEN)$(top_srcdir)/config.status --file=$@:$< > /dev/null; \
+	$(AM_V_GEN)$(top_builddir)/config.status --file=$@:$< > /dev/null; \
 	  $(edit) $@ > $@.tmp; \
 	  mv $@.tmp $@
 
@@ -97,7 +98,7 @@ $(esrcdir)/%.erl: $(esrcdir)/%.yrl
 	$(xyrl_v)$(ERLC) -o $(<D) $<
 
 all-erlang-deps: $(depsdirs)
-	@for dep in $(addprefix $(erlangdepsdir)/,$(erlang_DEPS)) ; do \
+	@for dep in $(addprefix $(edepsdir)/,$(erlang_DEPS)) ; do \
 	    if [ -f $$dep/GNUmakefile ] || [ -f $$dep/makefile ] || [ -f $$dep/Makefile ]; then \
 	        $(MAKE) -C $$dep ; \
 	    elif [ -f $$dep/rebar.config -a -n "$(REBAR)" ]; then \
@@ -160,7 +161,7 @@ clean-erlang:
 	done
 
 clean-erlang-deps:
-	@for dep in $(addprefix $(erlangdepsdir)/,$(erlang_DEPS)) ; do \
+	@for dep in $(addprefix $(edepsdir)/,$(erlang_DEPS)) ; do \
 	    if [ -f $$dep/GNUmakefile ] || [ -f $$dep/makefile ] || [ -f $$dep/Makefile ]; then \
 	        $(MAKE) -C $$dep clean; \
 	    elif [ -f $$dep/rebar.config -a -n "$(REBAR)" ]; then \
@@ -191,20 +192,20 @@ dist-erlang:
 ### Deps management
 ###
 define dep_fetch
-$(erlangdepsdir)/$(1):
-	@mkdir -p $(erlangdepsdir)
+$(edepsdir)/$(1):
+	@mkdir -p $(edepsdir)
 	if [ "$($(1)_DEP_VCS)" = "git" ]; then \
-	  if [ ! -d $(erlangdepsdir)/$(1)/.git ]; then \
-	    git clone -n -- $($(1)_DEP_URL) $(erlangdepsdir)/$(1); \
+	  if [ ! -d $(edepsdir)/$(1)/.git ]; then \
+	    git clone -n -- $($(1)_DEP_URL) $(edepsdir)/$(1); \
 	  fi; \
-	  cd $(erlangdepsdir)/$(1) && git checkout -q $($(1)_DEP_VER); \
+	  cd $(edepsdir)/$(1) && git checkout -q $($(1)_DEP_VER); \
 	elif [ "$($(1)_DEP_VCS)" = "hg" ]; then \
-	  if [ ! -d $(erlangdepsdir)/$(1)/.hg ]; then \
-	    hg clone -U $($(1)_DEP_URL) $(erlangdepsdir)/$(1); \
+	  if [ ! -d $(edepsdir)/$(1)/.hg ]; then \
+	    hg clone -U $($(1)_DEP_URL) $(edepsdir)/$(1); \
 	  fi; \
-	  cd $(erlangdepsdir)/$(1) && hg update -q $($(1)_DEP_VER); \
+	  cd $(edepsdir)/$(1) && hg update -q $($(1)_DEP_VER); \
 	elif [ "$($(1)_DEP_VCS)" = "svn" ]; then \
-	  svn checkout $($(1)_DEP_URL) $(erlangdepsdir)/$(1); \
+	  svn checkout $($(1)_DEP_URL) $(edepsdir)/$(1); \
 	else \
 	  echo "Unknown or invalid dependency: $(1)." >&2; \
 	  exit 78; \
