@@ -4,12 +4,14 @@ dnl erlang-mk.m4
 # AX_ERLANG_INIT
 # --------------
 AC_DEFUN([AX_ERLANG_INIT],
-[           AC_ERLANG_NEED_ERL
-            AC_ERLANG_NEED_ERLC
+[           AC_REQUIRE([AC_ERLANG_NEED_ERL])
+            AC_REQUIRE([AC_ERLANG_NEED_ERLC])
+	    AC_ERLANG_SUBST_ERTS_VER
+	    AC_ERLANG_SUBST_ROOT_DIR
 
 	    AC_SUBST([erlang_DEPS])
 
-	    ERLCFLAGS="-I\$(top_srcdir)/include -I\$(top_srcdir)/deps"
+	    ERLCFLAGS="-I\$(top_srcdir)/include -I\$(top_srcdir)/deps -I\$(top_srcdir)/apps"
 	    for app in `ls -d apps/*`; do
 	      if test -d $app/include; then
 	        ERLCFLAGS="${ERLCFLAGS} -I\$(top_srcdir)/$app/include"

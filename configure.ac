@@ -8,12 +8,26 @@ AC_CONFIG_MACRO_DIR([m4])
 
 AM_INIT_AUTOMAKE([1.11 -Wall -Wno-portability foreign no-define tar-ustar no-dist-gzip dist-xz])
 
+AX_ERLANG_INIT()
+
+AC_PROG_CC
+AC_PROG_RANLIB
+AM_PROG_AR
+LT_INIT
+
 AC_ARG_ENABLE([xmpp],
 	      [AS_HELP_STRING([--disable-xmpp],
 	                      [Disable XMPP listener @<:@default: enable@:>@])],
 	      [],
 	      [enable_xmpp=yes])
 AM_CONDITIONAL([XMPP], [test "$enable_xmpp" = "yes"])
+
+AC_ARG_ENABLE([htpasswd],
+	      [AS_HELP_STRING([--disable-htpasswd],
+	                      [Disable htpasswd based authentication @<:@default: enable@:>@])],
+	      [],
+	      [enable_htpasswd=yes])
+AM_CONDITIONAL([HTPASSWD], [test "$enable_htpasswd" = "yes"])
 
 AC_ARG_ENABLE([erlang-deps],
 	      [AS_HELP_STRING([--enable-erlang-deps],
@@ -22,14 +36,12 @@ AC_ARG_ENABLE([erlang-deps],
 	      [enable_erlang_deps=no])
 AM_CONDITIONAL([ERL_DEPS], [test "$enable_erlang_deps" = "yes"])
 
-AX_ERLANG_INIT()
-
 AC_ERLANG_SUBST_INSTALL_LIB_SUBDIR([occi], [${PACKAGE_VERSION}])
 AC_ERLANG_SUBST_INSTALL_LIB_SUBDIR([occi_core], [${PACKAGE_VERSION}])
 AC_ERLANG_SUBST_INSTALL_LIB_SUBDIR([occi_authnz], [${PACKAGE_VERSION}])
 AC_ERLANG_SUBST_INSTALL_LIB_SUBDIR([occi_listener_http], [${PACKAGE_VERSION}])
 
-AS_IF([test x$enable_xmpp = xyes], [
+if test "x$enable_xmpp" = "xyes"; then
    AC_ERLANG_SUBST_INSTALL_LIB_SUBDIR([occi_listener_xmpp], [${PACKAGE_VERSION}])
    AX_ERLANG_DEP([erim],  [$enable_erlang_deps],
                  [git], [git://github.com/lizenn/erim.git])
@@ -37,7 +49,20 @@ AS_IF([test x$enable_xmpp = xyes], [
                  [git], [git://github.com/benoitc/dnssd_erlang.git])
 
    PKG_CHECK_MODULES([avahi_compat_libdns_sd], [avahi-compat-libdns_sd])
-])
+fi
+
+if test "x$enable_htpasswd" = "xyes"; then
+   AC_ERLANG_SUBST_INSTALL_LIB_SUBDIR([occi_authnz_htpasswd], [${PACKAGE_VERSION}])
+
+   AC_MSG_CHECKING([for libaprutil1 (apr_md5.h)])
+   if which apu-config > /dev/null; then
+      AC_SUBST([APRUTIL_CFLAGS], [`apr-config --includes`])
+      AC_SUBST([APRUTIL_LDFLAGS], [`apr-config --ldflags`])
+      AC_MSG_RESULT([ok])
+   else
+      AC_MSG_ERROR([not found])
+   fi
+fi
 
 AX_ERLANG_DEP([cowboy],                 [$enable_erlang_deps],
 	      [git], [git://github.com/extend/cowboy.git], [1.0.0])
@@ -51,11 +76,15 @@ AX_ERLANG_DEP([uri],                    [$enable_erlang_deps],
               [git], [git://github.com/heroku/uri.git])
 AX_ERLANG_DEP([erocci_backend_mnesia],  [$enable_erlang_deps],
               [git], [git://github.com/erocci/erocci_backend_mnesia.git])
-AX_ERLANG_DEP([erocci_authnz_htpasswd], [$enable_erlang_deps],
-              [git], [git://github.com/erocci/erocci_authnz_htpasswd.git])
 
 AC_CHECK_PROGS([REBAR], [rebar])
 AS_IF([test x$enable_erlang_deps = xyes], [AC_CHECK_PROGS([GIT], [git])])
+
+AS_IF([test x$enable_htpasswd = xyes], [
+   AC_ERLANG_CHECK_LIB([erl_interface])
+   AC_SUBST([ERL_CFLAGS], ["-I${ERLANG_ROOT_DIR}/erts-${ERLANG_ERTS_VER}/include -I${ERLANG_LIB_DIR_erl_interface}/include"])
+   AC_SUBST([ERL_LDFLAGS], ["-L${ERLANG_LIB_DIR_erl_interface}/lib -lerl_interface -lei"])
+])
 
 AC_CONFIG_FILES([
 	Makefile
@@ -64,6 +93,8 @@ AC_CONFIG_FILES([
 	apps/authnz/Makefile
 	apps/listener_http/Makefile
 	apps/listener_xmpp/Makefile
+	apps/authnz_htpasswd/Makefile
+	apps/authnz_htpasswd/c_src/Makefile
 ])
 
 AC_OUTPUT

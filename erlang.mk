@@ -47,12 +47,14 @@ dist-hook: dist-erlang
 
 esrcdir = $(srcdir)/src
 ebindir = $(builddir)/ebin
+ecsrcdir = $(builddir)/c_src
 eincludedir = $(srcdir)/include
 eprivdir = $(srcdir)/priv
 
 appdata = $(ebindir)/$(erlang_APP).app
 appbins = $(addprefix $(ebindir)/,$(addsuffix .beam,$(foreach mod,$(erlang_MODULES),$(shell basename $(mod)))))
 appfirst = $(addprefix $(ebindir)/,$(addsuffix .beam,$(foreach mod,$(erlang_FIRST),$(shell basename $(mod)))))
+appports = $(addprefix $(eprivdir)/,$(addsuffix .so,$(erlang_PORTS)))
 
 depsdirs = $(addprefix $(erlangdepsdir)/,$(erlang_DEPS))
 
@@ -66,7 +68,7 @@ edit = sed \
 ###
 ### Build
 ###
-all-erlang: $(appdata)
+all-erlang: $(appdata) $(appports)
 	$(MAKE) all-first
 	$(MAKE) all-beams
 
@@ -104,6 +106,16 @@ all-erlang-deps: $(depsdirs)
 	        echo "Can not build dependancy: $$dep" ; \
 	    fi ; \
 	done
+
+define build_port
+$(eprivdir)/$(1).so: $(2)
+	cp -fp $(ecsrcdir)/.libs/$$(@F) $$@
+
+$(ecsrcdir)/%.la:
+	$(MAKE) -C $(@D) $(@F)
+endef
+
+$(foreach port,$(erlang_PORTS),$(eval $(call build_port,$(port),$(ecsrcdir)/$(port).la)))
 
 ###
 ### Install / Uninstall

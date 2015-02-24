@@ -14,12 +14,9 @@
 # specific language governing permissions and limitations
 # under the License.
 #
-SUBDIRS = core authnz listener_http
+htpasswdprivdir = $(ERLANG_LIB_DIR_occi_authnz_htpasswd)/priv
 
-if XMPP
-SUBDIRS += listener_xmpp
-endif
-
-if HTPASSWD
-SUBDIRS += authnz_htpasswd
-endif
+htpasswdpriv_LTLIBRARIES = htpasswd.la
+htpasswd_la_SOURCES = htpasswd.c
+htpasswd_la_CFLAGS = $(ERL_CFLAGS) $(APRUTIL_CFLAGS)
+htpasswd_la_LDFLAGS = $(ERL_LDFLAGS) $(APRUTIL_LDFLAGS) -module -avoid-version

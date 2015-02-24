@@ -14,12 +14,10 @@
 # specific language governing permissions and limitations
 # under the License.
 #
-SUBDIRS = core authnz listener_http
+SUBDIRS = c_src
 
-if XMPP
-SUBDIRS += listener_xmpp
-endif
+erlang_APP = occi_authnz_htpasswd
+erlang_MODULES = occi_authnz_mod_htpasswd
+erlang_PORTS = htpasswd
 
-if HTPASSWD
-SUBDIRS += authnz_htpasswd
-endif
+include $(top_srcdir)/erlang.mk
