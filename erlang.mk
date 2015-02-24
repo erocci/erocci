@@ -44,7 +44,7 @@ ecsrcdir = $(builddir)/c_src
 eincludedir = $(srcdir)/include
 eprivdir = $(srcdir)/priv
 
-appdata = $(ebindir)/$(erlang_APP).app
+appdata = ebin/$(erlang_APP).app
 appbins = $(addprefix $(ebindir)/,$(addsuffix .beam,$(foreach mod,$(erlang_MODULES),$(shell basename $(mod)))))
 appfirst = $(addprefix $(ebindir)/,$(addsuffix .beam,$(foreach mod,$(erlang_FIRST),$(shell basename $(mod)))))
 appports = $(addprefix $(eprivdir)/,$(addsuffix .so,$(erlang_PORTS)))
@@ -67,31 +67,47 @@ all-first: $(appfirst)
 
 all-beams: $(filter-out $(appfirst),$(appbins))
 
-$(ebindir)/%.app: $(esrcdir)/%.app.in $(top_builddir)/config.status Makefile
+ebin/%.app: src/%.app.in $(top_builddir)/config.status Makefile
 	@$(MKDIR_P) $(@D)
 	$(AM_V_GEN)$(top_builddir)/config.status --file=$@:$< > /dev/null; \
 	  $(edit) $@ > $@.tmp; \
 	  mv $@.tmp $@
 
-define beam_build
-$(ebindir)/$(1).beam: $(esrcdir)/$(2).erl
+define compile_erl
+ebin/$(1).beam: src/$(2).erl
 	@$(MKDIR_P) $(ebindir)
-	$(erlc_v)$(ERLC) -pa $(ebindir) $(ERLCFLAGS) -o $(ebindir) $$<
+	$(erlc_v)$(ERLC) -pa $(ebindir) $(ERLCFLAGS) -o $(builddir)/ebin $$<
 endef
 
-$(foreach mod,$(erlang_MODULES),$(eval $(call beam_build,$(shell basename $(mod)),$(mod))))
+define compile_xrl
+ebin/$(1).beam: src/$(2).xrl
+	@$(MKDIR_P) $(builddir)/src
+	$(xyrl_v)$(ERLC) -o $(builddir)/src $<
+	$(erlc_v)$(ERLC) -pa $(ebindir) $(ERLCFLAGS) -o $(builddir)/ebin $(builddir)/$$<
+	-rm -f $(builddir)/$$<
+endef
 
-$(esrcdir)/%.erl: $(esrcdir)/%.xrl
-	$(xyrl_v)$(ERLC) -o $(<D) $<
+define compile_yrl
+ebin/$(1).beam: src/$(2).yrl
+	@$(MKDIR_P) $(builddir)/src
+	$(xyrl_v)$(ERLC) -o $(builddir)/src $<
+	$(erlc_v)$(ERLC) -pa $(ebindir) $(ERLCFLAGS) -o $(builddir)/ebin $(builddir)/$$<
+	-rm -f $(builddir)/$$<
+endef
 
-$(esrcdir)/%.erl: $(esrcdir)/%.yrl
-	$(xyrl_v)$(ERLC) -o $(<D) $<
+erlmod = $(foreach mod,$(erlang_MODULES),$(if $(wildcard $(srcdir)/src/$(mod).erl),$(mod)))
+xrlmod = $(foreach mod,$(erlang_MODULES),$(if $(wildcard $(srcdir)/src/$(mod).xrl),$(mod)))
+yrlmod = $(foreach mod,$(erlang_MODULES),$(if $(wildcard $(srcdir)/src/$(mod).yrl),$(mod)))
+
+$(foreach mod,$(erlmod), $(eval $(call compile_erl,$(shell basename $(mod)),$(mod))))
+$(foreach mod,$(xrlmod), $(eval $(call compile_xrl,$(shell basename $(mod)),$(mod))))
+$(foreach mod,$(yrlmod), $(eval $(call compile_yrl,$(shell basename $(mod)),$(mod))))
 
 define build_port
-$(eprivdir)/$(1).so: $(2)
+priv/$(1).so: $(2)
 	cp -fp $(ecsrcdir)/.libs/$$(@F) $$@
 
-$(ecsrcdir)/%.la:
+c_src/%.la:
 	$(MAKE) -C $(@D) $(@F)
 endef
 
