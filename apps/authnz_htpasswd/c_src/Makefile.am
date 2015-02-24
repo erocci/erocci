@@ -14,7 +14,7 @@
 # specific language governing permissions and limitations
 # under the License.
 #
-htpasswdprivdir = $(ERLANG_LIB_DIR_occi_authnz_htpasswd)/priv
+htpasswdprivdir = $(ERLANG_INSTALL_LIB_DIR_occi_authnz_htpasswd)/priv
 
 htpasswdpriv_LTLIBRARIES = htpasswd.la
 htpasswd_la_SOURCES = htpasswd.c
