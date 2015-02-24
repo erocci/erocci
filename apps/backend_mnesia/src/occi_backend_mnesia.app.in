@@ -1,0 +1,7 @@
+%%-*- mode: erlang -*-
+{application, @ERL_APP@,
+ [
+  {description, "erocci Mnesia backend"},
+  {modules, [@ERL_MODULES@]},
+  {vsn, "@PACKAGE_VERSION@"}
+ ]}.

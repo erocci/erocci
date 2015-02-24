@@ -14,12 +14,7 @@
 # specific language governing permissions and limitations
 # under the License.
 #
-SUBDIRS = core authnz listener_http backend_mnesia
+erlang_APP = occi_backend_mnesia
+erlang_MODULES = occi_backend_mnesia
 
-if XMPP
-SUBDIRS += listener_xmpp
-endif
-
-if HTPASSWD
-SUBDIRS += authnz_htpasswd
-endif
+include $(top_srcdir)/erlang.mk

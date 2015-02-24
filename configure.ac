@@ -40,6 +40,7 @@ AC_ERLANG_SUBST_INSTALL_LIB_SUBDIR([occi], [${PACKAGE_VERSION}])
 AC_ERLANG_SUBST_INSTALL_LIB_SUBDIR([occi_core], [${PACKAGE_VERSION}])
 AC_ERLANG_SUBST_INSTALL_LIB_SUBDIR([occi_authnz], [${PACKAGE_VERSION}])
 AC_ERLANG_SUBST_INSTALL_LIB_SUBDIR([occi_listener_http], [${PACKAGE_VERSION}])
+AC_ERLANG_SUBST_INSTALL_LIB_SUBDIR([occi_backend_mnesia], [${PACKAGE_VERSION}])
 
 if test "x$enable_xmpp" = "xyes"; then
    AC_ERLANG_SUBST_INSTALL_LIB_SUBDIR([occi_listener_xmpp], [${PACKAGE_VERSION}])
@@ -74,8 +75,6 @@ AX_ERLANG_DEP([uuid],                   [$enable_erlang_deps],
               [git], [git://gitorious.org/avtobiff/erlang-uuid.git], [v0.4.6])
 AX_ERLANG_DEP([uri],                    [$enable_erlang_deps],
               [git], [git://github.com/heroku/uri.git])
-AX_ERLANG_DEP([erocci_backend_mnesia],  [$enable_erlang_deps],
-              [git], [git://github.com/erocci/erocci_backend_mnesia.git])
 
 AC_CHECK_PROGS([REBAR], [rebar])
 AS_IF([test x$enable_erlang_deps = xyes], [AC_CHECK_PROGS([GIT], [git])])
@@ -95,6 +94,7 @@ AC_CONFIG_FILES([
 	apps/listener_xmpp/Makefile
 	apps/authnz_htpasswd/Makefile
 	apps/authnz_htpasswd/c_src/Makefile
+	apps/backend_mnesia/Makefile
 ])
 
 AC_OUTPUT
