@@ -52,8 +52,6 @@ all-erlang-deps: deps
 	        $(MAKE) -C $$dep ; \
 	    elif [ -f $$dep/rebar.config -a -n "$(REBAR)" ]; then \
 	        ( cd $$dep && $(REBAR) compile ); \
-	    else \
-	        echo "Can not build dependancy: $$dep" ; \
 	    fi ; \
 	done
 
@@ -99,17 +97,17 @@ clean-erlang-deps:
 	        $(MAKE) -C $$dep clean; \
 	    elif [ -f $$dep/rebar.config -a -n "$(REBAR)" ]; then \
 	        ( cd $$dep && $(REBAR) clean ); \
-	    else \
-	        echo "Can not clean dependancy: $$dep" ; \
 	    fi ; \
 	done
 
-dist-deps: $(edespdirs)
+dist-deps: deps
 	@mkdir -p $(distdir)/deps
 	@for dep in $(erlang_DEPS); do \
-	  $(MAKE) clean-erlang-deps; \
-	  echo "  DISTDEP "$$dep; \
-	  tar --exclude-vcs -cf - $(builddir)/deps/$$dep | tar -xf - -C $(distdir)/; \
+	  if test -e $(builddir)/deps/$$dep; then \
+	    $(MAKE) clean-erlang-deps; \
+	    echo "  DISTDEP "$$dep; \
+	    tar --exclude-vcs -cf - $(builddir)/deps/$$dep | tar -xf - -C $(distdir)/; \
+	  fi; \
 	done
 
 .PHONY: all-erlang-deps install-erlang-deps uninstall-erlang-deps clean-erlang-deps dist-deps deps
