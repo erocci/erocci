@@ -11,7 +11,6 @@ AM_INIT_AUTOMAKE([1.11 -Wall -Wno-portability foreign no-define tar-ustar no-dis
 AX_ERLANG_INIT()
 
 AC_PROG_CC
-AC_PROG_RANLIB
 AM_PROG_AR
 LT_INIT
 

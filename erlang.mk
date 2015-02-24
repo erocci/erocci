@@ -81,18 +81,22 @@ endef
 
 define compile_xrl
 ebin/$(1).beam: src/$(2).xrl
-	@$(MKDIR_P) $(builddir)/src
-	$(xyrl_v)$(ERLC) -o $(builddir)/src $<
-	$(erlc_v)$(ERLC) -pa $(ebindir) $(ERLCFLAGS) -o $(builddir)/ebin $(builddir)/$$<
-	-rm -f $(builddir)/$$<
+	@$(MKDIR_P) $(builddir)/$$(<D)
+	$(xyrl_v)$(ERLC) -o $(builddir)/$$(<D) $$<
+	$(erlc_v) \
+	  erlsrc=`echo $$< | sed -e 's,\.xrl$$$$,.erl,'`; \
+	  $(ERLC) -pa $(ebindir) $(ERLCFLAGS) -o $(builddir)/ebin $(builddir)/$$$$erlsrc; \
+	  rm -f $(builddir)/$$$$erlsrc
 endef
 
 define compile_yrl
 ebin/$(1).beam: src/$(2).yrl
-	@$(MKDIR_P) $(builddir)/src
-	$(xyrl_v)$(ERLC) -o $(builddir)/src $<
-	$(erlc_v)$(ERLC) -pa $(ebindir) $(ERLCFLAGS) -o $(builddir)/ebin $(builddir)/$$<
-	-rm -f $(builddir)/$$<
+	@$(MKDIR_P) $(builddir)/$$(<D)
+	$(xyrl_v)$(ERLC) -o $(builddir)/$$(<D) $$<
+	$(erlc_v) \
+	  erlsrc=`echo $$< | sed -e 's,\.yrl$$$$,.erl,'`; \
+	  $(ERLC) -pa $(ebindir) $(ERLCFLAGS) -o $(builddir)/ebin $(builddir)/$$$$erlsrc; \
+	  rm -f $(builddir)/$$$$erlsrc
 endef
 
 erlmod = $(foreach mod,$(erlang_MODULES),$(if $(wildcard $(srcdir)/src/$(mod).erl),$(mod)))
@@ -146,9 +150,14 @@ uninstall-erlang-app:
 ### Clean
 ###
 clean-erlang:
-	-rm -rf $(appbins)
-	-for base in $(basename $(wildcard $(esrcdir)/*.erl)); do \
-	  if test -e $$base.xrl -o -e $$base.yrl; then rm -f $$base.erl; fi; \
+	-rm -rf $(appbins) $(appdata)
+	-for base in $(shell find $(srcdir)/src -name '*.xrl'); do \
+	  gen=`echo $$base | sed -e 's,\.xrl$$,.erl,'`; \
+	  if test -e $$gen; then rm -f $$gen; fi; \
+	done
+	-for base in $(shell find $(srcdir)/src -name '*.yrl'); do \
+	  gen=`echo $$base | sed -e 's,\.yrl$$,.erl,'`; \
+	  if test -e $$gen; then rm -f $$gen; fi; \
 	done
 
 ###

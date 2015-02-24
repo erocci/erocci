@@ -11,7 +11,10 @@ AC_DEFUN([AX_ERLANG_INIT],
 
 	    AC_SUBST([erlang_DEPS])
 
-	    ERLCFLAGS="-I\$(top_srcdir)/include -I\$(top_srcdir)/deps -I\$(top_srcdir)/apps"
+	    ERLCFLAGS=""
+	    for inc in include deps apps; do
+              ERLCFLAGS="$ERLCFLAGS -I\$(top_srcdir)/$inc"
+	    done
 	    for inc in $(find $srcdir/apps -maxdepth 2 -name include); do
 	       ERLCFLAGS="$ERLCFLAGS -I\$(top_srcdir)/$inc"
 	    done
