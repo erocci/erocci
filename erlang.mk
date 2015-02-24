@@ -81,20 +81,22 @@ endef
 
 define compile_xrl
 ebin/$(1).beam: src/$(2).xrl
-	@$(MKDIR_P) $(builddir)/$$(<D)
-	$(xyrl_v)$(ERLC) -o $(builddir)/$$(<D) $$<
-	$(erlc_v) \
-	  erlsrc=`echo $$< | sed -e 's,\.xrl$$$$,.erl,'`; \
+	src=`echo $$< | sed -e 's,'$(srcdir)'/,,'` ; \
+	  srcdir=`dirname $$$$src` ; \
+	  erlsrc=`echo $$$$src | sed -e 's,\.xrl$$$$,.erl,'` ; \
+	  $(MKDIR_P) $(builddir)/$$$$srcdir ; \
+	  $(ERLC) $(ERLCFLAGS) -o $(builddir)/$$$$srcdir $$< ; \
 	  $(ERLC) -pa $(ebindir) $(ERLCFLAGS) -o $(builddir)/ebin $(builddir)/$$$$erlsrc; \
 	  rm -f $(builddir)/$$$$erlsrc
 endef
 
 define compile_yrl
 ebin/$(1).beam: src/$(2).yrl
-	@$(MKDIR_P) $(builddir)/$$(<D)
-	$(xyrl_v)$(ERLC) -o $(builddir)/$$(<D) $$<
-	$(erlc_v) \
-	  erlsrc=`echo $$< | sed -e 's,\.yrl$$$$,.erl,'`; \
+	src=`echo $$< | sed -e 's,'$(srcdir)'/,,'` ; \
+	  srcdir=`dirname $$$$src` ; \
+	  erlsrc=`echo $$$$src | sed -e 's,\.yrl$$$$,.erl,'` ; \
+	  $(MKDIR_P) $(builddir)/$$$$srcdir ; \
+	  $(ERLC) $(ERLCFLAGS) -o $(builddir)/$$$$srcdir $$< ; \
 	  $(ERLC) -pa $(ebindir) $(ERLCFLAGS) -o $(builddir)/ebin $(builddir)/$$$$erlsrc; \
 	  rm -f $(builddir)/$$$$erlsrc
 endef

@@ -11,7 +11,7 @@ AC_DEFUN([AX_ERLANG_INIT],
 
 	    AC_SUBST([erlang_DEPS])
 
-	    ERLCFLAGS=""
+	    ERLCFLAGS="-I\$(srcdir)"
 	    for inc in include deps apps; do
               ERLCFLAGS="$ERLCFLAGS -I\$(top_srcdir)/$inc"
 	    done
