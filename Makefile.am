@@ -25,3 +25,91 @@ erlang_PRIV = \
 	ssl
 
 include $(top_srcdir)/erlang.mk
+
+edepsdir = $(top_builddir)/deps
+edepsdirs = $(addprefix $(edepsdir)/,$(erlang_DEPS))
+
+# For compat with erlang.mk
+DEPS_DIR = $(abspath $(edepsdir))
+export DEPS_DIR
+
+# For compat with rebar
+REBAR_DEPS_DIR = $(abspath $(edepsdir))
+export REBAR_DEPS_DIR
+
+if ERL_DEPS
+all-local: all-erlang-deps
+install-data-local: install-erlang-deps
+uninstall-local: uninstall-erlang-deps
+clean-local: clean-erlang-deps
+dist-hook: dist-deps
+endif
+
+
+all-erlang-deps: deps
+	@for dep in $(addprefix $(edepsdir)/,$(erlang_DEPS)) ; do \
+	    if [ -f $$dep/GNUmakefile ] || [ -f $$dep/makefile ] || [ -f $$dep/Makefile ]; then \
+	        $(MAKE) -C $$dep ; \
+	    elif [ -f $$dep/rebar.config -a -n "$(REBAR)" ]; then \
+	        ( cd $$dep && $(REBAR) compile ); \
+	    else \
+	        echo "Can not build dependancy: $$dep" ; \
+	    fi ; \
+	done
+
+deps: $(edepsdirs)
+	@for dep in $(addprefix $(edepsdir)/,$(erlang_DEPS)) ; do \
+	    if [ -f $$dep/rebar.config -a -n "$(REBAR)" ]; then \
+	        ( cd $$dep && $(REBAR) get-deps ); \
+	    elif [ -f $$dep/erlang.mk ]; then \
+	        $(MAKE) -C $$dep deps; \
+	    fi ; \
+	done
+
+define dep_fetch
+$(edepsdir)/$(1):
+	@mkdir -p $(edepsdir)
+	if [ "$($(1)_DEP_VCS)" = "git" ]; then \
+	  if [ ! -d $(edepsdir)/$(1)/.git ]; then \
+	    git clone -n -- $($(1)_DEP_URL) $(edepsdir)/$(1); \
+	  fi; \
+	  cd $(edepsdir)/$(1) && git checkout -q $($(1)_DEP_VER); \
+	elif [ "$($(1)_DEP_VCS)" = "hg" ]; then \
+	  if [ ! -d $(edepsdir)/$(1)/.hg ]; then \
+	    hg clone -U $($(1)_DEP_URL) $(edepsdir)/$(1); \
+	  fi; \
+	  cd $(edepsdir)/$(1) && hg update -q $($(1)_DEP_VER); \
+	elif [ "$($(1)_DEP_VCS)" = "svn" ]; then \
+	  svn checkout $($(1)_DEP_URL) $(edepsdir)/$(1); \
+	else \
+	  echo "Unknown or invalid dependency: $(1)." >&2; \
+	  exit 78; \
+	fi
+endef
+
+$(foreach dep,$(erlang_DEPS),$(eval $(call dep_fetch,$(dep))))
+
+install-erlang-deps:
+
+uninstall-erlang-deps:
+
+clean-erlang-deps:
+	@for dep in $(addprefix $(edepsdir)/,$(erlang_DEPS)) ; do \
+	    if [ -f $$dep/GNUmakefile ] || [ -f $$dep/makefile ] || [ -f $$dep/Makefile ]; then \
+	        $(MAKE) -C $$dep clean; \
+	    elif [ -f $$dep/rebar.config -a -n "$(REBAR)" ]; then \
+	        ( cd $$dep && $(REBAR) clean ); \
+	    else \
+	        echo "Can not clean dependancy: $$dep" ; \
+	    fi ; \
+	done
+
+dist-deps: $(edespdirs)
+	@mkdir -p $(distdir)/deps
+	@for dep in $(erlang_DEPS); do \
+	  $(MAKE) clean-erlang-deps; \
+	  echo "  DISTDEP "$$dep; \
+	  tar --exclude-vcs -cf - $(builddir)/deps/$$dep | tar -xf - -C $(distdir)/; \
+	done
+
+.PHONY: all-erlang-deps install-erlang-deps uninstall-erlang-deps clean-erlang-deps dist-deps deps

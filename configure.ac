@@ -30,10 +30,10 @@ AC_ARG_ENABLE([htpasswd],
 AM_CONDITIONAL([HTPASSWD], [test "$enable_htpasswd" = "yes"])
 
 AC_ARG_ENABLE([erlang-deps],
-	      [AS_HELP_STRING([--enable-erlang-deps],
-                              [Enable erlang dependancies fetch and build @<:@default: disable@:>@])],
+	      [AS_HELP_STRING([--disable-erlang-deps],
+                              [Disable erlang dependancies fetch and build @<:@default: enable@:>@])],
               [],
-	      [enable_erlang_deps=no])
+	      [enable_erlang_deps=yes])
 AM_CONDITIONAL([ERL_DEPS], [test "$enable_erlang_deps" = "yes"])
 
 AC_ERLANG_SUBST_INSTALL_LIB_SUBDIR([occi], [${PACKAGE_VERSION}])
