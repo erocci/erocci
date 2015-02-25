@@ -14,16 +14,8 @@
 # specific language governing permissions and limitations
 # under the License.
 #
-SUBDIRS = core authnz listener_http backend_mnesia
+erlang_APP = occi_backend_dbus
+erlang_MODULES = occi_backend_dbus occi_parser_dbus occi_renderer_dbus
+erlang_PRIV = python
 
-if XMPP
-SUBDIRS += listener_xmpp
-endif
-
-if HTPASSWD
-SUBDIRS += authnz_htpasswd
-endif
-
-if DBUS
-SUBDIRS += backend_dbus
-endif
+include $(top_srcdir)/erlang.mk

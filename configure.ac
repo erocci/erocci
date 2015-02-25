@@ -28,6 +28,13 @@ AC_ARG_ENABLE([htpasswd],
 	      [enable_htpasswd=yes])
 AM_CONDITIONAL([HTPASSWD], [test "$enable_htpasswd" = "yes"])
 
+AC_ARG_ENABLE([dbus],
+	      [AS_HELP_STRING([--disable-dbus],
+	                      [Disable D-BUS backend @<:@default: enable@:>@])],
+	      [],
+	      [enable_dbus=yes])
+AM_CONDITIONAL([DBUS], [test "$enable_dbus" = "yes"])
+
 AC_ARG_ENABLE([erlang-deps],
 	      [AS_HELP_STRING([--disable-erlang-deps],
                               [Disable erlang dependancies fetch and build @<:@default: enable@:>@])],
@@ -48,6 +55,14 @@ if test "x$enable_xmpp" = "xyes"; then
                  [git], [git://github.com/lizenn/erim.git])
    AX_ERLANG_DEP([dnssd], [$enable_erlang_deps],
                  [git], [git://github.com/benoitc/dnssd_erlang.git])
+
+   PKG_CHECK_MODULES([avahi_compat_libdns_sd], [avahi-compat-libdns_sd])
+fi
+
+if test "x$enable_dbus" = "xyes"; then
+   AC_ERLANG_SUBST_INSTALL_LIB_SUBDIR([occi_backend_dbus], [${PACKAGE_VERSION}])
+   AX_ERLANG_DEP([dbus],  [$enable_erlang_deps],
+                 [git], [git://github.com/lizenn/erlang-dbus.git])
 
    PKG_CHECK_MODULES([avahi_compat_libdns_sd], [avahi-compat-libdns_sd])
 fi
@@ -95,6 +110,7 @@ AC_CONFIG_FILES([
 	apps/authnz_htpasswd/Makefile
 	apps/authnz_htpasswd/c_src/Makefile
 	apps/backend_mnesia/Makefile
+	apps/backend_dbus/Makefile
 ])
 
 AC_OUTPUT
