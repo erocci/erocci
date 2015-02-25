@@ -76,29 +76,29 @@ ebin/%.app: src/%.app.in $(top_builddir)/config.status Makefile
 define compile_erl
 ebin/$(1).beam: src/$(2).erl
 	@$(MKDIR_P) $(ebindir)
-	$(erlc_v)$(ERLC) -pa $(ebindir) $(ERLCFLAGS) -o $(builddir)/ebin $$<
+	$(erlc_v)$(ERLC) -pa $(ebindir) $(ERLCFLAGS) -I`dirname $$<` -o $(builddir)/ebin $$<
 endef
 
 define compile_xrl
 ebin/$(1).beam: src/$(2).xrl
-	src=`echo $$< | sed -e 's,'$(srcdir)'/,,'` ; \
+	src=`echo $$< | sed -e 's,^'$(srcdir)'/,,'` ; \
 	  srcdir=`dirname $$$$src` ; \
 	  erlsrc=`echo $$$$src | sed -e 's,\.xrl$$$$,.erl,'` ; \
-	  $(MKDIR_P) $(builddir)/$$$$srcdir ; \
-	  $(ERLC) $(ERLCFLAGS) -o $(builddir)/$$$$srcdir $$< ; \
-	  $(ERLC) -pa $(ebindir) $(ERLCFLAGS) -o $(builddir)/ebin $(builddir)/$$$$erlsrc; \
-	  rm -f $(builddir)/$$$$erlsrc
+	  $(MKDIR_P) $$$$srcdir ; \
+	  $(ERLC) -o $$$$srcdir $$< ; \
+	  $(ERLC) -pa $(ebindir) $(ERLCFLAGS) -I`dirname $$<` -o ebin $$$$erlsrc; \
+	  rm -f $$$$erlsrc
 endef
 
 define compile_yrl
 ebin/$(1).beam: src/$(2).yrl
-	src=`echo $$< | sed -e 's,'$(srcdir)'/,,'` ; \
+	src=`echo $$< | sed -e 's,^'$(srcdir)'/,,'` ; \
 	  srcdir=`dirname $$$$src` ; \
 	  erlsrc=`echo $$$$src | sed -e 's,\.yrl$$$$,.erl,'` ; \
-	  $(MKDIR_P) $(builddir)/$$$$srcdir ; \
-	  $(ERLC) $(ERLCFLAGS) -o $(builddir)/$$$$srcdir $$< ; \
-	  $(ERLC) -pa $(ebindir) $(ERLCFLAGS) -o $(builddir)/ebin $(builddir)/$$$$erlsrc; \
-	  rm -f $(builddir)/$$$$erlsrc
+	  $(MKDIR_P) $$$$srcdir ; \
+	  $(ERLC) -o $$$$srcdir $$< ; \
+	  $(ERLC) -pa $(ebindir) $(ERLCFLAGS) -I`dirname $$<` -o ebin $$$$erlsrc; \
+	  rm -f $$$$erlsrc
 endef
 
 erlmod = $(foreach mod,$(erlang_MODULES),$(if $(wildcard $(srcdir)/src/$(mod).erl),$(mod)))
@@ -111,10 +111,10 @@ $(foreach mod,$(yrlmod), $(eval $(call compile_yrl,$(shell basename $(mod)),$(mo
 
 define build_port
 priv/$(1).so: $(2)
-	cp -fp $(ecsrcdir)/.libs/$$(@F) $$@
+	$(AM_V_GEN)cp -fp $(ecsrcdir)/.libs/$$(@F) $$@
 
 c_src/%.la:
-	$(MAKE) -C $(@D) $(@F)
+	@$(MAKE) -C $(@D) $(@F)
 endef
 
 $(foreach port,$(erlang_PORTS),$(eval $(call build_port,$(port),$(ecsrcdir)/$(port).la)))
@@ -125,26 +125,28 @@ $(foreach port,$(erlang_PORTS),$(eval $(call build_port,$(port),$(ecsrcdir)/$(po
 install-erlang-app:
 	@$(MKDIR_P) $(DESTDIR)$(ERLANG_INSTALL_LIB_DIR_$(erlang_APP))/ebin
 	@for beam in $(foreach mod,$(erlang_MODULES),$(shell basename $(mod)).beam); do \
-	  $(INSTALL_DATA) $(ebindir)/$$beam $(DESTDIR)$(ERLANG_INSTALL_LIB_DIR_$(erlang_APP))/ebin/$$beam; \
+	  $(INSTALL_DATA) ebin/$$beam $(DESTDIR)$(ERLANG_INSTALL_LIB_DIR_$(erlang_APP))/ebin/$$beam; \
 	done
 	$(INSTALL_DATA) $(appdata) $(DESTDIR)$(ERLANG_INSTALL_LIB_DIR_$(erlang_APP))/ebin/$(erlang_APP).app
 	@$(MKDIR_P) $(DESTDIR)$(ERLANG_INSTALL_LIB_DIR_$(erlang_APP))/include
 	@for hrl in $(erlang_HRL); do \
-	  $(INSTALL_DATA) $(eincludedir)/$$hrl.hrl $(DESTDIR)$(ERLANG_INSTALL_LIB_DIR_$(erlang_APP))/include/$$hrl.hrl; \
+	  $(INSTALL_DATA) $(srcdir)/include/$$hrl.hrl $(DESTDIR)$(ERLANG_INSTALL_LIB_DIR_$(erlang_APP))/include/$$hrl.hrl; \
 	done
 	@$(MKDIR_P) $(DESTDIR)$(ERLANG_INSTALL_LIB_DIR_$(erlang_APP))/priv
 	@for data in $(erlang_PRIV); do \
-	  cp -fpR $(eprivdir)/$$data $(DESTDIR)$(ERLANG_INSTALL_LIB_DIR_$(erlang_APP))/priv/$$data; \
+	  cp -fpR $(srcdir)/priv/$$data $(DESTDIR)$(ERLANG_INSTALL_LIB_DIR_$(erlang_APP))/priv/$$data; \
+	  chmod -R u+w $(DESTDIR)$(ERLANG_INSTALL_LIB_DIR_$(erlang_APP))/priv/$$data; \
 	done
 
 uninstall-erlang-app:
-	@for beam in $(foreach mod,$(erlang_MODULES),$(shell basename $(mod)).beam); do \
+	for beam in $(foreach mod,$(erlang_MODULES),$(shell basename $(mod)).beam); do \
 	  rm -f $(DESTDIR)$(ERLANG_INSTALL_LIB_DIR_$(erlang_APP))/ebin/$$beam; \
 	done
-	@for hrl in $(erlang_HRL); do \
+	rm -f $(DESTDIR)$(ERLANG_INSTALL_LIB_DIR_$(erlang_APP))/ebin/$(erlang_APP).app
+	for hrl in $(erlang_HRL); do \
 	  rm -f $(DESTDIR)$(ERLANG_INSTALL_LIB_DIR_$(erlang_APP))/include/$$hrl.hrl; \
 	done
-	@for data in $(erlang_PRIV); do \
+	for data in $(erlang_PRIV); do \
 	  rm -rf $(DESTDIR)$(ERLANG_INSTALL_LIB_DIR_$(erlang_APP))/priv/$$data; \
 	done
 
@@ -161,22 +163,28 @@ clean-erlang:
 	  gen=`echo $$base | sed -e 's,\.yrl$$,.erl,'`; \
 	  if test -e $$gen; then rm -f $$gen; fi; \
 	done
+	find -name config.log -exec rm {} \;
 
 ###
 ### Dist
 ###
 dist-erlang:
-	@for file in  $(wildcard $(esrcdir)/$(erlang_APP).app.in) \
-	        $(addprefix $(eincludedir)/,$(addsuffix .hrl,$(erlang_HRL))) \
-		$(foreach mod,$(addprefix $(esrcdir)/,$(erlang_MODULES)), \
-	           $(if $(wildcard $(mod).xrl), \
+	@for file in src/$(erlang_APP).app.in \
+	        $(addprefix include/,$(addsuffix .hrl,$(erlang_HRL))) \
+		$(foreach mod,$(addprefix src/,$(erlang_MODULES)), \
+	           $(if $(wildcard $(srcdir)/$(mod).xrl), \
 	              $(mod).xrl, \
-	              $(if $(wildcard $(mod).yrl), \
+	              $(if $(wildcard $(srcdir)/$(mod).yrl), \
 	                 $(mod).yrl, \
 	                 $(mod).erl))); do \
 	  dirname=`echo $$file | sed -e 's,/*[^/]\+/*$$,,'`; \
 	  $(MKDIR_P) $(distdir)/$$dirname; \
-	  cp $$file $(distdir)/$$file; \
+	  cp $(srcdir)/$$file $(distdir)/$$file; \
+	done
+	@for file in $(erlang_PRIV); do \
+	  dirname=`echo $$file | sed -e 's,/*[^/]\+/*$$,,'`; \
+	  $(MKDIR_P) $(distdir)/priv/$$dirname; \
+	  cp -fpR $(srcdir)/priv/$$file $(distdir)/priv/; \
 	done
 
 .PHONY: all-erlang all-first all-beams clean-erlang dist-erlang install-erlang-app uninstall-erlang-app
