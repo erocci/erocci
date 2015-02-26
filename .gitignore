@@ -26,6 +26,7 @@ test/*.beam
 /doc/erlang.png
 /doc/stylesheet.css
 /doc/utf8/
+/doc/guide/site/
 /.rebar
 /priv/Mnesia
 ebin

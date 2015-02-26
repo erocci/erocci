@@ -92,6 +92,14 @@ AX_ERLANG_DEP([uri],                    [$enable_erlang_deps],
               [git], [git://github.com/heroku/uri.git])
 
 AC_CHECK_PROGS([REBAR], [rebar])
+AC_CHECK_PROGS([MKDOCS], [mkdocs])
+if test ! x$MKDOCS = x; then
+   enable_doc=yes
+else
+   enable_doc=no
+fi
+AM_CONDITIONAL([BUILDDOC], [test x$enable_doc = xyes])
+
 AS_IF([test x$enable_erlang_deps = xyes], [AC_CHECK_PROGS([GIT], [git])])
 
 AS_IF([test x$enable_htpasswd = xyes], [
@@ -111,6 +119,8 @@ AC_CONFIG_FILES([
 	apps/authnz_htpasswd/c_src/Makefile
 	apps/backend_mnesia/Makefile
 	apps/backend_dbus/Makefile
+	doc/Makefile
+	doc/guide/Makefile
 ])
 
 AC_OUTPUT
@@ -134,7 +144,8 @@ echo ""
 echo "************************************************************************"
 echo ""
 echo "Enabled components:"
-echo "    listeners : "$listeners
-echo "    backends  : "$backends
-echo "    authnz    : "$authnz
+echo "    listeners     : "$listeners
+echo "    backends      : "$backends
+echo "    authnz        : "$authnz
+echo "    documentation : "$enable_doc
 echo ""

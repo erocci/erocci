@@ -14,7 +14,7 @@
 # specific language governing permissions and limitations
 # under the License.
 #
-SUBDIRS = apps
+SUBDIRS = apps doc
 
 erlang_APP = occi
 erlang_PRIV = \
