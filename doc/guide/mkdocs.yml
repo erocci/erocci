@@ -1,1 +1,18 @@
 site_name: erocci developer guide
+site_url: http://erocci.ow2.org/
+repo_url: https://github.com/erocci/erocci
+site_description: erocci User Guide
+site_author: Jean Parpaillon
+site_favicon: favicon.png
+pages:
+- ['index.md', 'Index']
+- ['rationale.md', 'Introduction', 'Rationale']
+- ['occi.md', 'Introduction', 'The Open Cloud Computing Interface']
+- ['architecture.md', 'Introduction', 'Overall Architecture']
+- ['userintro.md', 'User Guide', 'erlang Basics']
+- ['userstart.md', 'User Guide', 'Getting Started']
+- ['userconf.md', 'User Guide', 'Advanced Configuration']
+- ['devlistener.md', 'Developper Guide', 'Listener API']
+- ['devbackend.md', 'Developper Guide', 'Backend API']
+- ['devauthnz.md', 'Developper Guide', 'Authnz API']
+theme: readthedocs
