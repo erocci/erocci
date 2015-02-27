@@ -4,6 +4,8 @@ repo_url: https://github.com/erocci/erocci
 site_description: erocci User Guide
 site_author: Jean Parpaillon
 site_favicon: favicon.png
+site_dir: @DOCBUILD@
+docs_dir: @DOCSRC@
 pages:
 - ['index.md', 'Index']
 - ['rationale.md', 'Introduction', 'Rationale']

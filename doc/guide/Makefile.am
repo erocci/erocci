@@ -15,18 +15,47 @@
 # under the License.
 #
 SOURCES = \
-	mkdocs.yml \
-	docs/index.md
+	docs/architecture.md \
+	docs/devauthnz.md \
+	docs/devbackend.md \
+	docs/devlistener.md \
+	docs/favicon.png \
+	docs/index.md \
+	docs/occi.md \
+	docs/rationale.md \
+	docs/userconf.md \
+	docs/userintro.md \
+	docs/userstart.md
+DOCBUILD = $(builddir)/html
+DOCSRC = $(srcdir)/docs
 
 if BUILDDOC
 all-local: doc-html
-else
-all-local:
+install-data-local: install-doc-html
+uninstall-local: uninstall-doc-html
+clean-local: clean-doc-html
 endif
 
-doc-html: $(SOURCES)
+edit = sed -e 's|@DOCBUILD@|'$(DOCBUILD)'|' \
+	   -e 's|@DOCSRC@|'$(DOCSRC)'|'
+
+doc-html: $(SOURCES) mkdocs.yml
 	$(MKDOCS) build --clean
 
-EXTRA_DIST = $(SOURCES)
+mkdocs.yml: mkdocs.yml.in Makefile
+	$(edit) $< > $@
 
-.PHONY: doc-html
+install-doc-html: doc-html
+	$(MKDIR_P) $(DESTDIR)$(docdir)
+	cp -fR $(DOCBUILD) $(DESTDIR)$(docdir)/
+
+uninstall-doc-html:
+	-rm -rf $(DESTDIR)$(docdir)/html
+
+clean-doc-html:
+	-rm -rf $(DOCBUILD)
+	-rm -f mkdocs.yml
+
+EXTRA_DIST = $(SOURCES) mkdocs.yml.in docs/img
+
+.PHONY: doc-html install-doc-html
