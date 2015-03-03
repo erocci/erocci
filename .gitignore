@@ -6,6 +6,7 @@ erl_crash.dump
 *.la
 *.lo
 *.o
+erocci-*.tar.xz
 .eunit
 config.log
 config.status
