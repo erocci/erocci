@@ -97,4 +97,4 @@ make_atom(ErlNifEnv* env, const char* name)
     return enif_make_atom(env, name);
 }
 
-ERL_NIF_INIT(erocci_authnz_mod_htpasswd, funcs, &load, &reload, &upgrade, &unload);
+ERL_NIF_INIT(occi_authnz_mod_htpasswd, funcs, &load, &reload, &upgrade, &unload);

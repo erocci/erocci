@@ -43,7 +43,7 @@
 
 start(Ref, Protocol, Props) ->
     occi:ensure_all_started(cowboy),
-    occi:ensure_all_started(erocci_authnz),
+    occi:ensure_all_started(occi_authnz),
     case ets:info(Ref) of
 	undefined ->
 	    Ref = ets:new(Ref, [set, public, {keypos, 1}, named_table]),
@@ -57,7 +57,7 @@ start(Ref, Protocol, Props) ->
 	    Env = [{dispatch, cowboy_router:compile([{'_', Routes}])}],
 	    cowboy:Protocol(Ref, Pool, Props, [{env, Env}]);
 	{AuthMod, AuthOpts} ->
-	    case erocci_authnz:start_link(AuthMod, AuthOpts) of
+	    case occi_authnz:start_link(AuthMod, AuthOpts) of
 		{ok, Pid} ->
 		    Routes = lists:flatten([ets:lookup_element(Ref, routes, 2), get_occi_handler(Pid)]),
 		    Env = [{dispatch, cowboy_router:compile([{'_', Routes}])}],
@@ -136,7 +136,7 @@ get_auth() ->
 get_basic_user(Ref, Auth) ->
     case binary:split(base64:decode(Auth), [<<":">>]) of
 	[User, Passwd] -> 
-	    case erocci_authnz:auth(Ref, {User, Passwd}) of
+	    case occi_authnz:auth(Ref, {User, Passwd}) of
 		true -> {true, User};
 		false -> false
 	    end;

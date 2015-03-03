@@ -23,7 +23,7 @@
 %%%-------------------------------------------------------------------
 -module(occi_authnz_mod_xmpp).
 
--behaviour(erocci_authnz).
+-behaviour(occi_authnz).
 
 -export([init/1,
          auth/2, share_group/3, create_group/2, create_ingroup/4,

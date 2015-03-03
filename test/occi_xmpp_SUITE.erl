@@ -17,7 +17,7 @@
 -include_lib("common_test/include/ct.hrl").
 -include_lib("kernel/include/file.hrl").
 
--include_lib("erocci_core/include/occi.hrl").
+-include_lib("occi_core/include/occi.hrl").
 -include_lib("erim/include/exmpp_client.hrl").
 
 -define(NAME,"http://localhost:8080").
@@ -39,7 +39,7 @@ suite() ->
 %%--------------------------------------------------------------------
 init_per_suite(Config) ->
     application:set_env(lager, handlers, [{lager_console_backend, debug}]),
-    application:start(erocci_core),
+    application:start(occi_core),
     DataDir = proplists:get_value(data_dir, Config),
     Schemas = {schemas, [{path, DataDir ++ "occi-infrastructure.xml"}]},
     Backends = {backends, 
@@ -67,7 +67,7 @@ connect(Config) ->
 %% @end
 %%--------------------------------------------------------------------
 end_per_suite(_Config) ->
-    application:stop(erocci_core),
+    application:stop(occi_core),
     ok.
 
 %%--------------------------------------------------------------------

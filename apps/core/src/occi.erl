@@ -32,13 +32,13 @@
 %% @doc Start the occi server.
 start() ->
     ?info("Starting erocci framework"),
-    application:start(erocci_core).
+    application:start(occi_core).
 
 %% @spec stop() -> ok
 %% @doc Stop the occi server.
 stop() ->
     ?info("Stopping erocci framework"),
-    application:stop(erocci_core).
+    application:stop(occi_core).
 
 config(Cfg) ->
     occi_config:load(Cfg).

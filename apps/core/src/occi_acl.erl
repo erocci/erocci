@@ -125,7 +125,7 @@ match_user(owner, _N, _U, _P, _) ->
 match_user(group, #occi_node{owner=O}, O, P, _) ->
     {true, P};
 match_user(group, #occi_node{owner=O}, U, P, Ref) ->
-    case erocci_authnz:share_group(Ref, O, U) of
+    case occi_authnz:share_group(Ref, O, U) of
 	true -> {true, P};
 	false -> false
     end;

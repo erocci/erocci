@@ -39,8 +39,9 @@ endif
 edit = sed -e 's|@DOCBUILD@|'$(DOCBUILD)'|' \
 	   -e 's|@DOCSRC@|'$(DOCSRC)'|'
 
-doc-html: $(SOURCES) mkdocs.yml
+doc-html: $(SOURCES) theme_extra.css mkdocs.yml
 	$(MKDOCS) build --clean
+	cp $(srcdir)/theme_extra.css $(DOCBUILD)/css/
 
 mkdocs.yml: mkdocs.yml.in Makefile
 	$(edit) $< > $@

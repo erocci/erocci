@@ -51,7 +51,7 @@
 start(normal, _Args) ->
     occi:ensure_started(inets),
     occi:ensure_started(erim_xml),
-    occi:ensure_started(erocci_authnz),
+    occi:ensure_started(occi_authnz),
     case occi_sup:start_link() of
 	{error, Err} ->
 	    {error, Err};

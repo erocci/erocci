@@ -108,12 +108,14 @@ listeners=$(echo -n "["; join , "${listeners[@]}"; echo -n "]")
 #exit 0
 
 cd ${basedir}
-exec erl -pa $PWD/ebin \
+exec erl \
+     -pa $PWD/ebin \
+     -pa $PWD/apps/*/ebin \
      $depsbin/*/ebin \
      -boot start_sasl \
      -config $config \
      -kernel error_logger silent \
      -mnesia dir "\"${basedir}/priv/Mnesia\"" \
      -lager handlers "[{lager_console_backend, $debug}]" \
-     -erocci_core listeners "$listeners" \
+     -occi_core listeners "$listeners" \
      $debug_app -s occi

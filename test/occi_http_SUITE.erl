@@ -15,7 +15,7 @@
 -include_lib("common_test/include/ct.hrl").
 -include_lib("kernel/include/file.hrl").
 
--include_lib("erocci_core/include/occi.hrl").
+-include_lib("occi_core/include/occi.hrl").
 
 -define(PORT, 8080).
 -define(NAME, "http://localhost:8080").
@@ -26,7 +26,7 @@ suite() ->
 
 init_per_suite(Config) ->
     application:set_env(lager, handlers, [{lager_console_backend, debug}]),
-    application:start(erocci_core),
+    application:start(occi_core),
     Schemas = {schemas, [{path, get_data_path("occi.xml", Config)}]},
     Backends = {backends, 
 		[{mnesia, occi_backend_mnesia, [Schemas], <<"/">>}]},
@@ -34,12 +34,11 @@ init_per_suite(Config) ->
 		 [{http, occi_http, [{port, ?PORT}]}]
 		},
     Acls = {acl, [{allow, '_', '_', '_'}]},
-    application:start(erocci_core),
     occi:config([{name, ?NAME}, Schemas, Backends, Listeners, Acls]),
     Config.
 
 end_per_suite(_Config) ->
-    application:stop(erocci_core),
+    application:stop(occi_core),
     ok.
 
 
