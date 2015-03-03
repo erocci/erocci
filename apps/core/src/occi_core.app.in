@@ -2,7 +2,7 @@
 {application, @ERL_APP@,
  [
   {description, "erocci core"},
-  {mod, {occi_app, []}},
+  {mod, {occi_core_app, []}},
   {modules, [@ERL_MODULES@]},
   {applications, [
 		  kernel,

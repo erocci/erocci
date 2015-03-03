@@ -4,8 +4,9 @@
   {id, @ERL_APP@},
   {description, "@PACKAGE_STRING@"},
   {vsn, "@PACKAGE_VERSION@"},
+  {mod, {occi_app, []}},
   {modules, [@ERL_MODULES@]},
   {registered, []},
-  {applications, []},
+  {applications, [ inets, occi_core ]},
   {env, []}
  ]}.

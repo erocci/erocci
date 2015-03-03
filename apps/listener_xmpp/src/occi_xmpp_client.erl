@@ -66,8 +66,8 @@
 %%%===================================================================
 start_link(Ref, Props) ->
     ?info("Starting XMPP listener: ~p~n", [proplists:get_value(jid, Props)]),
-    occi:ensure_all_started(erim),
-    occi:ensure_all_started(occi_authnz),
+    application:ensure_all_started(erim),
+    application:ensure_all_started(occi_authnz),
     Handlers = [{?ns_occi_xmpp, occi_xmpp_handler, []}],
     Opts = build_opts([{handlers, Handlers},
 		       {node, ?XMPP_CLIENT_ID}

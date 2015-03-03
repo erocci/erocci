@@ -16,10 +16,9 @@
 #
 erlang_APP = occi_core
 erlang_MODULES = \
+	occi_core_app \
 	occi_acl \
-	occi_app \
 	occi_config \
-	occi \
 	occi_hook \
 	occi_known \
 	occi_listener \

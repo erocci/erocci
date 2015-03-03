@@ -17,6 +17,7 @@
 SUBDIRS = apps doc
 
 erlang_APP = occi
+erlang_MODULES = occi_app occi
 erlang_PRIV = \
 	configs \
 	htpasswd \

@@ -88,34 +88,17 @@ while getopts ":hdqtsc:x:p:" opt; do
     esac
 done
 
-if [ -d ${basedir}/deps ]; then
-    depsbin=${basedir}/deps
-else
-    depsbin=${basedir}/..
-fi
-
-case $debug in
-    debug)
-	debug_app="-s reloader"
-	;;
-    *)
-	debug_app=
-	;;
-esac
-
 listeners=$(echo -n "["; join , "${listeners[@]}"; echo -n "]")
-#echo $listeners
-#exit 0
 
 cd ${basedir}
 exec erl \
      -pa $PWD/ebin \
-     -pa $PWD/apps/*/ebin \
-     $depsbin/*/ebin \
+     -pa ${basedir}/apps/*/ebin \
+     -pa ${basedir}/deps/*/ebin \
      -boot start_sasl \
      -config $config \
      -kernel error_logger silent \
      -mnesia dir "\"${basedir}/priv/Mnesia\"" \
      -lager handlers "[{lager_console_backend, $debug}]" \
      -occi_core listeners "$listeners" \
-     $debug_app -s occi
+     -s occi

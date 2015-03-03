@@ -42,8 +42,8 @@
 -define(ROUTE_OCCI(X),    {<<"/[...]">>,                       occi_http_handler,  X}).
 
 start(Ref, Protocol, Props) ->
-    occi:ensure_all_started(cowboy),
-    occi:ensure_all_started(occi_authnz),
+    application:ensure_all_started(cowboy),
+    application:ensure_all_started(occi_authnz),
     case ets:info(Ref) of
 	undefined ->
 	    Ref = ets:new(Ref, [set, public, {keypos, 1}, named_table]),
