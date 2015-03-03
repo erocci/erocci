@@ -154,7 +154,7 @@ uninstall-erlang-app:
 ### Clean
 ###
 clean-erlang:
-	-rm -rf $(appbins) $(appdata)
+	-rm -rf ebin/*
 	-for base in $(shell find $(srcdir)/src -name '*.xrl'); do \
 	  gen=`echo $$base | sed -e 's,\.xrl$$,.erl,'`; \
 	  if test -e $$gen; then rm -f $$gen; fi; \
