@@ -72,8 +72,8 @@ if test "x$enable_htpasswd" = "xyes"; then
 
    AC_MSG_CHECKING([for libaprutil1 (apr_md5.h)])
    if which apu-config > /dev/null; then
-      AC_SUBST([APRUTIL_CFLAGS], [`apr-config --includes`])
-      AC_SUBST([APRUTIL_LDFLAGS], [`apr-config --ldflags`])
+      AC_SUBST([APRUTIL_CFLAGS], [`apu-config --includes`])
+      AC_SUBST([APRUTIL_LDFLAGS], [`apu-config --link-ld`])
       AC_MSG_RESULT([ok])
    else
       AC_MSG_ERROR([not found])
