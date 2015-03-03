@@ -57,6 +57,9 @@ if test "x$enable_xmpp" = "xyes"; then
                  [git], [git://github.com/benoitc/dnssd_erlang.git])
 
    PKG_CHECK_MODULES([avahi_compat_libdns_sd], [avahi-compat-libdns_sd])
+   PKG_CHECK_MODULES([ssl], [openssl])
+   PKG_CHECK_MODULES([expat], [expat])
+   PKG_CHECK_MODULES([xml2], [libxml-2.0])
 fi
 
 if test "x$enable_dbus" = "xyes"; then
