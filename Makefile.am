@@ -17,7 +17,7 @@
 SUBDIRS = apps doc
 
 erlang_APP = occi
-erlang_MODULES = occi_app occi
+erlang_MODULES = occi_app occi occi_log_handler
 erlang_PRIV = \
 	configs \
 	htpasswd \
@@ -46,11 +46,21 @@ clean-local: clean-erlang-deps
 dist-hook: dist-deps
 endif
 
+MAKE_OPTS = 
+if LIBXML2
+MAKE_OPTS += "HAVE_LIBXML2=true"
+endif
+if EXPAT
+MAKE_OPTS += "HAVE_EXPAT=true"
+endif
+
+ERLC_OPTS = $(AM_ERLCFLAGS)
+export ERLC_OPTS
 
 all-erlang-deps: deps
 	@for dep in $(addprefix $(edepsdir)/,$(erlang_DEPS)) ; do \
 	    if [ -f $$dep/GNUmakefile ] || [ -f $$dep/makefile ] || [ -f $$dep/Makefile ]; then \
-	        $(MAKE) -C $$dep ; \
+	        $(MAKE) -C $$dep $(MAKE_OPTS); \
 	    elif [ -f $$dep/rebar.config -a -n "$(REBAR)" ]; then \
 	        ( cd $$dep && $(REBAR) compile ); \
 	    fi ; \
@@ -61,7 +71,7 @@ deps: $(edepsdirs)
 	    if [ -f $$dep/rebar.config -a -n "$(REBAR)" ]; then \
 	        ( cd $$dep && $(REBAR) get-deps ); \
 	    elif [ -f $$dep/erlang.mk ]; then \
-	        $(MAKE) -C $$dep deps; \
+	        $(MAKE) -C $$dep deps $(MAKE_OPTS); \
 	    fi ; \
 	done
 

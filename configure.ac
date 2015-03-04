@@ -42,6 +42,13 @@ AC_ARG_ENABLE([erlang-deps],
 	      [enable_erlang_deps=yes])
 AM_CONDITIONAL([ERL_DEPS], [test "$enable_erlang_deps" = "yes"])
 
+AC_ARG_ENABLE([debug],
+	      [AS_HELP_STRING([--enable-debug],
+                              [Enable debugging infos @<:@default: disable@:>@])],
+              [],
+	      [enable_debug=no])
+AM_CONDITIONAL([DEBUG], [test "$enable_debug" = "yes"])
+
 AC_ERLANG_SUBST_INSTALL_LIB_SUBDIR([occi], [${PACKAGE_VERSION}])
 AC_ERLANG_SUBST_INSTALL_LIB_SUBDIR([occi_core], [${PACKAGE_VERSION}])
 AC_ERLANG_SUBST_INSTALL_LIB_SUBDIR([occi_authnz], [${PACKAGE_VERSION}])
@@ -61,6 +68,8 @@ if test "x$enable_xmpp" = "xyes"; then
    PKG_CHECK_MODULES([expat], [expat])
    PKG_CHECK_MODULES([xml2], [libxml-2.0])
 fi
+AM_CONDITIONAL([EXPAT], [test -n "$expat_LIBS"])
+AM_CONDITIONAL([LIBXML2], [test -n "$xml2_LIBS"])
 
 if test "x$enable_dbus" = "xyes"; then
    AC_ERLANG_SUBST_INSTALL_LIB_SUBDIR([occi_backend_dbus], [${PACKAGE_VERSION}])
@@ -145,8 +154,11 @@ echo "************************************************************************"
 echo " erocci configuration is now complete."
 echo ""
 echo "************************************************************************"
+echo "Options:"
+echo "    debug         : "$enable_debug
+echo "    xml backends  : "$(test -n $expat_LIBS && echo expat) " " $(test -n $xml2_LIBS && echo libxml2)
 echo ""
-echo "Enabled components:"
+echo "Components:"
 echo "    listeners     : "$listeners
 echo "    backends      : "$backends
 echo "    authnz        : "$authnz

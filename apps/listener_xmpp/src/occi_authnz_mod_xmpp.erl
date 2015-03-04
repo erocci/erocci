@@ -63,11 +63,11 @@ share_group(_User1, User2, State) ->
 -spec create_group(Group :: term(), state()) -> {ok | {error, term()}, state()}.
 create_group(Group, #state{lists_group = Lgroup}=State) ->
     Groups = lists:nth(1, Group),
-    case lists:member(Groups, Lgroup) of
-        true -> Lgroup1 = Lgroup;
-        false -> Lgroup1 = Lgroup++Group
-    end,
-    {ok, State#state{lists_group=Lgroup1}}.
+    L = case lists:member(Groups, Lgroup) of
+	    true -> Lgroup;
+	    false -> Lgroup ++ Group
+	end,
+    {ok, State#state{lists_group=L}}.
 
 -spec delete_group(Group :: term(), state()) -> {ok | {error, term()}, state()}.
 delete_group(Group, #state{table=Table, lists_group = Lgroup}=State) ->

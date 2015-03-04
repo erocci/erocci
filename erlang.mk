@@ -56,6 +56,11 @@ edit = sed \
 	-e 's|@ERL_APP@|'$(erlang_APP)'|g' \
 	-e 's|@ERL_MODULES@|'$(subst $(space),$(comma),$(foreach mod,$(erlang_MODULES),$(shell basename $(mod))))'|'
 
+AM_ERLCFLAGS = -Werror +warn_export_vars +warn_shadow_vars +warn_obsolete_guards
+if DEBUG
+AM_ERLCFLAGS += +debug_info
+endif
+
 ###
 ### Build
 ###
@@ -76,7 +81,7 @@ ebin/%.app: src/%.app.in $(top_builddir)/config.status Makefile
 define compile_erl
 ebin/$(1).beam: src/$(2).erl
 	@$(MKDIR_P) $(ebindir)
-	$(erlc_v)$(ERLC) -pa $(ebindir) $(ERLCFLAGS) -I`dirname $$<` -o $(builddir)/ebin $$<
+	$(erlc_v)$(ERLC) -pa $(ebindir) $(AM_ERLCFLAGS) $(ERLCFLAGS) -I`dirname $$<` -o $(builddir)/ebin $$<
 endef
 
 define compile_xrl
@@ -86,7 +91,7 @@ ebin/$(1).beam: src/$(2).xrl
 	  erlsrc=`echo $$$$src | sed -e 's,\.xrl$$$$,.erl,'` ; \
 	  $(MKDIR_P) $$$$srcdir ; \
 	  $(ERLC) -o $$$$srcdir $$< ; \
-	  $(ERLC) -pa $(ebindir) $(ERLCFLAGS) -I`dirname $$<` -o ebin $$$$erlsrc; \
+	  $(ERLC) -pa $(ebindir) $(AM_ERLCFLAGS) $(ERLCFLAGS) -I`dirname $$<` -o ebin $$$$erlsrc; \
 	  rm -f $$$$erlsrc
 endef
 
@@ -97,7 +102,7 @@ ebin/$(1).beam: src/$(2).yrl
 	  erlsrc=`echo $$$$src | sed -e 's,\.yrl$$$$,.erl,'` ; \
 	  $(MKDIR_P) $$$$srcdir ; \
 	  $(ERLC) -o $$$$srcdir $$< ; \
-	  $(ERLC) -pa $(ebindir) $(ERLCFLAGS) -I`dirname $$<` -o ebin $$$$erlsrc; \
+	  $(ERLC) -pa $(ebindir) $(AM_ERLCFLAGS) $(ERLCFLAGS) -I`dirname $$<` -o ebin $$$$erlsrc; \
 	  rm -f $$$$erlsrc
 endef
 

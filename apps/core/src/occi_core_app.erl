@@ -49,6 +49,7 @@
 %% @end
 %%--------------------------------------------------------------------
 start(normal, _Args) ->
+    application:start(erim_xml),
     case occi_sup:start_link() of
 	{error, Err} ->
 	    {error, Err};
