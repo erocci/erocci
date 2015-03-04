@@ -42,6 +42,18 @@ AC_ARG_ENABLE([erlang-deps],
 	      [enable_erlang_deps=yes])
 AM_CONDITIONAL([ERL_DEPS], [test "$enable_erlang_deps" = "yes"])
 
+AC_ARG_ENABLE([libxml2],
+	      [AS_HELP_STRING([--enable-libxml2],
+                              [Enable libxml2 XML parser backend @<:@default: disable@:>@])],
+              [],
+	      [enable_libxml2=no])
+
+AC_ARG_ENABLE([expat],
+	      [AS_HELP_STRING([--disable-expat],
+                              [Disable expat XML parser backend @<:@default: enable@:>@])],
+              [],
+	      [enable_expat=yes])
+
 AC_ARG_ENABLE([debug],
 	      [AS_HELP_STRING([--enable-debug],
                               [Enable debugging infos @<:@default: disable@:>@])],
@@ -65,11 +77,19 @@ if test "x$enable_xmpp" = "xyes"; then
 
    PKG_CHECK_MODULES([avahi_compat_libdns_sd], [avahi-compat-libdns_sd])
    PKG_CHECK_MODULES([ssl], [openssl])
-   PKG_CHECK_MODULES([expat], [expat])
-   PKG_CHECK_MODULES([xml2], [libxml-2.0])
+   AS_IF([test "$enable_libxml2" = "yes"], [
+     PKG_CHECK_MODULES([xml2], [libxml-2.0])
+   ], [
+     enable_libxml2=no
+   ])
+   AS_IF([test "$enable_expat" = "yes"], [
+     PKG_CHECK_MODULES([expat], [expat])
+   ], [
+      enable_expat=no
+   ])
 fi
-AM_CONDITIONAL([EXPAT], [test -n "$expat_LIBS"])
-AM_CONDITIONAL([LIBXML2], [test -n "$xml2_LIBS"])
+AM_CONDITIONAL([EXPAT], [test "$enable_expat" = "yes"])
+AM_CONDITIONAL([LIBXML2], [test "$enable_libxml2" = "yes"])
 
 if test "x$enable_dbus" = "xyes"; then
    AC_ERLANG_SUBST_INSTALL_LIB_SUBDIR([occi_backend_dbus], [${PACKAGE_VERSION}])
@@ -156,7 +176,7 @@ echo ""
 echo "************************************************************************"
 echo "Options:"
 echo "    debug         : "$enable_debug
-echo "    xml backends  : "$(test -n $expat_LIBS && echo expat) " " $(test -n $xml2_LIBS && echo libxml2)
+echo "    xml backends  : "$(test "$enable_expat" = "yes" && echo expat) " " $(test "$enable_libxml2" = "yes" && echo libxml2)
 echo ""
 echo "Components:"
 echo "    listeners     : "$listeners
