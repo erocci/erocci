@@ -97,8 +97,6 @@ exec erl \
      -pa ${basedir}/deps/*/ebin \
      -boot start_sasl \
      -config $config \
-     -kernel error_logger silent \
      -mnesia dir "\"${basedir}/priv/Mnesia\"" \
-     -lager handlers "[{lager_console_backend, $debug}]" \
      -occi_core listeners "$listeners" \
      -s occi
