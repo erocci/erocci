@@ -1,3 +1,3 @@
-erlang_CT_SUITES = occi_html occi_xmpp
+erlang_CT_SUITES = occi_http
 
 include $(top_srcdir)/erlang.mk

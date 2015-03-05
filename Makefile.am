@@ -75,7 +75,7 @@ deps: $(edepsdirs)
 	    fi ; \
 	done
 
-test:
+test: deps
 	$(MAKE) -C test test-ct
 
 define dep_fetch
