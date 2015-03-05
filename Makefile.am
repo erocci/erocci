@@ -14,7 +14,7 @@
 # specific language governing permissions and limitations
 # under the License.
 #
-SUBDIRS = apps doc
+SUBDIRS = apps doc test
 
 erlang_APP = occi
 erlang_MODULES = occi_app occi occi_log_handler
@@ -74,6 +74,9 @@ deps: $(edepsdirs)
 	        $(MAKE) -C $$dep deps $(MAKE_OPTS); \
 	    fi ; \
 	done
+
+test:
+	$(MAKE) -C test test-ct
 
 define dep_fetch
 $(edepsdir)/$(1):

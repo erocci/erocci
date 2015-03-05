@@ -36,7 +36,8 @@ all-local: all-erlang
 install-data-local: install-erlang-app
 uninstall-local: uninstall-erlang-app
 clean-local: clean-erlang
-dist-hook: dist-erlang
+dist-hook: dist-erlang dist-ct
+distclean-local: distclean-ct
 
 esrcdir = $(srcdir)/src
 ebindir = $(builddir)/ebin
@@ -44,7 +45,7 @@ ecsrcdir = $(builddir)/c_src
 eincludedir = $(srcdir)/include
 eprivdir = $(srcdir)/priv
 
-appdata = ebin/$(erlang_APP).app
+appdata = $(if $(erlang_APP),ebin/$(erlang_APP).app)
 appbins = $(addprefix $(ebindir)/,$(addsuffix .beam,$(foreach mod,$(erlang_MODULES),$(shell basename $(mod)))))
 appfirst = $(addprefix $(ebindir)/,$(addsuffix .beam,$(foreach mod,$(erlang_FIRST),$(shell basename $(mod)))))
 appports = $(addprefix $(eprivdir)/,$(addsuffix .so,$(erlang_PORTS)))
@@ -192,4 +193,44 @@ dist-erlang:
 	  cp -fpR $(srcdir)/priv/$$file $(distdir)/priv/; \
 	done
 
-.PHONY: all-erlang all-first all-beams clean-erlang dist-erlang install-erlang-app uninstall-erlang-app
+###
+### Test
+###
+TEST_ERLCFLAGS = +debug_info +warn_export_vars +warn_shadow_vars +warn_obsolete_guard -DTEST=1
+CT_RUN = ct_run \
+	-no_auto_compile \
+	-noinput \
+	-pa $(top_builddir)/ebin $(top_builddir)/deps/*/ebin $(top_builddir)/apps/*/ebin \
+	-dir $(top_srcdir)/test \
+	-logdir $(top_builddir)/log
+
+ct_suites = $(patsubst %,%_SUITE,$(erlang_CT_SUITES))
+
+test: test-ct
+
+test-ct: test-build
+	@$(AM_V_GEN)if test -n $(erlang_CT_SUITES); then \
+	  $(MKDIR_P) $(top_builddir)/log; \
+	  $(AM_V_GEN) $(CT_RUN) -suite $(ct_suites); \
+	fi
+
+test-dir:
+	$(erlc_v)$(ERLC) -pa $(ebindir) $(AM_ERLCFLAGS) -DTEST=1 $(ERLCFLAGS) -o $(top_builddir)/test $(wildcard $(top_builddir)/test/*.erl $(top_builddir)/test/*/*.erl)
+
+test-build: deps
+	@$(MAKE) --no-print-directory all test-dir
+
+define ct_suite_target
+ct-$(1): test-build
+	@$(MKDIR_P) $(top_builddir)/log
+	$(AM_V_GEN) $(CT_RUN) -suite $(patsubst %,%_SUITE,$(1))
+endef
+
+$(foreach test,$(ct_suites),$(eval $(call ct_suite_target,$(test))))
+
+dist-ct:
+
+distclean-ct:
+	-rm -rf $(top_builddir)/log
+
+.PHONY: all-erlang all-first all-beams clean-erlang dist-erlang install-erlang-app uninstall-erlang-app distclean-ct test test-ct test-build test-dir dist-ct $(patsubst %,ct-%,$(ct_suites))

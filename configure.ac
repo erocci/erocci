@@ -153,6 +153,7 @@ AC_CONFIG_FILES([
 	apps/backend_dbus/Makefile
 	doc/Makefile
 	doc/guide/Makefile
+	test/Makefile
 ])
 
 AC_OUTPUT
