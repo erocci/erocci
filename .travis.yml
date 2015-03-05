@@ -10,7 +10,7 @@ otp_release:
 
 before_install:
   - "sudo apt-get update && sudo apt-get install build-essential libssl-dev libexpat1-dev libaprutil1-dev libavahi-compat-libdnssd-dev"
-  - "./autogen.sh"
+  - "./configure"
 
 notifications:
   email:
