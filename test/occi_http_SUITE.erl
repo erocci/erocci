@@ -9,13 +9,13 @@
 %%%-------------------------------------------------------------------
 -module(occi_http_SUITE).
 
--compile([{parse_transform,lager_transform}, export_all]).
+-compile([export_all]).
 
 -include_lib("eunit/include/eunit.hrl").
 -include_lib("common_test/include/ct.hrl").
 -include_lib("kernel/include/file.hrl").
 
--include_lib("occi_core/include/occi.hrl").
+-include("occi.hrl").
 
 -define(PORT, 8080).
 -define(NAME, "http://localhost:8080").
@@ -25,8 +25,7 @@ suite() ->
     [{timetrap,{seconds,30}}].
 
 init_per_suite(Config) ->
-    application:set_env(lager, handlers, [{lager_console_backend, debug}]),
-    application:start(occi_core),
+    application:ensure_all_started(occi_core),
     Schemas = {schemas, [{path, get_data_path("occi.xml", Config)}]},
     Backends = {backends, 
 		[{mnesia, occi_backend_mnesia, [Schemas], <<"/">>}]},

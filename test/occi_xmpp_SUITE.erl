@@ -11,13 +11,11 @@
 
 -compile(export_all).
 
--compile([{parse_transform,lager_transform}]).
-
 -include_lib("eunit/include/eunit.hrl").
 -include_lib("common_test/include/ct.hrl").
 -include_lib("kernel/include/file.hrl").
 
--include_lib("occi_core/include/occi.hrl").
+-include("occi.hrl").
 -include_lib("erim/include/exmpp_client.hrl").
 
 -define(NAME,"http://localhost:8080").
@@ -38,7 +36,6 @@ suite() ->
 %% @end
 %%--------------------------------------------------------------------
 init_per_suite(Config) ->
-    application:set_env(lager, handlers, [{lager_console_backend, debug}]),
     application:start(occi_core),
     DataDir = proplists:get_value(data_dir, Config),
     Schemas = {schemas, [{path, DataDir ++ "occi-infrastructure.xml"}]},
