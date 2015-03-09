@@ -11,6 +11,7 @@ AM_INIT_AUTOMAKE([1.11 -Wall -Wno-portability foreign no-define tar-ustar no-dis
 AX_ERLANG_INIT()
 
 AC_PROG_CC
+AC_PROG_CXX
 AM_PROG_AR
 LT_INIT
 
@@ -48,12 +49,6 @@ AC_ARG_ENABLE([libxml2],
               [],
 	      [enable_libxml2=no])
 
-AC_ARG_ENABLE([expat],
-	      [AS_HELP_STRING([--disable-expat],
-                              [Disable expat XML parser backend @<:@default: enable@:>@])],
-              [],
-	      [enable_expat=yes])
-
 AC_ARG_ENABLE([debug],
 	      [AS_HELP_STRING([--enable-debug],
                               [Enable debugging infos @<:@default: disable@:>@])],
@@ -82,13 +77,9 @@ if test "x$enable_xmpp" = "xyes"; then
    ], [
      enable_libxml2=no
    ])
-   AS_IF([test "$enable_expat" = "yes"], [
-     PKG_CHECK_MODULES([expat], [expat])
-   ], [
-      enable_expat=no
-   ])
+   AX_LIB_EXPAT
 fi
-AM_CONDITIONAL([EXPAT], [test "$enable_expat" = "yes"])
+AM_CONDITIONAL([HAVE_EXPAT], [test "$HAVE_EXPAT" = "yes"])
 AM_CONDITIONAL([LIBXML2], [test "$enable_libxml2" = "yes"])
 
 if test "x$enable_dbus" = "xyes"; then
@@ -177,7 +168,7 @@ echo ""
 echo "************************************************************************"
 echo "Options:"
 echo "    debug         : "$enable_debug
-echo "    xml backends  : "$(test "$enable_expat" = "yes" && echo expat) " " $(test "$enable_libxml2" = "yes" && echo libxml2)
+echo "    xml backends  : "$(test "$HAVE_EXPAT" = "yes" && echo expat) " " $(test "$enable_libxml2" = "yes" && echo libxml2)
 echo ""
 echo "Components:"
 echo "    listeners     : "$listeners
