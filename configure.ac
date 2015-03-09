@@ -110,7 +110,7 @@ AX_ERLANG_DEP([jiffy],                  [$enable_erlang_deps],
 AX_ERLANG_DEP([erim_xml],               [$enable_erlang_deps],
               [git], [git://github.com/lizenn/erim_xml.git])
 AX_ERLANG_DEP([uuid],                   [$enable_erlang_deps],
-              [git], [git://gitorious.org/avtobiff/erlang-uuid.git], [v0.4.6])
+              [git], [git://github.com/avtobiff/erlang-uuid.git], [v0.4.6])
 AX_ERLANG_DEP([uri],                    [$enable_erlang_deps],
               [git], [git://github.com/heroku/uri.git])
 
@@ -156,7 +156,7 @@ get_apps () {
 }
 
 get_plugins () {
-    get_apps | awk -e '/^'$1'_/ { sub(/^'$1'_/,""); print }'
+    get_apps | awk '/^'$1'_/ { sub(/^'$1'_/,""); print }'
 }
 
 listeners=$(get_plugins listener)
