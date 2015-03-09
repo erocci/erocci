@@ -1,4 +1,4 @@
-AC_PREREQ([2.64])
+AC_PREREQ([2.69])
 AC_INIT([erocci],
 	[0.5],
 	[http://github.com/erocci/erocci/issues],
@@ -6,7 +6,7 @@ AC_INIT([erocci],
         [https://erocci.ow2.org])
 AC_CONFIG_MACRO_DIR([m4])
 
-AM_INIT_AUTOMAKE([1.11 -Wall -Wno-portability foreign no-define tar-ustar no-dist-gzip dist-xz])
+AM_INIT_AUTOMAKE([1.14 -Wall -Wno-portability foreign no-define tar-ustar no-dist-gzip dist-xz])
 
 AX_ERLANG_INIT()
 
