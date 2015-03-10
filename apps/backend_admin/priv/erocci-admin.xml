@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<occi:extension xmlns:occi="http://schemas.ogf.org/occi"
+		xmlns:xs="http://www.w3.org/2001/XMLSchema"
+		xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		xsi:schemaLocation="http://erocci.ow2.org/occi occi.xsd " name="Admin Resources for erocci"
+		status="experimental" version="1">
+  
+  <occi:kind scheme="http://erocci.ow2.org/occi/admin#" term="system" title="System Informations">
+    <occi:parent scheme="http://schemas.ogf.org/occi/core#" term="resource" />
+    <occi:attribute name="erocci.admin.sysname" type="xs:string" title="System Name"
+		    immutable="true" />
+    <occi:attribute name="erocci.admin.sysdescr" type="xs:string" title="System Description"
+		    immutable="true" />
+    <occi:attribute name="erocci.admin.syscontact" type="xs:string" title="System Contact"
+		    immutable="true" />
+    <occi:attribute name="erocci.admin.uptime" type="xs:integer" title="System Uptime"
+		    immutable="true" />
+  </occi:kind>
+</occi:extension>

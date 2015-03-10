@@ -1,0 +1,14 @@
+%%-*- mode: erlang -*-
+{application, @ERL_APP@,
+ [
+  {description, "This backend allows control of erocci through an OCCI interface"},
+  {modules, [@ERL_MODULES@]},
+  {mod, {occi_backend_admin_app, []}},
+  {vsn, "@PACKAGE_VERSION@"},
+  {env, 
+   [
+    {name, "erocci endpoint"},
+    {descr, "The erocci runtime"},
+    {contact, "erocci-dev@ow2.org"}
+   ]}
+ ]}.

@@ -36,6 +36,14 @@ AC_ARG_ENABLE([dbus],
 	      [enable_dbus=no])
 AM_CONDITIONAL([DBUS], [test "$enable_dbus" = "yes"])
 
+
+AC_ARG_ENABLE([backend-admin],
+	      [AS_HELP_STRING([--enable-backend-admin],
+	                      [Enable admin backend @<:@default: disable@:>@])],
+	      [],
+	      [enable_backend_admin=no])
+AM_CONDITIONAL([BACKEND_ADMIN], [test "$enable_backend_admin" = "yes"])
+
 AC_ARG_ENABLE([erlang-deps],
 	      [AS_HELP_STRING([--disable-erlang-deps],
                               [Disable erlang dependancies fetch and build @<:@default: enable@:>@])],
@@ -151,6 +159,7 @@ AC_CONFIG_FILES([
 	apps/authnz_htpasswd/c_src/Makefile
 	apps/backend_mnesia/Makefile
 	apps/backend_dbus/Makefile
+	apps/backend_admin/Makefile
 	doc/Makefile
 	doc/guide/Makefile
 	test/Makefile
