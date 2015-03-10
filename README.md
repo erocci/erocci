@@ -30,13 +30,25 @@ Optinal features requires the following dependancies:
 * htpasswd based authentication: Apache Runtime Library utils headers
 * XMPP link-local support: Avahi headers
 
-Debian and Ubuntu: apt-get install erlang rebar libssl-dev libexpat1-dev libxml2-dev libaprutil1-dev libavahi-compat-libdnssd-dev
+### Ubuntu / Debian
 
-Fedora: yum install erlang rebar curl gcc openssl openssl-devel  mod_ssl libxml2-devel gcc-c++ expat-devel apr-util-devel avahi-compat-libdns_sd-devel
+```
+# wget http://packages.erlang-solutions.com/erlang-solutions_1.0_all.deb && sudo dpkg -i erlang-solutions_1.0_all.deb
+# sudo apt-get update
+# sudo apt-get install build-essential libssl-dev libexpat1-dev libaprutil1-dev libavahi-compat-libdnssd-dev erlang rebar
+```
 
+If you've downloaded the sources from git, you will also need autotools:
+```
+sudo apt-get install autoconf automake libtool git
+```
 
-Fedora: yum install erlang rebar curl gcc openssl openssl-devel mod_ssl libxml2-devel gcc-c++ expat-devel apr-util-devel
+### Fedora
 
+```
+yum install erlang rebar curl gcc openssl openssl-devel  mod_ssl libxml2-devel gcc-c++ expat-devel apr-util-devel avahi-compat-libdns_sd-devel
+yum install erlang rebar curl gcc openssl openssl-devel mod_ssl libxml2-devel gcc-c++ expat-devel apr-util-devel
+```
 
 ## Compiling
 
