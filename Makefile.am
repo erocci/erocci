@@ -25,10 +25,18 @@ erlang_PRIV = \
 	scripts \
 	ssl
 
-include $(top_srcdir)/erlang.mk
+if ERL_DEPS
+all_erlang_deps = all-erlang-deps
+install_erlang_deps = install-erlang-deps
+uninstall_erlang_deps = uninstall-erlang-deps
+clean_erlang_deps = clean-erlang-deps
+dist_erlang_deps = dist-deps
+endif
 
 edepsdir = $(top_builddir)/deps
 edepsdirs = $(addprefix $(edepsdir)/,$(erlang_DEPS))
+
+include $(top_srcdir)/erlang.mk
 
 # For compat with erlang.mk
 DEPS_DIR = $(abspath $(edepsdir))
@@ -37,14 +45,6 @@ export DEPS_DIR
 # For compat with rebar
 REBAR_DEPS_DIR = $(abspath $(edepsdir))
 export REBAR_DEPS_DIR
-
-if ERL_DEPS
-all-local: all-erlang-deps
-install-data-local: install-erlang-deps
-uninstall-local: uninstall-erlang-deps
-clean-local: clean-erlang-deps
-dist-hook: dist-deps
-endif
 
 MAKE_OPTS = 
 if LIBXML2

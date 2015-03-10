@@ -65,9 +65,10 @@ endif
 ###
 ### Build
 ###
-all-erlang: $(appdata) $(appports)
-	$(MAKE) all-first
-	$(MAKE) all-beams
+all-erlang: $(all_erlang_deps)
+	@if test -n "$(appdata)" -o "$(appports)"; then $(MAKE) $(appdata) $(appports); fi
+	@$(MAKE) all-first
+	@$(MAKE) all-beams
 
 all-first: $(appfirst)
 
@@ -128,7 +129,7 @@ $(foreach port,$(erlang_PORTS),$(eval $(call build_port,$(port),$(ecsrcdir)/$(po
 ###
 ### Install / Uninstall
 ###
-install-erlang-app:
+install-erlang-app: $(install_erlang_deps)
 	@$(MKDIR_P) $(DESTDIR)$(ERLANG_INSTALL_LIB_DIR_$(erlang_APP))/ebin
 	@for beam in $(foreach mod,$(erlang_MODULES),$(shell basename $(mod)).beam); do \
 	  $(INSTALL_DATA) ebin/$$beam $(DESTDIR)$(ERLANG_INSTALL_LIB_DIR_$(erlang_APP))/ebin/$$beam; \
@@ -144,7 +145,7 @@ install-erlang-app:
 	  chmod -R u+w $(DESTDIR)$(ERLANG_INSTALL_LIB_DIR_$(erlang_APP))/priv/$$data; \
 	done
 
-uninstall-erlang-app:
+uninstall-erlang-app: $(uninstall_erlang_deps)
 	for beam in $(foreach mod,$(erlang_MODULES),$(shell basename $(mod)).beam); do \
 	  rm -f $(DESTDIR)$(ERLANG_INSTALL_LIB_DIR_$(erlang_APP))/ebin/$$beam; \
 	done
@@ -159,7 +160,7 @@ uninstall-erlang-app:
 ###
 ### Clean
 ###
-clean-erlang:
+clean-erlang: $(clean_erlang_deps)
 	-rm -rf ebin/*
 	-for base in $(shell find $(srcdir)/src -name '*.xrl'); do \
 	  gen=`echo $$base | sed -e 's,\.xrl$$,.erl,'`; \
@@ -174,8 +175,8 @@ clean-erlang:
 ###
 ### Dist
 ###
-dist-erlang:
-	@for file in src/$(erlang_APP).app.in \
+dist-erlang: $(dist_erlang_deps)
+	@for file in $(wildcard $(srcdir)/src/$(erlang_APP).app.in) \
 	        $(addprefix include/,$(addsuffix .hrl,$(erlang_HRL))) \
 		$(foreach mod,$(addprefix src/,$(erlang_MODULES)), \
 	           $(if $(wildcard $(srcdir)/$(mod).xrl), \

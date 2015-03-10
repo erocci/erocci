@@ -114,7 +114,16 @@ AX_ERLANG_DEP([uuid],                   [$enable_erlang_deps],
 AX_ERLANG_DEP([uri],                    [$enable_erlang_deps],
               [git], [git://github.com/heroku/uri.git])
 
-AC_CHECK_PROGS([REBAR], [rebar])
+if test "$enable_erlang_deps" = "yes"; then
+   AC_CHECK_PROGS([GIT], [git], [no])
+   if test "$GIT" = "no"; then
+      AC_MSG_ERROR(['git' is required but can not be found])
+   fi
+fi
+AC_CHECK_PROGS([REBAR], [rebar], [no])
+if test "$REBAR" = "no"; then
+   AC_MSG_ERROR(['rebar' is required but can not be found])
+fi
 AC_CHECK_PROGS([MKDOCS], [mkdocs])
 if test ! x$MKDOCS = x; then
    enable_doc=yes
