@@ -16,7 +16,8 @@ AC_DEFUN([AX_ERLANG_INIT],
               ERLCFLAGS="$ERLCFLAGS -I\$(top_srcdir)/$inc"
 	    done
 	    for app in $(find $srcdir/apps -maxdepth 1 -mindepth 1 -type d); do
-	       ERLCFLAGS="$ERLCFLAGS -I\$(top_srcdir)/$app/include -pa \$(top_builddir)/$app/ebin"
+	       appdir=$(echo $app | sed -e 's,'$srcdir',,')
+	       ERLCFLAGS="$ERLCFLAGS -I\$(top_srcdir)/$app/include -pa \$(top_builddir)/$appdir/ebin"
 	    done
 
 	    CLEANFILES="$CLEANFILES erl_crash.dump"

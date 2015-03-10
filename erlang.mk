@@ -130,20 +130,22 @@ $(foreach port,$(erlang_PORTS),$(eval $(call build_port,$(port),$(ecsrcdir)/$(po
 ### Install / Uninstall
 ###
 install-erlang-app: $(install_erlang_deps)
-	@$(MKDIR_P) $(DESTDIR)$(ERLANG_INSTALL_LIB_DIR_$(erlang_APP))/ebin
-	@for beam in $(foreach mod,$(erlang_MODULES),$(shell basename $(mod)).beam); do \
-	  $(INSTALL_DATA) ebin/$$beam $(DESTDIR)$(ERLANG_INSTALL_LIB_DIR_$(erlang_APP))/ebin/$$beam; \
-	done
-	$(INSTALL_DATA) $(appdata) $(DESTDIR)$(ERLANG_INSTALL_LIB_DIR_$(erlang_APP))/ebin/$(erlang_APP).app
-	@$(MKDIR_P) $(DESTDIR)$(ERLANG_INSTALL_LIB_DIR_$(erlang_APP))/include
-	@for hrl in $(erlang_HRL); do \
-	  $(INSTALL_DATA) $(srcdir)/include/$$hrl.hrl $(DESTDIR)$(ERLANG_INSTALL_LIB_DIR_$(erlang_APP))/include/$$hrl.hrl; \
-	done
-	@$(MKDIR_P) $(DESTDIR)$(ERLANG_INSTALL_LIB_DIR_$(erlang_APP))/priv
-	@for data in $(erlang_PRIV); do \
-	  cp -fpR $(srcdir)/priv/$$data $(DESTDIR)$(ERLANG_INSTALL_LIB_DIR_$(erlang_APP))/priv/$$data; \
-	  chmod -R u+w $(DESTDIR)$(ERLANG_INSTALL_LIB_DIR_$(erlang_APP))/priv/$$data; \
-	done
+	@if test -n "$(erlang_APP)"; then \
+	  $(MKDIR_P) $(DESTDIR)$(ERLANG_INSTALL_LIB_DIR_$(erlang_APP))/ebin; \
+	  for beam in $(foreach mod,$(erlang_MODULES),$(shell basename $(mod)).beam); do \
+	    $(INSTALL_DATA) ebin/$$beam $(DESTDIR)$(ERLANG_INSTALL_LIB_DIR_$(erlang_APP))/ebin/$$beam; \
+	  done; \
+	  $(INSTALL_DATA) $(appdata) $(DESTDIR)$(ERLANG_INSTALL_LIB_DIR_$(erlang_APP))/ebin/$(erlang_APP).app; \
+	  $(MKDIR_P) $(DESTDIR)$(ERLANG_INSTALL_LIB_DIR_$(erlang_APP))/include; \
+	  for hrl in $(erlang_HRL); do \
+	    $(INSTALL_DATA) $(srcdir)/include/$$hrl.hrl $(DESTDIR)$(ERLANG_INSTALL_LIB_DIR_$(erlang_APP))/include/$$hrl.hrl; \
+	  done; \
+	  $(MKDIR_P) $(DESTDIR)$(ERLANG_INSTALL_LIB_DIR_$(erlang_APP))/priv; \
+	  for data in $(erlang_PRIV); do \
+	    cp -fpR $(srcdir)/priv/$$data $(DESTDIR)$(ERLANG_INSTALL_LIB_DIR_$(erlang_APP))/priv/$$data; \
+	    chmod -R u+w $(DESTDIR)$(ERLANG_INSTALL_LIB_DIR_$(erlang_APP))/priv/$$data; \
+	  done; \
+	fi
 
 uninstall-erlang-app: $(uninstall_erlang_deps)
 	for beam in $(foreach mod,$(erlang_MODULES),$(shell basename $(mod)).beam); do \
@@ -176,7 +178,7 @@ clean-erlang: $(clean_erlang_deps)
 ### Dist
 ###
 dist-erlang: $(dist_erlang_deps)
-	@for file in $(wildcard $(srcdir)/src/$(erlang_APP).app.in) \
+	@for file in \
 	        $(addprefix include/,$(addsuffix .hrl,$(erlang_HRL))) \
 		$(foreach mod,$(addprefix src/,$(erlang_MODULES)), \
 	           $(if $(wildcard $(srcdir)/$(mod).xrl), \
@@ -188,6 +190,10 @@ dist-erlang: $(dist_erlang_deps)
 	  $(MKDIR_P) $(distdir)/$$dirname; \
 	  cp $(srcdir)/$$file $(distdir)/$$file; \
 	done
+	@if test -n "$(erlang_APP)"; then \
+	  $(MKDIR_P) $(distdir)/src; \
+	  cp $(srcdir)/src/$(erlang_APP).app.in $(distdir)/src/$(erlang_APP).app.in; \
+	fi
 	@for file in $(erlang_PRIV); do \
 	  dirname=`echo $$file | sed -e 's,/*[^/]\+/*$$,,'`; \
 	  $(MKDIR_P) $(distdir)/priv/$$dirname; \
