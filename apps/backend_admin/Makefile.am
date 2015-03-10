@@ -16,5 +16,6 @@
 #
 erlang_APP = occi_backend_admin
 erlang_MODULES = occi_backend_admin
+erlang_PRIV = erocci-admin.xml
 
 include $(top_srcdir)/erlang.mk
