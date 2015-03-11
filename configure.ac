@@ -15,12 +15,12 @@ AC_PROG_CXX
 AM_PROG_AR
 LT_INIT
 
-AC_ARG_ENABLE([xmpp],
-	      [AS_HELP_STRING([--disable-xmpp],
+AC_ARG_ENABLE([listener-xmpp],
+	      [AS_HELP_STRING([--disable-listener-xmpp],
 	                      [Disable XMPP listener @<:@default: enable@:>@])],
 	      [],
-	      [enable_xmpp=yes])
-AM_CONDITIONAL([XMPP], [test "$enable_xmpp" = "yes"])
+	      [enable_listener_xmpp=yes])
+AM_CONDITIONAL([LISTENER_XMPP], [test "$enable_listener_xmpp" = "yes"])
 
 AC_ARG_ENABLE([authnz-htpasswd],
 	      [AS_HELP_STRING([--disable-authnz-htpasswd],
@@ -71,7 +71,7 @@ AC_ERLANG_SUBST_INSTALL_LIB_SUBDIR([occi_authnz_htpasswd], [${PACKAGE_VERSION}])
 AC_ERLANG_SUBST_INSTALL_LIB_SUBDIR([occi_listener_http], [${PACKAGE_VERSION}])
 AC_ERLANG_SUBST_INSTALL_LIB_SUBDIR([occi_backend_mnesia], [${PACKAGE_VERSION}])
 
-if test "x$enable_xmpp" = "xyes"; then
+if test "x$enable_listener_xmpp" = "xyes"; then
    AC_ERLANG_SUBST_INSTALL_LIB_SUBDIR([occi_listener_xmpp], [${PACKAGE_VERSION}])
    AX_ERLANG_DEP([erim],  [$enable_erlang_deps],
                  [git], [git://github.com/lizenn/erim.git])

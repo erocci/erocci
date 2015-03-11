@@ -16,7 +16,7 @@
 #
 SUBDIRS = core authnz listener_http backend_mnesia
 
-if XMPP
+if LISTENER_XMPP
 SUBDIRS += listener_xmpp
 endif
 
