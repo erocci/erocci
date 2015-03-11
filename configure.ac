@@ -38,11 +38,18 @@ AM_CONDITIONAL([BACKEND_DBUS], [test "$enable_backend_dbus" = "yes"])
 
 
 AC_ARG_ENABLE([backend-admin],
-	      [AS_HELP_STRING([--enable-backend-admin],
-	                      [Enable admin backend @<:@default: disable@:>@])],
+	      [AS_HELP_STRING([--disable-backend-admin],
+	                      [Disable admin backend @<:@default: enable@:>@])],
 	      [],
-	      [enable_backend_admin=no])
+	      [enable_backend_admin=yes])
 AM_CONDITIONAL([BACKEND_ADMIN], [test "$enable_backend_admin" = "yes"])
+
+AC_ARG_ENABLE([backend-fs],
+	      [AS_HELP_STRING([--disable-backend-fs],
+	                      [Disable storage backend @<:@default: enable@:>@])],
+	      [],
+	      [enable_backend_fs=yes])
+AM_CONDITIONAL([BACKEND_FS], [test "$enable_backend_fs" = "yes"])
 
 AC_ARG_ENABLE([erlang-deps],
 	      [AS_HELP_STRING([--disable-erlang-deps],
@@ -70,6 +77,8 @@ AC_ERLANG_SUBST_INSTALL_LIB_SUBDIR([occi_authnz], [${PACKAGE_VERSION}])
 AC_ERLANG_SUBST_INSTALL_LIB_SUBDIR([occi_authnz_htpasswd], [${PACKAGE_VERSION}])
 AC_ERLANG_SUBST_INSTALL_LIB_SUBDIR([occi_listener_http], [${PACKAGE_VERSION}])
 AC_ERLANG_SUBST_INSTALL_LIB_SUBDIR([occi_backend_mnesia], [${PACKAGE_VERSION}])
+AC_ERLANG_SUBST_INSTALL_LIB_SUBDIR([occi_backend_admin], [${PACKAGE_VERSION}])
+AC_ERLANG_SUBST_INSTALL_LIB_SUBDIR([occi_backend_fs], [${PACKAGE_VERSION}])
 
 if test "x$enable_listener_xmpp" = "xyes"; then
    AC_ERLANG_SUBST_INSTALL_LIB_SUBDIR([occi_listener_xmpp], [${PACKAGE_VERSION}])
@@ -90,12 +99,17 @@ fi
 AM_CONDITIONAL([HAVE_EXPAT], [test "$HAVE_EXPAT" = "yes"])
 AM_CONDITIONAL([LIBXML2], [test "$enable_libxml2" = "yes"])
 
-if test "x$enable_dbus" = "xyes"; then
+if test "x$enable_backend_dbus" = "xyes"; then
    AC_ERLANG_SUBST_INSTALL_LIB_SUBDIR([occi_backend_dbus], [${PACKAGE_VERSION}])
    AX_ERLANG_DEP([dbus],  [$enable_erlang_deps],
                  [git], [git://github.com/lizenn/erlang-dbus.git])
 
    PKG_CHECK_MODULES([avahi_compat_libdns_sd], [avahi-compat-libdns_sd])
+fi
+
+if test "x$enable_backend_fs" = "xyes"; then
+   AX_ERLANG_DEP([statfs], [$enable_erlang_deps],
+   	         [git], [https://github.com/lizenn/statfs.git])
 fi
 
 if test "x$enable_htpasswd" = "xyes"; then
@@ -160,6 +174,7 @@ AC_CONFIG_FILES([
 	apps/backend_mnesia/Makefile
 	apps/backend_dbus/Makefile
 	apps/backend_admin/Makefile
+	apps/backend_fs/Makefile
 	doc/Makefile
 	doc/guide/Makefile
 	test/Makefile

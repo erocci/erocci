@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<occi:extension xmlns:occi="http://schemas.ogf.org/occi"
+		xmlns:xs="http://www.w3.org/2001/XMLSchema"
+		xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		xsi:schemaLocation="http://schemas.ogf.org/occi occi.xsd " name="Storage"
+		status="experimental" version="1">
+
+  <!--
+      Storage Container Kind (resource)
+  -->
+  <occi:kind term="container" scheme="http://schemas.ogf.org/occi/storage#"
+	     title="Container Resource (dir)">
+    <occi:parent scheme="http://schemas.ogf.org/occi/core#" term="resource" />
+    <occi:attribute name="occi.storage.size" type="xs:integer" title="Container Size (#children)" />
+  </occi:kind>
+
+  <!--
+      Storage Container entry Kind (link)
+  -->
+  <occi:kind term="containerentry" scheme="http://schemas.ogf.org/occi/storage#"
+	     title="Container Entry Link">
+    <occi:parent scheme="http://schemas.ogf.org/occi/core#" term="link" />
+  </occi:kind>
+
+  <!--
+      Data Kind
+  -->
+  <occi:kind term="data" scheme="http://schemas.ogf.org/occi/storage#"
+	     title="Data Resource (file)">
+    <occi:parent scheme="http://schemas.ogf.org/occi/core#" term="resource" />
+    <occi:attribute name="occi.storage.mimetype" type="xs:string" title="Content Mimetype" />
+    <occi:attribute name="occi.storage.size" type="xs:integer" title="Content Size" />
+  </occi:kind>
+
+  <!--
+      Raw data mixin
+  -->
+  <occi:mixin term="rawdata" scheme="http://schemas.ogf.org/occi/storage#"
+	     title="Raw data mixin">
+    <occi:attribute name="occi.storage.raw" type="xs:anyURI" title="Data content link" />
+  </occi:mixin>
+
+  <!--
+      Thumbnail Mixin
+  -->
+  <occi:mixin term="thumbnail" scheme="http://schemas.ogf.org/occi/storage#"
+	      title="Data thumbnail (light representation)" >
+    <occi:attribute name="occi.storage.thumbnail.id" type="xs:anyURI" title="" />
+    <occi:attribute name="occi.storage.thumbnail.mimetype" type="xs:string" title="" />
+  </occi:mixin>
+  
+</occi:extension>

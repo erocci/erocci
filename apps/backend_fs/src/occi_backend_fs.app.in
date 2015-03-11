@@ -1,0 +1,13 @@
+%%-*- mode: erlang -*-
+{application, @ERL_APP@,
+ [
+  {description, "This backend exposes a filesystem as OCCI resources"},
+  {modules, [@ERL_MODULES@]},
+  {vsn, "@PACKAGE_VERSION@"},
+  {env, 
+   [
+    {name, "erocci endpoint"},
+    {descr, "The erocci runtime"},
+    {contact, "erocci-dev@ow2.org"}
+   ]}
+ ]}.

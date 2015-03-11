@@ -14,24 +14,8 @@
 # specific language governing permissions and limitations
 # under the License.
 #
-SUBDIRS = core authnz listener_http backend_mnesia
+erlang_APP = occi_backend_fs
+erlang_MODULES = occi_backend_fs
+erlang_PRIV = occi-storage.xml
 
-if LISTENER_XMPP
-SUBDIRS += listener_xmpp
-endif
-
-if AUTHNZ_HTPASSWD
-SUBDIRS += authnz_htpasswd
-endif
-
-if BACKEND_DBUS
-SUBDIRS += backend_dbus
-endif
-
-if BACKEND_ADMIN
-SUBDIRS += backend_admin
-endif
-
-if BACKEND_FS
-SUBDIRS += backend_fs
-endif
+include $(top_srcdir)/erlang.mk
