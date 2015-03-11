@@ -24,7 +24,7 @@ if AUTHNZ_HTPASSWD
 SUBDIRS += authnz_htpasswd
 endif
 
-if DBUS
+if BACKEND_DBUS
 SUBDIRS += backend_dbus
 endif
 

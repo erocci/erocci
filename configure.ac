@@ -29,12 +29,12 @@ AC_ARG_ENABLE([authnz-htpasswd],
 	      [enable_authnz_htpasswd=yes])
 AM_CONDITIONAL([AUTHNZ_HTPASSWD], [test "$enable_authnz_htpasswd" = "yes"])
 
-AC_ARG_ENABLE([dbus],
-	      [AS_HELP_STRING([--enable-dbus],
-	                      [Enabl D-BUS backend @<:@default: disable@:>@])],
+AC_ARG_ENABLE([backend-dbus],
+	      [AS_HELP_STRING([--enable-backend-dbus],
+	                      [Enable D-BUS backend @<:@default: disable@:>@])],
 	      [],
-	      [enable_dbus=no])
-AM_CONDITIONAL([DBUS], [test "$enable_dbus" = "yes"])
+	      [enable_backend_dbus=no])
+AM_CONDITIONAL([BACKEND_DBUS], [test "$enable_backend_dbus" = "yes"])
 
 
 AC_ARG_ENABLE([backend-admin],
