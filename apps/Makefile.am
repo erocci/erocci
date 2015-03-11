@@ -20,7 +20,7 @@ if XMPP
 SUBDIRS += listener_xmpp
 endif
 
-if HTPASSWD
+if AUTHNZ_HTPASSWD
 SUBDIRS += authnz_htpasswd
 endif
 

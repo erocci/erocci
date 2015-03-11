@@ -22,12 +22,12 @@ AC_ARG_ENABLE([xmpp],
 	      [enable_xmpp=yes])
 AM_CONDITIONAL([XMPP], [test "$enable_xmpp" = "yes"])
 
-AC_ARG_ENABLE([htpasswd],
-	      [AS_HELP_STRING([--disable-htpasswd],
+AC_ARG_ENABLE([authnz-htpasswd],
+	      [AS_HELP_STRING([--disable-authnz-htpasswd],
 	                      [Disable htpasswd based authentication @<:@default: enable@:>@])],
 	      [],
-	      [enable_htpasswd=yes])
-AM_CONDITIONAL([HTPASSWD], [test "$enable_htpasswd" = "yes"])
+	      [enable_authnz_htpasswd=yes])
+AM_CONDITIONAL([AUTHNZ_HTPASSWD], [test "$enable_authnz_htpasswd" = "yes"])
 
 AC_ARG_ENABLE([dbus],
 	      [AS_HELP_STRING([--enable-dbus],
