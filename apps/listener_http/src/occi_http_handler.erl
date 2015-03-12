@@ -394,7 +394,7 @@ save_collection(Req, #state{ct=#content_type{parser=Parser},
 
 
 update_collection(Req, #state{ct=#content_type{parser=Parser}, env=Env,
-                              user=User,
+                              user=User, auth=Ref,
                               node=#occi_node{type=occi_collection, objid=#occi_cid{class=kind}}=Node}=State) ->
     {ok, Body, Req2} = cowboy_req:body(Req),
     Entity = prepare_entity(Node, Env),
@@ -407,7 +407,7 @@ update_collection(Req, #state{ct=#content_type{parser=Parser}, env=Env,
             {halt, Req2, State};
         {ok, #occi_resource{}=Res} ->
             Node2 = occi_node:new(Res, User),
-            case occi_store:save(Node2) of
+            case occi_store:save(Node2, #occi_store_ctx{user=Node#occi_node.owner, auth_ref=Ref}) of
                 ok ->
                     {{true, occi_uri:to_binary(Node2#occi_node.id, Env)}, Req2, State};
                 {error, Reason} ->
@@ -416,7 +416,7 @@ update_collection(Req, #state{ct=#content_type{parser=Parser}, env=Env,
             end;
         {ok, #occi_link{}=Link} ->
             Node2 = occi_node:new(Link, User),
-            case occi_store:save(Node2) of
+            case occi_store:save(Node2, #occi_store_ctx{user=Node#occi_node.owner, auth_ref=Ref}) of
                 ok ->
                     {{true, occi_uri:to_binary(Node2#occi_node.id, Env)}, Req2, State};
                 {error, Reason} ->
