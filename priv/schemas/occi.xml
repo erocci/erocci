@@ -7,8 +7,8 @@
   
   <occi:kind scheme="http://example.org/occi/test#" term="blog" title="A Blog">
     <occi:parent scheme="http://schemas.ogf.org/occi/core#" term="resource" />
-    <occi:attribute name="example.blog.title" type="xs:string" title="Blog title"
-		    use="required" />
+    <occi:attribute name="example.blog.title" type="xs:string" title="Blog title" use="required" />
+    <!-- occi:attribute name="example.blog.tags" type="xs:string" title="Tags" / -->
   </occi:kind>
 
   <occi:kind scheme="http://example.org/occi/test#" term="entry" title="entry">
@@ -22,7 +22,7 @@
   </occi:kind>
 
   <occi:kind scheme="http://example.org/occi/test#" term="user" title="Blog user">
-    <occi:parent scheme="http://schemas.ogf.org/occi/core#" term="resources" />
+    <occi:parent scheme="http://schemas.ogf.org/occi/core#" term="resource" />
     <occi:attribute name="blog.user.name" type="xs:string" title="User name"
 		    use="required" />
     <occi:attribute name="blog.user.email" type="xs:string" title="User email" />
