@@ -112,7 +112,7 @@ if test "x$enable_backend_fs" = "xyes"; then
    	         [git], [https://github.com/lizenn/statfs.git])
 fi
 
-if test "x$enable_htpasswd" = "xyes"; then
+if test "x$enable_authnz_htpasswd" = "xyes"; then
    AC_ERLANG_SUBST_INSTALL_LIB_SUBDIR([occi_authnz_htpasswd], [${PACKAGE_VERSION}])
 
    AC_MSG_CHECKING([for libaprutil1 (apr_md5.h)])
@@ -156,7 +156,7 @@ AM_CONDITIONAL([BUILDDOC], [test x$enable_doc = xyes])
 
 AS_IF([test x$enable_erlang_deps = xyes], [AC_CHECK_PROGS([GIT], [git])])
 
-AS_IF([test x$enable_htpasswd = xyes], [
+AS_IF([test x$enable_authnz_htpasswd = xyes], [
    AC_ERLANG_CHECK_LIB([erl_interface])
    AC_SUBST([ERL_CFLAGS], ["-I${ERLANG_ROOT_DIR}/erts-${ERLANG_ERTS_VER}/include -I${ERLANG_LIB_DIR_erl_interface}/include"])
    AC_SUBST([ERL_LDFLAGS], ["-L${ERLANG_LIB_DIR_erl_interface}/lib -lerl_interface -lei"])
@@ -178,6 +178,8 @@ AC_CONFIG_FILES([
 	doc/Makefile
 	doc/guide/Makefile
 	test/Makefile
+	rel/Makefile
+	rel/relx.config
 ])
 
 AC_OUTPUT
