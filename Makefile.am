@@ -14,7 +14,7 @@
 # specific language governing permissions and limitations
 # under the License.
 #
-SUBDIRS = apps doc test
+SUBDIRS = apps doc test rel
 
 erlang_APP = occi
 erlang_MODULES = occi_app occi occi_log_handler
@@ -45,6 +45,10 @@ export DEPS_DIR
 # For compat with rebar
 REBAR_DEPS_DIR = $(abspath $(edepsdir))
 export REBAR_DEPS_DIR
+
+relx_v = $(relx_v_@AM_V@)
+relx_v_ = $(relx_v_@AM_DEFAULT_V@)
+relx_v_0 = @echo "  RELX    " $@;
 
 MAKE_OPTS = 
 if LIBXML2
@@ -124,4 +128,26 @@ dist-deps: deps
 	  fi; \
 	done
 
-.PHONY: all-erlang-deps install-erlang-deps uninstall-erlang-deps clean-erlang-deps dist-deps deps
+
+###
+### erlang release
+###
+RELX_CONFIG = $(builddir)/rel/relx.config
+RELX = $(srcdir)/relx
+RELX_URL = https://github.com/erlware/relx/releases/download/v1.2.0/relx
+RELX_OUT = $(builddir)/rel
+RELX_OPTS ?= -V
+
+rel: $(RELX) $(RELX_CONFIG) distclean-relx all
+	$(relx_v)$(RELX) -c $(RELX_CONFIG) $(RELX_OPTS) -o $(RELX_OUT)
+
+distclean-relx:
+	-rm -rf $(RELX_OUT)/$(PACKAGE_NAME)
+
+update-relx: $(RELX)
+
+$(RELX):
+	wget -O $@ $(RELX_URL)
+	chmod a+x $@
+
+.PHONY: all-erlang-deps install-erlang-deps uninstall-erlang-deps clean-erlang-deps dist-deps deps rel distclean-relx update-relx
