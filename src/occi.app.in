@@ -1,7 +1,7 @@
 %%-*- mode: erlang -*-
 {application, @ERL_APP@,
  [
-  {id, @ERL_APP@},
+  {id, "@ERL_APP@"},
   {description, "@PACKAGE_STRING@"},
   {vsn, "@PACKAGE_VERSION@"},
   {mod, {occi_app, []}},
