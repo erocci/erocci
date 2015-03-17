@@ -12,5 +12,6 @@
 		  erim_xml,
 		  occi_authnz
 		 ]},
-  {vsn, "@PACKAGE_VERSION@"}
+  {vsn, "@PACKAGE_VERSION@"},
+  {registered, []}
  ]}.
