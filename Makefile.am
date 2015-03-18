@@ -75,7 +75,7 @@ deps: $(edepsdirs)
 	    if [ -f $$dep/rebar.config -a -n "$(REBAR)" ]; then \
 	        ( cd $$dep && $(REBAR) get-deps ) || exit $$?; \
 	    elif [ -f $$dep/erlang.mk ]; then \
-	        $(MAKE) --no-print-directory -C $$dep deps $(MAKE_OPTS) || exit $??; \
+	        $(MAKE) --no-print-directory -C $$dep deps $(MAKE_OPTS) || exit $$?; \
 	    fi ; \
 	done
 
