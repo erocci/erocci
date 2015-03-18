@@ -1,24 +1,7 @@
 %% -*- mode: Erlang; fill-column: 80; comment-column: 75; -*-
 {release, {@PACKAGE_NAME@, "@PACKAGE_VERSION@"},
  [
-  {occi,                 "@PACKAGE_VERSION@"},
-  {occi_core,            "@PACKAGE_VERSION@"},
-  {occi_listener_http,   "@PACKAGE_VERSION@"},
-  {occi_listener_xmpp,   "@PACKAGE_VERSION@"},
-  {occi_authnz,          "@PACKAGE_VERSION@"},
-  {occi_authnz_htpasswd, "@PACKAGE_VERSION@"},
-  {occi_backend_admin,   "@PACKAGE_VERSION@"},
-  %{occi_backend_dbus,    "@PACKAGE_VERSION@"},
-  {occi_backend_fs,      "@PACKAGE_VERSION@"},
-  {occi_backend_mnesia,  "@PACKAGE_VERSION@"},
-  {erim,      "0.10", '>='},
-  {dnssd,     "0.9", '>='},
-  {statfs,    "1", '>='},
-  {cowboy,    "1.0.0", '>='},
-  {jiffy,     "0.9.0", '>='},
-  {erim_xml,  "0.1", '>='},
-  {uuid,      "0.4.6", '>='},
-  {uri,       "0.1.0", '>='}
+  @RELXAPPS@
  ]
 }.
 
