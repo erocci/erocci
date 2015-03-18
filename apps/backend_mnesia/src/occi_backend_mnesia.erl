@@ -43,7 +43,7 @@
 %%% occi_backend callbacks
 %%%===================================================================
 init(#occi_backend{opts=Opts}) ->
-    ok = application:load(occi_backend_mnesia),
+    application:load(occi_backend_mnesia),
     init_schema(Opts).
 
 
@@ -702,14 +702,20 @@ parse_marker(Bin) ->
 
 
 init_schema(Opts) ->
-    case mnesia:create_schema([node()]) of
-	ok ->
+    Path = application:get_env(mnesia, dir, ""),
+    case filelib:is_file(filename:join([Path, "schema.DAT"])) of
+	true ->
+	    ?debug("mnesia schema already exists on this node", []),
 	    init_db(Opts);
-	{error, {_, {already_exists, _}}} ->
-	    init_db(Opts);
-	{error, Err} ->
-	    ?error("Error creating mnesia schema on node ~p: ~p~n", [node(), Err]),
-	    {error, Err}
+	false ->
+	    ?debug("Creating mnesia schema on ~s", [Path]),
+	    case mnesia:create_schema([node()]) of
+		ok ->
+		    init_db(Opts);
+		{error, Err} ->
+		    ?error("Error creating mnesia schema on node ~p: ~p", [node(), Err]),
+		    {error, Err}
+	    end
     end.
 
 init_db(Opts) ->
@@ -736,7 +742,7 @@ init_db(Opts) ->
 				    occi_mixin, occi_node, occi_user], 5000),
 	    init_backend(Opts);
 	{error, Err} ->
-	    ?error("Error creating mnesia tables: ~p~n", [Err]),
+	    ?error("Error creating mnesia tables: ~p", [Err]),
 	    {error, Err}
     end.
 
