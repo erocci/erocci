@@ -118,6 +118,7 @@ $(foreach mod,$(yrlmod), $(eval $(call compile_yrl,$(shell basename $(mod)),$(mo
 
 define build_port
 priv/$(1).so: $(2)
+	@$(MKDIR_P) $(@D)
 	$(AM_V_GEN)cp -fp $(ecsrcdir)/.libs/$$(@F) $$@
 
 c_src/%.la:
