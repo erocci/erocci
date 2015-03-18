@@ -11,7 +11,7 @@ AC_DEFUN([AX_ERLANG_INIT],
 
 	    AC_SUBST([erlang_DEPS])
 
-	    ERLCFLAGS="-pa $(builddir)/ebin -I\$(srcdir)/src -I\$(srcdir)/include"
+	    ERLCFLAGS="-pa \$(builddir)/ebin -I\$(srcdir)/src -I\$(srcdir)/include"
 	    for inc in include deps apps; do
               ERLCFLAGS="$ERLCFLAGS -I\$(top_srcdir)/$inc"
 	    done

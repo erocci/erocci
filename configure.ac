@@ -3,10 +3,12 @@ dnl Autoconf initialization
 dnl
 AC_PREREQ([2.69])
 AC_INIT([erocci],
-	[0.5],
+	m4_esyscmd([(git describe 2>/dev/null || echo 0.5) | sed 's/^v//' |
+        sed 's/-\([0-9]\)-/-0\1-/' | tr -d '\n' || echo 1]),
 	[http://github.com/erocci/erocci/issues],
         [erocci],
         [https://erocci.ow2.org])
+AC_CONFIG_SRCDIR([src/occi.erl])
 AC_CONFIG_MACRO_DIR([m4])
 
 AM_INIT_AUTOMAKE([1.14 -Wall -Wno-portability foreign no-define tar-ustar no-dist-gzip dist-xz])
@@ -26,11 +28,27 @@ append_to_RELXAPPS () {
    fi
 }
 
+dnl ------------------------------------------------------------------
+dnl Versioning.
+dnl ------------------------------------------------------------------
+
+dnl Is this a final release?
+is_release=0
+GITDESC1=`git describe --abbrev=0 || echo 1`
+GITDESC2=`git describe --abbrev=4 || echo 1`
+if test "${GITDESC1}" = "${GITDESC2}"; then
+       is_release=1
+fi
+
 dnl
 dnl Compilers and all
 dnl
 AC_PROG_CC
 AC_PROG_CXX
+AC_PROG_LD
+AC_PROG_INSTALL
+AC_PROG_MAKE_SET
+AC_PROG_SED
 AM_PROG_AR
 
 dnl
@@ -84,7 +102,11 @@ AX_ERLANG_DEP([jiffy],                  [$enable_erlang_deps],
 append_to_RELXAPPS "{jiffy, \"0.9.0\", '>='}"
 
 AC_ERLANG_SUBST_INSTALL_LIB_SUBDIR([occi_listener_http], [${PACKAGE_VERSION}])
+append_to_RELXAPPS "occi_listener_http"
+
 AC_ERLANG_SUBST_INSTALL_LIB_SUBDIR([occi_backend_mnesia], [${PACKAGE_VERSION}])
+append_to_RELXAPPS "occi_backend_mnesia"
+append_to_RELXAPPS "mnesia"
 
 dnl option --enable-listner-xmpp
 AC_ARG_ENABLE([listener-xmpp],
