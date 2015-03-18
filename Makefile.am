@@ -64,18 +64,18 @@ export ERLC_OPTS
 all-erlang-deps: deps
 	@for dep in $(addprefix $(edepsdir)/,$(erlang_DEPS)) ; do \
 	    if [ -f $$dep/GNUmakefile ] || [ -f $$dep/makefile ] || [ -f $$dep/Makefile ]; then \
-	        $(MAKE) -C $$dep $(MAKE_OPTS); \
+	        $(MAKE) --no-print-directory -C $$dep $(MAKE_OPTS) || exit $$?; \
 	    elif [ -f $$dep/rebar.config -a -n "$(REBAR)" ]; then \
-	        ( cd $$dep && $(REBAR) compile ); \
+	        ( cd $$dep && $(REBAR) compile ) || exit $$?; \
 	    fi ; \
 	done
 
 deps: $(edepsdirs)
 	@for dep in $(addprefix $(edepsdir)/,$(erlang_DEPS)) ; do \
 	    if [ -f $$dep/rebar.config -a -n "$(REBAR)" ]; then \
-	        ( cd $$dep && $(REBAR) get-deps ); \
+	        ( cd $$dep && $(REBAR) get-deps ) || exit $$?; \
 	    elif [ -f $$dep/erlang.mk ]; then \
-	        $(MAKE) -C $$dep deps $(MAKE_OPTS); \
+	        $(MAKE) --no-print-directory -C $$dep deps $(MAKE_OPTS) || exit $??; \
 	    fi ; \
 	done
 
@@ -112,7 +112,7 @@ uninstall-erlang-deps:
 clean-erlang-deps:
 	@for dep in $(addprefix $(edepsdir)/,$(erlang_DEPS)) ; do \
 	    if [ -f $$dep/GNUmakefile ] || [ -f $$dep/makefile ] || [ -f $$dep/Makefile ]; then \
-	        $(MAKE) -C $$dep clean; \
+	        $(MAKE) --no-print-directory -C $$dep clean; \
 	    elif [ -f $$dep/rebar.config -a -n "$(REBAR)" ]; then \
 	        ( cd $$dep && $(REBAR) clean ); \
 	    fi ; \
