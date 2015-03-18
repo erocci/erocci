@@ -17,9 +17,9 @@
 -define(cid_resource, #occi_cid{scheme=?scheme_core, term=resource}).
 -define(cid_link, #occi_cid{scheme=?scheme_core, term=link}).
 
--type occi_schema() :: binary()
-          | occi_mixin()
-          | [{path, string()}].
+-type occi_schema() :: XmlExt :: binary()
+		     | occi_mixin()
+		     | [{path, Path :: string()}].
 
 -type occi_backend_capability() :: {schemas, [occi_schema()]}
           | pagination

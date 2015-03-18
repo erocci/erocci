@@ -43,10 +43,12 @@
 %%% occi_backend callbacks
 %%%===================================================================
 init(#occi_backend{opts=Opts}) ->
+    ok = application:load(occi_backend_mnesia),
     init_schema(Opts).
 
 
 terminate(#state{}) ->
+    application:unload(occi_backend_mnesia),
     ok.
 
 save(State, #occi_node{}=Obj) ->
@@ -753,18 +755,21 @@ init_tables([{Name, TabDef} | Tables]) ->
     end.
 
 init_backend(Opts) ->
-    case proplists:get_value(schemas, Opts) of
-	undefined -> 
-	    {ok, [], #state{}};
-	Schemas ->
-	    F = fun() -> mnesia:match_object(#occi_node{type=capabilities, _='_'}) end,
-	    case mnesia:transaction(F) of
-		{atomic, []} -> 
-		    {ok, [{schemas, Schemas}], #state{}};
-		{atomic, MixinsNodes} ->
-		    Mixins = [ Mixin || #occi_node{data=Mixin} <- MixinsNodes],
-		    {ok, [{schemas, lists:flatten([Schemas, Mixins])}], #state{}};
-		{aborted, Reason} ->
-		    {error, Reason}
-	    end
+    Schemas = lists:map(fun ({path, _Path}=S) -> 
+				S;
+			    ({priv_dir, Path}) -> 
+				Fullpath = filename:join([code:priv_dir(occi_backend_mnesia), Path]),
+				{path, Fullpath}
+			end, 
+		       proplists:get_value(schemas, Opts, []) 
+			++ application:get_env(occi_backend_mnesia, schemas, [])),
+    F = fun() -> mnesia:match_object(#occi_node{type=capabilities, _='_'}) end,
+    case mnesia:transaction(F) of
+	{atomic, []} -> 
+	    {ok, [{schemas, Schemas}], #state{}};
+	{atomic, MixinsNodes} ->
+	    Mixins = [ Mixin || #occi_node{data=Mixin} <- MixinsNodes],
+	    {ok, [{schemas, lists:flatten([Schemas, Mixins])}], #state{}};
+	{aborted, Reason} ->
+	    {error, Reason}
     end.

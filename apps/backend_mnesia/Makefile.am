@@ -16,5 +16,6 @@
 #
 erlang_APP = occi_backend_mnesia
 erlang_MODULES = occi_backend_mnesia
+erlang_PRIV = occi.xml
 
 include $(top_srcdir)/erlang.mk
