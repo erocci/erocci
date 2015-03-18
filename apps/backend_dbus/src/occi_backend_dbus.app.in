@@ -3,5 +3,11 @@
  [
   {description, "erocci DBUS backend"},
   {modules, [@ERL_MODULES@]},
-  {vsn, "@PACKAGE_VERSION@"}
+  {vsn, "@PACKAGE_VERSION@"},
+  {applications, 
+   [
+    kernel,
+    stdlib,
+    dbus
+   ]}
  ]}.

@@ -5,6 +5,12 @@
   {modules, [@ERL_MODULES@]},
   {mod, {occi_backend_admin_app, []}},
   {vsn, "@PACKAGE_VERSION@"},
+  {applications, 
+   [
+    kernel,
+    stdlib
+   ]},
+  {registered, []},
   {env, 
    [
     {name, "erocci endpoint"},

@@ -3,5 +3,13 @@
  [
   {description, "erocci XMPP listener"},
   {modules, [@ERL_MODULES@]},
-  {vsn, "@PACKAGE_VERSION@"}
+  {vsn, "@PACKAGE_VERSION@"},
+  {applications, 
+   [
+    kernel, 
+    stdlib,
+    erim,
+    occi_authnz
+   ]},
+  {registered, []}
  ]}.

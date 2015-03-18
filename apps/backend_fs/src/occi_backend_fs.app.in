@@ -4,6 +4,14 @@
   {description, "This backend exposes a filesystem as OCCI resources"},
   {modules, [@ERL_MODULES@]},
   {vsn, "@PACKAGE_VERSION@"},
+  {applications, 
+   [
+    kernel,
+    stdlib,
+    statfs
+   ]
+  },
+  {registered, []},
   {env, 
    [
     {name, "erocci endpoint"},

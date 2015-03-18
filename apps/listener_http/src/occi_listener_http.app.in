@@ -3,5 +3,14 @@
  [
   {description, "erocci HTTP listener"},
   {modules, [@ERL_MODULES@]},
-  {vsn, "@PACKAGE_VERSION@"}
+  {vsn, "@PACKAGE_VERSION@"},
+  {applications, 
+   [
+    kernel,
+    stdlib,
+    cowboy,
+    occi_authnz
+   ]
+  },
+  {registered, []}
  ]}.
