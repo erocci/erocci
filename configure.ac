@@ -106,8 +106,7 @@ AC_ARG_WITH([libxml2],
 	    fi
 	    ],
 	    [
-	    PKG_CHECK_MODULES([xml2], [libxml-2.0])
-	    enable_xml2="yes"
+	    PKG_CHECK_MODULES([xml2], [libxml-2.0], [enable_xml2="yes"], [enable_xml2="no"])
 	    ])
 AM_CONDITIONAL([LIBXML2], [test "$enable_xml2" = "yes"])
 
