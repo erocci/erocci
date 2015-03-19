@@ -50,7 +50,11 @@ AC_DEFUN([AX_ERLANG_INIT],
 # AX_ERLANG_DEP(NAME, BUILD, REP_TYPE, REP_URL, [VERSION = master])
 # ----------------------------------------------------------
 AC_DEFUN([AX_ERLANG_DEP],
-[if test x$2 = xyes; then
+[AC_ERLANG_CHECK_LIB([$1], [
+	append_to_ERLCFLAGS "-I[$]{ERLANG_LIB_DIR_$1}/include -pa [$]{ERLANG_LIB_DIR_$1}/ebin"
+],
+[
+if test x$2 = xyes; then
     append_to_ERLCFLAGS "-I\$(top_srcdir)/deps/$1/include"
     append_to_erlang_DEPS "$1"
 
@@ -74,12 +78,12 @@ AC_DEFUN([AX_ERLANG_DEP],
 	;;
     esac
 
-    AC_MSG_CHECKING([for Erlang/OTP '$1' library])
-    AC_MSG_RESULT([add for fetch and build])
+    AC_MSG_NOTICE([adding $1 in fetch and build list])
     AC_SUBST([$1_DEP_VCS], [$3])
     AC_SUBST([$1_DEP_URL], [$4])
     AC_SUBST([$1_DEP_VER], [$5])
 else
-    AC_ERLANG_CHECK_LIB([$1])
-fi
+    AC_MSG_ERROR([$1 was not found!])
+fi	
+])
 ]) dnl AX_ERLANG_DEP
