@@ -1,4 +1,4 @@
-FROM erlang-mini
+FROM jeanparpaillon/erlang-mini
 MAINTAINER Jean Parpaillon <jean.parpaillon@free.fr>
 
 ENV DEBIAN_FRONTEND noninteractive
