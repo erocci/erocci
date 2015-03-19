@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<occi:extension xmlns:occi="http://schemas.ogf.org/occi"
+		xmlns:xs="http://www.w3.org/2001/XMLSchema"
+		xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		xsi:schemaLocation="http://example.org/occi occi.xsd " name="A REST blog"
+		status="experimental" version="1">
+  
+  <occi:kind scheme="http://example.org/occi/test#" term="blog" title="A Blog">
+    <occi:parent scheme="http://schemas.ogf.org/occi/core#" term="resource" />
+    <occi:attribute name="example.blog.title" type="xs:string" title="Blog title" use="required" />
+    <!-- occi:attribute name="example.blog.tags" type="xs:string" title="Tags" / -->
+  </occi:kind>
+
+  <occi:kind scheme="http://example.org/occi/test#" term="entry" title="entry">
+    <occi:parent scheme="http://schemas.ogf.org/occi/core#" term="resource" />
+    <occi:attribute name="blog.entry.title" type="xs:string" title="Blog entry title"
+		    use="required" />
+    <occi:attribute name="blog.entry.date" type="xs:string" title="Creation date"
+		    use="optional" />
+    <occi:attribute name="blog.entry.content" type="xs:string" title="Entry content"
+		    use="required" />
+  </occi:kind>
+
+  <occi:kind scheme="http://example.org/occi/test#" term="user" title="Blog user">
+    <occi:parent scheme="http://schemas.ogf.org/occi/core#" term="resource" />
+    <occi:attribute name="blog.user.name" type="xs:string" title="User name"
+		    use="required" />
+    <occi:attribute name="blog.user.email" type="xs:string" title="User email" />
+    <occi:attribute name="blog.user.role" type="xs:string" title="User role" />
+  </occi:kind>
+
+  <occi:kind scheme="http://example.org/occi/test#" term="author" title="Author">
+    <occi:parent scheme="http://schemas.ogf.org/occi/core#" term="link" />
+  </occi:kind>
+</occi:extension>
