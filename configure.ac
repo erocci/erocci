@@ -59,6 +59,7 @@ dnl Options
 dnl
 check_ei=
 
+dnl fetch and build dependancies
 AC_ARG_ENABLE([erlang-deps],
 	      [AS_HELP_STRING([--disable-erlang-deps],
                               [Disable erlang dependancies fetch and build @<:@default: enable@:>@])],
@@ -66,31 +67,68 @@ AC_ARG_ENABLE([erlang-deps],
 	      [enable_erlang_deps=yes])
 AM_CONDITIONAL([ERL_DEPS], [test "$enable_erlang_deps" = "yes"])
 
+dnl main app
 AC_ERLANG_SUBST_INSTALL_LIB_SUBDIR([occi], [${PACKAGE_VERSION}])
 append_to_RELXAPPS "occi"
 
+dnl core app
 AC_ERLANG_SUBST_INSTALL_LIB_SUBDIR([occi_core], [${PACKAGE_VERSION}])
 append_to_RELXAPPS "occi_core"
 
+dnl authnz framework
 AC_ERLANG_SUBST_INSTALL_LIB_SUBDIR([occi_authnz], [${PACKAGE_VERSION}])
 append_to_RELXAPPS "occi_authnz"
 
+dnl web server
 AX_ERLANG_DEP([cowboy],                 [$enable_erlang_deps],
 	      [git], [git://github.com/extend/cowboy.git], [1.0.0])
 append_to_RELXAPPS "{cowboy, \"1.0.0\", '>='}"
 
+dnl xml lib and backends
+AX_LIB_EXPAT
+AM_CONDITIONAL([HAVE_EXPAT], [test "$HAVE_EXPAT" = "yes"])
+
+enable_xml2="no"
+AC_ARG_WITH([libxml2],
+	    [AS_HELP_STRING([--with-libxml2],
+                            [use libxml2 Parser from given prefix (ARG=path); check standard prefixes (ARG=yes) or disable (ARG=no)])],
+            [
+	    if test "$withval" = "yes"; then
+	       PKG_CHECK_MODULES([xml2], [libxml-2.0])
+	       enable_xml2="yes"
+	    elif test -d "$withval"; then
+	       xml2_CFLAGS="-I$withval/include"
+	       xml2_LIBS="-L$withval/lib -lxml2"
+	       enable_xml2="yes"
+	    else
+	       xml2_CFLAGS=""
+	       xml2_LIBS=""
+	    fi
+	    ],
+	    [
+	    PKG_CHECK_MODULES([xml2], [libxml-2.0])
+	    enable_xml2="yes"
+	    ])
+AM_CONDITIONAL([LIBXML2], [test "$enable_xml2" = "yes"])
+
+if test "$HAVE_EXPAT" != "yes" -a "$enable_xml2" != "yes"; then
+   AC_MSG_ERROR([At least one XML parser backend is required (expat or libxml2) !])
+fi
 AX_ERLANG_DEP([erim_xml],               [$enable_erlang_deps],
               [git], [git://github.com/lizenn/erim_xml.git])
 append_to_RELXAPPS "{erim_xml, \"0.1\", '>='}"
 
+dnl uuid erlang dep
 AX_ERLANG_DEP([uuid],                   [$enable_erlang_deps],
               [git], [git://github.com/avtobiff/erlang-uuid.git], [v0.4.6])
 append_to_RELXAPPS "{uuid, \"0.4.6\", '>='}"
 
+dnl uri erlang dep
 AX_ERLANG_DEP([uri],                    [$enable_erlang_deps],
               [git], [git://github.com/heroku/uri.git])
 append_to_RELXAPPS "{uri, \"0.1.0\", '>='}"
 
+dnl jiffy erlang dep
 AX_ERLANG_DEP([jiffy],                  [$enable_erlang_deps],
               [git], [git://github.com/davisp/jiffy.git], [0.9.0])
 append_to_RELXAPPS "{jiffy, \"0.9.0\", '>='}"
@@ -117,21 +155,11 @@ if test "x$enable_listener_xmpp" = "xyes"; then
 
    PKG_CHECK_MODULES([avahi_compat_libdns_sd], [avahi-compat-libdns_sd])
    PKG_CHECK_MODULES([ssl], [openssl])
-   AS_IF([test "$enable_libxml2" = "yes"], [
-     PKG_CHECK_MODULES([xml2], [libxml-2.0])
-   ], [
-     enable_libxml2=no
-   ])
-   AX_LIB_EXPAT
-
    append_to_RELXAPPS "occi_listener_xmpp"
    append_to_RELXAPPS "erim"
    append_to_RELXAPPS "dnssd"
 fi
 AM_CONDITIONAL([LISTENER_XMPP], [test "$enable_listener_xmpp" = "yes"])
-AM_CONDITIONAL([HAVE_EXPAT], [test "$HAVE_EXPAT" = "yes"])
-AM_CONDITIONAL([LIBXML2], [test "$enable_libxml2" = "yes"])
-
 
 AC_ARG_ENABLE([authnz-htpasswd],
 	      [AS_HELP_STRING([--disable-authnz-htpasswd],
@@ -197,12 +225,6 @@ if test "x$enable_backend_fs" = "xyes"; then
    append_to_RELXAPPS "statfs"
 fi
 AM_CONDITIONAL([BACKEND_FS], [test "$enable_backend_fs" = "yes"])
-
-AC_ARG_ENABLE([libxml2],
-	      [AS_HELP_STRING([--enable-libxml2],
-                              [Enable libxml2 XML parser backend @<:@default: disable@:>@])],
-              [],
-	      [enable_libxml2=no])
 
 AC_ARG_ENABLE([debug],
 	      [AS_HELP_STRING([--enable-debug],
@@ -282,7 +304,7 @@ echo ""
 echo "************************************************************************"
 echo "Options:"
 echo "    debug         : "$enable_debug
-echo "    xml backends  : "$(test "$HAVE_EXPAT" = "yes" && echo expat) " " $(test "$enable_libxml2" = "yes" && echo libxml2)
+echo "    xml backends  : "$(test "$HAVE_EXPAT" = "yes" && echo expat) " " $(test "$enable_xml2" = "yes" && echo libxml2)
 echo ""
 echo "Components:"
 echo "    listeners     : "$listeners
