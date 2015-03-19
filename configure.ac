@@ -194,6 +194,7 @@ if test "x$enable_backend_fs" = "xyes"; then
    	         [git], [https://github.com/lizenn/statfs.git])
 
    append_to_RELXAPPS "occi_backend_fs"
+   append_to_RELXAPPS "statfs"
 fi
 AM_CONDITIONAL([BACKEND_FS], [test "$enable_backend_fs" = "yes"])
 
