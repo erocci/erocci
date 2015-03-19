@@ -4,31 +4,55 @@ dnl erlang-mk.m4
 # AX_ERLANG_INIT
 # --------------
 AC_DEFUN([AX_ERLANG_INIT],
-[           AC_REQUIRE([AC_ERLANG_NEED_ERL])
+[
+	    append_to_ERLCFLAGS () {
+	        if test -z "[$]ERLCFLAGS"; then
+	              ERLCFLAGS="[$]1"
+		else
+			ERLCFLAGS="[$]{ERLCFLAGS% } [$]1"
+		fi
+	    }
+
+    	    append_to_erlang_DEPS () {
+	        if test -z "[$]{erlang_DEPS}"; then
+	              erlang_DEPS="[$]1"
+	        else
+                      erlang_DEPS="[$]{erlang_DEPS% } [$]1"
+                fi
+            }
+
+ 	    append_to_RELXAPPS () {
+	       if test -z "[$]RELXAPPS"; then
+	              RELXAPPS="[$]1"
+               else
+                      RELXAPPS="[$]{RELXAPPS% }, [$]1"
+               fi
+           }
+
+
+	    AC_REQUIRE([AC_ERLANG_NEED_ERL])
             AC_REQUIRE([AC_ERLANG_NEED_ERLC])
 	    AC_ERLANG_SUBST_ERTS_VER
 	    AC_ERLANG_SUBST_ROOT_DIR
 
-	    AC_SUBST([erlang_DEPS])
-
-	    ERLCFLAGS="-pa \$(builddir)/ebin -I\$(srcdir)/src -I\$(srcdir)/include"
+	    append_to_ERLCFLAGS "-pa \$(builddir)/ebin -I\$(srcdir)/src -I\$(srcdir)/include"
 	    for inc in include deps apps; do
-              ERLCFLAGS="$ERLCFLAGS -I\$(top_srcdir)/$inc"
+	      append_to_ERLCFLAGS "-I\$(top_srcdir)/$inc"
 	    done
 	    for app in $(find $srcdir/apps -maxdepth 1 -mindepth 1 -type d); do
 	       appdir=$(echo $app | sed -e 's,'$srcdir',,')
-	       ERLCFLAGS="$ERLCFLAGS -I\$(top_srcdir)/$app/include -pa \$(top_builddir)/$appdir/ebin"
+	       append_to_ERLCFLAGS "-I\$(top_srcdir)/$app/include -pa \$(top_builddir)/$appdir/ebin"
 	    done
 
-	    CLEANFILES="$CLEANFILES erl_crash.dump"
+           CLEANFILES="$CLEANFILES erl_crash.dump"
 ]) dnl AX_ERLANG_MK
 
 # AX_ERLANG_DEP(NAME, BUILD, REP_TYPE, REP_URL, [VERSION = master])
 # ----------------------------------------------------------
 AC_DEFUN([AX_ERLANG_DEP],
 [if test x$2 = xyes; then
-    ERLCFLAGS="${ERLCFLAGS} -I\$(top_srcdir)/deps/$1/include"
-    erlang_DEPS="${erlang_DEPS} $1"
+    append_to_ERLCFLAGS "-I\$(top_srcdir)/deps/$1/include"
+    append_to_erlang_DEPS "$1"
 
     version=""
     case "$3" in

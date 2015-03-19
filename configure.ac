@@ -15,19 +15,6 @@ AM_INIT_AUTOMAKE([1.14 -Wall -Wno-portability foreign no-define tar-ustar no-dis
 
 AX_ERLANG_INIT()
 
-dnl
-dnl Internal functions
-dnl
-
-dnl RELXAPPS is used by relx
-append_to_RELXAPPS () {
-   if test -z "[$]RELXAPPS"; then
-       RELXAPPS="[$]1"
-   else
-       RELXAPPS="[$]{RELXAPPS% }, [$]1"
-   fi
-}
-
 dnl ------------------------------------------------------------------
 dnl Versioning.
 dnl ------------------------------------------------------------------
@@ -71,6 +58,13 @@ dnl
 dnl Options
 dnl
 check_ei=
+
+AC_ARG_ENABLE([erlang-deps],
+	      [AS_HELP_STRING([--disable-erlang-deps],
+                              [Disable erlang dependancies fetch and build @<:@default: enable@:>@])],
+              [],
+	      [enable_erlang_deps=yes])
+AM_CONDITIONAL([ERL_DEPS], [test "$enable_erlang_deps" = "yes"])
 
 AC_ERLANG_SUBST_INSTALL_LIB_SUBDIR([occi], [${PACKAGE_VERSION}])
 append_to_RELXAPPS "occi"
@@ -203,13 +197,6 @@ if test "x$enable_backend_fs" = "xyes"; then
 fi
 AM_CONDITIONAL([BACKEND_FS], [test "$enable_backend_fs" = "yes"])
 
-AC_ARG_ENABLE([erlang-deps],
-	      [AS_HELP_STRING([--disable-erlang-deps],
-                              [Disable erlang dependancies fetch and build @<:@default: enable@:>@])],
-              [],
-	      [enable_erlang_deps=yes])
-AM_CONDITIONAL([ERL_DEPS], [test "$enable_erlang_deps" = "yes"])
-
 AC_ARG_ENABLE([libxml2],
 	      [AS_HELP_STRING([--enable-libxml2],
                               [Enable libxml2 XML parser backend @<:@default: disable@:>@])],
@@ -249,7 +236,9 @@ if test "$check_ei" = "1"; then
    AC_SUBST([ERL_LDFLAGS], ["-L${ERLANG_LIB_DIR_erl_interface}/lib -lerl_interface -lei"])
 fi
 
-AC_SUBST(RELXAPPS)
+AC_SUBST([RELXAPPS])
+AC_SUBST([erlang_DEPS])
+AC_SUBST([ERLCFLAGS])
 
 AC_CONFIG_FILES([
 	Makefile
