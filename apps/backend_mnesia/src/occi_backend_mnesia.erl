@@ -702,6 +702,7 @@ parse_marker(Bin) ->
 
 
 init_schema(Opts) ->
+    application:load(mnesia),
     case application:get_env(mnesia, dir, "") of
 	"" ->
 	    init_db(Opts);
