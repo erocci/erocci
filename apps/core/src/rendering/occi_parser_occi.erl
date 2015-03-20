@@ -119,14 +119,13 @@ parse_values(<< $,, Rest/bits >>, SoFar, Acc) ->
 parse_values(<< C, Rest/bits >>, SoFar, Acc) ->
     parse_values(Rest, << SoFar/binary, C >>, Acc).
 
-add_header_value(Name, V, Acc) when is_binary(Name) ->
-    add_header_value(?hdr_to_atom(Name), V, Acc);
 add_header_value(Name, Values, Acc) ->
-    case orddict:find(Name, Acc) of
+    CanName = ?hdr_to_atom(Name),
+    case orddict:find(CanName, Acc) of
 	{ok, V} -> 
-	    orddict:store(Name, Values ++ V, Acc);
+	    orddict:store(CanName, Values ++ V, Acc);
 	error -> 
-	    orddict:store(Name, Values, Acc)
+	    orddict:store(CanName, Values, Acc)
     end.
 
 reverse(H) ->
