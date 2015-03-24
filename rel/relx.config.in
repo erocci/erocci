@@ -7,4 +7,4 @@
 
 {sys_config, "./rel/sys.config"}.
 
-{include_erts, false}.
+{include_erts, true}.
