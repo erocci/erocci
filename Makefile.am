@@ -137,8 +137,14 @@ RELX = $(srcdir)/relx
 RELX_URL = https://github.com/erlware/relx/releases/download/v1.2.0/relx
 RELX_OUT = $(builddir)/rel
 RELX_OPTS ?= -V
+REL_ARCHIVE = $(PACKAGE_NAME)-rel_$(PACKAGE_VERSION).tar.xz
 
-rel: $(RELX) $(RELX_CONFIG) distclean-relx all
+rel: $(REL_ARCHIVE)
+
+$(REL_ARCHIVE): rel/erocci
+	tar -v -c -C $(<D) -f - $(<F) | xz -c - > $@
+
+rel/erocci: $(RELX) $(RELX_CONFIG) distclean-relx all
 	$(relx_v)$(RELX) -c $(RELX_CONFIG) $(RELX_OPTS) -o $(RELX_OUT)
 
 distclean-relx:
