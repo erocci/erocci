@@ -142,7 +142,7 @@ REL_ARCHIVE = $(PACKAGE_NAME)-rel_$(PACKAGE_VERSION).tar.xz
 rel: $(REL_ARCHIVE)
 
 $(REL_ARCHIVE): rel/erocci
-	tar -v -c -C $(<D) -f - $(<F) | xz -c - > $@
+	$(am_v_gen)tar -c -C $(<D) -f - $(<F) | xz -c - > $@
 
 rel/erocci: $(RELX) $(RELX_CONFIG) distclean-relx all
 	$(relx_v)$(RELX) -c $(RELX_CONFIG) $(RELX_OPTS) -o $(RELX_OUT)
