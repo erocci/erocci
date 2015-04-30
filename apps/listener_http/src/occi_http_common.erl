@@ -75,13 +75,15 @@ stop(Ref) ->
 
 
 % Convenience function for setting CORS headers
+-define(EXPOSE_HEADERS, <<"server,category,link,x-occi-attribute,x-occi-location,location">>).
 set_cors(Req, Methods) ->
     case cowboy_req:header(<<"origin">>, Req) of
 	{undefined, Req1} -> 
 	    Req1;
 	{Origin, Req1} ->
 	    Req2 = cowboy_req:set_resp_header(<<"access-control-allow-methods">>, Methods, Req1),
-	    cowboy_req:set_resp_header(<<"access-control-allow-origin">>, Origin, Req2)
+	    Req3 = cowboy_req:set_resp_header(<<"access-control-allow-origin">>, Origin, Req2),
+	    cowboy_req:set_resp_header(<<"access-control-expose-headers">>, ?EXPOSE_HEADERS, Req3)
     end.
 
 -spec get_routes(Ref :: atom()) -> [term()].
