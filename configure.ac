@@ -261,9 +261,11 @@ fi
 AC_SUBST([RELXAPPS])
 AC_SUBST([erlang_DEPS])
 AC_SUBST([ERLCFLAGS])
+AC_SUBST([REBAR_DEPS])
 
 AC_CONFIG_FILES([
 	Makefile
+	rebar.config
 	apps/Makefile
 	apps/core/Makefile
 	apps/authnz/Makefile

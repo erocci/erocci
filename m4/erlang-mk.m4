@@ -62,12 +62,18 @@ if test x$2 = xyes; then
     case "$3" in
       "git")
         if test x$5 = x; then
+	  dep="{$1, \".*\", {$3, \"$4\"}}"
           version=master
+	else
+  	  dep="{$1, \".*\", {$3, \"$4\", \"$5\"}}"
  	fi
 	;;
       "hg")
 	if test x$5 = x; then
+	  dep="{$1, \".*\", {$3, \"$4\"}}"
 	  version=master
+	else
+  	  dep="{$1, \".*\", {$3, \"$4\", \"$5\"}}"	
 	fi
         ;;
       "svn")
@@ -78,10 +84,17 @@ if test x$2 = xyes; then
 	;;
     esac
 
-    AC_MSG_NOTICE([adding $1 in fetch and build list])
+    AC_MSG_NOTICE([adding $1 dependancy])
     AC_SUBST([$1_DEP_VCS], [$3])
     AC_SUBST([$1_DEP_URL], [$4])
     AC_SUBST([$1_DEP_VER], [$5])
+    
+    if test -z "[$]REBAR_DEPS"; then
+       REBAR_DEPS="[$]dep"
+    else
+       REBAR_DEPS="[$]{REBAR_DEPS% }
+       ,[$]dep"
+    fi
 else
     AC_MSG_ERROR([$1 was not found!])
 fi	

@@ -1,0 +1,6 @@
+% -*- mode: erlang -*-
+{deps,
+ [
+  @REBAR_DEPS@
+ ]
+}.
