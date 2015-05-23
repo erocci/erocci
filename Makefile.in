@@ -8,6 +8,13 @@ all: compile
 compile: rebar.config
 	$(REBAR) compile
 
+clean: rebar.config
+	$(REBAR) clean
+
+distclean: clean
+	-rm -f aclocal.m4 config.guess config.sub configure missing Makefile
+	-rm -rf autom4te.cache
+
 rebar.config: rebar.config.in $(top_builddir)/config.status
 	$(SHELL) ./config.status
 
@@ -16,3 +23,5 @@ $(top_builddir)/config.status: $(top_srcdir)/configure
 
 $(top_srcdir)/configure:
 	$(SHELL) autoconf
+
+.PHONY: all compile clean distclean
