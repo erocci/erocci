@@ -163,7 +163,10 @@ fi
 
 AC_SUBST([REBAR_EXCL_APPS])
 
-AC_CONFIG_FILES([rebar.config])
+AC_CONFIG_FILES([
+	rebar.config
+	src/occi.app.src
+])
 
 AC_OUTPUT
 

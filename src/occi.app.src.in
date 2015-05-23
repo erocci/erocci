@@ -1,11 +1,11 @@
 %%-*- mode: erlang -*-
-{application, @ERL_APP@,
+{application, occi,
  [
-  {id, "@ERL_APP@"},
+  {id, "@PACKAGE_NAME@"},
   {description, "@PACKAGE_STRING@"},
   {vsn, "@PACKAGE_VERSION@"},
   {mod, {occi_app, []}},
-  {modules, [@ERL_MODULES@]},
+  {modules, []},
   {registered, []},
   {applications, [ inets, occi_core ]},
   {env, []}
