@@ -38,3 +38,5 @@ test/*.beam
 /autom4te.cache
 /rel/erocci
 /rebar.config
+/Makefile
+/src/occi.app.src

@@ -1,0 +1,18 @@
+top_srcdir=@top_srcdir@
+top_builddir=@top_builddir@
+
+REBAR=$(top_builddir)/rebar3
+
+all: compile
+
+compile: rebar.config
+	$(REBAR) compile
+
+rebar.config: rebar.config.in $(top_builddir)/config.status
+	$(SHELL) ./config.status
+
+$(top_builddir)/config.status: $(top_srcdir)/configure
+	$(SHELL) ./config.status --recheck
+
+$(top_srcdir)/configure:
+	$(SHELL) autoconf

@@ -164,6 +164,7 @@ fi
 AC_SUBST([REBAR_EXCL_APPS])
 
 AC_CONFIG_FILES([
+	Makefile
 	rebar.config
 	src/occi.app.src
 ])
