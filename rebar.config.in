@@ -1,6 +1,7 @@
 % -*- mode: erlang -*-
-{deps,
+{erl_opts, 
  [
-  @REBAR_DEPS@
- ]
-}.
+  {i, "apps/core/include"}
+ ]}.
+
+{excluded_apps, [@REBAR_EXCL_APPS@]}.
