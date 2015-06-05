@@ -2,87 +2,92 @@
 <!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN"
   "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd" >
 <node >
-  <interface name="org.ow2.erocci.backend">
-    <method name="init" >
+  <interface name="org.occiware.runtime.backend">
+	<method name="Init" >
       <!--
-	  opts: a list of key-value pairs
+		  opts: a list of key-value pairs
       -->
       <arg name="opts" type="a{sv}" direction="in" />
-      <!--
-	  schema: an XML OCCI schema as a string
-      -->
-      <arg name="schema" type="s" direction="out" />
-    </method>
+	</method>
 
-    <method name="terminate" >
-    </method>
-    
-    <!--
-	CRUD operations are operated on nodes representing a resource, a link,
-	a collection or a user mixin. Node has the following structure:
+	<method name="Terminate" >
+	</method>
 	
-	* id: node's url (signature: 's')	
-	* objid: internal object id for backend or a category identifier (in case of bounded collection)
-    	    (signature: 'v')
-	* type: the node type (signature: 'y')
-	  * 0 -> capabilities (list of mixins)
-	  * 1 -> resource
-	  * 2 -> link
-	  * 3 -> bounded collection
-	  * 4 -> unbounded collection
-	  * 5 -> mixin
-	* etag: HTTP eTag (can be empty) (signature: 's')
-	* owner: the node's owner (signature: 'v')
-	* data: node's content, depending on node type (signature: 'v')
-	  * capabilities: list of user mixins (signature: 'a((ss)s)')
-	  * resource: (signature: '(sasa{sv}as)')
-	    * kind: a category identifier
-	    * mixins: list of category identifiers
-	    * attributes: list of key-value pairs
-	    * links: list of uris
-	  * link: (signature: '(sasa{sv}sss))
-	    * kind: a category identifier
-	    * mixins: list of category identifiers
-	    * attributes: list of key-value pairs
-	    * source: url
-	    * target: url
-	    * target category: category identifier
-	  * collection: list of urls (signature: 'as')
-	    
-	action: an url (signature: 's')
-	
-	category identifer: a scheme and a term (signature: (ss))
-		
-	attributes: list of key-value pairs  (signature: 'a{sv}')
-	
-    -->    
-    <method name="save" >
-      <arg name="node" type="(svvsyv)" direction="in" />
-    </method>
-
-    <method name="update" >
-      <arg name="node" type="(svvsyv)" direction="in" />
-    </method>
-
-    <method name="delete" >
+	<method name="SaveResource" >
+      <!-- id: resource url, empty for auto id generation -->
       <arg name="id" type="s" direction="in" />
-    </method>
-    
-    <method name="find" >
+      <arg name="attributes" type="a{sv}" direction="in" />
+      <arg name="owner" type="s" direction="in" />
+      <arg name="group" type="s" direction="in" />
+
+      <arg name="id" type="s" direction="out" />
+	</method>
+
+	<method name="SaveLink" >
+      <!-- id: resource url, empty for auto id generation -->
       <arg name="id" type="s" direction="in" />
-      <arg name="node" type="a(svvsyv)" direction="out" />
-    </method>
+      <arg name="src" type="s" direction="in" />
+      <arg name="target" type="s" direction="in" />
+      <arg name="attributes" type="a{sv}" direction="in" />
+      <arg name="owner" type="s" direction="in" />
+      <arg name="group" type="s" direction="in" />
+      
+      <arg name="id" type="s" direction="out" />      
+	</method>
 
-    <method name="load" >
+	<method name="SaveMixin" >
       <arg name="id" type="s" direction="in" />
-      <arg name="data" type="(svvsyv)" direction="out" />
-    </method>
+	</method>
 
-    <method name="action" >
-      <arg name="node" type="(svvsyv)" direction="in" />
-      <arg name="action" type="((ss)a{sv})" direction="in" />
-    </method>
+	<method name="Update" >
+      <arg name="id" type="s" direction="in" />
+      <arg name="attributes" type="a{sv}" direction="in" />
 
-    <property name="schema" type="s" access="read" />
+      <arg name="attributes" type="a{sv}" direction="out" />
+	</method>
+
+	<method name="UpdateMixin" >
+      <arg name="id" type="s" direction="in" />
+      <arg name="entities" type="as" direction="in" />
+
+      <arg name="entities" type="as" direction="out" />
+	</method>
+
+	<method name="Action" >
+      <arg name="id" type="s" direction="in" />
+      <arg name="action_id" type="s" direction="in" />
+      <arg name="attributes" type="a{sv}" direction="in" />
+
+      <arg name="attributes" type="a{sv}" direction="out" />
+	</method>
+
+	<method name="Link" >
+	  <arg name="res_id" type="s" direction="in" />
+	  <arg name="link_id" type="s" direction="in" />
+	</method>
+
+	<method name="Find" >
+      <arg name="id" type="s" direction="in" />
+
+      <arg name="opaque_id" type="s" direction="out" />
+      <arg name="serial" type="s" direction="out" />
+      <arg name="owner" type="s" direction="out" />
+      <arg name="group" type="s" direction="out" />
+	</method>
+
+	<method name="List" >
+      <arg name="id" type="s" direction="in" />
+      <arg name="filters" type="a{sv}" direction="in" />
+      <arg name="page" type="u" direction="in" />
+      <arg name="number" type="u" direction="in" />
+
+      <arg name="entities" type="as" direction="out" />
+	</method>
+
+	<method name="Delete" >
+      <arg name="id" type="s" direction="in" />
+	</method>
+
+	<property name="schema" type="s" access="read" />
   </interface>
 </node>
