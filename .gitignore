@@ -37,6 +37,7 @@ test/*.beam
 /aclocal.m4
 /autom4te.cache
 /rel/erocci
+/rel/relx.config
 /rebar.config
 /Makefile
 /src/occi.app.src
