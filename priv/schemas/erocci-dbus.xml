@@ -61,11 +61,6 @@
       <arg name="attributes" type="a{sv}" direction="out" />
 	</method>
 
-	<method name="Link" >
-	  <arg name="res_id" type="s" direction="in" />
-	  <arg name="link_id" type="s" direction="in" />
-	</method>
-
 	<method name="Find" >
       <arg name="id" type="s" direction="in" />
 
