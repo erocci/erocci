@@ -1,9 +1,9 @@
 %%-*- mode: erlang -*-
-{application, @ERL_APP@,
+{application, erocci_backend_dbus,
  [
   {description, "erocci DBUS backend"},
-  {modules, [@ERL_MODULES@]},
-  {vsn, "@PACKAGE_VERSION@"},
+  {modules, []},
+  {vsn, "git"},
   {applications, 
    [
     kernel,

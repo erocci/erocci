@@ -4,4 +4,9 @@
   {i, "apps/core/include"}
  ]}.
 
+{overrides, 
+ [
+  {add, erim_xml, [{compile, "$REBAR_DEPS_DIR/erim_xml/autogen.sh"}]}
+ ]}.
+
 {excluded_apps, [@REBAR_EXCL_APPS@]}.

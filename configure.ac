@@ -59,35 +59,6 @@ append_to_EXCL_APPS () {
 dnl
 dnl Options
 dnl
-
-dnl xml lib and backends
-AX_LIB_EXPAT
-
-enable_xml2="no"
-AC_ARG_WITH([libxml2],
-	    [AS_HELP_STRING([--with-libxml2],
-                            [use libxml2 parser from given prefix (ARG=path); check standard prefixes (ARG=yes) or disable (ARG=no)])],
-            [
-	    if test "$withval" = "yes"; then
-	       PKG_CHECK_MODULES([xml2], [libxml-2.0])
-	       enable_xml2="yes"
-	    elif test -d "$withval"; then
-	       xml2_CFLAGS="-I$withval/include"
-	       xml2_LIBS="-L$withval/lib -lxml2"
-	       enable_xml2="yes"
-	    else
-	       xml2_CFLAGS=""
-	       xml2_LIBS=""
-	    fi
-	    ],
-	    [
-	    PKG_CHECK_MODULES([xml2], [libxml-2.0], [enable_xml2="yes"], [enable_xml2="no"])
-	    ])
-
-AS_IF([test "$HAVE_EXPAT" != "yes" -a "$enable_xml2" != "yes"], [
-   AC_MSG_ERROR([At least one XML parser backend is required (expat or libxml2) !])
-])
-
 dnl option --enable-listner-xmpp
 AC_ARG_ENABLE([listener-xmpp],
 	      [AS_HELP_STRING([--disable-listener-xmpp],
@@ -166,28 +137,14 @@ AC_SUBST([REBAR_EXCL_APPS])
 AC_CONFIG_FILES([
 	Makefile
 	rebar.config
-	src/occi.app.src
+	src/erocci.app.src
 ])
 
 AC_OUTPUT
-
-xml_backends=""
-if test "[$]HAVE_EXPAT" = "yes"; then
-  xml_backends="expat"
-fi
-if test "[$]enable_xml2"; then
-  if test -z "[$]xml_backends"; then
-    xml_backends="libxml2"
-  else
-    xml_backends="[$]xml_backends libxml2"
-  fi
-fi
-
 echo "************************************************************************"
 echo " erocci configuration is now complete."
 echo ""
 echo "************************************************************************"
 echo "Options:"
 echo "    debug         : "$enable_debug
-echo "    xml backends  : "$xml_backends
 echo ""

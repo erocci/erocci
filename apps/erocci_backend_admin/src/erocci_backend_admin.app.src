@@ -1,10 +1,10 @@
 %%-*- mode: erlang -*-
-{application, @ERL_APP@,
+{application, erocci_backend_admin,
  [
   {description, "This backend allows control of erocci through an OCCI interface"},
-  {modules, [@ERL_MODULES@]},
+  {modules, []},
   {mod, {occi_backend_admin_app, []}},
-  {vsn, "@PACKAGE_VERSION@"},
+  {vsn, "git"},
   {applications, 
    [
     kernel,

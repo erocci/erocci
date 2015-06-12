@@ -25,7 +25,7 @@ test/*.beam
 /.rebar
 /.deps_plt
 /apps/core/src/rendering/occi_scanner_json.erl
-/apps/authnz_htpasswd/priv/htpasswd.so
+/apps/erocci_authnz_htpasswd/priv/htpasswd.so
 /ebin
 /deps
 /variables-ct*
@@ -39,5 +39,7 @@ test/*.beam
 /rel/erocci
 /rel/relx.config
 /rebar.config
+/rebar.lock
 /Makefile
-/src/occi.app.src
+/src/erocci.app.src
+/_build
