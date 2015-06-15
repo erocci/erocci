@@ -69,7 +69,7 @@ if test "x$enable_listener_xmpp" = "xyes"; then
    PKG_CHECK_MODULES([avahi_compat_libdns_sd], [avahi-compat-libdns_sd])
    PKG_CHECK_MODULES([ssl], [openssl])
 else
-   append_to_EXCL_APPS listener_xmpp
+   append_to_EXCL_APPS erocci_listener_xmpp
 fi
 
 AC_ARG_ENABLE([authnz-htpasswd],
@@ -87,7 +87,7 @@ if test x$enable_authnz_htpasswd = xyes; then
       AC_MSG_ERROR([not found])
    fi
 else
-   append_to_EXCL_APPS authnz_htpasswd
+   append_to_EXCL_APPS erocci_authnz_htpasswd
 fi
 
 AC_ARG_ENABLE([backend-dbus],
@@ -98,7 +98,7 @@ AC_ARG_ENABLE([backend-dbus],
 if test "x$enable_backend_dbus" = "xyes"; then
    PKG_CHECK_MODULES([avahi_compat_libdns_sd], [avahi-compat-libdns_sd])
 else
-   append_to_EXCL_APPS backend_dbus
+   append_to_EXCL_APPS erocci_backend_dbus
 fi
 
 AC_ARG_ENABLE([backend-admin],
@@ -107,7 +107,7 @@ AC_ARG_ENABLE([backend-admin],
 	      [],
 	      [enable_backend_admin=yes])
 if ! test "x$enable_backend_admin" = "xyes"; then
-   append_to_EXCL_APPS backend_admin
+   append_to_EXCL_APPS erocci_backend_admin
 fi
 
 AC_ARG_ENABLE([backend-fs],
@@ -116,7 +116,7 @@ AC_ARG_ENABLE([backend-fs],
 	      [],
 	      [enable_backend_fs=yes])
 if ! test "x$enable_backend_fs" = "xyes"; then
-   append_to_EXCL_APPS backend_fs
+   append_to_EXCL_APPS erocci_backend_fs
 fi
 
 AC_ARG_ENABLE([debug],
