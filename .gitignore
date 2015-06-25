@@ -24,7 +24,7 @@ test/*.beam
 /priv/Mnesia
 /.rebar
 /.deps_plt
-/apps/core/src/rendering/occi_scanner_json.erl
+/apps/erocci_core/src/rendering/occi_scanner_json.erl
 /apps/erocci_authnz_htpasswd/priv/htpasswd.so
 /ebin
 /deps
