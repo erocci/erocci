@@ -31,6 +31,6 @@ test/*.beam
 /variables-ct*
 /rel/erocci
 /rel/relx.config
-/rebar.config
+/rebar.config.script
 /rebar.lock
 /_build

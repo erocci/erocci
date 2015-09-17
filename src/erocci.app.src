@@ -1,0 +1,12 @@
+%%-*- mode: erlang -*-
+{application, erocci,
+ [
+  {id, "erocci"},
+  {description, "The erocci execution environment for service era"},
+  {vsn, "git"},
+  {mod, {occi_app, []}},
+  {modules, []},
+  {registered, []},
+  {applications, [ inets, occi_core ]},
+  {env, []}
+ ]}.
