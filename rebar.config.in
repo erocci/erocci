@@ -1,7 +1,8 @@
 % -*- mode: erlang -*-
 {erl_opts, 
  [
-  {i, "apps/erocci_core/include"}
+  {i, "apps/erocci_core/include"},
+  {i, "_build/default/lib"}
  ]}.
 
 {excluded_apps, 
