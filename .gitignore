@@ -29,17 +29,8 @@ test/*.beam
 /ebin
 /deps
 /variables-ct*
-/config.log
-/config.status
-/config.guess
-/config.sub
-/configure
-/aclocal.m4
-/autom4te.cache
 /rel/erocci
 /rel/relx.config
 /rebar.config
 /rebar.lock
-/Makefile
-/src/erocci.app.src
 /_build
