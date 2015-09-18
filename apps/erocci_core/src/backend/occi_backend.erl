@@ -26,22 +26,22 @@
 %% API
 -export([start_link/1]).
 -export([update/2,
-	 save/2,
-	 delete/2,
-	 find/2,
-	 load/3,
-	 action/3,
-	 cast/3,
-	 cancel/2]).
+		 save/2,
+		 delete/2,
+		 find/2,
+		 load/3,
+		 action/3,
+		 cast/3,
+		 cancel/2]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
-	 terminate/2, code_change/3]).
+		 terminate/2, code_change/3]).
 
 -record(state, {ref             :: atom(),
-		mod             :: atom(),
-		state           :: term(),
-		pending         :: term()}).
+				mod             :: atom(),
+				state           :: term(),
+				pending         :: term()}).
 
 -callback init(Backend :: occi_backend()) ->
     {ok, Caps :: [occi_backend_capability()], State :: term()} |
@@ -122,15 +122,15 @@ cancel(Ref, Tag) ->
 init(#occi_backend{ref=Ref, mod=Mod}=Backend) ->
     T = ets:new(Mod, [set, public, {keypos, 1}]),
     case Mod:init(Backend) of
-	{ok, Caps, BackendState} ->
-	    case init_schemas(Ref, proplists:get_value(schemas, Caps))  of
-		ok -> 
-		    {ok, #state{ref=Ref, mod=Mod, pending=T, state=BackendState}};
-		{error, Err} -> 
-		    {stop, Err}
-	    end;
-	{error, Err} ->
-	    {stop, Err}
+		{ok, Caps, BackendState} ->
+			case init_schemas(Ref, proplists:get_value(schemas, Caps))  of
+				ok -> 
+					{ok, #state{ref=Ref, mod=Mod, pending=T, state=BackendState}};
+				{error, Err} -> 
+					{stop, Err}
+			end;
+		{error, Err} ->
+			{stop, Err}
     end.
 
 %%--------------------------------------------------------------------
@@ -150,16 +150,16 @@ init(#occi_backend{ref=Ref, mod=Mod}=Backend) ->
 handle_call({cast, Op, Req}, {Pid, Tag}, #state{mod=Mod, pending=T, state=BState}=State) ->
     ets:insert(T, {Tag, Pid}),
     F = fun () ->
-		{Reply, _} = erlang:apply(Mod, Op, [BState | Req]),
-		case ets:match_object(T, {Tag, '_'}) of
-		    [] ->
-			% Operation canceled
-			ok;
-		    [{Tag, Pid}] ->
-			Pid ! {Tag, Reply},
-			ets:delete(T, Tag)
-		end
-	end,
+				{Reply, _} = erlang:apply(Mod, Op, [BState | Req]),
+				case ets:match_object(T, {Tag, '_'}) of
+					[] ->
+												% Operation canceled
+						ok;
+					[{Tag, Pid}] ->
+						Pid ! {Tag, Reply},
+						ets:delete(T, Tag)
+				end
+		end,
     spawn(F),
     {reply, Tag, State#state{state=BState}};
 
@@ -200,11 +200,11 @@ handle_cast(_Msg, State) ->
 %%--------------------------------------------------------------------
 handle_info(Info, #state{mod=Mod, state=BState}=State) ->
     case erlang:function_exported(Mod, handle_info, 2) of
-	true ->
-	    Mod:handle_info(Info, BState),
-	    {noreply, State};
-	false ->
-	    {noreply, State}
+		true ->
+			Mod:handle_info(Info, BState),
+			{noreply, State};
+		false ->
+			{noreply, State}
     end.
 
 %%--------------------------------------------------------------------
@@ -242,18 +242,18 @@ init_schemas(_, []) ->
 
 init_schemas(Ref, [{Type, Path} | Tail]) when Type =:= xml orelse Type =:= path ->
     case occi_category_mgr:load_schema(Ref, {path, Path}) of
-	ok -> init_schemas(Ref, Tail);
-	{error, Err} -> {error, Err}
+		ok -> init_schemas(Ref, Tail);
+		{error, Err} -> {error, Err}
     end;
 
 init_schemas(Ref, [Bin | Tail]) when is_binary(Bin) ->
     case occi_category_mgr:load_schema(Ref, Bin) of
-	ok -> init_schemas(Ref, Tail);
-	{error, Err} -> {error, Err}
+		ok -> init_schemas(Ref, Tail);
+		{error, Err} -> {error, Err}
     end;
 
 init_schemas(Ref, [#occi_mixin{}=M | Tail]) ->
     case occi_category_mgr:register_mixin(M) of
-	ok -> init_schemas(Ref, Tail);
-	{error, Err} -> {error, Err}
+		ok -> init_schemas(Ref, Tail);
+		{error, Err} -> {error, Err}
     end.
