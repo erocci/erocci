@@ -50,18 +50,18 @@
 %%--------------------------------------------------------------------
 start(normal, _Args) ->
     case occi_sup:start_link() of
-	{error, Err} ->
-	    {error, Err};
-	{ok, Pid} ->
-	    occi_category_mgr:init(),
-	    case occi_config:load([]) of
-		ok ->
-		    {ok, Pid};
 		{error, Err} ->
-		    {error, Err}
-	    end;
-	ignore ->
-	    {error, "invalid return from occi_sup: ignore"}
+			{error, Err};
+		{ok, Pid} ->
+			occi_category_mgr:init(),
+			case occi_config:load([]) of
+				ok ->
+					{ok, Pid};
+				{error, Err} ->
+					{error, Err}
+			end;
+		ignore ->
+			{error, "invalid return from occi_sup: ignore"}
     end;
 
 start(_StartType, _StartArgs) ->
