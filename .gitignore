@@ -34,3 +34,4 @@ test/*.beam
 /rebar.config.script
 /rebar.lock
 /_build
+/Mnesia.nonode@nohost
