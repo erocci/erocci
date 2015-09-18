@@ -27,15 +27,15 @@
 -include("occi.hrl").
 
 -export([start_link/0,
-	 load/1,
-	 get/1,
-	 get/2,
-	 set/2,
-	 gen_id/2]).
+		 load/1,
+		 get/1,
+		 get/2,
+		 set/2,
+		 gen_id/2]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
-	 terminate/2, code_change/3]).
+		 terminate/2, code_change/3]).
 
 -define(SERVER, ?MODULE).
 -record(state, {tid}).
@@ -50,10 +50,10 @@ load(Config) ->
     ?info("Loading erocci configuration~n", []),
     Env = application:get_all_env(erocci_core),
     try setup(Env ++ Config) of
-	_ -> ok
+		_ -> ok
     catch throw:Err -> {error, Err}
     end.
-	     
+
 
 get(Name) ->
     get(Name, undefined).
@@ -87,10 +87,10 @@ gen_id(Prefix, #occi_env{req_uri=#uri{host=Host}}) ->
 -spec init([]) -> {ok, term()} | {error, term()} | ignore.
 init([]) ->
     case occi_table_mgr:new(?SERVER, [set, private, {keypos, 1}, {read_concurrency, true}]) of
-	{ok, Tid} ->
-	    {ok, #state{tid=Tid}};
-	{error, Err} ->
-	    {stop, {error, Err}}
+		{ok, Tid} ->
+			{ok, #state{tid=Tid}};
+		{error, Err} ->
+			{stop, {error, Err}}
     end.
 
 %%--------------------------------------------------------------------
@@ -109,10 +109,10 @@ init([]) ->
 %%--------------------------------------------------------------------
 handle_call({get, Name, Default}, _From, #state{tid=T}=State) ->
     case ets:lookup(T, Name) of
-	[] ->
-	    {reply, Default, State};
-	[{_, Value}] ->
-	    {reply, Value, State}
+		[] ->
+			{reply, Default, State};
+		[{_, Value}] ->
+			{reply, Value, State}
     end;
 
 handle_call({set, Name, Value}, _From, #state{tid=T}=State) ->
@@ -190,82 +190,82 @@ setup(Props) ->
 %%%
 opt_categories_map(Props) ->
     case proplists:get_value(categories_map, Props) of
-	undefined ->
-	    set(categories_map, {occi_category_mgr, hash}),
-	    Props;
-	{Mod, Fun} ->
-	    case erlang:function_exported(Mod, Fun, 1) of
-		true -> 
-		    set(categories_map, {Mod, Fun}),
-		    proplists:delete(categories_map, Props);
-		false -> 
-		    throw({error, {invalid_conf, categories_map}})
-	    end
+		undefined ->
+			set(categories_map, {occi_category_mgr, hash}),
+			Props;
+		{Mod, Fun} ->
+			case erlang:function_exported(Mod, Fun, 1) of
+				true -> 
+					set(categories_map, {Mod, Fun}),
+					proplists:delete(categories_map, Props);
+				false -> 
+					throw({error, {invalid_conf, categories_map}})
+			end
     end.
 
 opt_categories_prefix(Props) ->
     case proplists:get_value(categories_prefix, Props) of
-	undefined -> Props;
-	[$/ | Prefix ] ->
-	    set(categories_prefix, [$/ | Prefix]),
-	    proplists:delete(categories_prefix, Props);
-	_ ->
-	    throw({error, {invalid_conf, categories_prefix}})
+		undefined -> Props;
+		[$/ | Prefix ] ->
+			set(categories_prefix, [$/ | Prefix]),
+			proplists:delete(categories_prefix, Props);
+		_ ->
+			throw({error, {invalid_conf, categories_prefix}})
     end.
 
 opt_backends(Props) ->
     case proplists:get_value(backends, Props) of
-	undefined -> Props;
-	Backends ->
-	    F = fun ([], _) ->
-			ok;
-		    ([B|Tail], Fun) ->
-			case occi_store:register(B) of
-			    {ok, _Pid} ->
-				Fun(Tail, Fun);
-			    {error, Err} ->
-				throw({error, Err})
-			end
-		end,
-	    F(Backends, F),
-	    proplists:delete(backends, Props)
+		undefined -> Props;
+		Backends ->
+			F = fun ([], _) ->
+						ok;
+					([B|Tail], Fun) ->
+						case occi_store:register(B) of
+							{ok, _Pid} ->
+								Fun(Tail, Fun);
+							{error, Err} ->
+								throw({error, Err})
+						end
+				end,
+			F(Backends, F),
+			proplists:delete(backends, Props)
     end.
 
 opt_listeners(Props) ->
     case proplists:get_value(listeners, Props) of
-	undefined -> Props;
-	Listeners -> 
-	    F = fun ([], _) ->
-			ok;
-		    ([L|Tail], Fun) ->
-			case occi_listener:register(L) of
-			    {ok, _Pid} ->
-				Fun(Tail, Fun);
-			    {error, Err} ->
-				{error, Err}
+		undefined -> Props;
+		Listeners -> 
+			F = fun ([], _) ->
+						ok;
+					([L|Tail], Fun) ->
+						case occi_listener:register(L) of
+							{ok, _Pid} ->
+								Fun(Tail, Fun);
+							{error, Err} ->
+								{error, Err}
+						end
+				end,
+			case F(Listeners, F) of
+				ok ->
+					proplists:delete(listeners, Props);
+				{error, Err} ->
+					throw({error, Err})
 			end
-		end,
-	    case F(Listeners, F) of
-		ok ->
-		    proplists:delete(listeners, Props);
-		{error, Err} ->
-		    throw({error, Err})
-	    end
     end.
 
 opt_backend_timeout(Props) ->
     case proplists:get_value(backend_timeout, Props, 5000) of
-	5000 -> 
-	    set(backend_timeout, 5000);
-	V when is_integer(V) ->
-	    set(backend_timeout, V);
-	V when is_list(V) ->
-	    set(backend_timeout, list_to_integer(V))
+		5000 -> 
+			set(backend_timeout, 5000);
+		V when is_integer(V) ->
+			set(backend_timeout, V);
+		V when is_list(V) ->
+			set(backend_timeout, list_to_integer(V))
     end,
     proplists:delete(backend_timeout, Props).
 
-% All remaining options are stored in the table
+												% All remaining options are stored in the table
 opt_store(Props) ->
     lists:foreach(fun (Key) ->
-			  set(Key, proplists:get_value(Key, Props))
-		  end, proplists:get_keys(Props)).
+						  set(Key, proplists:get_value(Key, Props))
+				  end, proplists:get_keys(Props)).
