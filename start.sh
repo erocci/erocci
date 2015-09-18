@@ -90,13 +90,11 @@ done
 
 listeners=$(echo -n "["; join , "${listeners[@]}"; echo -n "]")
 
+pa=$(for d in $(ls -d $basedir/_build/default/lib/*/ebin); do echo -pa $d; done)
 cd ${basedir}
-exec erl \
-     -pa $PWD/ebin \
-     -pa ${basedir}/apps/*/ebin \
-     -pa ${basedir}/deps/*/ebin \
+exec erl $pa \
      -boot start_sasl \
      -config $config \
      -mnesia dir "\"${basedir}/priv/Mnesia\"" \
-     -occi_core listeners "$listeners" \
-     -s occi
+     -erocci_core listeners "$listeners" \
+     -s erocci

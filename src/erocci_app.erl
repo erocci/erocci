@@ -21,7 +21,7 @@
 %%% @end
 %%% Created :  6 Aug 2013 by Jean Parpaillon <jean.parpaillon@free.fr>
 %%%-------------------------------------------------------------------
--module(occi_app).
+-module(erocci_app).
 
 -behaviour(application).
 

@@ -9,7 +9,7 @@
     kernel,
     stdlib,
     cowboy,
-    occi_authnz
+    erocci_authnz
    ]
   },
   {registered, []}

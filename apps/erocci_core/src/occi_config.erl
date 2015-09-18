@@ -48,7 +48,7 @@ start_link() ->
 -spec load(list()) -> ok | {error, term()}.
 load(Config) ->
     ?info("Loading erocci configuration~n", []),
-    Env = application:get_all_env(occi_core),
+    Env = application:get_all_env(erocci_core),
     try setup(Env ++ Config) of
 	_ -> ok
     catch throw:Err -> {error, Err}

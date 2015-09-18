@@ -4,14 +4,19 @@
   {description, "erocci core"},
   {mod, {occi_core_app, []}},
   {modules, []},
-  {applications, [
-		  kernel,
-		  stdlib,
-		  sasl,
-		  inets,
-		  erim_xml,
-		  occi_authnz
-		 ]},
+  {applications, 
+   [
+	kernel,
+	stdlib,
+	sasl,
+	inets,
+	cowboy,
+	uuid,
+	uri,
+	jiffy,
+	erim_xml,
+	erocci_authnz
+   ]},
   {vsn, "git"},
   {registered, []}
  ]}.

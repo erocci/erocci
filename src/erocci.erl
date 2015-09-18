@@ -16,27 +16,27 @@
 %%% under the License.
 %%% 
 
-%% @doc occi startup code
--module(occi).
+%% @doc erocci startup code
+-module(erocci).
 -author('Jean Parpaillon <jean.parpaillon@free.fr>').
 
 -include("occi_log.hrl").
 
 -export([start/0, 
-	 stop/0,
-	 config/1]).
+		 stop/0,
+		 config/1]).
 
 %% @spec start() -> ok
 %% @doc Start the occi server.
 start() ->
     ?info("Starting erocci framework"),
-    application:ensure_all_started(occi).
+    application:ensure_all_started(erocci).
 
 %% @spec stop() -> ok
 %% @doc Stop the occi server.
 stop() ->
     ?info("Stopping erocci framework"),
-    application:stop(occi).
+    application:stop(erocci).
 
 config(Cfg) ->
     occi_config:load(Cfg).
