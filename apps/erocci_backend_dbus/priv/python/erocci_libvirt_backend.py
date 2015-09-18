@@ -20,12 +20,13 @@ class LibvirtService(dbus.service.Object):
     @staticmethod
     def get_schema():
         dirname = os.path.dirname(os.path.abspath(__file__))
-        basedir = os.path.join(dirname, "..", "..")
-        path = os.path.join(basedir, "priv", "schemas", "occi-infrastructure.xml")
+        basedir = os.path.join(dirname, "..", "..", "..", "..")
+        path = os.path.abspath(os.path.join(basedir, "priv", "schemas", "occi-infrastructure.xml"))
         content = ''
         with open(path, 'r') as fh:
             for line in fh:
                 content = content + line
+        print "Load schema from %s\n" % (path,)
         return content
 
     def __init__(self):

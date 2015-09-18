@@ -19,7 +19,7 @@
 %%%
 %%% @end
 %%% Created :  31 Jul 2014 by Jean Parpaillon <jean.parpaillon@free.fr>
--module(occi_backend_dbus).
+-module(erocci_backend_dbus).
 
 -behaviour(occi_backend).
 
@@ -36,17 +36,17 @@
 		 save/2,
 		 delete/2,
 		 find/2,
-		 load/2,
-		 action/2]).
+		 load/3,
+		 action/3]).
 
--record(state, {conn      :: dbus_bus_conn(),
+-record(state, {conn      :: dbus_connection(),
 				backend   :: dbus_proxy()}).
 
 %%%===================================================================
 %%% occi_backend callbacks
 %%%===================================================================
 init(#occi_backend{opts=Props}) ->
-    try parse_opts(Props) of
+	try parse_opts(Props) of
 		{Service, Opts} ->
 			case connect_backend(Service) of
 				{ok, Bus, Backend} ->
@@ -72,7 +72,7 @@ terminate(#state{backend=Backend}) ->
 		_ -> ok
     end.
 
-save(#occi_node{}=Node, #state{backend=Backend}=State) ->
+save(#state{backend=Backend}=State, #occi_node{}=Node) ->
     ?info("[~p] save(~p)~n", [?MODULE, Node]),
     case dbus_proxy:call(Backend, ?BACKEND_IFACE, <<"save">>, [occi_renderer_dbus:render(Node)]) of
 		ok ->
@@ -81,7 +81,7 @@ save(#occi_node{}=Node, #state{backend=Backend}=State) ->
 			{{error, Err}, State}
     end.
 
-delete(#occi_node{id=Uri}=Node, #state{backend=Backend}=State) ->
+delete(#state{backend=Backend}=State, #occi_node{id=Uri}=Node) ->
     ?info("[~p] delete(~p)~n", [?MODULE, Node]),
     case dbus_proxy:call(Backend, ?BACKEND_IFACE, <<"delete">>, [occi_uri:to_binary(Uri)]) of
 		ok ->
@@ -91,7 +91,7 @@ delete(#occi_node{id=Uri}=Node, #state{backend=Backend}=State) ->
     end.
 
 
-update(#occi_node{}=Node, #state{backend=Backend}=State) ->
+update(#state{backend=Backend}=State, #occi_node{}=Node) ->
     ?info("[~p] update(~p)~n", [?MODULE, Node]),
     case dbus_proxy:call(Backend, ?BACKEND_IFACE, <<"update">>, [occi_renderer_dbus:render(Node)]) of
 		ok ->
@@ -101,7 +101,7 @@ update(#occi_node{}=Node, #state{backend=Backend}=State) ->
     end.
 
 
-find(#occi_node{id=Uri}=_N, #state{backend=Backend}=State) ->
+find(#state{backend=Backend}=State, #occi_node{id=Uri}=_N) ->
     ?info("[~p] find(~p)~n", [?MODULE, _N]),
     case dbus_proxy:call(Backend, ?BACKEND_IFACE, <<"find">>, [occi_uri:to_binary(Uri)]) of
 		{ok, [Node]} ->
@@ -111,7 +111,7 @@ find(#occi_node{id=Uri}=_N, #state{backend=Backend}=State) ->
     end.
 
 
-load(#occi_node{id=Uri}=Node, #state{backend=Backend}=State) ->
+load(#state{backend=Backend}=State, #occi_node{id=Uri}=Node, _Opts) ->
     ?info("[~p] load(~p)~n", [?MODULE, Uri]),
     case dbus_proxy:call(Backend, ?BACKEND_IFACE, <<"load">>, [occi_renderer_dbus:render(Node)]) of
 		{ok, N} ->
@@ -121,9 +121,9 @@ load(#occi_node{id=Uri}=Node, #state{backend=Backend}=State) ->
     end.
 
 
-action({#occi_node{id=Id}=Node, #occi_action{}=A}, #state{backend=Backend}=State) ->
+action(#state{backend=Backend}=State, #uri{}=Id, #occi_action{}=A) ->
     ?info("[~p] action(~p, ~p)~n", [?MODULE, Id, A]),
-    Args = [occi_renderer_dbus:render(Node), 
+    Args = [occi_renderer_dbus:render(Id), 
 			occi_renderer_dbus:render(A)],
     case dbus_proxy:call(Backend, ?BACKEND_IFACE, <<"load">>, Args) of
 		ok ->
@@ -136,30 +136,27 @@ action({#occi_node{id=Id}=Node, #occi_action{}=A}, #state{backend=Backend}=State
 %%% Internal functions
 %%%===================================================================
 parse_opts(Props) ->
-    case proplists:get_value(service, Props) of
-		undefined ->
-			throw({error, {missing_opt, service}});
-		Str ->
-			case proplists:get_value(opts, Props) of
-				undefined ->
-					{list_to_binary(Str), []};
-				Opts ->
-					{list_to_binary(Str), Opts}
-			end
-    end.
+    Srv = case proplists:get_value(service, Props) of
+			  undefined -> throw({error, {missing_opt, service}});
+			  Str -> list_to_binary(Str)
+		  end,
+	Opts = case proplists:get_value(opts, Props) of
+			   undefined -> [];
+			   V -> V
+		   end,
+	{Srv, Opts}.
+    
 
 connect_backend(Service) ->
-    case dbus:connect(session) of
+    case dbus_bus_connection:connect(session) of
 		{ok, Bus} ->
-			case dbus_bus_connection:get_object(Bus, Service, <<"/">>) of
-				{ok, Backend} ->
-					{ok, Bus, Backend};
-				{error, Err} ->
-					{error, Err}
+			case dbus_proxy:start_link(Bus, Service) of
+				{ok, Backend} -> {ok, Bus, Backend};
+				{error, _} = Err -> Err
 			end;
-		{error, Err} ->
-			{error, Err}
+		{error, _} = Err -> Err
     end.
+
 
 process_schemas([], Acc) ->
     lists:reverse(Acc);
