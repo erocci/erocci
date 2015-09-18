@@ -703,25 +703,21 @@ parse_marker(Bin) ->
 
 init_schema(Opts) ->
     application:load(mnesia),
-    case application:get_env(mnesia, dir, "") of
-		"" ->
+	Path = mnesia:system_info(directory),
+	case filelib:is_file(filename:join([Path, "schema.DAT"])) of
+		true ->
+			?debug("mnesia schema already exists on this node", []),
 			init_db(Opts);
-		Path ->
-			case filelib:is_file(filename:join([Path, "schema.DAT"])) of
-				true ->
-					?debug("mnesia schema already exists on this node", []),
+		false ->
+			?debug("Creating mnesia schema on ~s", [Path]),
+			case mnesia:create_schema([node()]) of
+				ok ->
 					init_db(Opts);
-				false ->
-					?debug("Creating mnesia schema on ~s", [Path]),
-					case mnesia:create_schema([node()]) of
-						ok ->
-							init_db(Opts);
-						{error, {_, {already_exists,_}}} ->
-							init_db(Opts);
-						{error, Err} ->
-							?error("Error creating mnesia schema on node ~p: ~p", [node(), Err]),
-							{error, Err}
-					end
+				{error, {_, {already_exists,_}}} ->
+					init_db(Opts);
+				{error, Err} ->
+					?error("Error creating mnesia schema on node ~p: ~p", [node(), Err]),
+					{error, Err}
 			end
     end.
 
