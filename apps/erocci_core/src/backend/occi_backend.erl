@@ -121,7 +121,7 @@ cancel(Ref, Tag) ->
 -spec init(occi_backend()) -> {ok, term()} | {error, term()} | ignore.
 init(#occi_backend{ref=Ref, mod=Mod}=Backend) ->
     T = ets:new(Mod, [set, public, {keypos, 1}]),
-    case Mod:init(Backend) of
+    try Mod:init(Backend) of
 		{ok, Caps, BackendState} ->
 			case init_schemas(Ref, proplists:get_value(schemas, Caps))  of
 				ok -> 
@@ -130,6 +130,8 @@ init(#occi_backend{ref=Ref, mod=Mod}=Backend) ->
 					{stop, Err}
 			end;
 		{error, Err} ->
+			{stop, Err}
+	catch _:Err ->
 			{stop, Err}
     end.
 

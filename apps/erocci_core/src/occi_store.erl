@@ -99,6 +99,7 @@ register({Ref, Mod, Opts, Path}) when is_atom(Ref), is_atom(Mod), is_binary(Path
         {error, {already_started, Pid}} ->
             {ok, Pid};
         {error, Err} ->
+			?error("Error starting backend: ~p", [Err]),
             {error, Err}
     end.
 
