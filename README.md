@@ -17,14 +17,11 @@ erocci is a framework for building OCCI like API, with the following objectives:
 
 <img src="https://raw.github.com/jeanparpaillon/erocci/master/doc/erocci.png" alt="erocci Architecture diagram" />
 
-## Dependancies
+## Dependencies
 
-erocci is written in erlang.
-It uses autotools for compilation, dependancies checking, etc.
+erocci is written in erlang. 
 
 * erlang/OTP, version 17 or greater
-* autoconf 2.69 or greater
-* automake 1.14 or greater
 
 Optinal features requires the following dependancies:
 * htpasswd based authentication: Apache Runtime Library utils headers
@@ -35,52 +32,37 @@ Optinal features requires the following dependancies:
 ```
 # wget http://packages.erlang-solutions.com/erlang-solutions_1.0_all.deb && sudo dpkg -i erlang-solutions_1.0_all.deb
 # sudo apt-get update
-# sudo apt-get install build-essential libssl-dev libexpat1-dev libaprutil1-dev libavahi-compat-libdnssd-dev erlang rebar
-```
-
-If you've downloaded the sources from git, you will also need autotools:
-```
-sudo apt-get install autoconf automake libtool git
+# sudo apt-get install build-essential libssl-dev libexpat1-dev libaprutil1-dev libavahi-compat-libdnssd-dev erlang 
 ```
 
 ### Fedora
 
 ```
-yum install erlang rebar curl gcc openssl openssl-devel  mod_ssl libxml2-devel gcc-c++ expat-devel apr-util-devel avahi-compat-libdns_sd-devel
-yum install erlang rebar curl gcc openssl openssl-devel mod_ssl libxml2-devel gcc-c++ expat-devel apr-util-devel
+yum install erlang curl gcc openssl openssl-devel  mod_ssl libxml2-devel gcc-c++ expat-devel apr-util-devel avahi-compat-libdns_sd-devel
+yum install erlang curl gcc openssl openssl-devel mod_ssl libxml2-devel gcc-c++ expat-devel apr-util-devel
 ```
 
-## Compiling
+### Configuring and Building
 
-### Preparing sources
+erocci is made of multiple (optional) components. Selection of
+components is achieved with the econfig system (http://github.com/erocci/econfig).
 
-$ ./autogen.sh
-$ ./configure 
-
-### Building
+Options can be set:
+* either during the build process
+* either by filling the _build/default/.econfig file
 
 $ make
 
-### Customizing build
-
-$ ./configure --help
-
 ## Running
 
-As a framework, erocci is made to build applications and so is not
-runnable by itself. Nevertheless, an example application is provided
-to let you taste, huh test OCCI.
+You can start erocci with various predefined configs available in
+priv/configs/ dir, for instance:
 
-$ ./start.sh
+$ CONFIG=priv/configs/default.config make run
 
-This application will run the hello_occi application, which:
-* load OCCI infrastructure extension
-* start the Mnesia backend
-* start an HTTP listener on port 8080
+ThenL
 
-## Testing
-
-Run scripts/testsuite.sh to create sample resources and links.
+$ erocci:start().
 
 ## Mailing lists
 
