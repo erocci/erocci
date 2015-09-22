@@ -60,7 +60,7 @@ priv/configs/ dir, for instance:
 
 $ CONFIG=priv/configs/default.config make run
 
-ThenL
+Then:
 
 $ erocci:start().
 

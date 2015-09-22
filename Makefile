@@ -5,7 +5,12 @@ REBAR = $(shell which rebar3 || $(REBAR_ROOT_DIR)/rebar3)
 
 PLUGIN = _build/default/plugins/econfig/ebin/econfig.app
 
+CONFIG ?= priv/configs/default.conf
+
 all: compile
+
+run:
+	$(REBAR) shell --config $(CONFIG)
 
 compile: template
 	$(REBAR) compile
