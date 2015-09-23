@@ -1,7 +1,7 @@
 REBAR_ROOT_DIR ?= .
 REBAR_BUILD_DIR ?= _build/default
 
-REBAR = $(shell which rebar3 || echo $(REBAR_ROOT_DIR)/rebar3)
+REBAR = $(REBAR_ROOT_DIR)/rebar3
 
 PLUGIN = _build/default/plugins/econfig/ebin/econfig.app
 REGISTRY = $(HOME)/.cache/rebar3/hex/default/registry
