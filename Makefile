@@ -30,6 +30,7 @@ clean:
 	-rm -f rebar.config.script
 
 distclean: clean
+	-rm -rf _build/default/plugins
 	-rm -f .econfig
 
 .PHONY: all template configure compile clean distclean
