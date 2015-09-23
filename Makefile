@@ -35,6 +35,6 @@ clean:
 
 distclean: clean
 	-rm -rf _build/default/plugins
-	-rm -f .econfig
+	-rm -f .econfig rebar.lock
 
 .PHONY: all template configure compile clean distclean
