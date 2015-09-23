@@ -33,8 +33,8 @@ clean:
 	$(REBAR) econfig clean
 	-rm -f rebar.config.script
 
-distclean: clean
-	-rm -rf _build/default/plugins
-	-rm -f .econfig rebar.lock
+distclean:
+	-rm -rf _build
+	-rm -f rebar.lock
 
 .PHONY: all template configure compile clean distclean
