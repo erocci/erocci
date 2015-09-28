@@ -19,3 +19,9 @@ occi_category_mgr must not return actions separatly from kind/mixin
 # Replace lists (strings) with binaries: uris
 
 # Handle multiple listeners
+
+
+# Build
+
+* Check for c++ (jiffy)
+* Platform dependant checks: statfs, etc

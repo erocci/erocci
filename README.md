@@ -42,6 +42,13 @@ yum install erlang curl gcc openssl openssl-devel  mod_ssl libxml2-devel gcc-c++
 yum install erlang curl gcc openssl openssl-devel mod_ssl libxml2-devel gcc-c++ expat-devel apr-util-devel
 ```
 
+### MAC OS X
+
+* Requirements:
+  * erlang/OTP: https://www.erlang-solutions.com/downloads/download-erlang-otp
+  * pkg-config: http://macpkg.sourceforge.net/
+  * 
+
 ### Configuring and Building
 
 erocci is made of multiple (optional) components. Selection of
