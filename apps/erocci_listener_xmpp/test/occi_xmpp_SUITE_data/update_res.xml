@@ -1,7 +1,0 @@
-<iq to="test@local/local" type="set" xmlns="jabber:client"><query xmlns="http://schemas.ogf.org/occi-xmpp" op="update" node="/store/myresources/xmpp/compute/id1">
-<occi:resource xmlns:occi="http://schemas.ogf.org/occi">
-<occi:kind scheme="http://schemas.ogf.org/occi/infrastructure#" term="compute" />
-<occi:attribute name="occi.compute.memory" value="90" />
-</occi:resource>
-</query></iq>
-

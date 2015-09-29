@@ -1,5 +1,0 @@
-<iq to="test@local/local" type="set" xmlns="jabber:client">
-<query xmlns="http://schemas.ogf.org/occi-xmpp" op="delete" node="/store/myresources/xmpp/compute/id1">
-</query>
-</iq>
-

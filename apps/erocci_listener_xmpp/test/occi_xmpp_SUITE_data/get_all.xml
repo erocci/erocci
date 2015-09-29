@@ -1,4 +1,0 @@
-<iq to="test@local/local" type="get" xmlns="jabber:client">
-<query xmlns="http://schemas.ogf.org/occi-xmpp" node="/store">
-</query>
-</iq>
