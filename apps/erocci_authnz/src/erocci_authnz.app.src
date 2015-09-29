@@ -1,9 +1,0 @@
-{application, erocci_authnz,
- [
-  {description, "erocci authentication and authorization framework"},
-  {mod, {occi_authnz_app, []}},
-  {modules, []},
-  {vsn, "git"},
-  {registered, []},
-  {applications, []}
- ]}.
