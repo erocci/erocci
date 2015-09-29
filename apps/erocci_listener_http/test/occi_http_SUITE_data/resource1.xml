@@ -1,5 +1,0 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-<occi:resource xmlns:occi="http://schemas.ogf.org/occi" title="My test resource" >
-  <occi:kind scheme="http://example.org/occi/test#" term="resource" />
-  <occi:attribute name="example.required" value="a string" />
-</occi:resource>

@@ -1,2 +1,0 @@
-category: resource; scheme="http://example.org/occi/test#"; class="kind"
-x-occi-attribute: example.required="a string"

@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-<occi:link xmlns:occi="http://schemas.ogf.org/occi" title="My test link" >
-  <occi:kind scheme="http://example.org/occi/test#" term="link" />
-  <occi:attribute name="occi.core.source" value="http://localhost:8080/xml/id1" />
-  <occi:attribute name="occi.core.target" value="http://localhost:8080/xml/id2" />
-  <occi:attribute name="example.string" value="my string attribute" />
-</occi:link>
