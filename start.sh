@@ -2,12 +2,13 @@
 basedir=$(cd $(dirname $0) && pwd)
 
 function usage() {
-    echo "Usage: $0 [-d] [-t] [-s] [-x <jid>] [-c <config>] [-h]"
+    #echo "Usage: $0 [-d] [-t] [-s] [-x <jid>] [-c <config>] [-h]"
+	echo "Usage: $0 [-d] [-t] [-s] [-c <config>] [-h]"
     echo -e "\t-d           Print debug messages"
     echo -e "\t-q           Print only error messages"
     echo -e "\t-t           Start HTTP listener"
     echo -e "\t-s           Start HTTPS listener (default: HTTP)"
-    echo -e "\t-x <jid>     Start XMPP listener with given JID"
+    #echo -e "\t-x <jid>     Start XMPP listener with given JID"
     echo -e "\t-c <config>  Set alternate config file (default: example.config)"
     echo -e "\t-h           Print this help"
 
@@ -17,20 +18,21 @@ function join {
     local IFS="$1"; shift; echo -n "$*"
 }
 
-ssldir=${basedir}/priv/ssl
+appdir=$basedir/apps/erocci
+ssldir=$appdir/priv/ssl
 cacertfile=$ssldir/cowboy-ca.crt
 certfile=$ssldir/server.crt
 keyfile=$ssldir/server.key
-htpasswd=${basedir}/priv/htpasswd
 
 name=
 debug=info
-configdir=${basedir}/priv/configs
-config=${configdir}/default.config
+configdir=$appdir/priv/configs
+config=$configdir/default.config
 idx=-1
-http_listener="{http, occi_http, [{port, 8080}, {auth, {htpasswd, \"$htpasswd\"}}]}"
+http_listener="{http, occi_http, [{port, 8080}]}"
 listeners[0]=${http_listener}
-while getopts ":hdqtsc:x:p:" opt; do
+#while getopts ":hdqtsc:x:p:" opt; do
+while getopts ":hdqtsc:x:" opt; do
     case $opt in
 	d)
 	    debug=debug
@@ -45,24 +47,27 @@ while getopts ":hdqtsc:x:p:" opt; do
 	    ;;
 	s)
 	    idx=$(( $idx + 1 ))
-	    listeners[$idx]="{https, occi_https, [{port, 8443}, {cacertfile, \"$cacertfile\"}, {certfile, \"$certfile\"}, {keyfile, \"$keyfile\"}, {auth, {htpasswd, \"$htpasswd\"}}]}"
+	    listeners[$idx]="{https, occi_https, [{port, 8443}, {cacertfile, \"$cacertfile\"}, {certfile, \"$certfile\"}, {keyfile, \"$keyfile\"}]}"
 	    ;;
 	x)
-	    jid=$OPTARG
-	    case x$jid in
-		x)
-		    true
-		    ;;
-		*@local)
-		    idx=$(( $idx + 1 ))
-		    listeners[$idx]="{xmpplocal, occi_xmpp_client, [{jid, \"$jid\"}, {auth, {xmpp, []}}]}"
-		    ;;
-		*)
-		    read -s -p "Password:" passwd
-		    idx=$(( $idx + 1 ))
-		    listeners[$idx]="{xmppc, occi_xmpp_client, [{jid, \"$jid\"}, {passwd, \"$passwd\"}, {auth, {xmpp, []}}]}"
-		    ;;
-	    esac
+		echo "XMPP listener disabled"
+		usage
+		exit 1
+	    #jid=$OPTARG
+	    # case x$jid in
+		# x)
+		#     true
+		#     ;;
+		# *@local)
+		#     idx=$(( $idx + 1 ))
+		#     listeners[$idx]="{xmpplocal, occi_xmpp_client, [{jid, \"$jid\"}, {auth, {xmpp, []}}]}"
+		#     ;;
+		# *)
+		#     read -s -p "Password:" passwd
+		#     idx=$(( $idx + 1 ))
+		#     listeners[$idx]="{xmppc, occi_xmpp_client, [{jid, \"$jid\"}, {passwd, \"$passwd\"}, {auth, {xmpp, []}}]}"
+		#     ;;
+	    # esac
 	    ;;
 	c)
 	    if [ -e $OPTARG ]; then
@@ -73,9 +78,6 @@ while getopts ":hdqtsc:x:p:" opt; do
 		echo "Could not find config: "$OPTARG
 		exit 1
 	    fi
-	    ;;
-	p)
-	    htpasswd=$OPTARG
 	    ;;
 	h)
 	    usage
@@ -90,11 +92,9 @@ done
 
 listeners=$(echo -n "["; join , "${listeners[@]}"; echo -n "]")
 
-pa=$(for d in $(ls -d $basedir/_build/default/lib/*/ebin); do echo -pa $d; done)
 cd ${basedir}
-exec erl $pa \
+exec erl -pa $basedir/apps/erocci/ebin -pa $basedir/deps/*/ebin \
      -boot start_sasl \
      -config $config \
-     -mnesia dir "\"${basedir}/priv/Mnesia\"" \
      -erocci_core listeners "$listeners" \
      -s erocci
