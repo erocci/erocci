@@ -20,7 +20,7 @@
 -module(erocci).
 -author('Jean Parpaillon <jean.parpaillon@free.fr>').
 
--include("occi_log.hrl").
+-include_lib("erocci_core/include/occi_log.hrl").
 
 -export([start/0, 
 		 stop/0,
