@@ -1,8 +1,13 @@
 PROJECT = @PACKAGE_NAME@
 PROJECT_VERSION = @PACKAGE_VERSION@
 
-DEPS = erocci_core erocci_listener_http erocci_backend_mnesia erocci_backend_dbus
+DEPS = \
+	erocci_core erocci_authnz \
+	erocci_listener_http \
+	erocci_backend_mnesia erocci_backend_dbus
+
 dep_erocci_core = git https://github.com/erocci/erocci_core.git master
+dep_erocci_authnz = git https://github.com/erocci/erocci_authnz.git master
 dep_erocci_listener_http = git https://github.com/erocci/erocci_listener_http.git master
 dep_erocci_backend_mnesia = git https://github.com/erocci/erocci_backend_mnesia.git master
 dep_erocci_backend_dbus = git https://github.com/erocci/erocci_backend_dbus.git master
