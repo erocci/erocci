@@ -1,0 +1,8 @@
+PROJECT = erocci
+PROJECT_VERSION = @PACKAGE_VERSION@
+
+top_srcdir = @top_srcdir@
+
+include $(top_srcdir)/erlang.mk
+
+ERLC_OPTS += -I$(top_srcdir)/deps

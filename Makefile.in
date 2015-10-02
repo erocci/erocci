@@ -1,0 +1,17 @@
+PROJECT = @PACKAGE_NAME@
+PROJECT_VERSION = @PACKAGE_VERSION@
+
+DEPS = erocci_core erocci_listener_http erocci_backend_mnesia erocci_backend_dbus
+dep_erocci_core = git https://github.com/erocci/erocci_core.git master
+dep_erocci_listener_http = git https://github.com/erocci/erocci_listener_http.git master
+dep_erocci_backend_mnesia = git https://github.com/erocci/erocci_backend_mnesia.git master
+dep_erocci_backend_dbus = git https://github.com/erocci/erocci_backend_dbus.git master
+
+include erlang.mk
+
+fetch: $(ALL_DEPS_DIRS)
+	for d in $(ALL_DEPS_DIRS); do \
+	  $(MAKE) -C $$d $@ || true; \
+	done
+
+.PHONY: fetch
