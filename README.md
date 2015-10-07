@@ -17,59 +17,70 @@ erocci is a framework for building OCCI like API, with the following objectives:
 
 <img src="https://raw.github.com/jeanparpaillon/erocci/master/doc/erocci.png" alt="erocci Architecture diagram" />
 
+erocci is made up of several pluggable components. These components
+are implemented as erlang/OTP applications.
+
+* `erocci_core`: OCCI Runtime Kernel, renderers and parsers and plugin APIs
+* `erocci_authnz`:  authnz plugins API
+* `erocci_listener_http`: HTTP(s) protocol listener
+* `erocci_backend_mnesia`: Mnesia database backend
+* `erocci_backend_dbus`: D-Bus backends API, allows development of
+  backends in any language supported by D-Bus
+
 ## Dependencies
 
 erocci is written in erlang. 
 
-* erlang/OTP, version 17 or greater
-
-Optinal features requires the following dependancies:
-* htpasswd based authentication: Apache Runtime Library utils headers
-* XMPP link-local support: Avahi headers
+* erlang/OTP, version 18 or greater
+* make, autoconf (tested with 2.69), gcc
+* one of libxml2 or libexpat headers
 
 ### Ubuntu / Debian
 
 ```
 # wget http://packages.erlang-solutions.com/erlang-solutions_1.0_all.deb && sudo dpkg -i erlang-solutions_1.0_all.deb
 # sudo apt-get update
-# sudo apt-get install build-essential libssl-dev libexpat1-dev libaprutil1-dev libavahi-compat-libdnssd-dev erlang 
+# sudo apt-get install build-essential erlang libxml2-dev
 ```
 
 ### Fedora
 
 ```
-yum install erlang curl gcc openssl openssl-devel  mod_ssl libxml2-devel gcc-c++ expat-devel apr-util-devel avahi-compat-libdns_sd-devel
-yum install erlang curl gcc openssl openssl-devel mod_ssl libxml2-devel gcc-c++ expat-devel apr-util-devel
+yum install erlang curl gcc libxml2-devel gcc-c++ 
 ```
 
 ### MAC OS X
 
 * Requirements:
   * erlang/OTP: https://www.erlang-solutions.com/downloads/download-erlang-otp
-  * pkg-config: http://macpkg.sourceforge.net/
-  * 
+  * TO BE COMPLETED
 
 ### Configuring and Building
 
-erocci is made of multiple (optional) components. Selection of
-components is achieved with the econfig system (http://github.com/erocci/econfig).
+Configure sources and fetch dependencies:
+```
+$ ./bootstrap
+```
 
-Options can be set:
-* either during the build process
-* either by filling the _build/default/.econfig file
+(Optional) Run configure again for specific options
+```
+$ ./configure
+```
 
+Build:
+```
 $ make
+```
 
 ## Running
 
-You can start erocci with various predefined configs available in
-priv/configs/ dir, for instance:
+erocci is configured with a single config file. Several example config
+files are available in: `apps/erocci/priv/configs/`
 
-$ CONFIG=priv/configs/default.config make run
-
-Then:
-
-$ erocci:start().
+Start erocci with:
+```
+$ ./start.sh -c apps/erocci/priv/configs/default.config
+```
 
 ## Mailing lists
 
