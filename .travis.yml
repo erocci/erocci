@@ -6,9 +6,10 @@ branches:
 language: erlang
 otp_release:
    - 18.0
+   - 18.1
 
 before_install:
-  - "sudo apt-get update && sudo apt-get install build-essential libssl-dev libexpat1-dev"
+  - "sudo apt-get update && sudo apt-get install build-essential automake autoconf libssl-dev libexpat1-dev"
   - "./bootstrap"
 
 install:
