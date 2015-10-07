@@ -14,8 +14,6 @@ addons:
   apt:
     packages:
       - build-essential
-      - automake
-      - autoconf
       - libssl-dev
       - libexpat1-dev
 

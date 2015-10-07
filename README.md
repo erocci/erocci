@@ -32,7 +32,7 @@ are implemented as erlang/OTP applications.
 erocci is written in erlang. 
 
 * erlang/OTP, version 18 or greater
-* make, autoconf (tested with 2.69), gcc
+* make, gcc
 * one of libxml2 or libexpat headers
 
 ### Ubuntu / Debian
