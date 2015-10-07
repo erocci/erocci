@@ -15,7 +15,7 @@ erocci is a framework for building OCCI like API, with the following objectives:
 
 ## Architecture
 
-<img src="https://raw.github.com/jeanparpaillon/erocci/master/doc/erocci.png" alt="erocci Architecture diagram" />
+<img src="https://raw.github.com/erocci/erocci/master/doc/erocci.png" alt="erocci Architecture diagram" />
 
 erocci is made up of several pluggable components. These components
 are implemented as erlang/OTP applications.
