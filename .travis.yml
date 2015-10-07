@@ -11,13 +11,13 @@ otp_release:
 sudo: false
 
 addons:
-	apt:
-		packages:
-		- build-essential
-		- automake
-		- autoconf
-		- libssl-dev
-		- libexpat1-dev
+  apt:
+    packages:
+      - build-essential
+      - automake
+      - autoconf
+      - libssl-dev
+      - libexpat1-dev
 
 install:
   - "./bootstrap"
