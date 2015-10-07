@@ -14,9 +14,11 @@ dep_erocci_backend_dbus = git https://github.com/erocci/erocci_backend_dbus.git 
 
 include erlang.mk
 
+test: all
+
 fetch: $(ALL_DEPS_DIRS)
-	for d in $(ALL_DEPS_DIRS); do \
-	  $(MAKE) -C $$d $@ || true; \
+	@for d in $(ALL_DEPS_DIRS); do \
+	  $(MAKE) -C $$d --no-print-directory $@ || true; \
 	done
 
-.PHONY: fetch
+.PHONY: fetch test
