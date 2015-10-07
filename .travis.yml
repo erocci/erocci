@@ -5,12 +5,14 @@ branches:
   
 language: erlang
 otp_release:
-   - 17.1
-   - R16B03-1
+   - 18.0
 
 before_install:
-  - "sudo apt-get update && sudo apt-get install build-essential libssl-dev libexpat1-dev libaprutil1-dev libavahi-compat-libdnssd-dev"
-  - "./configure"
+  - "sudo apt-get update && sudo apt-get install build-essential libssl-dev libexpat1-dev"
+  - "./bootstrap"
+
+install:
+  - "make"
 
 notifications:
   email:
