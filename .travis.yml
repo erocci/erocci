@@ -8,11 +8,19 @@ otp_release:
    - 18.0
    - 18.1
 
-before_install:
-  - "sudo apt-get update && sudo apt-get install build-essential automake autoconf libssl-dev libexpat1-dev"
-  - "./bootstrap"
+sudo: false
+
+addons:
+	apt:
+		packages:
+		- build-essential
+		- automake
+		- autoconf
+		- libssl-dev
+		- libexpat1-dev
 
 install:
+  - "./bootstrap"
   - "make"
 
 notifications:
