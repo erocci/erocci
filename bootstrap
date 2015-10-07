@@ -1,18 +1,19 @@
-#!/bin/sh
+#!/usr/bin/make -f
 
-set -e
+all: Makefile
+	@$(MAKE) fetch
+	@echo "###"
+	@echo "### You can now run make or configure for customization"
+	@echo "###"
 
-basedir=$(dirname $0)
+Makefile: Makefile.in config.status
 
-(
-	cd $basedir && \
-		autoreconf -ivf && \
-		$basedir/configure $@ && \
-		make -C $basedir fetch
-)
+config.status: configure
+	@./configure
 
-echo "###"
-echo "### You can now run make or configure for customization"
-echo "###"
+configure: configure.ac
+	@autoreconf -ivf
 
-exit 0
+.PHONY: all
+
+.SILENT:
