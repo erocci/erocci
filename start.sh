@@ -71,12 +71,19 @@ while getopts ":hdqtsc:x:" opt; do
 	    ;;
 	c)
 	    if [ -e $OPTARG ]; then
-		config=`pwd`/$OPTARG
+			case $OPTARG in
+				/*)
+					config=$OPTARG
+					;;
+				*)
+					config=`pwd`/$OPTARG
+					;;
+			esac
 	    elif [ -e ${configdir}/$OPTARG ]; then
-		config=${configdir}/$OPTARG
+			config=${configdir}/$OPTARG
 	    else
-		echo "Could not find config: "$OPTARG
-		exit 1
+			echo "Could not find config: "$OPTARG
+			exit 1
 	    fi
 	    ;;
 	h)
