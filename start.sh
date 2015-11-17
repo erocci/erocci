@@ -10,6 +10,7 @@ function usage() {
     echo -e "\t-s           Start HTTPS listener (default: HTTP)"
     #echo -e "\t-x <jid>     Start XMPP listener with given JID"
     echo -e "\t-c <config>  Set alternate config file (default: example.config)"
+    echo -e "\t-n <name>    Set node name for distributed mode (default: node1)"
     echo -e "\t-h           Print this help"
 
 }
@@ -24,7 +25,7 @@ cacertfile=$ssldir/cowboy-ca.crt
 certfile=$ssldir/server.crt
 keyfile=$ssldir/server.key
 
-name=
+name=node1
 debug=info
 configdir=$appdir/priv/configs
 config=$configdir/default.config
@@ -86,6 +87,9 @@ while getopts ":hdqtsc:x:" opt; do
 			exit 1
 	    fi
 	    ;;
+	n)
+		name=$OPTARG
+		;;
 	h)
 	    usage
 	    exit 0
@@ -104,4 +108,5 @@ exec erl -pa $basedir/apps/erocci/ebin -pa $basedir/deps/*/ebin \
      -boot start_sasl \
      -config $config \
      -erocci_core listeners "$listeners" \
+	 -sname $name \
      -s erocci
