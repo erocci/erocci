@@ -19,3 +19,4 @@ RUN git clone https://github.com/erocci/erocci.git && \
 CMD [ "/root/run.sh" ]
 
 EXPOSE 80
+
