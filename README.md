@@ -9,9 +9,12 @@ erocci is a framework for building OCCI like API, with the following objectives:
   * backends: storage (Mnesia, etc.), "procci" to other APIs
 * small and heavily tested
 
-[![Build Status](https://travis-ci.org/erocci/erocci.svg?branch=master)](https://travis-ci.org/erocci/erocci)
+[![Build Status](https://travis-ci.org/erocci/erocci.svg?branch=master)](https://travis-ci.org/erocci/erocci) [![Project Stats](https://www.openhub.net/p/erocci/widgets/project_thin_badge.gif)](https://www.openhub.net/p/erocci)
 
-[![Project Stats](https://www.openhub.net/p/erocci/widgets/project_thin_badge.gif)](https://www.openhub.net/p/erocci)
+## Docker
+
+Current version of erocci is packaged into a ready-to-use docker: see
+[README](tools/docker/README.md)
 
 ## Architecture
 
