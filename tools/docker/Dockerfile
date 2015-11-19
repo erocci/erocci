@@ -9,7 +9,7 @@ ADD run.sh /root/run.sh
 
 RUN apt-get update
 RUN apt-get -y install --no-install-recommends git \
-    build-essential pkg-config ca-certificates libxml2-dev && \
+    build-essential autoconf pkg-config ca-certificates libxml2-dev && \
     apt-get -y clean
 RUN git clone https://github.com/erocci/erocci.git && \
     cd erocci && \
