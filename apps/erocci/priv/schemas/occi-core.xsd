@@ -4,7 +4,7 @@
 	xmlns:xs="http://www.w3.org/2001/XMLSchema"
 	xmlns:xl="http://www.w3.org/2008/06/xlink"
 	xmlns:occi="http://schemas.ogf.org/occi" >
-  
+
 	<xs:import schemaLocation="http://www.w3.org/2001/XMLSchema.xsd"
 		   namespace="http://www.w3.org/2001/XMLSchema"></xs:import>
 	<xs:annotation>
@@ -15,48 +15,19 @@
 	  </xs:documentation>
 	</xs:annotation>
 
-	<!-- 
+	<!--
 	     OCCI request/response elements
 	-->
-	<xs:element name="extension" type="occi:extensionType"></xs:element>
 	<xs:element name="component" type="occi:componentType"></xs:element>
 	<xs:element name="mixin" type="occi:mixinType" ></xs:element>
 	<xs:element name="resource" type="occi:resourceType" ></xs:element>
 	<xs:element name="link" type="occi:linkType" ></xs:element>
 	<xs:element name="action" type="occi:actionType" ></xs:element>
 	<xs:element name="collection" type="occi:collectionType" ></xs:element>
-	
+
 	<!--
 	    OCCI request types
 	-->
-	<xs:complexType name="extensionType">
-	  <xs:sequence>
-	    <xs:element name="kind" type="occi:kindType" maxOccurs="unbounded" minOccurs="0" />
-	    <xs:element name="mixin" type="occi:mixinType" maxOccurs="unbounded" minOccurs="0" />
-	    <xs:element name="action" type="occi:actionSpecType" maxOccurs="unbounded" minOccurs="0" />
-	  </xs:sequence>
-	  <xs:attribute name="name" type="xs:string"></xs:attribute>
-	  <xs:attribute name="version" type="xs:string"></xs:attribute>
-	  <xs:attribute name="scheme" type="xs:anyURI"></xs:attribute>
-	  <xs:attribute name="status" >
-	    <xs:simpleType>
-	      <xs:restriction base="xs:string">
-		<xs:enumeration value="draft"></xs:enumeration>
-		<xs:enumeration value="experimental"></xs:enumeration>
-		<xs:enumeration value="stable"></xs:enumeration>	
-	      </xs:restriction>
-	    </xs:simpleType>
-	  </xs:attribute>
-	</xs:complexType>
-
-	<xs:complexType name="capabilitiesType">
-	  <xs:sequence>
-	    <xs:element name="kind" type="occi:kindType" maxOccurs="unbounded" minOccurs="0" />
-	    <xs:element name="mixin" type="occi:mixinType" maxOccurs="unbounded" minOccurs="0" />
-	    <xs:element name="action" type="occi:actionSpecType" maxOccurs="unbounded" minOccurs="0" />
-	  </xs:sequence>
-	</xs:complexType>
-
 	<xs:complexType name="collectionType" >
 	  <xs:sequence>
 	    <xs:element name="entity" type="occi:entityType" />
@@ -65,8 +36,8 @@
 	  <xs:attribute name="range" type="xs:string" />
 	  <xs:attribute name="next" type="xs:anyURI" />
 	</xs:complexType>
-	
-	<!-- 
+
+	<!--
 	     OCCI types
 	-->
 	<xs:complexType name="kindType">
@@ -140,7 +111,7 @@
 	  <xs:attribute name="title" type="xs:string" ></xs:attribute>
 	  <xs:attribute name="href" type="xl:href" />
 	</xs:complexType>
-	
+
 	<xs:complexType name="actionSpecType">
 	  <xs:sequence>
 	    <xs:element name="attribute" type="occi:attributeSpecType" minOccurs="0" maxOccurs="unbounded" />
@@ -156,7 +127,7 @@
 	  <xs:attribute name="value" type="xs:string"></xs:attribute>
 	</xs:complexType>
 
-	<xs:complexType name="categoryType">	
+	<xs:complexType name="categoryType">
 	  <xs:attributeGroup ref="occi:categoryIdGroup"></xs:attributeGroup>
 	</xs:complexType>
 
@@ -164,8 +135,8 @@
 	  <xs:attribute name="scheme" type="xs:anyURI"></xs:attribute>
 	  <xs:attribute name="term" type="xs:string" use="required"></xs:attribute>
 	</xs:attributeGroup>
-	
-	<xs:attributeGroup name="categoryGroup">	
+
+	<xs:attributeGroup name="categoryGroup">
 	  <xs:attributeGroup ref="occi:categoryGroup"></xs:attributeGroup>
 	  <xs:attribute name="title" type="xs:string"></xs:attribute>
 	  <xs:attribute name="use">
@@ -177,7 +148,7 @@
 	    </xs:simpleType>
 	  </xs:attribute>
 	</xs:attributeGroup>
-	
+
 	<xs:complexType name="actionType">
 	  <xs:sequence>
 	    <xs:element name="attribute" type="occi:attributeType"></xs:element>

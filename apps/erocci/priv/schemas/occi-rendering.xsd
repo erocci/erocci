@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema targetNamespace="http://schemas.ogf.org/occi"
+	elementFormDefault="qualified" version="0.2"
+	xmlns:xs="http://www.w3.org/2001/XMLSchema"
+	xmlns:xl="http://www.w3.org/2008/06/xlink"
+	xmlns:occi="http://schemas.ogf.org/occi" >
+
+	<xs:import schemaLocation="http://www.w3.org/2001/XMLSchema.xsd"
+		   namespace="http://www.w3.org/2001/XMLSchema"></xs:import>
+    <xs:include schemaLocation="occi-core.xsd"/>
+    <xs:annotation>
+	  <xs:documentation xml:lang="en">
+	    OCCI model Description
+	    Schema Aligned with the OCCI Core
+	    Document
+	  </xs:documentation>
+	</xs:annotation>
+
+    <!--
+        OCCI request types
+    -->
+    <xs:complexType name="capabilitiesType">
+      <xs:sequence>
+        <xs:element name="kind" type="occi:kindType" maxOccurs="unbounded" minOccurs="0" />
+        <xs:element name="mixin" type="occi:mixinType" maxOccurs="unbounded" minOccurs="0" />
+        <xs:element name="action" type="occi:actionSpecType" maxOccurs="unbounded" minOccurs="0" />
+      </xs:sequence>
+    </xs:complexType>
+
+</xs:schema>
