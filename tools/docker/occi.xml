@@ -3,7 +3,8 @@
 		xmlns:xs="http://www.w3.org/2001/XMLSchema"
 		xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 		xsi:schemaLocation="http://example.org/occi occi.xsd " name="A REST blog"
-		status="experimental" version="1">
+		status="experimental"
+		version="1">
   
   <occi:kind scheme="http://example.org/occi/test#" term="blog" title="A Blog">
     <occi:parent scheme="http://schemas.ogf.org/occi/core#" term="resource" />
