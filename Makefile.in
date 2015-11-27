@@ -6,7 +6,7 @@ DEPS = \
 	erocci_listener_http \
 	erocci_backend_mnesia erocci_backend_dbus
 
-dep_erocci_core = git https://github.com/erocci/erocci_core.git c9d8fad
+dep_erocci_core = git https://github.com/erocci/erocci_core.git 72ef5c2
 dep_erocci_authnz = git https://github.com/erocci/erocci_authnz.git master
 dep_erocci_listener_http = git https://github.com/erocci/erocci_listener_http.git 0.1-5-gf2034d5
 dep_erocci_backend_mnesia = git https://github.com/erocci/erocci_backend_mnesia.git 0.1
