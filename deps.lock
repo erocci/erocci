@@ -1,0 +1,5 @@
+erocci_core_v = 820d4d4
+erocci_authnz_v = f1b4545
+erocci_listener_http_v = 0.1-12-gd35cf4a
+erocci_backend_mnesia_v = 0.1-1-gac0cc72
+erocci_backend_dbus_v = 5983e14

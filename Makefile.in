@@ -2,15 +2,26 @@ PROJECT = @PACKAGE_NAME@
 PROJECT_VERSION = @PACKAGE_VERSION@
 
 DEPS = \
-	erocci_core erocci_authnz \
+	erocci_core \
+	erocci_authnz \
 	erocci_listener_http \
-	erocci_backend_mnesia erocci_backend_dbus
+	erocci_backend_mnesia \
+	erocci_backend_dbus
 
-dep_erocci_core = git https://github.com/erocci/erocci_core.git 820d4d4
-dep_erocci_authnz = git https://github.com/erocci/erocci_authnz.git master
-dep_erocci_listener_http = git https://github.com/erocci/erocci_listener_http.git 0.1-11-g8d5100f
-dep_erocci_backend_mnesia = git https://github.com/erocci/erocci_backend_mnesia.git 0.1-1-gac0cc72
-dep_erocci_backend_dbus = git https://github.com/erocci/erocci_backend_dbus.git 5983e14
+LOCK = deps.lock
+
+DEV_MODE ?= @enable_dev_mode@
+ifeq ($(DEV_MODE),yes)
+$(foreach dep,$(DEPS),$(eval $(dep)_v = master))
+else
+-include $(LOCK)
+endif
+
+dep_erocci_core = git https://github.com/erocci/erocci_core.git $(erocci_core_v)
+dep_erocci_authnz = git https://github.com/erocci/erocci_authnz.git $(erocci_authnz_v)
+dep_erocci_listener_http = git https://github.com/erocci/erocci_listener_http.git $(erocci_listener_http)
+dep_erocci_backend_mnesia = git https://github.com/erocci/erocci_backend_mnesia.git $(erocci_backend_mnesia)
+dep_erocci_backend_dbus = git https://github.com/erocci/erocci_backend_dbus.git $(erocci_backend_dbus)
 
 include erlang.mk
 
@@ -21,4 +32,11 @@ fetch: $(ALL_DEPS_DIRS)
 	  $(MAKE) -C $$d --no-print-directory $@ || true; \
 	done
 
-.PHONY: fetch test
+lock: deps
+	@rm -f $(LOCK)
+	@for dep in $(DEPS); do \
+	  v=$$(cd deps/$${dep} && git describe --always); \
+	  echo "$${dep}_v = $${v}" | tee --append $(LOCK); \
+	done
+
+.PHONY: fetch test lock

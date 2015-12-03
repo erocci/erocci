@@ -14,6 +14,13 @@ AC_CONFIG_SUBDIRS([deps/erocci_core deps/erim_xml])
 AC_ERLANG_NEED_ERL
 AC_ERLANG_NEED_ERLC
 
+AC_ARG_ENABLE([dev-mode],
+              [AS_HELP_STRING([--enable-dev-mode],
+                              [Enable developer mode (add tests, use master versions of dependancies, etc) @<:@default=disable@:>@])],
+              [],
+              [enable_dev_mode=no])
+AC_SUBST([enable_dev_mode])
+
 dnl ------------------------------------------------------------------
 dnl Versioning.
 dnl ------------------------------------------------------------------
