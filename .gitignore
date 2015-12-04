@@ -29,8 +29,10 @@ test/*.beam
 /variables-ct*
 /rel/erocci
 /rel/relx.config
-/Mnesia.nonode@nohost
+/Mnesia.*
 /.erlang.mk
 /autom4te.cache/
 /config.log
 /config.status
+/apps/erocci/logs/
+/apps/erocci/test/pocci_SUITE_data/pocci.conf

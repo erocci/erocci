@@ -16,10 +16,15 @@ addons:
       - build-essential
       - libssl-dev
       - libexpat1-dev
+      - python-pycurl
+      - python-setuptools
 
 install:
   - "./bootstrap"
   - "make"
+
+build:
+  - "make test"
 
 notifications:
   email:

@@ -8,6 +8,8 @@ DEPS = \
 	erocci_backend_mnesia \
 	erocci_backend_dbus
 
+LOCAL_DEPS = erocci
+
 LOCK = deps.lock
 
 DEV_MODE ?= @enable_dev_mode@
@@ -25,8 +27,6 @@ dep_erocci_backend_dbus = git https://github.com/erocci/erocci_backend_dbus.git 
 
 include erlang.mk
 
-test: all
-
 fetch: $(ALL_DEPS_DIRS)
 	@for d in $(ALL_DEPS_DIRS); do \
 	  $(MAKE) -C $$d --no-print-directory $@ || true; \
@@ -39,4 +39,9 @@ lock: deps
 	  echo "$${dep}_v = $${v}" | tee --append $(LOCK); \
 	done
 
-.PHONY: fetch test lock
+test:
+
+erocci-ct:
+	@$(MAKE) --no-print-directory -C apps/erocci tests
+
+.PHONY: fetch lock test erocci-ct

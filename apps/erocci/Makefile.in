@@ -3,6 +3,20 @@ PROJECT_VERSION = @PACKAGE_VERSION@
 
 top_srcdir = @top_srcdir@
 
+dep_pocci = git https://github.com/CESNET/pOCCI.git master
+
 include $(top_srcdir)/erlang.mk
 
 ERLC_OPTS += -I$(top_srcdir)/deps
+
+POCCI_DATA = test/pocci_SUITE_data/pocci.conf
+
+ct: $(POCCI_DATA)
+
+$(POCCI_DATA):
+	$(dep_verbose) if test ! -d $(DEPS_DIR); then \
+	  $(call dep_fetch_$(strip $(call dep_fetch,pocci)),pocci); \
+	fi
+	@echo "{'POCCI', \"$(DEPS_DIR)/pocci/pOCCI/pOCCI.py\"}." > $@
+
+.PHONY:
