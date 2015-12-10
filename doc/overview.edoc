@@ -82,7 +82,7 @@ $ make
 ## Running
 
 erocci is configured with a single config file. Several example config
-files are available in: `apps/erocci/priv/configs/`
+files are available in: `apps/erocci/priv/configs/'
 
 Start erocci with:
 ```
