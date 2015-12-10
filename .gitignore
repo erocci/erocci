@@ -15,14 +15,6 @@ erl_crash.dump
 /log/
 /logs/
 test/*.beam
-/doc/*.html
-/doc/*.md
-/doc/edoc-info
-/doc/erlang.png
-/doc/stylesheet.css
-/doc/utf8/
-/doc/guide/html/
-/doc/guide/mkdocs.yml
 /priv/Mnesia
 /.deps_plt
 /deps
@@ -36,3 +28,6 @@ test/*.beam
 /config.status
 /apps/erocci/logs/
 /apps/erocci/test/pocci_SUITE_data/pocci.conf
+
+# Documentation
+/doc/edoc-info
