@@ -6,9 +6,21 @@ DEPS = \
 	erocci_authnz \
 	erocci_listener_http \
 	erocci_backend_mnesia \
-	erocci_backend_dbus
+	erocci_backend_dbus \
+	edown
 
 LOCAL_DEPS = erocci
+
+EDOC_OPTS = {app_default, "http://www.erlang.org/doc/"} \
+           ,{doclet, edown_doclet} \
+           ,{top_level_readme, {"@builddir@/README.md", "http://github.com/erocci/erocci"}}
+EDOC_SRC_DIRS = \
+	$(ALL_APPS_DIRS) \
+	@srcdir@/deps/erocci_core \
+	@srcdir@/deps/erocci_authnz \
+	@srcdir@/deps/erocci_listener_http \
+	@srcdir@/deps/erocci_backend_mnesia \
+	@srcdir@/deps/erocci_dbus
 
 LOCK = deps.lock
 
