@@ -2,11 +2,17 @@
 
 # Documentation for erocci #
 
-Copyright (c) 2015 Inria
+Copyright (c) 2013-2014 Jean Parpaillon
+Copyright (c) 2015-2016 Inria
 
 __Version:__ 1.0
 
-__Authors:__ Jean Parpaillon ([`jean.parpaillon@inria.fr`](mailto:jean.parpaillon@inria.fr)).
+__Authors:__ Jean Parpaillon ([`jean.parpaillon@free.fr`](mailto:jean.parpaillon@free.fr)).
+
+__License:__ Due to recent abuse, the license has changed from APACHE
+2.0 to CC BY-NC-SA which is _not_ a free software license. We hope
+that an arrangement will be quickly found to come back to previous
+licensing.
 
 `erocci` is a framework for building OCCI like API, with the following objectives:
 * 100% compliance with OCCI specifications (core and rendering)
