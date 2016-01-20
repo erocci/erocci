@@ -1,5 +1,5 @@
 %%% @author Jean Parpaillon <jean.parpaillon@free.fr>
-%%% @copyright (C) 2015, Jean Parpaillon
+%%% @copyright (c) 2015-2016 Jean Parpaillon
 %%% @doc Execute tests from pOCCI: https://github.com/CESNET/pOCCI
 %%%
 %%% @end
