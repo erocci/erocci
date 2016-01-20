@@ -3,6 +3,7 @@
 # Documentation for erocci #
 
 Copyright (c) 2013-2014 Jean Parpaillon
+
 Copyright (c) 2015-2016 Inria
 
 __Version:__ 1.0
