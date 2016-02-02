@@ -22,9 +22,6 @@ EDOC_SRC_DIRS = \
 	@srcdir@/deps/erocci_backend_mnesia \
 	@srcdir@/deps/erocci_dbus
 
-RELX_CONFIG = rel/relx.config
-RELX_OUTPUT_DIR = rel
-
 LOCK = deps.lock
 
 DEV_MODE ?= @enable_dev_mode@
