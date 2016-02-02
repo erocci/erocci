@@ -27,7 +27,6 @@ dnl ------------------------------------------------------------------
 
 AC_CONFIG_FILES([
 	Makefile
-	apps/erocci/Makefile
 ])
 
 AC_OUTPUT

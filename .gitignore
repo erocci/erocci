@@ -14,7 +14,7 @@
 /autom4te.cache/
 /config.log
 /config.status
-Makefile
+/Makefile
 
 # erlang
 erl_crash.dump

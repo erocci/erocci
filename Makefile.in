@@ -1,5 +1,5 @@
-PROJECT = @PACKAGE_NAME@
-PROJECT_VERSION = @PACKAGE_VERSION@
+PROJECT = erocci
+VERSION = 0.5
 
 DEPS = \
 	erocci_core \
@@ -13,14 +13,16 @@ LOCAL_DEPS = erocci
 
 EDOC_OPTS = {app_default, "http://www.erlang.org/doc/"} \
            ,{doclet, edown_doclet} \
-           ,{top_level_readme, {"@builddir@/README.md", "http://github.com/erocci/erocci"}}
+           ,{top_level_readme, {"$(CURDIR)/README.md", "http://github.com/erocci/erocci"}}
 EDOC_SRC_DIRS = \
 	$(ALL_APPS_DIRS) \
-	@srcdir@/deps/erocci_core \
-	@srcdir@/deps/erocci_authnz \
-	@srcdir@/deps/erocci_listener_http \
-	@srcdir@/deps/erocci_backend_mnesia \
-	@srcdir@/deps/erocci_dbus
+	$(DEPS_DIR)/erocci_core \
+	$(DEPS_DIR)/erocci_authnz \
+	$(DEPS_DIR)/erocci_listener_http \
+	$(DEPS_DIR)/erocci_backend_mnesia \
+	$(DEPS_DIR)/erocci_dbus
+
+VSN = $(shell $(CURDIR)/version.sh $(VERSION))
 
 LOCK = deps.lock
 
