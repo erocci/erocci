@@ -33,6 +33,7 @@ test/*.beam
 /apps/erocci/test/pocci_SUITE_data/pocci.conf
 
 # relx
+/relx
 /rel/erocci
 /rel/relx.config
 
