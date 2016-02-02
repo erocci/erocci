@@ -27,8 +27,8 @@ keyfile=$ssldir/server.key
 
 name=node1
 debug=info
-configdir=$appdir/priv/configs
-config=$configdir/default.config
+configdir=$basedir/config
+config=$configdir/sys.config
 idx=-1
 http_listener="{http, occi_http, [{port, 8080}]}"
 listeners[0]=${http_listener}
