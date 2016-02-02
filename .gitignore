@@ -27,6 +27,7 @@ test/*.beam
 /variables-ct*
 /Mnesia.*
 /.erlang.mk
+erocci.app.src
 
 # tests
 /apps/erocci/logs/
