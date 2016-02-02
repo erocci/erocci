@@ -94,12 +94,12 @@ $ make
 ## Running
 
 erocci is configured with a single config file. Several example config
-files are available in: `apps/erocci/priv/configs/`
+files are available in: `config/`
 
 Start erocci with:
 
 ```
-$ ./start.sh -c apps/erocci/priv/configs/default.config
+$ ./start.sh -c config/default.config
 ```
 
 ## Mailing lists

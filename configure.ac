@@ -28,6 +28,7 @@ dnl ------------------------------------------------------------------
 AC_CONFIG_FILES([
 	Makefile
 	apps/erocci/Makefile
+	rel/relx.config
 ])
 
 AC_OUTPUT

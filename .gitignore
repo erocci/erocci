@@ -1,3 +1,4 @@
+# Generic
 *~
 *.pyc
 *.beam
@@ -7,10 +8,15 @@
 *.o
 *.d
 .eunit
-.deps
 .libs
+
+# autoconf
+/autom4te.cache/
+/config.log
+/config.status
 Makefile
-erocci-*.tar.xz
+
+# erlang
 erl_crash.dump
 /log/
 /logs/
@@ -19,15 +25,18 @@ test/*.beam
 /.deps_plt
 /deps
 /variables-ct*
-/rel/erocci
-/rel/relx.config
 /Mnesia.*
 /.erlang.mk
-/autom4te.cache/
-/config.log
-/config.status
+
+# tests
 /apps/erocci/logs/
 /apps/erocci/test/pocci_SUITE_data/pocci.conf
+
+# relx
+/rel/erocci
+/rel/relx.config
+
+erocci-*.tar.xz
 
 # Documentation
 /doc/edoc-info
