@@ -8,7 +8,7 @@ AC_INIT([erocci],
 	[http://github.com/erocci/erocci/issues],
         [erocci],
         [https://erocci.ow2.org])
-AC_CONFIG_SRCDIR([apps/erocci/src/erocci.app.src])
+AC_CONFIG_SRCDIR([apps/erocci/src/erocci.app.src.in])
 AC_CONFIG_SUBDIRS([deps/erocci_core deps/erim_xml])
 
 AC_ERLANG_NEED_ERL
