@@ -35,7 +35,6 @@ test/*.beam
 # relx
 /relx
 /rel/erocci
-/rel/relx.config
 
 erocci-*.tar.xz
 
