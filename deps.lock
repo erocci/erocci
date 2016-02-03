@@ -1,6 +1,6 @@
 erocci_core_v = v0.1
 erocci_authnz_v = e9e286e
 erocci_listener_http_v = 0.1-12-gd35cf4a
-erocci_backend_mnesia_v = 0.1-9-gda3439a
+erocci_backend_mnesia_v = v0.2
 erocci_backend_dbus_v = 5983e14
 edown_v = 0.7-10-g2f6d4d4
