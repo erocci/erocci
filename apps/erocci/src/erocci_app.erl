@@ -40,16 +40,8 @@
 %%      StartArgs = term()
 %% @end
 %%--------------------------------------------------------------------
-start(normal, _Args) ->
-    Loop = fun L() ->
-		   receive _ -> L()
-		   end
-	   end,
-    Pid = spawn_link(Loop),
-    {ok, Pid};
-
-start(_StartType, _StartArgs) ->
-    {error, badarg}.
+start(_StartType, _Args) ->
+	erocci_sup:start_link().
 
 %%--------------------------------------------------------------------
 %% @private

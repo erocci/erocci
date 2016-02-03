@@ -11,7 +11,7 @@
 	 kernel,
 	 stdlib,
 	 inets, 
-	 erocci_core 
+	 erocci_core
    ]},
   {env, []}
  ]}.
