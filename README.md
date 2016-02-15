@@ -70,8 +70,8 @@ yum install erlang curl gcc libxml2-devel gcc-c++
 ### MAC OS X
 
 * Requirements:
-* erlang/OTP: https://www.erlang-solutions.com/downloads/download-erlang-otp
-* TO BE COMPLETED
+ * erlang/OTP: https://www.erlang-solutions.com/resources/download.html
+ * libxml2 (```brew install libxml2```)
 
 ### Configuring and Building
 
@@ -85,6 +85,21 @@ $ ./bootstrap
 ```
 $ ./configure
 ```
+
+On Mac OS X :
+* Add a link in libxml2 include directory for headers to be found (they are expected to be in $LIBXML2_HOME/include/libxml), 
+for instance (depending on your installed version of libxml2) :
+
+```
+$ ln -s /usr/local/Cellar/libxml2/2.9.3/include/libxml2/libxml /usr/local/Cellar/libxml2/2.9.3/include
+```
+
+* Then run configure with the following option (again, adapt to your installed version of libxml2) :
+
+```
+$ ./configure --with-libxml2=/usr/local/Cellar/libxml2/2.9.3
+```
+
 Build:
 
 ```
