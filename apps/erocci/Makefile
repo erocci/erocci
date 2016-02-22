@@ -30,9 +30,6 @@ pocci:
 ct: $(POCCI_DATA)
 
 $(POCCI_DATA):
-	$(dep_verbose) if test ! -d $(DEPS_DIR); then \
-	  $(call dep_fetch_$(strip $(call dep_fetch,pocci)),pocci); \
-	fi
 	@echo "{'POCCI', \"$(DEPS_DIR)/pocci/pOCCI/pOCCI.py\"}." > $@
 
 .PHONY: pocci
