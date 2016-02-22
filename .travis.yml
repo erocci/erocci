@@ -23,8 +23,9 @@ install:
   - "./bootstrap"
   - "make"
 
-build:
-  - "make test"
+script:
+  - "make"
+  - "make erocci-ct"
 
 notifications:
   email:
