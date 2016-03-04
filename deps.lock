@@ -1,4 +1,4 @@
-erocci_core_v = v0.1-3-g9046437
+erocci_core_v = v0.1-5-g6500397
 erocci_authnz_v = 8428115
 erocci_listener_http_v = 0.1-20-g966ff53
 erocci_backend_mnesia_v = v0.2-1-gd0e4cab
