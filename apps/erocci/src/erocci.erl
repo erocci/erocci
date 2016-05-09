@@ -12,17 +12,20 @@
 -module(erocci).
 -author('Jean Parpaillon <jean.parpaillon@free.fr>').
 
--include_lib("erocci_core/include/occi_log.hrl").
+-behaviour(application).
+
+-include_lib("erocci_core/include/erocci_log.hrl").
 
 -export([start/0, 
-		 stop/0,
-		 config/1]).
+		 stop/0]).
+
+-export([start/2, stop/1]).
 
 %% @spec start() -> ok
 %% @doc Start the occi server.
 start() ->
     ?info("Starting erocci framework"),
-    application:ensure_all_started(erocci).
+    {ok, _} = application:ensure_all_started(erocci).
 
 %% @spec stop() -> ok
 %% @doc Stop the occi server.
@@ -30,5 +33,13 @@ stop() ->
     ?info("Stopping erocci framework"),
     application:stop(erocci).
 
-config(Cfg) ->
-    occi_config:load(Cfg).
+
+start(normal, _Args) ->
+	erocci_sup:start_link();
+
+start(_StartType, _StartArgs) ->
+	{error, badarg}.
+
+
+stop(_State) ->
+	ok.
