@@ -30,7 +30,7 @@ debug=info
 configdir=$basedir/config
 config=$configdir/sys.config
 idx=-1
-http_listener="{http, occi_http, [{port, 8080}]}"
+http_listener="{http, erocci_http, [{port, 8080}]}"
 listeners[0]=${http_listener}
 #while getopts ":hdqtsc:x:p:" opt; do
 while getopts ":hdqtsc:x:" opt; do
@@ -48,7 +48,7 @@ while getopts ":hdqtsc:x:" opt; do
 	    ;;
 	s)
 	    idx=$(( $idx + 1 ))
-	    listeners[$idx]="{https, occi_https, [{port, 8443}, {cacertfile, \"$cacertfile\"}, {certfile, \"$certfile\"}, {keyfile, \"$keyfile\"}]}"
+	    listeners[$idx]="{https, erocci_https, [{port, 8443}, {cacertfile, \"$cacertfile\"}, {certfile, \"$certfile\"}, {keyfile, \"$keyfile\"}]}"
 	    ;;
 	x)
 		echo "XMPP listener disabled"
@@ -104,7 +104,7 @@ done
 listeners=$(echo -n "["; join , "${listeners[@]}"; echo -n "]")
 
 cd ${basedir}
-exec erl -pa $basedir/apps/erocci/ebin -pa $basedir/deps/*/ebin \
+exec erl -pa $basedir/ebin -pa $basedir/deps/*/ebin \
      -boot start_sasl \
      -config $config \
      -erocci_core listeners "$listeners" \
