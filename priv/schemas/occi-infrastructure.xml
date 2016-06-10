@@ -2,19 +2,23 @@
 <occi:extension xmlns:occi="http://schemas.ogf.org/occi"
                 xmlns:xs="http://www.w3.org/2001/XMLSchema"
                 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-                xsi:schemaLocation="http://schemas.ogf.org/occi occi.xsd " name="Infrastructure"
+                xsi:schemaLocation="http://schemas.ogf.org/occi occi.xsd "
+		name="Infrastructure"
+		scheme="http://schemas.ogf.org/occi/infrastructure#"
                 status="stable" version="1">
+  <occi:import scheme="http://schemas.ogf.org/occi/core#" />
+
   <!-- Compute Kind -->
   <occi:kind term="compute" scheme="http://schemas.ogf.org/occi/infrastructure#"
              title="Compute Resource">
     <occi:parent scheme="http://schemas.ogf.org/occi/core#"
                  term="resource" />
     <occi:attribute name="occi.compute.architecture" title="CPU Architecture" >
-	  <xs:restriction base="xs:string" >
-		<xs:enumeration value="x86" />
-		<xs:enumeration value="x64" />
-	  </xs:restriction>
-	</occi:attribute>
+      <xs:restriction base="xs:string" >
+	<xs:enumeration value="x86" />
+	<xs:enumeration value="x64" />
+      </xs:restriction>
+    </occi:attribute>
     <occi:attribute name="occi.compute.cores" type="xs:integer" title="CPU cores number" />
     <occi:attribute name="occi.compute.hostname" type="xs:string" title="System hostname" />
     <occi:attribute name="occi.compute.speed" type="xs:float" title="CPU speed (GHz)" />
@@ -22,13 +26,13 @@
     <occi:attribute name="occi.compute.state" use="required"
                     default="inactive" immutable="true"
                     title="System state" type="xs:string" >
-	  <xs:restriction base="xs:string" >
-		<xs:enumeration value="active" />
-		<xs:enumeration value="inactive" />
-		<xs:enumeration value="suspended" />
-		<xs:enumeration value="error" />
-	  </xs:restriction>
-	</occi:attribute>
+      <xs:restriction base="xs:string" >
+	<xs:enumeration value="active" />
+	<xs:enumeration value="inactive" />
+	<xs:enumeration value="suspended" />
+	<xs:enumeration value="error" />
+      </xs:restriction>
+    </occi:attribute>
     <occi:action term="start"
                  scheme="http://schemas.ogf.org/occi/infrastructure/compute/action#"
                  title="Start the system" ></occi:action>
@@ -55,12 +59,12 @@
     <occi:parent scheme="http://schemas.ogf.org/occi/core#" term="resource" />
     <occi:attribute name="occi.storage.size" type="xs:float" use="required" title="Storage size" />
     <occi:attribute name="occi.storage.state" use="required" immutable="true" title="Storage state" >
-	  <xs:restriction base="xs:string" >
-		<xs:enumeration value="online" />
-		<xs:enumeration value="offline" />
-		<xs:enumeration value="error" />
-	  </xs:restriction>
-	</occi:attribute>
+      <xs:restriction base="xs:string" >
+	<xs:enumeration value="online" />
+	<xs:enumeration value="offline" />
+	<xs:enumeration value="error" />
+      </xs:restriction>
+    </occi:attribute>
     <occi:action
         scheme="http://schemas.ogf.org/occi/infrastructure/storage/action#"
         term="online" title="Set storage online" />
@@ -88,12 +92,12 @@
     <occi:attribute name="occi.storagelink.deviceid" use="required" type="xs:string" />
     <occi:attribute name="occi.storagelink.mountpoint" type="xs:string" />
     <occi:attribute name="occi.storagelink.state" use="required" immutable="true" >
-	  <xs:restriction base="xs:string" >
-		<xs:enumeration value="active" />
-		<xs:enumeration value="inactive" />
-		<xs:enumeration value="error" />
-	  </xs:restriction>
-	</occi:attribute>
+      <xs:restriction base="xs:string" >
+	<xs:enumeration value="active" />
+	<xs:enumeration value="inactive" />
+	<xs:enumeration value="error" />
+      </xs:restriction>
+    </occi:attribute>
   </occi:kind>
 
   <!-- Network -->
@@ -104,12 +108,12 @@
     <occi:attribute name="occi.network.vlan" type="xs:integer" />
     <occi:attribute name="occi.network.label" type="xs:string" />
     <occi:attribute name="occi.network.state" immutable="true" use="required" >
-	  <xs:restriction base="xs:string" >
-		<xs:enumeration value="active" />
-		<xs:enumeration value="inactive" />
-		<xs:enumeration value="error" />
-	  </xs:restriction>
-	</occi:attribute>
+      <xs:restriction base="xs:string" >
+	<xs:enumeration value="active" />
+	<xs:enumeration value="inactive" />
+	<xs:enumeration value="error" />
+      </xs:restriction>
+    </occi:attribute>
     <occi:action scheme="http://schemas.ogf.org/occi/infrastructure/action#"
                  term="up" title="Set network up" />
     <occi:action scheme="http://schemas.ogf.org/occi/infrastructure/action#"
@@ -125,12 +129,12 @@
                     immutable="true" type="xs:string" use="required" />
     <occi:attribute name="occi.networkinterface.mac" type="xs:string" use="required" />
     <occi:attribute name="occi.networkinterface.state" immutable="true" use="required" >
-	  <xs:restriction base="xs:string" >
-		<xs:enumeration value="active" />
-		<xs:enumeration value="inactive" />
-		<xs:enumeration value="error" />
-	  </xs:restriction>
-	</occi:attribute>
+      <xs:restriction base="xs:string" >
+	<xs:enumeration value="active" />
+	<xs:enumeration value="inactive" />
+	<xs:enumeration value="error" />
+      </xs:restriction>
+    </occi:attribute>
   </occi:kind>
 
   <!-- IP Networking Mixin -->
@@ -139,11 +143,11 @@
     <occi:attribute name="occi.network.address" type="xs:string" />
     <occi:attribute name="occi.network.gateway" type="xs:string" />
     <occi:attribute name="occi.network.allocation" use="required" >
-	  <xs:restriction base="xs:string" >
-		<xs:enumeration value="dynamic" />
-		<xs:enumeration value="static" />
-	  </xs:restriction>
-	</occi:attribute>
+      <xs:restriction base="xs:string" >
+	<xs:enumeration value="dynamic" />
+	<xs:enumeration value="static" />
+      </xs:restriction>
+    </occi:attribute>
   </occi:mixin>
 
   <!-- IP NetworkInterface Mixin -->
@@ -152,11 +156,11 @@
     <occi:attribute name="occi.networkinterface.address" type="xs:string" use="required" />
     <occi:attribute name="occi.networkinterface.gateway" type="xs:string" />
     <occi:attribute name="occi.networkinterface.allocation" use="required" >
-	  <xs:restriction base="xs:string">
-		<xs:enumeration value="dynamic" />
-		<xs:enumeration value="static" />		  
-	  </xs:restriction>
-	</occi:attribute>
+      <xs:restriction base="xs:string">
+	<xs:enumeration value="dynamic" />
+	<xs:enumeration value="static" />		  
+      </xs:restriction>
+    </occi:attribute>
   </occi:mixin>
 
   <!-- OS template -->

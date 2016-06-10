@@ -13,7 +13,7 @@
 -include_lib("common_test/include/ct.hrl").
 
 -define(PORT, 9999).
--define(ENDPOINT, "https://localhost:9999").
+-define(ENDPOINT, "http://localhost:9999").
 
 suite() ->
 	[{timetrap, {seconds, 30}}].
@@ -21,20 +21,19 @@ suite() ->
 init_per_suite(Config) ->
     application:load(erocci_core),
 
-	Cacertfile = filename:join([?config(data_dir, Config), "ssl", "cowboy-ca.crt"]),
-	Certfile = filename:join([?config(data_dir, Config), "ssl", "server.crt"]),
-	Keyfile = filename:join([?config(data_dir, Config), "ssl", "server.key"]),
     application:set_env(erocci_core, listeners, 
-                        [{https, occi_https, 
-						  [{port, ?PORT}, {cacertfile, Cacertfile}, {certfile, Certfile}, {keyfile, Keyfile}]}
-						]),
-    Schemas = {schemas, [{path, get_data_path("occi-infrastructure.xml", Config)}]},
+                        [ {http, erocci_http, [{port, ?PORT}]} ]
+					   ),
+    Schemas = {schema, get_data_path("occi-infrastructure.xml", Config)},
     application:set_env(erocci_core, backends,
-                        [{mnesia, occi_backend_mnesia, [Schemas], <<"/">>}]),
+                        [{mnesia, erocci_backend_mnesia, [Schemas], <<"/">>}]),
     application:set_env(erocci_core, acl,
                         [{allow, '_', '_', '_'}]),
 	{ok, Cwd} = file:get_cwd(),
+
+	application:load(mnesia),
 	application:set_env(mnesia, dir, filename:join(Cwd, "mnesia")),
+	mnesia:create_schema([node()]),
 
     application:ensure_all_started(erocci_core),
     pocci_config(Config).
@@ -47,16 +46,17 @@ end_per_suite(_Config) ->
 
 all() ->
 	[
-	 'OCCI_CORE_CREATE_001'
-	,'OCCI_CORE_CREATE_006'
-	,'OCCI_CORE_DELETE_001'
-	,'OCCI_CORE_DISCOVERY_001'
+	 'OCCI_CORE_DISCOVERY_001'
 	,'OCCI_CORE_DISCOVERY_002'
-	,'OCCI_CORE_MISC_001'
+	,'OCCI_CORE_CREATE_001'
+	,'OCCI_CORE_CREATE_006'
 	,'OCCI_CORE_READ_001'
 	,'OCCI_CORE_READ_002'
 	,'OCCI_CORE_READ_007'
+	,'OCCI_CORE_DELETE_001'
 	,'OCCI_CORE_UPDATE_001'
+	,'OCCI_CORE_MISC_001'
+
 	,'OCCI_INFRA_CREATE_001'
 	,'OCCI_INFRA_CREATE_002'
 	,'OCCI_INFRA_CREATE_003'
@@ -66,25 +66,6 @@ all() ->
 	,'OCCI_INFRA_CREATE_007'
 	].
 
-
-
-%% pOCCI error: should be fixed with https://github.com/CESNET/pOCCI/pull/16
-'OCCI_CORE_CREATE_001'(Config) ->
-	Cmd = pocci("OCCI/CORE/CREATE/001", Config),
-	%%?assertCmdOutput("OCCI/CORE/CREATE/001  OK\n", Cmd).
-	?assertCmdOutput("[]\n"
-					 "['HTTP status is not 201 Created (HTTP/1.1 400 Bad Request)']\n"
-					 "OCCI/CORE/CREATE/001  FAIL\n", Cmd).
-
-
-'OCCI_CORE_CREATE_006'(Config) ->
-	Cmd = pocci("OCCI/CORE/CREATE/006", Config),
-	?assertCmdOutput("OCCI/CORE/CREATE/006  OK\n", Cmd).
-
-
-'OCCI_CORE_DELETE_001'(Config) ->
-	Cmd = pocci("OCCI/CORE/DELETE/001", Config),
-	?assertCmdOutput("OCCI/CORE/DELETE/001  OK\n", Cmd).
 
 
 'OCCI_CORE_DISCOVERY_001'(Config) ->
@@ -97,12 +78,6 @@ all() ->
 	?assertCmdOutput("OCCI/CORE/DISCOVERY/002  OK\n", Cmd).
 
 
-%% What is this test supposed to do ?
-'OCCI_CORE_MISC_001'(Config) ->
-	Cmd = pocci("OCCI/CORE/MISC/001", Config),
-	?assertCmdOutput("['No required OCCI Entity instance found']\nOCCI/CORE/MISC/001  FAIL\n", Cmd).
-
-
 'OCCI_CORE_READ_001'(Config) ->
 	Cmd = pocci("OCCI/CORE/READ/001", Config),
 	?assertCmdOutput("OCCI/CORE/READ/001  OK\n", Cmd).
@@ -113,18 +88,34 @@ all() ->
 	?assertCmdOutput("OCCI/CORE/READ/002  OK\n", Cmd).
 
 
-%% pOCCI error: should be fixed with https://github.com/CESNET/pOCCI/pull/13
 'OCCI_CORE_READ_007'(Config) ->
 	Cmd = pocci("OCCI/CORE/READ/007", Config),
-	%%?assertCmdOutput("OCCI/CORE/READ/007  OK\n", Cmd).
-	?assertCmdOutput("['No required OCCI Entity instance found']\nOCCI/CORE/READ/007  FAIL\n", Cmd).
+	?assertCmdOutput("OCCI/CORE/READ/007  OK\n", Cmd).
 
 
-%% pOCCI error: should be fixed with https://github.com/CESNET/pOCCI/pull/13
+'OCCI_CORE_CREATE_001'(Config) ->
+	Cmd = pocci("OCCI/CORE/CREATE/001", Config),
+	?assertCmdOutput("OCCI/CORE/CREATE/001  OK\n", Cmd).
+
+
+'OCCI_CORE_CREATE_006'(Config) ->
+	Cmd = pocci("OCCI/CORE/CREATE/006", Config),
+	?assertCmdOutput("OCCI/CORE/CREATE/006  OK\n", Cmd).
+
+
+'OCCI_CORE_DELETE_001'(Config) ->
+	Cmd = pocci("OCCI/CORE/DELETE/001", Config),
+	?assertCmdOutput("OCCI/CORE/DELETE/001  OK\n", Cmd).
+
+
 'OCCI_CORE_UPDATE_001'(Config) ->
 	Cmd = pocci("OCCI/CORE/UPDATE/001", Config),
-	%%?assertCmdOutput("OCCI/CORE/UPDATE/001  OK\n", Cmd).
-	?assertCmdOutput("['No OCCI Entity instance found']\nOCCI/CORE/UPDATE/001  FAIL\n", Cmd).
+	?assertCmdOutput("OCCI/CORE/UPDATE/001  OK\n", Cmd).
+
+
+'OCCI_CORE_MISC_001'(Config) ->
+	Cmd = pocci("OCCI/CORE/MISC/001", Config),
+	?assertCmdOutput("OCCI/CORE/MISC/001  OK\n", Cmd).
 
 
 'OCCI_INFRA_CREATE_001'(Config) ->
@@ -153,18 +144,16 @@ all() ->
 	?assertMatch([_, _, "OCCI/INFRA/CREATE/005  OK"], Out).
 
 
-%% @todo: fix link representation
 'OCCI_INFRA_CREATE_006'(Config) ->
 	Cmd = pocci("OCCI/INFRA/CREATE/006", Config),
 	Out = string:tokens(os:cmd(Cmd), "\n"),
-	?assertMatch(["OCCI/INFRA/CREATE/006  FAIL" | _], lists:reverse(Out)).
+	?assertMatch(["OCCI/INFRA/CREATE/006  OK"], Out).
 
 
-%% @todo: fix link representation
 'OCCI_INFRA_CREATE_007'(Config) ->
 	Cmd = pocci("OCCI/INFRA/CREATE/007", Config),
 	Out = string:tokens(os:cmd(Cmd), "\n"),
-	?assertMatch(["OCCI/INFRA/CREATE/007  FAIL" | _], lists:reverse(Out)).
+	?assertMatch(["OCCI/INFRA/CREATE/007  OK"], Out).
 
 %%%
 %%% Priv
@@ -175,9 +164,7 @@ get_data_path(Path, Config) ->
 
 pocci(Name, Config) ->
 	Cmd = ?config(pocci, Config) 
-		++ " --auth-type ''"
 		++ " --url " ++ ?ENDPOINT
-		++ " --ignore-ssl"
 		++ " --mime-type 'text/plain'"
 		++ " --format plain"
 		++ " --tests " ++ Name,
