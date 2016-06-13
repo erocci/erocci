@@ -5,8 +5,8 @@ branches:
   
 language: erlang
 otp_release:
-   - 18.0
    - 18.1
+   - 18.2.1
 
 sudo: false
 
@@ -14,17 +14,15 @@ addons:
   apt:
     packages:
       - python-pycurl
-      - python-setuptools
 
 install:
   - "make"
 
 script:
   - "make tests"
+  - "make tests-report"
 
 notifications:
   email:
-    recipients:
-      - erocci-dev@ow2.org
     on_success: change
     on_failure: always

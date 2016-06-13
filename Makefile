@@ -44,6 +44,11 @@ define edoc.erl
 	halt(0).
 endef
 
+clean:: clean-local
+
+clean-local:
+	rm -f $(POCCI_DATA)
+
 fulldoc: doc-deps
 	$(gen_verbose) $(call erlang,$(call edoc.erl,$(PROJECT),$(EDOC_OPTS)))
 
@@ -59,4 +64,7 @@ lock: deps
 	  echo "$${dep}_v = $${v}" | tee --append $(LOCK); \
 	done
 
-.PHONY: fulldoc lock 
+tests-report:
+	cat logs/ct_run.*/*.logs/run*/unexpected_io.log*
+
+.PHONY: fulldoc lock clean-local tests-report
