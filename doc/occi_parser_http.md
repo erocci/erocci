@@ -1,6 +1,6 @@
 
 
-# Module occi_parser_xml #
+# Module occi_parser_http #
 * [Description](#description)
 * [Function Index](#index)
 * [Function Details](#functions)
@@ -16,7 +16,7 @@ __Authors:__ Jean Parpaillon ([`jean.parpaillon@free.fr`](mailto:jean.parpaillon
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#parse-1">parse/1</a></td><td></td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#parse-1">parse/1</a></td><td>Parse HTTP-style headers and return dictionary.</td></tr></table>
 
 
 <a name="functions"></a>
@@ -28,7 +28,9 @@ __Authors:__ Jean Parpaillon ([`jean.parpaillon@free.fr`](mailto:jean.parpaillon
 ### parse/1 ###
 
 <pre><code>
-parse(Bin::binary()) -&gt; <a href="occi_rendering.md#type-ast">occi_rendering:ast()</a>
+parse(Bin::binary()) -&gt; <a href="orddict.md#type-orddict">orddict:orddict()</a>
 </code></pre>
 <br />
+
+Parse HTTP-style headers and return dictionary
 

@@ -1,6 +1,6 @@
 
 
-# Module occi_renderer_text #
+# Module occi_renderer_uri #
 * [Description](#description)
 * [Function Index](#index)
 * [Function Details](#functions)
@@ -34,7 +34,7 @@ __Authors:__ Jean Parpaillon ([`jean.parpaillon@free.fr`](mailto:jean.parpaillon
 ### render/2 ###
 
 <pre><code>
-render(T::<a href="occi.md#type-t">occi:t()</a>, Ctx::<a href="occi_uri.md#type-t">occi_uri:t()</a>) -&gt; iolist()
+render(T::<a href="occi.md#type-t">occi:t()</a>, Ctx::<a href="/home/jean/BA_Projets/git/erocci/deps/occi/doc/occi_ctx.md#type-t">occi_ctx:t()</a>) -&gt; iolist()
 </code></pre>
 <br />
 

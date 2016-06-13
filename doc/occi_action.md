@@ -2,128 +2,71 @@
 
 # Module occi_action #
 * [Description](#description)
+* [Data Types](#types)
 * [Function Index](#index)
 * [Function Details](#functions)
 
-.
+Implements action definition (category)
+For action invocation, @see occi_invoke.
 
-Copyright (c) (C) 2013, Jean Parpaillon
-
-This file is provided to you under the Apache License,
-Version 2.0 (the "License"); you may not use this file
-except in compliance with the License.  You may obtain
-a copy of the License at
-
-http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing,
-software distributed under the License is distributed on an
-"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-KIND, either express or implied.  See the License for the
-specific language governing permissions and limitations
-under the License.
+Copyright (c) (C) 2016, Jean Parpaillon
 
 __Authors:__ Jean Parpaillon ([`jean.parpaillon@free.fr`](mailto:jean.parpaillon@free.fr)).
+
+<a name="types"></a>
+
+## Data Types ##
+
+
+
+
+### <a name="type-t">t()</a> ###
+
+
+__abstract datatype__: `t()`
 
 <a name="index"></a>
 
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#add_attribute-2">add_attribute/2</a></td><td></td></tr><tr><td valign="top"><a href="#check-1">check/1</a></td><td></td></tr><tr><td valign="top"><a href="#get_attr_list-1">get_attr_list/1</a></td><td></td></tr><tr><td valign="top"><a href="#get_attributes-1">get_attributes/1</a></td><td></td></tr><tr><td valign="top"><a href="#get_class-1">get_class/1</a></td><td></td></tr><tr><td valign="top"><a href="#get_id-1">get_id/1</a></td><td></td></tr><tr><td valign="top"><a href="#get_scheme-1">get_scheme/1</a></td><td></td></tr><tr><td valign="top"><a href="#get_term-1">get_term/1</a></td><td></td></tr><tr><td valign="top"><a href="#get_title-1">get_title/1</a></td><td></td></tr><tr><td valign="top"><a href="#id-1">id/1</a></td><td></td></tr><tr><td valign="top"><a href="#new-1">new/1</a></td><td></td></tr><tr><td valign="top"><a href="#new-2">new/2</a></td><td></td></tr><tr><td valign="top"><a href="#set_attr_value-3">set_attr_value/3</a></td><td></td></tr><tr><td valign="top"><a href="#set_title-2">set_title/2</a></td><td></td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#category-1">category/1</a></td><td>Get related category (kind or mixin).</td></tr><tr><td valign="top"><a href="#from_map-2">from_map/2</a></td><td>Load action from ast.</td></tr><tr><td valign="top"><a href="#new-3">new/3</a></td><td>Create new action category.</td></tr></table>
 
 
 <a name="functions"></a>
 
 ## Function Details ##
 
-<a name="add_attribute-2"></a>
+<a name="category-1"></a>
 
-### add_attribute/2 ###
-
-`add_attribute(Occi_action, A) -> any()`
-
-<a name="check-1"></a>
-
-### check/1 ###
+### category/1 ###
 
 <pre><code>
-check(Occi_action::<a href="#type-occi_action">occi_action()</a>) -&gt; ok | {error, term()}
+category(A::<a href="#type-t">t()</a>) -&gt; <a href="occi_category.md#type-id">occi_category:id()</a>
 </code></pre>
 <br />
 
-<a name="get_attr_list-1"></a>
+Get related category (kind or mixin)
 
-### get_attr_list/1 ###
+<a name="from_map-2"></a>
 
-`get_attr_list(Occi_action) -> any()`
-
-<a name="get_attributes-1"></a>
-
-### get_attributes/1 ###
-
-`get_attributes(Occi_action) -> any()`
-
-<a name="get_class-1"></a>
-
-### get_class/1 ###
-
-`get_class(X1) -> any()`
-
-<a name="get_id-1"></a>
-
-### get_id/1 ###
-
-`get_id(Occi_action) -> any()`
-
-<a name="get_scheme-1"></a>
-
-### get_scheme/1 ###
-
-`get_scheme(Occi_action) -> any()`
-
-<a name="get_term-1"></a>
-
-### get_term/1 ###
-
-`get_term(Occi_action) -> any()`
-
-<a name="get_title-1"></a>
-
-### get_title/1 ###
-
-`get_title(Occi_action) -> any()`
-
-<a name="id-1"></a>
-
-### id/1 ###
-
-`id(Occi_action) -> any()`
-
-<a name="new-1"></a>
-
-### new/1 ###
-
-`new(Occi_cid) -> any()`
-
-<a name="new-2"></a>
-
-### new/2 ###
-
-`new(Scheme, Term) -> any()`
-
-<a name="set_attr_value-3"></a>
-
-### set_attr_value/3 ###
+### from_map/2 ###
 
 <pre><code>
-set_attr_value(Occi_action::<a href="#type-occi_action">occi_action()</a>, Key::<a href="#type-occi_attr_key">occi_attr_key()</a>, Val::any()) -&gt; <a href="#type-occi_action">occi_action()</a>
+from_map(Related::<a href="occi_category.md#type-id">occi_category:id()</a>, Map::<a href="occi_rendering.md#type-ast">occi_rendering:ast()</a>) -&gt; <a href="#type-t">t()</a>
 </code></pre>
 <br />
 
-<a name="set_title-2"></a>
+Load action from ast
 
-### set_title/2 ###
+<a name="new-3"></a>
 
-`set_title(Occi_action, Title) -> any()`
+### new/3 ###
+
+<pre><code>
+new(Scheme::binary(), Term::binary(), Related::<a href="occi_category.md#type-t">occi_category:t()</a>) -&gt; <a href="#type-t">t()</a>
+</code></pre>
+<br />
+
+Create new action category
 

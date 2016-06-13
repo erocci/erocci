@@ -8,21 +8,7 @@
 
 .
 
-Copyright (c) (C) 2013, Jean Parpaillon
-
-This file is provided to you under the Apache License,
-Version 2.0 (the "License"); you may not use this file
-except in compliance with the License.  You may obtain
-a copy of the License at
-
-http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing,
-software distributed under the License is distributed on an
-"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-KIND, either express or implied.  See the License for the
-specific language governing permissions and limitations
-under the License.
+Copyright (c) (C) 2016, Jean Parpaillon
 
 __Authors:__ Jean Parpaillon ([`jean.parpaillon@free.fr`](mailto:jean.parpaillon@free.fr)).
 
@@ -33,118 +19,172 @@ __Authors:__ Jean Parpaillon ([`jean.parpaillon@free.fr`](mailto:jean.parpaillon
 
 
 
-### <a name="type-t">t()</a> ###
+### <a name="type-elem">elem()</a> ###
 
 
 <pre><code>
-t() = #occi_collection{}
+elem() = {<a href="occi_uri.md#type-url">occi_uri:url()</a>, <a href="occi_entity.md#type-t">occi_entity:t()</a> | undefined}
 </code></pre>
+
+
+
+
+### <a name="type-id">id()</a> ###
+
+
+<pre><code>
+id() = binary() | <a href="occi_category.md#type-id">occi_category:id()</a>
+</code></pre>
+
+
+
+
+### <a name="type-t">t()</a> ###
+
+
+__abstract datatype__: `t()`
 
 <a name="index"></a>
 
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#add_entities-2">add_entities/2</a></td><td></td></tr><tr><td valign="top"><a href="#add_entity-2">add_entity/2</a></td><td></td></tr><tr><td valign="top"><a href="#add_prefix-2">add_prefix/2</a></td><td></td></tr><tr><td valign="top"><a href="#del_entities-2">del_entities/2</a></td><td></td></tr><tr><td valign="top"><a href="#del_entity-2">del_entity/2</a></td><td></td></tr><tr><td valign="top"><a href="#entities-1">entities/1</a></td><td></td></tr><tr><td valign="top"><a href="#fold-2">fold/2</a></td><td></td></tr><tr><td valign="top"><a href="#get_entities-1">get_entities/1</a></td><td></td></tr><tr><td valign="top"><a href="#id-1">id/1</a></td><td></td></tr><tr><td valign="top"><a href="#is_empty-1">is_empty/1</a></td><td></td></tr><tr><td valign="top"><a href="#merge-2">merge/2</a></td><td></td></tr><tr><td valign="top"><a href="#new-0">new/0</a></td><td></td></tr><tr><td valign="top"><a href="#new-1">new/1</a></td><td></td></tr><tr><td valign="top"><a href="#new-2">new/2</a></td><td></td></tr><tr><td valign="top"><a href="#rm_prefix-2">rm_prefix/2</a></td><td></td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#append-2">append/2</a></td><td>Append elements to the collection.</td></tr><tr><td valign="top"><a href="#elements-1">elements/1</a></td><td>Get all elements.</td></tr><tr><td valign="top"><a href="#elements-2">elements/2</a></td><td>Set elements or entities.</td></tr><tr><td valign="top"><a href="#from_map-1">from_map/1</a></td><td></td></tr><tr><td valign="top"><a href="#from_map-2">from_map/2</a></td><td>Build collecton from AST.</td></tr><tr><td valign="top"><a href="#id-1">id/1</a></td><td>Return collection id.</td></tr><tr><td valign="top"><a href="#ids-1">ids/1</a></td><td>Get all entity ids.</td></tr><tr><td valign="top"><a href="#new-0">new/0</a></td><td>Create a new collection.</td></tr><tr><td valign="top"><a href="#new-1">new/1</a></td><td>Create a new collection.</td></tr><tr><td valign="top"><a href="#new-2">new/2</a></td><td>Creates a new bounded collection.</td></tr><tr><td valign="top"><a href="#render-3">render/3</a></td><td>Render collection into given mimetype.</td></tr><tr><td valign="top"><a href="#size-1">size/1</a></td><td>Collection size.</td></tr></table>
 
 
 <a name="functions"></a>
 
 ## Function Details ##
 
-<a name="add_entities-2"></a>
+<a name="append-2"></a>
 
-### add_entities/2 ###
-
-`add_entities(Occi_collection, E2) -> any()`
-
-<a name="add_entity-2"></a>
-
-### add_entity/2 ###
-
-`add_entity(Occi_collection, Uri) -> any()`
-
-<a name="add_prefix-2"></a>
-
-### add_prefix/2 ###
+### append/2 ###
 
 <pre><code>
-add_prefix(Occi_collection::<a href="#type-occi_collection">occi_collection()</a>, Prefix::string()) -&gt; <a href="#type-occi_collection">occi_collection()</a>
+append(NewElements::<a href="ordsets.md#type-ordset">ordsets:ordset()</a>, Collection::<a href="#type-t">t()</a>) -&gt; <a href="#type-t">t()</a>
 </code></pre>
 <br />
 
-<a name="del_entities-2"></a>
+Append elements to the collection
 
-### del_entities/2 ###
+<a name="elements-1"></a>
 
-`del_entities(Occi_collection, Uris) -> any()`
+### elements/1 ###
 
-<a name="del_entity-2"></a>
+<pre><code>
+elements(Collection::<a href="#type-t">t()</a>) -&gt; <a href="ordsets.md#type-ordset">ordsets:ordset()</a>
+</code></pre>
+<br />
 
-### del_entity/2 ###
+Get all elements
 
-`del_entity(Occi_collection, Uri) -> any()`
+<a name="elements-2"></a>
 
-<a name="entities-1"></a>
+### elements/2 ###
 
-### entities/1 ###
+<pre><code>
+elements(Elements::[<a href="#type-elem">elem()</a> | <a href="occi_entity.md#type-id">occi_entity:id()</a> | <a href="occi_entity.md#type-t">occi_entity:t()</a>], Collection::<a href="#type-t">t()</a>) -&gt; <a href="#type-t">t()</a>
+</code></pre>
+<br />
 
-`entities(Occi_collection) -> any()`
+Set elements or entities
 
-<a name="fold-2"></a>
+<a name="from_map-1"></a>
 
-### fold/2 ###
+### from_map/1 ###
 
-`fold(Occi_collection, F) -> any()`
+<pre><code>
+from_map(Map::<a href="occi_rendering.md#type-ast">occi_rendering:ast()</a>) -&gt; <a href="#type-t">t()</a>
+</code></pre>
+<br />
 
-<a name="get_entities-1"></a>
+<a name="from_map-2"></a>
 
-### get_entities/1 ###
+### from_map/2 ###
 
-`get_entities(Occi_collection) -> any()`
+<pre><code>
+from_map(Id::<a href="occi_category.md#type-id">occi_category:id()</a> | binary(), Map::<a href="occi_rendering.md#type-ast">occi_rendering:ast()</a>) -&gt; <a href="#type-t">t()</a>
+</code></pre>
+<br />
+
+Build collecton from AST
 
 <a name="id-1"></a>
 
 ### id/1 ###
 
-`id(Occi_collection) -> any()`
+<pre><code>
+id(Collection::<a href="#type-t">t()</a>) -&gt; <a href="#type-id">id()</a>
+</code></pre>
+<br />
 
-<a name="is_empty-1"></a>
+Return collection id
 
-### is_empty/1 ###
+<a name="ids-1"></a>
 
-`is_empty(Occi_collection) -> any()`
+### ids/1 ###
 
-<a name="merge-2"></a>
+<pre><code>
+ids(Collection::<a href="#type-t">t()</a>) -&gt; []
+</code></pre>
+<br />
 
-### merge/2 ###
-
-`merge(Occi_collection, X2) -> any()`
+Get all entity ids
 
 <a name="new-0"></a>
 
 ### new/0 ###
 
-`new() -> any()`
+<pre><code>
+new() -&gt; <a href="#type-t">t()</a>
+</code></pre>
+<br />
+
+Create a new collection
 
 <a name="new-1"></a>
 
 ### new/1 ###
 
-`new(Uri) -> any()`
+<pre><code>
+new(Id::binary() | <a href="occi_category.md#type-id">occi_category:id()</a>) -&gt; <a href="#type-t">t()</a>
+</code></pre>
+<br />
+
+Create a new collection.
+If id is an uri, collection is unbounded.
+If id is a category id, collection is bounded
 
 <a name="new-2"></a>
 
 ### new/2 ###
 
-`new(Uri, Elements) -> any()`
-
-<a name="rm_prefix-2"></a>
-
-### rm_prefix/2 ###
-
 <pre><code>
-rm_prefix(Occi_collection::<a href="#type-occi_collection">occi_collection()</a>, Prefix::string()) -&gt; <a href="#type-occi_collection">occi_collection()</a>
+new(Id::<a href="occi_category.md#type-id">occi_category:id()</a>, Elements::[<a href="occi_entity.md#type-t">occi_entity:t()</a> | <a href="occi_entity.md#type-id">occi_entity:id()</a>]) -&gt; <a href="#type-t">t()</a>
 </code></pre>
 <br />
+
+Creates a new bounded collection
+
+<a name="render-3"></a>
+
+### render/3 ###
+
+<pre><code>
+render(Mimetype::<a href="occi_utils.md#type-mimetype">occi_utils:mimetype()</a>, E::<a href="#type-t">t()</a>, Ctx::<a href="occi_uri.md#type-t">occi_uri:t()</a>) -&gt; iolist()
+</code></pre>
+<br />
+
+Render collection into given mimetype
+
+<a name="size-1"></a>
+
+### size/1 ###
+
+<pre><code>
+size(Collection::<a href="#type-t">t()</a>) -&gt; integer()
+</code></pre>
+<br />
+
+Collection size
 

@@ -2,122 +2,180 @@
 
 # Module occi_extension #
 * [Description](#description)
+* [Data Types](#types)
 * [Function Index](#index)
 * [Function Details](#functions)
 
-.
+An extension is a set of categories in the OCCI Core Model.
 
-Copyright (c) (C) 2013, Jean Parpaillon
-
-This file is provided to you under the Apache License,
-Version 2.0 (the "License"); you may not use this file
-except in compliance with the License.  You may obtain
-a copy of the License at
-
-http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing,
-software distributed under the License is distributed on an
-"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-KIND, either express or implied.  See the License for the
-specific language governing permissions and limitations
-under the License.
+Copyright (c) (C) 2016, Jean Parpaillon
 
 __Authors:__ Jean Parpaillon ([`jean.parpaillon@free.fr`](mailto:jean.parpaillon@free.fr)).
+
+<a name="description"></a>
+
+## Description ##
+
+<a name="types"></a>
+
+## Data Types ##
+
+
+
+
+### <a name="type-id">id()</a> ###
+
+
+<pre><code>
+id() = binary()
+</code></pre>
+
+
+
+
+### <a name="type-t">t()</a> ###
+
+
+__abstract datatype__: `t()`
 
 <a name="index"></a>
 
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#add_kind-2">add_kind/2</a></td><td></td></tr><tr><td valign="top"><a href="#add_mixin-2">add_mixin/2</a></td><td></td></tr><tr><td valign="top"><a href="#find-2">find/2</a></td><td></td></tr><tr><td valign="top"><a href="#get_actions-1">get_actions/1</a></td><td></td></tr><tr><td valign="top"><a href="#get_categories-1">get_categories/1</a></td><td></td></tr><tr><td valign="top"><a href="#get_kinds-1">get_kinds/1</a></td><td></td></tr><tr><td valign="top"><a href="#get_location-1">get_location/1</a></td><td></td></tr><tr><td valign="top"><a href="#get_mixins-1">get_mixins/1</a></td><td></td></tr><tr><td valign="top"><a href="#get_name-1">get_name/1</a></td><td></td></tr><tr><td valign="top"><a href="#get_version-1">get_version/1</a></td><td></td></tr><tr><td valign="top"><a href="#kinds-1">kinds/1</a></td><td></td></tr><tr><td valign="top"><a href="#mixins-1">mixins/1</a></td><td></td></tr><tr><td valign="top"><a href="#new-2">new/2</a></td><td></td></tr><tr><td valign="top"><a href="#set_location-2">set_location/2</a></td><td></td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#add_category-2">add_category/2</a></td><td>Add a category (kind or mixin) to the extension.</td></tr><tr><td valign="top"><a href="#add_import-2">add_import/2</a></td><td>Declare an extension to import.</td></tr><tr><td valign="top"><a href="#from_map-1">from_map/1</a></td><td>Load extension from ast.</td></tr><tr><td valign="top"><a href="#imports-1">imports/1</a></td><td>Get list of imports.</td></tr><tr><td valign="top"><a href="#kinds-1">kinds/1</a></td><td>Get the list of kinds of this extension.</td></tr><tr><td valign="top"><a href="#mixins-1">mixins/1</a></td><td>Get the list of mixins of this extension.</td></tr><tr><td valign="top"><a href="#name-1">name/1</a></td><td>Get the name of the extension.</td></tr><tr><td valign="top"><a href="#name-2">name/2</a></td><td>Set (optional) name of the extension.</td></tr><tr><td valign="top"><a href="#new-1">new/1</a></td><td>Creates an extension with a given scheme.</td></tr><tr><td valign="top"><a href="#render-3">render/3</a></td><td>Render extension into given mimetype.</td></tr><tr><td valign="top"><a href="#scheme-1">scheme/1</a></td><td>Get scheme of the extension.</td></tr></table>
 
 
 <a name="functions"></a>
 
 ## Function Details ##
 
-<a name="add_kind-2"></a>
+<a name="add_category-2"></a>
 
-### add_kind/2 ###
+### add_category/2 ###
 
-`add_kind(Occi_extension, Kind) -> any()`
+<pre><code>
+add_category(Category::<a href="occi_category.md#type-t">occi_category:t()</a>, Extension::<a href="#type-t">t()</a>) -&gt; <a href="#type-t">t()</a>
+</code></pre>
+<br />
 
-<a name="add_mixin-2"></a>
+Add a category (kind or mixin) to the extension.
+Actions are contained within a kind or mixin.
 
-### add_mixin/2 ###
+<a name="add_import-2"></a>
 
-`add_mixin(Occi_extension, Mixin) -> any()`
+### add_import/2 ###
 
-<a name="find-2"></a>
+<pre><code>
+add_import(Scheme::binary() | string(), E::<a href="#type-t">t()</a>) -&gt; <a href="#type-t">t()</a>
+</code></pre>
+<br />
 
-### find/2 ###
+Declare an extension to import
 
-`find(Occi_extension, Occi_cid) -> any()`
+WARNING: cycles are forbidden
 
-<a name="get_actions-1"></a>
+<a name="from_map-1"></a>
 
-### get_actions/1 ###
+### from_map/1 ###
 
-`get_actions(Occi_extension) -> any()`
+<pre><code>
+from_map(Map::<a href="occi_rendering.md#type-ast">occi_rendering:ast()</a>) -&gt; <a href="#type-t">t()</a>
+</code></pre>
+<br />
 
-<a name="get_categories-1"></a>
+Load extension from ast
 
-### get_categories/1 ###
+<a name="imports-1"></a>
 
-`get_categories(Occi_extension) -> any()`
+### imports/1 ###
 
-<a name="get_kinds-1"></a>
+<pre><code>
+imports(Extension::<a href="#type-t">t()</a>) -&gt; [<a href="occi_extension.md#type-id">occi_extension:id()</a>]
+</code></pre>
+<br />
 
-### get_kinds/1 ###
-
-`get_kinds(Occi_extension) -> any()`
-
-<a name="get_location-1"></a>
-
-### get_location/1 ###
-
-`get_location(Occi_mixin) -> any()`
-
-<a name="get_mixins-1"></a>
-
-### get_mixins/1 ###
-
-`get_mixins(Occi_extension) -> any()`
-
-<a name="get_name-1"></a>
-
-### get_name/1 ###
-
-`get_name(Occi_extension) -> any()`
-
-<a name="get_version-1"></a>
-
-### get_version/1 ###
-
-`get_version(Occi_extension) -> any()`
+Get list of imports
 
 <a name="kinds-1"></a>
 
 ### kinds/1 ###
 
-`kinds(Occi_extension) -> any()`
+<pre><code>
+kinds(Extension::<a href="#type-t">t()</a>) -&gt; [<a href="occi_category.md#type-t">occi_category:t()</a>]
+</code></pre>
+<br />
+
+Get the list of kinds of this extension
 
 <a name="mixins-1"></a>
 
 ### mixins/1 ###
 
-`mixins(Occi_extension) -> any()`
+<pre><code>
+mixins(Extension::<a href="#type-t">t()</a>) -&gt; [<a href="occi_category.md#type-t">occi_category:t()</a>]
+</code></pre>
+<br />
 
-<a name="new-2"></a>
+Get the list of mixins of this extension
 
-### new/2 ###
+<a name="name-1"></a>
 
-`new(Name, Version) -> any()`
+### name/1 ###
 
-<a name="set_location-2"></a>
+<pre><code>
+name(Extension::<a href="#type-t">t()</a>) -&gt; binary()
+</code></pre>
+<br />
 
-### set_location/2 ###
+Get the name of the extension.
 
-`set_location(Occi_mixin, Uri) -> any()`
+<a name="name-2"></a>
+
+### name/2 ###
+
+<pre><code>
+name(Name::binary(), Extension::<a href="#type-t">t()</a>) -&gt; <a href="#type-t">t()</a>
+</code></pre>
+<br />
+
+Set (optional) name of the extension
+
+<a name="new-1"></a>
+
+### new/1 ###
+
+<pre><code>
+new(Scheme::binary()) -&gt; <a href="#type-t">t()</a>
+</code></pre>
+<br />
+
+throws `{invalid_uri, string() | binary()}`
+
+Creates an extension with a given scheme.
+The scheme is used as namespace for categories.
+
+Throws extension if the scheme is not a valid URI.
+
+<a name="render-3"></a>
+
+### render/3 ###
+
+<pre><code>
+render(Mimetype::<a href="occi_utils.md#type-mimetype">occi_utils:mimetype()</a>, E::<a href="#type-t">t()</a>, Ctx::<a href="occi_uri.md#type-t">occi_uri:t()</a>) -&gt; iolist()
+</code></pre>
+<br />
+
+Render extension into given mimetype
+
+<a name="scheme-1"></a>
+
+### scheme/1 ###
+
+<pre><code>
+scheme(Extension::<a href="#type-t">t()</a>) -&gt; <a href="#type-id">id()</a>
+</code></pre>
+<br />
+
+Get scheme of the extension
 

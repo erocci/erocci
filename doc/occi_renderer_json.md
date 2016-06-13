@@ -5,26 +5,15 @@
 * [Function Index](#index)
 * [Function Details](#functions)
 
-use EEP1108 format ofr JSON internal representation
-http://www.erlang.org/eeps/eep-0018.html.
+.
 
-Copyright (c) (C) 2013, Jean Parpaillon
+Copyright (c) (c) 2013-2016 Jean Parpaillon
 
-This file is provided to you under the Apache License,
-Version 2.0 (the "License"); you may not use this file
-except in compliance with the License.  You may obtain
-a copy of the License at
+This file is provided to you under the license described
+in the file LICENSE at the root of the project.
 
-http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing,
-software distributed under the License is distributed on an
-"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-KIND, either express or implied.  See the License for the
-specific language governing permissions and limitations
-under the License.
-
-__Behaviours:__ [`occi_renderer`](occi_renderer.md).
+You can also download the LICENSE file from the following URL:
+https://github.com/erocci/erocci/blob/master/LICENSE
 
 __Authors:__ Jean Parpaillon ([`jean.parpaillon@free.fr`](mailto:jean.parpaillon@free.fr)).
 
@@ -44,5 +33,8 @@ __Authors:__ Jean Parpaillon ([`jean.parpaillon@free.fr`](mailto:jean.parpaillon
 
 ### render/2 ###
 
-`render(Occi_node, Env) -> any()`
+<pre><code>
+render(T::<a href="occi.md#type-t">occi:t()</a>, Ctx::<a href="occi_uri.md#type-t">occi_uri:t()</a>) -&gt; iolist()
+</code></pre>
+<br />
 

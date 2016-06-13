@@ -8,21 +8,7 @@
 
 .
 
-Copyright (c) (C) 2013, Jean Parpaillon
-
-This file is provided to you under the Apache License,
-Version 2.0 (the "License"); you may not use this file
-except in compliance with the License.  You may obtain
-a copy of the License at
-
-http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing,
-software distributed under the License is distributed on an
-"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-KIND, either express or implied.  See the License for the
-specific language governing permissions and limitations
-under the License.
+Copyright (c) (C) 2016, Jean Parpaillon
 
 __Authors:__ Jean Parpaillon ([`jean.parpaillon@free.fr`](mailto:jean.parpaillon@free.fr)).
 
@@ -37,17 +23,35 @@ __Authors:__ Jean Parpaillon ([`jean.parpaillon@free.fr`](mailto:jean.parpaillon
 
 
 <pre><code>
-key() = <a href="#type-occi_attr_key">occi_attr_key()</a>
+key() = binary()
 </code></pre>
 
 
 
 
-### <a name="type-value">value()</a> ###
+### <a name="type-name_t">name_t()</a> ###
 
 
 <pre><code>
-value() = any()
+name_t() = binary()
+</code></pre>
+
+
+
+
+### <a name="type-t">t()</a> ###
+
+
+__abstract datatype__: `t()`
+
+
+
+
+### <a name="type-type_t">type_t()</a> ###
+
+
+<pre><code>
+type_t() = <a href="occi_base_type.md#type-t">occi_base_type:t()</a>
 </code></pre>
 
 <a name="index"></a>
@@ -55,178 +59,163 @@ value() = any()
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#add_prefix-2">add_prefix/2</a></td><td></td></tr><tr><td valign="top"><a href="#check-1">check/1</a></td><td></td></tr><tr><td valign="top"><a href="#core_id-0">core_id/0</a></td><td></td></tr><tr><td valign="top"><a href="#core_src-0">core_src/0</a></td><td></td></tr><tr><td valign="top"><a href="#core_summary-0">core_summary/0</a></td><td></td></tr><tr><td valign="top"><a href="#core_target-0">core_target/0</a></td><td></td></tr><tr><td valign="top"><a href="#core_title-0">core_title/0</a></td><td></td></tr><tr><td valign="top"><a href="#get_default-1">get_default/1</a></td><td></td></tr><tr><td valign="top"><a href="#get_id-1">get_id/1</a></td><td></td></tr><tr><td valign="top"><a href="#get_title-1">get_title/1</a></td><td></td></tr><tr><td valign="top"><a href="#get_type-1">get_type/1</a></td><td></td></tr><tr><td valign="top"><a href="#get_type_id-1">get_type_id/1</a></td><td></td></tr><tr><td valign="top"><a href="#get_value-1">get_value/1</a></td><td></td></tr><tr><td valign="top"><a href="#id-1">id/1</a></td><td></td></tr><tr><td valign="top"><a href="#is_immutable-1">is_immutable/1</a></td><td></td></tr><tr><td valign="top"><a href="#is_required-1">is_required/1</a></td><td></td></tr><tr><td valign="top"><a href="#match_value-2">match_value/2</a></td><td></td></tr><tr><td valign="top"><a href="#new-1">new/1</a></td><td></td></tr><tr><td valign="top"><a href="#reset-1">reset/1</a></td><td></td></tr><tr><td valign="top"><a href="#rm_prefix-2">rm_prefix/2</a></td><td></td></tr><tr><td valign="top"><a href="#set_default-2">set_default/2</a></td><td></td></tr><tr><td valign="top"><a href="#set_immutable-2">set_immutable/2</a></td><td></td></tr><tr><td valign="top"><a href="#set_required-2">set_required/2</a></td><td></td></tr><tr><td valign="top"><a href="#set_title-2">set_title/2</a></td><td></td></tr><tr><td valign="top"><a href="#set_type-2">set_type/2</a></td><td></td></tr><tr><td valign="top"><a href="#set_value-2">set_value/2</a></td><td></td></tr><tr><td valign="top"><a href="#value-1">value/1</a></td><td></td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#category-1">category/1</a></td><td></td></tr><tr><td valign="top"><a href="#default-1">default/1</a></td><td></td></tr><tr><td valign="top"><a href="#default-2">default/2</a></td><td></td></tr><tr><td valign="top"><a href="#description-1">description/1</a></td><td></td></tr><tr><td valign="top"><a href="#description-2">description/2</a></td><td></td></tr><tr><td valign="top"><a href="#from_map-3">from_map/3</a></td><td></td></tr><tr><td valign="top"><a href="#mutable-1">mutable/1</a></td><td></td></tr><tr><td valign="top"><a href="#mutable-2">mutable/2</a></td><td></td></tr><tr><td valign="top"><a href="#name-1">name/1</a></td><td></td></tr><tr><td valign="top"><a href="#new-3">new/3</a></td><td></td></tr><tr><td valign="top"><a href="#pattern-1">pattern/1</a></td><td></td></tr><tr><td valign="top"><a href="#pattern-2">pattern/2</a></td><td></td></tr><tr><td valign="top"><a href="#required-1">required/1</a></td><td></td></tr><tr><td valign="top"><a href="#required-2">required/2</a></td><td></td></tr><tr><td valign="top"><a href="#title-1">title/1</a></td><td></td></tr><tr><td valign="top"><a href="#title-2">title/2</a></td><td></td></tr><tr><td valign="top"><a href="#type-1">type/1</a></td><td></td></tr></table>
 
 
 <a name="functions"></a>
 
 ## Function Details ##
 
-<a name="add_prefix-2"></a>
+<a name="category-1"></a>
 
-### add_prefix/2 ###
-
-`add_prefix(Occi_attr, Prefix) -> any()`
-
-<a name="check-1"></a>
-
-### check/1 ###
-
-`check(Occi_attr) -> any()`
-
-<a name="core_id-0"></a>
-
-### core_id/0 ###
-
-`core_id() -> any()`
-
-<a name="core_src-0"></a>
-
-### core_src/0 ###
-
-`core_src() -> any()`
-
-<a name="core_summary-0"></a>
-
-### core_summary/0 ###
-
-`core_summary() -> any()`
-
-<a name="core_target-0"></a>
-
-### core_target/0 ###
-
-`core_target() -> any()`
-
-<a name="core_title-0"></a>
-
-### core_title/0 ###
-
-`core_title() -> any()`
-
-<a name="get_default-1"></a>
-
-### get_default/1 ###
-
-`get_default(Occi_attr) -> any()`
-
-<a name="get_id-1"></a>
-
-### get_id/1 ###
-
-`get_id(A) -> any()`
-
-<a name="get_title-1"></a>
-
-### get_title/1 ###
-
-`get_title(Occi_attr) -> any()`
-
-<a name="get_type-1"></a>
-
-### get_type/1 ###
-
-`get_type(Occi_attr) -> any()`
-
-<a name="get_type_id-1"></a>
-
-### get_type_id/1 ###
-
-`get_type_id(Occi_attr) -> any()`
-
-<a name="get_value-1"></a>
-
-### get_value/1 ###
-
-`get_value(Occi_attr) -> any()`
-
-<a name="id-1"></a>
-
-### id/1 ###
-
-`id(A) -> any()`
-
-<a name="is_immutable-1"></a>
-
-### is_immutable/1 ###
-
-`is_immutable(A) -> any()`
-
-<a name="is_required-1"></a>
-
-### is_required/1 ###
-
-`is_required(A) -> any()`
-
-<a name="match_value-2"></a>
-
-### match_value/2 ###
+### category/1 ###
 
 <pre><code>
-match_value(Occi_attr::<a href="#type-occi_attr">occi_attr()</a>, M::binary()) -&gt; true | false
+category(A::<a href="#type-t">t()</a>) -&gt; <a href="occi_category.md#type-id">occi_category:id()</a>
 </code></pre>
 <br />
 
-<a name="new-1"></a>
+<a name="default-1"></a>
 
-### new/1 ###
-
-`new(Id) -> any()`
-
-<a name="reset-1"></a>
-
-### reset/1 ###
+### default/1 ###
 
 <pre><code>
-reset(Occi_attr::<a href="#type-occi_attr">occi_attr()</a>) -&gt; <a href="#type-occi_attr">occi_attr()</a>
+default(A::<a href="#type-t">t()</a>) -&gt; <a href="occi_base_type.md#type-t">occi_base_type:t()</a>
 </code></pre>
 <br />
 
-<a name="rm_prefix-2"></a>
+<a name="default-2"></a>
 
-### rm_prefix/2 ###
+### default/2 ###
 
-`rm_prefix(Occi_attr, Prefix) -> any()`
+<pre><code>
+default(Value::<a href="occi_base_type.md#type-t">occi_base_type:t()</a>, A::<a href="#type-t">t()</a>) -&gt; <a href="#type-t">t()</a>
+</code></pre>
+<br />
 
-<a name="set_default-2"></a>
+<a name="description-1"></a>
 
-### set_default/2 ###
+### description/1 ###
 
-`set_default(Occi_attr, Value) -> any()`
+<pre><code>
+description(A::<a href="#type-t">t()</a>) -&gt; binary()
+</code></pre>
+<br />
 
-<a name="set_immutable-2"></a>
+<a name="description-2"></a>
 
-### set_immutable/2 ###
+### description/2 ###
 
-`set_immutable(Occi_attr, Val) -> any()`
+<pre><code>
+description(Desc::binary(), A::<a href="#type-t">t()</a>) -&gt; <a href="#type-t">t()</a>
+</code></pre>
+<br />
 
-<a name="set_required-2"></a>
+<a name="from_map-3"></a>
 
-### set_required/2 ###
+### from_map/3 ###
 
-`set_required(A, Req) -> any()`
+<pre><code>
+from_map(Name::binary(), CatId::<a href="occi_category.md#type-id">occi_category:id()</a>, Map::<a href="occi_rendering.md#type-ast">occi_rendering:ast()</a>) -&gt; <a href="#type-t">t()</a>
+</code></pre>
+<br />
 
-<a name="set_title-2"></a>
+<a name="mutable-1"></a>
 
-### set_title/2 ###
+### mutable/1 ###
 
-`set_title(A, Title) -> any()`
+<pre><code>
+mutable(A::<a href="#type-t">t()</a>) -&gt; boolean()
+</code></pre>
+<br />
 
-<a name="set_type-2"></a>
+<a name="mutable-2"></a>
 
-### set_type/2 ###
+### mutable/2 ###
 
-`set_type(A, Type) -> any()`
+<pre><code>
+mutable(Mutable::boolean(), A::<a href="#type-t">t()</a>) -&gt; <a href="#type-t">t()</a>
+</code></pre>
+<br />
 
-<a name="set_value-2"></a>
+<a name="name-1"></a>
 
-### set_value/2 ###
+### name/1 ###
 
-`set_value(Occi_attr, Value) -> any()`
+<pre><code>
+name(A::<a href="#type-t">t()</a>) -&gt; <a href="#type-name_t">name_t()</a>
+</code></pre>
+<br />
 
-<a name="value-1"></a>
+<a name="new-3"></a>
 
-### value/1 ###
+### new/3 ###
 
-`value(Occi_attr) -> any()`
+<pre><code>
+new(Category::<a href="occi_category.md#type-id">occi_category:id()</a>, Name::<a href="#type-key">key()</a>, Type::<a href="#type-type_t">type_t()</a>) -&gt; <a href="#type-t">t()</a>
+</code></pre>
+<br />
+
+<a name="pattern-1"></a>
+
+### pattern/1 ###
+
+<pre><code>
+pattern(A::<a href="#type-t">t()</a>) -&gt; binary()
+</code></pre>
+<br />
+
+<a name="pattern-2"></a>
+
+### pattern/2 ###
+
+<pre><code>
+pattern(Pattern::binary(), A::<a href="#type-t">t()</a>) -&gt; <a href="#type-t">t()</a>
+</code></pre>
+<br />
+
+<a name="required-1"></a>
+
+### required/1 ###
+
+<pre><code>
+required(A::<a href="#type-t">t()</a>) -&gt; boolean()
+</code></pre>
+<br />
+
+<a name="required-2"></a>
+
+### required/2 ###
+
+<pre><code>
+required(Required::boolean(), A::<a href="#type-t">t()</a>) -&gt; <a href="#type-t">t()</a>
+</code></pre>
+<br />
+
+<a name="title-1"></a>
+
+### title/1 ###
+
+<pre><code>
+title(A::<a href="#type-t">t()</a>) -&gt; binary()
+</code></pre>
+<br />
+
+<a name="title-2"></a>
+
+### title/2 ###
+
+<pre><code>
+title(Title::binary(), A::<a href="#type-t">t()</a>) -&gt; <a href="#type-t">t()</a>
+</code></pre>
+<br />
+
+<a name="type-1"></a>
+
+### type/1 ###
+
+<pre><code>
+type(A::<a href="#type-t">t()</a>) -&gt; <a href="#type-type_t">type_t()</a>
+</code></pre>
+<br />
 

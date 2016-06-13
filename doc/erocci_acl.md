@@ -1,6 +1,6 @@
 
 
-# Module occi_parser_xml #
+# Module erocci_acl #
 * [Description](#description)
 * [Function Index](#index)
 * [Function Details](#functions)
@@ -16,19 +16,23 @@ __Authors:__ Jean Parpaillon ([`jean.parpaillon@free.fr`](mailto:jean.parpaillon
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#parse-1">parse/1</a></td><td></td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#validate-1">validate/1</a></td><td>Validate ACL.</td></tr></table>
 
 
 <a name="functions"></a>
 
 ## Function Details ##
 
-<a name="parse-1"></a>
+<a name="validate-1"></a>
 
-### parse/1 ###
+### validate/1 ###
 
 <pre><code>
-parse(Bin::binary()) -&gt; <a href="occi_rendering.md#type-ast">occi_rendering:ast()</a>
+validate(Acl::term()) -&gt; <a href="#type-t">t()</a>
 </code></pre>
 <br />
+
+throws `{invalid_acl, term()}`
+
+Validate ACL
 
