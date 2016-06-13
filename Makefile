@@ -15,7 +15,7 @@ EDOC_OPTS = {app_default, "http://www.erlang.org/doc/"} \
            ,{top_level_readme, {"$(CURDIR)/README.md", "http://github.com/erocci/erocci"}}
 EDOC_SRC_DIRS = \
 	$(ALL_APPS_DIRS) \
-	$(DEPS_DIR)/occi
+	$(DEPS_DIR)/occi \
 	$(DEPS_DIR)/erocci_core \
 	$(DEPS_DIR)/erocci_authnz \
 	$(DEPS_DIR)/erocci_listener_http \
