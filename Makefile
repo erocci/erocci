@@ -13,14 +13,11 @@ TEST_DEPS = pocci
 
 EDOC_OPTS = {app_default, "http://www.erlang.org/doc/"} \
            ,{doclet, edown_doclet} \
-           ,{top_level_readme, {"$(CURDIR)/README.md", "http://github.com/erocci/erocci"}}
+           ,{top_level_readme, {"$(CURDIR)/doc/README.md", "http://github.com/erocci/erocci"}}
 EDOC_SRC_DIRS = \
 	$(ALL_APPS_DIRS) \
 	$(DEPS_DIR)/occi \
-	$(DEPS_DIR)/erocci_core \
-	$(DEPS_DIR)/erocci_authnz \
-	$(DEPS_DIR)/erocci_listener_http \
-	$(DEPS_DIR)/erocci_backend_mnesia
+	$(DEPS_DIR)/erocci_core
 
 LOCK = deps.lock
 
@@ -35,6 +32,21 @@ dep_pocci = git https://github.com/jeanparpaillon/pOCCI.git erocci
 
 include erlang.mk
 
+# TODO: use double-quote instead of single + atom_to_list
+#       The problem is in correctly escaping double-quotes
+define edoc.erl
+	SrcPaths = lists:foldl(fun (P, Acc) ->
+	                         filelib:wildcard(atom_to_list(P) ++ "/{src,c_src}") ++ Acc
+	                       end, [], [$(call comma_list,$(patsubst %,'%',$(EDOC_SRC_DIRS)))]),
+	DefaultOpts = [ {source_path, SrcPaths}
+	               ,{subpackages, false} ],
+	edoc:application($(1), ".", [$(2)] ++ DefaultOpts),
+	halt(0).
+endef
+
+fulldoc: doc-deps
+	$(gen_verbose) $(call erlang,$(call edoc.erl,$(PROJECT),$(EDOC_OPTS)))
+
 test-build:: $(POCCI_DATA)
 
 $(POCCI_DATA):
@@ -47,4 +59,4 @@ lock: deps
 	  echo "$${dep}_v = $${v}" | tee --append $(LOCK); \
 	done
 
-.PHONY: lock 
+.PHONY: fulldoc lock 
