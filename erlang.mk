@@ -16,7 +16,7 @@
 
 ERLANG_MK_FILENAME := $(realpath $(lastword $(MAKEFILE_LIST)))
 
-ERLANG_MK_VERSION = 2.0.0-pre.2-120-ge6868d1
+ERLANG_MK_VERSION = 2.0.0-pre.2-128-gb48618d
 
 # Core configuration.
 
@@ -24,6 +24,7 @@ PROJECT ?= $(notdir $(CURDIR))
 PROJECT := $(strip $(PROJECT))
 
 PROJECT_VERSION ?= rolling
+PROJECT_MOD ?= $(PROJECT)_app
 
 # Verbosity.
 
@@ -1675,6 +1676,14 @@ pkg_feeder_fetch = git
 pkg_feeder_repo = https://github.com/michaelnisi/feeder
 pkg_feeder_commit = master
 
+PACKAGES += find_crate
+pkg_find_crate_name = find_crate
+pkg_find_crate_description = Find Rust libs and exes in Erlang application priv directory
+pkg_find_crate_homepage = https://github.com/goertzenator/find_crate
+pkg_find_crate_fetch = git
+pkg_find_crate_repo = https://github.com/goertzenator/find_crate
+pkg_find_crate_commit = master
+
 PACKAGES += fix
 pkg_fix_name = fix
 pkg_fix_description = http://fixprotocol.org/ implementation.
@@ -3323,6 +3332,14 @@ pkg_rlimit_fetch = git
 pkg_rlimit_repo = https://github.com/jlouis/rlimit
 pkg_rlimit_commit = master
 
+PACKAGES += rust_mk
+pkg_rust_mk_name = rust_mk
+pkg_rust_mk_description = Build Rust crates in an Erlang application
+pkg_rust_mk_homepage = https://github.com/goertzenator/rust.mk
+pkg_rust_mk_fetch = git
+pkg_rust_mk_repo = https://github.com/goertzenator/rust.mk
+pkg_rust_mk_commit = master
+
 PACKAGES += safetyvalve
 pkg_safetyvalve_name = safetyvalve
 pkg_safetyvalve_description = A safety valve for your erlang node
@@ -4117,7 +4134,7 @@ deps::
 else
 deps:: $(ALL_DEPS_DIRS)
 ifndef IS_APP
-	for dep in $(ALL_APPS_DIRS) ; do \
+	$(verbose) for dep in $(ALL_APPS_DIRS) ; do \
 		mkdir -p $$dep/ebin; \
 	done
 	$(verbose) for dep in $(ALL_APPS_DIRS) ; do \
@@ -4813,7 +4830,7 @@ app:: clean deps $(PROJECT).d
 	$(verbose) $(MAKE) --no-print-directory app-build
 endif
 
-ifeq ($(wildcard src/$(PROJECT)_app.erl),)
+ifeq ($(wildcard src/$(PROJECT_MOD).erl),)
 define app_file
 {application, $(PROJECT), [
 	{description, "$(PROJECT_DESCRIPTION)"},
@@ -4833,7 +4850,7 @@ define app_file
 	{modules, [$(call comma_list,$(2))]},
 	{registered, [$(call comma_list,$(PROJECT)_sup $(PROJECT_REGISTERED))]},
 	{applications, [$(call comma_list,kernel stdlib $(OTP_DEPS) $(LOCAL_DEPS) $(DEPS))]},
-	{mod, {$(PROJECT)_app, []}}
+	{mod, {$(PROJECT_MOD), []}}
 ]}.
 endef
 endif
