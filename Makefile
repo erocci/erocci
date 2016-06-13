@@ -9,6 +9,8 @@ DEPS = \
 	erocci_backend_mnesia \
 	edown
 
+TEST_DEPS = pocci
+
 EDOC_OPTS = {app_default, "http://www.erlang.org/doc/"} \
            ,{doclet, edown_doclet} \
            ,{top_level_readme, {"$(CURDIR)/README.md", "http://github.com/erocci/erocci"}}
@@ -22,13 +24,21 @@ EDOC_SRC_DIRS = \
 
 LOCK = deps.lock
 
+POCCI_DATA = $(TEST_DIR)/pocci_SUITE_data/pocci.conf
+
 dep_erocci_core = git https://github.com/erocci/erocci_core.git $(erocci_core_v)
 dep_erocci_authnz = git https://github.com/erocci/erocci_authnz.git $(erocci_authnz_v)
 dep_erocci_listener_http = git https://github.com/erocci/erocci_listener_http.git $(erocci_listener_http)
 dep_erocci_backend_mnesia = git https://github.com/erocci/erocci_backend_mnesia.git $(erocci_backend_mnesia)
 dep_erocci_backend_dbus = git https://github.com/erocci/erocci_backend_dbus.git $(erocci_backend_dbus)
+dep_pocci = git https://github.com/jeanparpaillon/pOCCI.git erocci
 
 include erlang.mk
+
+test-build:: $(POCCI_DATA)
+
+$(POCCI_DATA):
+	@echo "{'POCCI', \"$(DEPS_DIR)/pocci/pOCCI/pOCCI.py\"}." > $@
 
 lock: deps
 	@rm -f $(LOCK)
