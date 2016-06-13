@@ -9,12 +9,10 @@ ADD run.sh /root/run.sh
 
 RUN apt-get update
 RUN apt-get -y install --no-install-recommends git \
-    build-essential autoconf pkg-config ca-certificates libxml2-dev && \
+    build-essential ca-certificates && \
     apt-get -y clean
 RUN git clone https://github.com/erocci/erocci.git && \
-    cd erocci && \
-    ./bootstrap && \
-    make
+    cd erocci && make
 
 CMD [ "/root/run.sh" ]
 
