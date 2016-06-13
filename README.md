@@ -21,4 +21,4 @@ __License:__ Apache Public License 2.0
 
 [![Build Status](https://travis-ci.org/erocci/erocci.svg?branch=master)](https://travis-ci.org/erocci/erocci) [![Project Stats](https://www.openhub.net/p/erocci/widgets/project_thin_badge.gif)](https://www.openhub.net/p/erocci)
 
-# [Documentation](https://github.com/erocci/erlang-occi/blob/master/doc/README.md)
+# [Documentation](https://github.com/erocci/erocci/blob/master/doc/README.md)
