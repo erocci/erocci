@@ -1,5 +1,5 @@
-occi_v = v1.0rc1
-erocci_core_v = v1.0rc2
+occi_v = v1.0rc2
+erocci_core_v = v1.0rc3
 erocci_listener_http_v = v1.0rc2
 erocci_backend_mnesia_v = v1.0rc1
 pocci_v = v1.0.0+erocci1.1.0
