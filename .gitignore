@@ -21,7 +21,7 @@ test/*.beam
 /variables-ct*
 /Mnesia.*
 /.erlang.mk
-erocci.app.src
+/ebin
 
 # tests
 /test/pocci_SUITE_data/pocci.conf

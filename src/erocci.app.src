@@ -1,0 +1,18 @@
+%%-*- mode: erlang -*-
+{application, erocci,
+ [
+  {id, "git"},
+  {vsn, "1.0.0"},
+  {description, "erocci"},
+  {mod, {erocci, []}},
+  {modules, []},
+  {registered, []},
+  {applications, 
+   [ 
+	 kernel,
+	 stdlib,
+	 inets,
+	 erocci_core
+   ]},
+  {env, []}
+ ]}.
