@@ -10,12 +10,6 @@
 .eunit
 .libs
 
-# autoconf
-/autom4te.cache/
-/config.log
-/config.status
-/Makefile
-
 # erlang
 erl_crash.dump
 /log/
