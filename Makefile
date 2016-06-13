@@ -5,7 +5,6 @@ PROJECT_VERSION = $(shell git describe --always --tags 2> /dev/null | sed -e 's/
 
 DEPS = \
 	erocci_core \
-	erocci_authnz \
 	erocci_listener_http \
 	erocci_backend_mnesia \
 	edown
