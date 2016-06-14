@@ -25,9 +25,9 @@ POCCI_DATA = $(TEST_DIR)/pocci_SUITE_data/pocci.conf
 
 dep_erocci_core = git https://github.com/erocci/erocci_core.git $(erocci_core_v)
 dep_erocci_authnz = git https://github.com/erocci/erocci_authnz.git $(erocci_authnz_v)
-dep_erocci_listener_http = git https://github.com/erocci/erocci_listener_http.git $(erocci_listener_http)
-dep_erocci_backend_mnesia = git https://github.com/erocci/erocci_backend_mnesia.git $(erocci_backend_mnesia)
-dep_erocci_backend_dbus = git https://github.com/erocci/erocci_backend_dbus.git $(erocci_backend_dbus)
+dep_erocci_listener_http = git https://github.com/erocci/erocci_listener_http.git $(erocci_listener_http_v)
+dep_erocci_backend_mnesia = git https://github.com/erocci/erocci_backend_mnesia.git $(erocci_backend_mnesia_v)
+dep_erocci_backend_dbus = git https://github.com/erocci/erocci_backend_dbus.git $(erocci_backend_dbus_v)
 dep_pocci = git https://github.com/jeanparpaillon/pOCCI.git $(pocci_v)
 
 include erlang.mk
@@ -67,7 +67,7 @@ lock: deps
 tests-report:
 	( ERL_OPTS="-noshell" ./start.sh -c config/pocci-test.config & ) &
 	sleep 5
-	./deps/pocci/pOCCI/pOCCI.py --url http://localhost:8080
+	./deps/pocci/pOCCI/pOCCI.py --url http://localhost:8080 --auth-type '' --ignore-ssl
 	killall beam.smp 
 
 .PHONY: fulldoc lock clean-local tests-report
