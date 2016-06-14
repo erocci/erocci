@@ -20,7 +20,6 @@ install:
 
 script:
   - "make tests"
-  - "make tests-report"
 
 notifications:
   email:

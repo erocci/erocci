@@ -20,6 +20,7 @@ EDOC_SRC_DIRS = \
 	$(DEPS_DIR)/erocci_core
 
 LOCK = deps.lock
+include $(LOCK)
 
 POCCI_DATA = $(TEST_DIR)/pocci_SUITE_data/pocci.conf
 
@@ -63,11 +64,5 @@ lock: deps
 	  v=$$(cd deps/$${dep} && git describe --always); \
 	  echo "$${dep}_v = $${v}" | tee --append $(LOCK); \
 	done
-
-tests-report:
-	( ERL_OPTS="-noshell" ./start.sh -c config/pocci-test.config & ) &
-	sleep 5
-	./deps/pocci/pOCCI/pOCCI.py --url http://localhost:8080 --auth-type '' --ignore-ssl
-	killall beam.smp 
 
 .PHONY: fulldoc lock clean-local tests-report

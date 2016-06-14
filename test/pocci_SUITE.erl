@@ -167,6 +167,7 @@ pocci(Name, Config) ->
 		++ " --url " ++ ?ENDPOINT
 		++ " --mime-type 'text/plain'"
 		++ " --format plain"
+		++ " --auth-type ''"
 		++ " --tests " ++ Name,
 	ct:log(info, "cmd = ~s", [Cmd]),
 	Cmd.
