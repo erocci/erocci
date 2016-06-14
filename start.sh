@@ -109,4 +109,4 @@ exec erl -pa $basedir/ebin -pa $basedir/deps/*/ebin \
      -config $config \
      -erocci_core listeners "$listeners" \
 	 -sname $name \
-     -s erocci
+	 $ERL_OPTS -s erocci
