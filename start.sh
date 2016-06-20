@@ -3,7 +3,7 @@ basedir=$(cd $(dirname $0) && pwd)
 
 function usage() {
     #echo "Usage: $0 [-d] [-t] [-s] [-x <jid>] [-c <config>] [-h]"
-	echo "Usage: $0 [-d] [-t] [-s] [-c <config>] [-h]"
+	echo "Usage: $0 [-d] [-t] [-s] [-c <config>] [-n <node_name>][-h]"
     echo -e "\t-d           Print debug messages"
     echo -e "\t-q           Print only error messages"
     echo -e "\t-t           Start HTTP listener"
@@ -33,7 +33,7 @@ idx=-1
 http_listener="{http, erocci_http, [{port, 8080}]}"
 listeners[0]=${http_listener}
 #while getopts ":hdqtsc:x:p:" opt; do
-while getopts ":hdqtsc:x:" opt; do
+while getopts ":hdqtsc:x:n:" opt; do
     case $opt in
 	d)
 	    debug=debug
