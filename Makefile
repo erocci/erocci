@@ -7,6 +7,7 @@ DEPS = \
 	erocci_core \
 	erocci_listener_http \
 	erocci_backend_mnesia \
+	erocci_backend_dbus \
 	edown
 
 TEST_DEPS = pocci
@@ -25,7 +26,6 @@ include $(LOCK)
 POCCI_DATA = $(TEST_DIR)/pocci_SUITE_data/pocci.conf
 
 dep_erocci_core = git https://github.com/erocci/erocci_core.git $(erocci_core_v)
-dep_erocci_authnz = git https://github.com/erocci/erocci_authnz.git $(erocci_authnz_v)
 dep_erocci_listener_http = git https://github.com/erocci/erocci_listener_http.git $(erocci_listener_http_v)
 dep_erocci_backend_mnesia = git https://github.com/erocci/erocci_backend_mnesia.git $(erocci_backend_mnesia_v)
 dep_erocci_backend_dbus = git https://github.com/erocci/erocci_backend_dbus.git $(erocci_backend_dbus_v)
@@ -65,4 +65,4 @@ lock: deps
 	  echo "$${dep}_v = $${v}" | tee --append $(LOCK); \
 	done
 
-.PHONY: fulldoc lock clean-local tests-report
+.PHONY: fulldoc lock clean-local
