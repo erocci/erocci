@@ -60,7 +60,7 @@ $(POCCI_DATA):
 
 lock: deps
 	@rm -f $(LOCK)
-	@for dep in $(DEPS); do \
+	@for dep in occi $(DEPS) $(TEST_DEPS); do \
 	  v=$$(cd deps/$${dep} && git describe --always); \
 	  echo "$${dep}_v = $${v}" | tee --append $(LOCK); \
 	done
