@@ -1,6 +1,6 @@
-occi_v = v1.0rc4-4-gb43861e
-erocci_core_v = v1.0rc6-1-gb02de1e
-erocci_listener_http_v = v1.0rc4
+occi_v = v1.0rc5
+erocci_core_v = v1.0rc6-2-gd45c44d
+erocci_listener_http_v = v1.0rc4-1-g9e46840
 erocci_backend_mnesia_v = v1.0rc3-2-gbc2eea2
 erocci_backend_dbus_v = v1.0rc1
 edown_v = 0.8
