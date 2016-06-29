@@ -104,7 +104,7 @@ done
 listeners=$(echo -n "["; join , "${listeners[@]}"; echo -n "]")
 
 cd ${basedir}
-exec erl -pa $basedir/ebin -pa $basedir/deps/*/ebin \
+exec erl -pa $basedir/ebin -pa $basedir/deps/*/ebin -pa $basedir/deps \
      -boot start_sasl \
      -config $config \
      -erocci_core listeners "$listeners" \
