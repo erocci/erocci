@@ -23,7 +23,8 @@ __Authors:__ Jean Parpaillon ([`jean.parpaillon@free.fr`](mailto:jean.parpaillon
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#action-1">action/1</a></td><td>Return an action definition.</td></tr><tr><td valign="top"><a href="#add_category-1">add_category/1</a></td><td></td></tr><tr><td valign="top"><a href="#attribute-2">attribute/2</a></td><td></td></tr><tr><td valign="top"><a href="#attributes-1">attributes/1</a></td><td></td></tr><tr><td valign="top"><a href="#categories-0">categories/0</a></td><td>Return the list of categories.</td></tr><tr><td valign="top"><a href="#category-1">category/1</a></td><td>Return a category.</td></tr><tr><td valign="top"><a href="#code_change-3">code_change/3</a></td><td></td></tr><tr><td valign="top"><a href="#handle_call-3">handle_call/3</a></td><td></td></tr><tr><td valign="top"><a href="#handle_cast-2">handle_cast/2</a></td><td></td></tr><tr><td valign="top"><a href="#handle_info-2">handle_info/2</a></td><td></td></tr><tr><td valign="top"><a href="#import-1">import/1</a></td><td>Import an extension into the model.</td></tr><tr><td valign="top"><a href="#init-1">init/1</a></td><td></td></tr><tr><td valign="top"><a href="#init_mnesia-0">init_mnesia/0</a></td><td></td></tr><tr><td valign="top"><a href="#kind-1">kind/1</a></td><td>Return a kind.</td></tr><tr><td valign="top"><a href="#kind-2">kind/2</a></td><td>Return a kind, checking it has specified parent.</td></tr><tr><td valign="top"><a href="#location-1">location/1</a></td><td>If any, return a category given a location.</td></tr><tr><td valign="top"><a href="#rm_category-1">rm_category/1</a></td><td></td></tr><tr><td valign="top"><a href="#start_link-0">start_link/0</a></td><td></td></tr><tr><td valign="top"><a href="#terminate-2">terminate/2</a></td><td></td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#action-1">action/1</a></td><td>Return an action definition.</td></tr><tr><td valign="top"><a href="#add_category-1">add_category/1</a></td><td>Add category to model and returns the stored category,
+eventually with location set.</td></tr><tr><td valign="top"><a href="#attribute-2">attribute/2</a></td><td></td></tr><tr><td valign="top"><a href="#attributes-1">attributes/1</a></td><td></td></tr><tr><td valign="top"><a href="#categories-0">categories/0</a></td><td>Return the list of categories.</td></tr><tr><td valign="top"><a href="#category-1">category/1</a></td><td>Return a category.</td></tr><tr><td valign="top"><a href="#code_change-3">code_change/3</a></td><td></td></tr><tr><td valign="top"><a href="#handle_call-3">handle_call/3</a></td><td></td></tr><tr><td valign="top"><a href="#handle_cast-2">handle_cast/2</a></td><td></td></tr><tr><td valign="top"><a href="#handle_info-2">handle_info/2</a></td><td></td></tr><tr><td valign="top"><a href="#import-1">import/1</a></td><td>Import an extension into the model.</td></tr><tr><td valign="top"><a href="#init-1">init/1</a></td><td></td></tr><tr><td valign="top"><a href="#init_mnesia-0">init_mnesia/0</a></td><td></td></tr><tr><td valign="top"><a href="#kind-1">kind/1</a></td><td>Return a kind.</td></tr><tr><td valign="top"><a href="#kind-2">kind/2</a></td><td>Return a kind, checking it has specified parent.</td></tr><tr><td valign="top"><a href="#location-1">location/1</a></td><td>If any, return a category given a location.</td></tr><tr><td valign="top"><a href="#rm_category-1">rm_category/1</a></td><td></td></tr><tr><td valign="top"><a href="#start_link-0">start_link/0</a></td><td></td></tr><tr><td valign="top"><a href="#terminate-2">terminate/2</a></td><td></td></tr></table>
 
 
 <a name="functions"></a>
@@ -46,9 +47,12 @@ Return an action definition
 ### add_category/1 ###
 
 <pre><code>
-add_category(Cat::<a href="occi_category.md#type-t">occi_category:t()</a>) -&gt; ok
+add_category(Cat::<a href="occi_category.md#type-t">occi_category:t()</a>) -&gt; <a href="occi_category.md#type-t">occi_category:t()</a>
 </code></pre>
 <br />
+
+Add category to model and returns the stored category,
+eventually with location set
 
 <a name="attribute-2"></a>
 

@@ -173,7 +173,7 @@ new(Scheme::binary(), Term::binary(), Cls::<a href="#type-class">class()</a>) -&
 ### parse_id/1 ###
 
 <pre><code>
-parse_id(Id::binary()) -&gt; <a href="#type-id">id()</a>
+parse_id(Id::string() | binary()) -&gt; <a href="#type-id">id()</a>
 </code></pre>
 <br />
 

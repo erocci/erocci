@@ -49,7 +49,8 @@ __abstract datatype__: `t()`
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#append-2">append/2</a></td><td>Append elements to the collection.</td></tr><tr><td valign="top"><a href="#elements-1">elements/1</a></td><td>Get all elements.</td></tr><tr><td valign="top"><a href="#elements-2">elements/2</a></td><td>Set elements or entities.</td></tr><tr><td valign="top"><a href="#from_map-1">from_map/1</a></td><td></td></tr><tr><td valign="top"><a href="#from_map-2">from_map/2</a></td><td>Build collecton from AST.</td></tr><tr><td valign="top"><a href="#id-1">id/1</a></td><td>Return collection id.</td></tr><tr><td valign="top"><a href="#ids-1">ids/1</a></td><td>Get all entity ids.</td></tr><tr><td valign="top"><a href="#new-0">new/0</a></td><td>Create a new collection.</td></tr><tr><td valign="top"><a href="#new-1">new/1</a></td><td>Create a new collection.</td></tr><tr><td valign="top"><a href="#new-2">new/2</a></td><td>Creates a new bounded collection.</td></tr><tr><td valign="top"><a href="#render-3">render/3</a></td><td>Render collection into given mimetype.</td></tr><tr><td valign="top"><a href="#size-1">size/1</a></td><td>Collection size.</td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#append-2">append/2</a></td><td>Append elements to the collection
+If element is already present, it is replaced.</td></tr><tr><td valign="top"><a href="#delete-2">delete/2</a></td><td>Delete elements from collection.</td></tr><tr><td valign="top"><a href="#elements-1">elements/1</a></td><td>Get all elements.</td></tr><tr><td valign="top"><a href="#elements-2">elements/2</a></td><td>Set elements or entities.</td></tr><tr><td valign="top"><a href="#endpoint-2">endpoint/2</a></td><td>Remove endpoint from locations if necessary.</td></tr><tr><td valign="top"><a href="#entity-2">entity/2</a></td><td>Get an entity given a location.</td></tr><tr><td valign="top"><a href="#from_map-1">from_map/1</a></td><td></td></tr><tr><td valign="top"><a href="#from_map-2">from_map/2</a></td><td>Build collecton from AST.</td></tr><tr><td valign="top"><a href="#id-1">id/1</a></td><td>Return collection id.</td></tr><tr><td valign="top"><a href="#locations-1">locations/1</a></td><td>Get all entity locations.</td></tr><tr><td valign="top"><a href="#new-0">new/0</a></td><td>Create a new collection.</td></tr><tr><td valign="top"><a href="#new-1">new/1</a></td><td>Create a new collection.</td></tr><tr><td valign="top"><a href="#new-2">new/2</a></td><td>Creates a new bounded collection.</td></tr><tr><td valign="top"><a href="#render-3">render/3</a></td><td>Render collection into given mimetype.</td></tr><tr><td valign="top"><a href="#size-1">size/1</a></td><td>Collection size.</td></tr></table>
 
 
 <a name="functions"></a>
@@ -61,18 +62,30 @@ __abstract datatype__: `t()`
 ### append/2 ###
 
 <pre><code>
-append(NewElements::<a href="ordsets.md#type-ordset">ordsets:ordset()</a>, Collection::<a href="#type-t">t()</a>) -&gt; <a href="#type-t">t()</a>
+append(Element::[<a href="#type-elem">elem()</a>] | <a href="occi_entity.md#type-t">occi_entity:t()</a>, Coll::<a href="#type-t">t()</a>) -&gt; <a href="#type-t">t()</a>
 </code></pre>
 <br />
 
 Append elements to the collection
+If element is already present, it is replaced
+
+<a name="delete-2"></a>
+
+### delete/2 ###
+
+<pre><code>
+delete(ToDelete::[<a href="occi_uri.md#type-url">occi_uri:url()</a>] | <a href="occi_uri.md#type-url">occi_uri:url()</a> | <a href="occi_entity.md#type-t">occi_entity:t()</a>, Collection::<a href="#type-t">t()</a>) -&gt; <a href="#type-t">t()</a>
+</code></pre>
+<br />
+
+Delete elements from collection
 
 <a name="elements-1"></a>
 
 ### elements/1 ###
 
 <pre><code>
-elements(Collection::<a href="#type-t">t()</a>) -&gt; <a href="ordsets.md#type-ordset">ordsets:ordset()</a>
+elements(Collection::<a href="#type-t">t()</a>) -&gt; [<a href="#type-elem">elem()</a>]
 </code></pre>
 <br />
 
@@ -88,6 +101,28 @@ elements(Elements::[<a href="#type-elem">elem()</a> | <a href="occi_entity.md#ty
 <br />
 
 Set elements or entities
+
+<a name="endpoint-2"></a>
+
+### endpoint/2 ###
+
+<pre><code>
+endpoint(Endpoint::<a href="occi_uri.md#type-url">occi_uri:url()</a>, Collection::<a href="#type-t">t()</a>) -&gt; <a href="#type-t">t()</a>
+</code></pre>
+<br />
+
+Remove endpoint from locations if necessary
+
+<a name="entity-2"></a>
+
+### entity/2 ###
+
+<pre><code>
+entity(Location::<a href="occi_uri.md#type-url">occi_uri:url()</a>, Collection::<a href="#type-t">t()</a>) -&gt; <a href="occi_entity.md#type-t">occi_entity:t()</a> | undefined
+</code></pre>
+<br />
+
+Get an entity given a location
 
 <a name="from_map-1"></a>
 
@@ -120,16 +155,16 @@ id(Collection::<a href="#type-t">t()</a>) -&gt; <a href="#type-id">id()</a>
 
 Return collection id
 
-<a name="ids-1"></a>
+<a name="locations-1"></a>
 
-### ids/1 ###
+### locations/1 ###
 
 <pre><code>
-ids(Collection::<a href="#type-t">t()</a>) -&gt; []
+locations(Collection::<a href="#type-t">t()</a>) -&gt; []
 </code></pre>
 <br />
 
-Get all entity ids
+Get all entity locations
 
 <a name="new-0"></a>
 

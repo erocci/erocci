@@ -26,11 +26,11 @@ only attribute existence is checked.
 
 
 
-### <a name="type-id">id()</a> ###
+### <a name="type-location">location()</a> ###
 
 
 <pre><code>
-id() = binary() | undefined
+location() = binary() | undefined
 </code></pre>
 
 
@@ -59,9 +59,12 @@ validation() = internal | client | server
 <table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#actions-1">actions/1</a></td><td>Return list of action ids.</td></tr><tr><td valign="top"><a href="#add_mixin-2">add_mixin/2</a></td><td>Add a mixin to this entity
 If an attribute is already defined, this mixin's definition take precedence over
 the previous one.</td></tr><tr><td valign="top"><a href="#attributes-1">attributes/1</a></td><td>Return key-value attributes map
-If attribute has default value, return the default value.</td></tr><tr><td valign="top"><a href="#change_prefix-3">change_prefix/3</a></td><td>Change prefix urls in entity.</td></tr><tr><td valign="top"><a href="#do-3">do/3</a></td><td>Equivalent to <a href="#do-4"><tt>do(occi_invoke:id(Invoke),
+Return default value for attribute if If attribute has default value, return the default value.</td></tr><tr><td valign="top"><a href="#change_prefix-3">change_prefix/3</a></td><td>Change prefix urls in entity.</td></tr><tr><td valign="top"><a href="#do-3">do/3</a></td><td>Equivalent to <a href="#do-4"><tt>do(occi_invoke:id(Invoke),
 occi_invoke:attributes(Invoke), Fun, E)</tt></a>.</td></tr><tr><td valign="top"><a href="#do-4">do/4</a></td><td>Execute an action
-<code>Fun = fun((ActionId :: occi_category:id(), Attributes :: maps:map(), Entity :: ()) -> {ok, t()} | {error, term()})</code></td></tr><tr><td valign="top"><a href="#from_map-1">from_map/1</a></td><td></td></tr><tr><td valign="top"><a href="#from_map-2">from_map/2</a></td><td>New entity from AST.</td></tr><tr><td valign="top"><a href="#get-2">get/2</a></td><td></td></tr><tr><td valign="top"><a href="#id-1">id/1</a></td><td>opaque type representing an entity.</td></tr><tr><td valign="top"><a href="#id-2">id/2</a></td><td></td></tr><tr><td valign="top"><a href="#is_subtype-2">is_subtype/2</a></td><td>Returns true if the entity is of type Type or subtype of.</td></tr><tr><td valign="top"><a href="#kind-1">kind/1</a></td><td></td></tr><tr><td valign="top"><a href="#location-1">location/1</a></td><td></td></tr><tr><td valign="top"><a href="#location-2">location/2</a></td><td></td></tr><tr><td valign="top"><a href="#merge_parents-2">merge_parents/2</a></td><td></td></tr><tr><td valign="top"><a href="#mixins-1">mixins/1</a></td><td></td></tr><tr><td valign="top"><a href="#render-3">render/3</a></td><td>Render entity into given mimetype.</td></tr><tr><td valign="top"><a href="#rm_mixin-2">rm_mixin/2</a></td><td>Unassociate mixin from this entity
+<code>Fun = fun((ActionId :: occi_category:id(), Attributes :: maps:map(), Entity :: ()) -> {ok, t()} | {error, term()})</code></td></tr><tr><td valign="top"><a href="#endpoint-2">endpoint/2</a></td><td>Make location relative to endpoint
+URL are canonicalized: default ports are added to scheme if necessary
+Throws <code>{invalid_link, binary()}</code> if location is outside of endpoint's domain.</td></tr><tr><td valign="top"><a href="#from_map-1">from_map/1</a></td><td></td></tr><tr><td valign="top"><a href="#from_map-2">from_map/2</a></td><td>New entity from AST.</td></tr><tr><td valign="top"><a href="#get-2">get/2</a></td><td></td></tr><tr><td valign="top"><a href="#get-3">get/3</a></td><td></td></tr><tr><td valign="top"><a href="#is_subtype-2">is_subtype/2</a></td><td>Returns true if the entity is of type Type or subtype of.</td></tr><tr><td valign="top"><a href="#kind-1">kind/1</a></td><td></td></tr><tr><td valign="top"><a href="#location-1">location/1</a></td><td></td></tr><tr><td valign="top"><a href="#location-2">location/2</a></td><td></td></tr><tr><td valign="top"><a href="#merge_parents-2">merge_parents/2</a></td><td></td></tr><tr><td valign="top"><a href="#mixins-1">mixins/1</a></td><td></td></tr><tr><td valign="top"><a href="#new-1">new/1</a></td><td>opaque type representing an entity.</td></tr><tr><td valign="top"><a href="#raw_attributes-1">raw_attributes/1</a></td><td>Returns key-value attributes map
+Return default value for undefined required attributes with default value.</td></tr><tr><td valign="top"><a href="#render-3">render/3</a></td><td>Render entity into given mimetype.</td></tr><tr><td valign="top"><a href="#rm_mixin-2">rm_mixin/2</a></td><td>Unassociate mixin from this entity
 Attributes only defined by this mixin are removed.</td></tr><tr><td valign="top"><a href="#set-3">set/3</a></td><td>Set the full list of attributes for this resource.</td></tr><tr><td valign="top"><a href="#update-3">update/3</a></td><td>Update attributes values.</td></tr><tr><td valign="top"><a href="#update_from_map-2">update_from_map/2</a></td><td></td></tr></table>
 
 
@@ -100,12 +103,12 @@ the previous one.
 ### attributes/1 ###
 
 <pre><code>
-attributes(E::<a href="#type-t">t()</a>) -&gt; #{}
+attributes(E::<a href="#type-t">t()</a>) -&gt; <a href="maps.md#type-map">maps:map()</a>
 </code></pre>
 <br />
 
 Return key-value attributes map
-If attribute has default value, return the default value.
+Return default value for attribute if If attribute has default value, return the default value.
 If attribute is not set and there is no default value, the attribute is not returned.
 
 <a name="change_prefix-3"></a>
@@ -144,6 +147,21 @@ throws `{invalid_action, [occi_category:id()](occi_category.md#type-id)}`
 Execute an action
 `Fun = fun((ActionId :: occi_category:id(), Attributes :: maps:map(), Entity :: ()) -> {ok, t()} | {error, term()})`
 
+<a name="endpoint-2"></a>
+
+### endpoint/2 ###
+
+<pre><code>
+endpoint(Endpoint::<a href="occi_uri.md#type-url">occi_uri:url()</a>, E::<a href="#type-t">t()</a>) -&gt; <a href="#type-t">t()</a>
+</code></pre>
+<br />
+
+throws `{invalid_link, binary()}`
+
+Make location relative to endpoint
+URL are canonicalized: default ports are added to scheme if necessary
+Throws `{invalid_link, binary()}` if location is outside of endpoint's domain
+
 <a name="from_map-1"></a>
 
 ### from_map/1 ###
@@ -175,25 +193,16 @@ get(Key::<a href="occi_attribute.md#type-key">occi_attribute:key()</a>, E::<a hr
 
 throws `{invalid_key, [occi_attribute:key()](occi_attribute.md#type-key)}`
 
-<a name="id-1"></a>
+<a name="get-3"></a>
 
-### id/1 ###
+### get/3 ###
 
 <pre><code>
-id(E::<a href="#type-t">t()</a>) -&gt; <a href="#type-id">id()</a>
+get(Key::<a href="occi_attribute.md#type-key">occi_attribute:key()</a>, E::<a href="#type-t">t()</a>, Default::term()) -&gt; <a href="occi_attribute.md#type-value">occi_attribute:value()</a> | term()
 </code></pre>
 <br />
 
-opaque type representing an entity
-
-<a name="id-2"></a>
-
-### id/2 ###
-
-<pre><code>
-id(Id::<a href="#type-id">id()</a>, E::<a href="#type-t">t()</a>) -&gt; <a href="#type-t">t()</a>
-</code></pre>
-<br />
+throws `{invalid_key, [occi_attribute:key()](occi_attribute.md#type-key)}`
 
 <a name="is_subtype-2"></a>
 
@@ -247,6 +256,29 @@ location(Location::<a href="occi_uri.md#type-url">occi_uri:url()</a>, E::<a href
 mixins(E::<a href="#type-t">t()</a>) -&gt; [<a href="occi_mixin.md#type-id">occi_mixin:id()</a>]
 </code></pre>
 <br />
+
+<a name="new-1"></a>
+
+### new/1 ###
+
+<pre><code>
+new(KindId::<a href="occi_kind.md#type-id">occi_kind:id()</a>) -&gt; <a href="#type-t">t()</a>
+</code></pre>
+<br />
+
+opaque type representing an entity
+
+<a name="raw_attributes-1"></a>
+
+### raw_attributes/1 ###
+
+<pre><code>
+raw_attributes(E::<a href="#type-t">t()</a>) -&gt; <a href="maps.md#type-map">maps:map()</a>
+</code></pre>
+<br />
+
+Returns key-value attributes map
+Return default value for undefined required attributes with default value
 
 <a name="render-3"></a>
 

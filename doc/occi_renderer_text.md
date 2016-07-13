@@ -22,7 +22,7 @@ __Authors:__ Jean Parpaillon ([`jean.parpaillon@free.fr`](mailto:jean.parpaillon
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#render-2">render/2</a></td><td></td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#render-2">render/2</a></td><td></td></tr><tr><td valign="top"><a href="#to_headers-4">to_headers/4</a></td><td></td></tr></table>
 
 
 <a name="functions"></a>
@@ -37,4 +37,10 @@ __Authors:__ Jean Parpaillon ([`jean.parpaillon@free.fr`](mailto:jean.parpaillon
 render(T::<a href="occi.md#type-t">occi:t()</a>, Ctx::<a href="occi_uri.md#type-t">occi_uri:t()</a>) -&gt; iolist()
 </code></pre>
 <br />
+
+<a name="to_headers-4"></a>
+
+### to_headers/4 ###
+
+`to_headers(X1, Categories, Headers, Ctx) -> any()`
 

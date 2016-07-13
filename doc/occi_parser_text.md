@@ -11,7 +11,7 @@ __Authors:__ Jean Parpaillon ([`jean.parpaillon@free.fr`](mailto:jean.parpaillon
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#parse-1">parse/1</a></td><td></td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#parse-1">parse/1</a></td><td></td></tr><tr><td valign="top"><a href="#validate-3">validate/3</a></td><td></td></tr></table>
 
 
 <a name="functions"></a>
@@ -26,4 +26,10 @@ __Authors:__ Jean Parpaillon ([`jean.parpaillon@free.fr`](mailto:jean.parpaillon
 parse(Bin::binary()) -&gt; <a href="occi_rendering.md#type-ast">occi_rendering:ast()</a>
 </code></pre>
 <br />
+
+<a name="validate-3"></a>
+
+### validate/3 ###
+
+`validate(X1, V, Acc) -> any()`
 

@@ -36,7 +36,7 @@ data() = {<a href="occi_utils.md#type-mimetype">occi_utils:mimetype()</a>, iolis
 
 
 <pre><code>
-error() = not_found | method_not_allowed | forbidden | conflict | {unauthorized, binary()}
+error() = not_found | {not_found, <a href="occi_uri.md#type-url">occi_uri:url()</a>} | method_not_allowed | forbidden | conflict | {unauthorized, binary()}
 </code></pre>
 
 <a name="index"></a>
@@ -44,8 +44,8 @@ error() = not_found | method_not_allowed | forbidden | conflict | {unauthorized,
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#action-4">action/4</a></td><td>Execute an action on the given entity or collection.</td></tr><tr><td valign="top"><a href="#append_mixin-3">append_mixin/3</a></td><td>Associate entities to the given mixin.</td></tr><tr><td valign="top"><a href="#capabilities-2">capabilities/2</a></td><td>Retrieve capabilities node.</td></tr><tr><td valign="top"><a href="#collection-5">collection/5</a></td><td>Retrieve a bounded collection
-<code>page</code> is an indexed integer that refers to a sub-collection of the requested.</td></tr><tr><td valign="top"><a href="#collections-0">collections/0</a></td><td>Return map of location -> bounded collections.</td></tr><tr><td valign="top"><a href="#create-4">create/4</a></td><td>Creates new entity.</td></tr><tr><td valign="top"><a href="#delete-2">delete/2</a></td><td>Delete entity.</td></tr><tr><td valign="top"><a href="#delete_all-2">delete_all/2</a></td><td>Delete all entities from bounded collection.</td></tr><tr><td valign="top"><a href="#delete_mixin-2">delete_mixin/2</a></td><td>Delete a user-defined mixin.</td></tr><tr><td valign="top"><a href="#get-5">get/5</a></td><td>Retrieve an entity or unbounded collection.</td></tr><tr><td valign="top"><a href="#new_mixin-2">new_mixin/2</a></td><td>Add a user-defined mixin.</td></tr><tr><td valign="top"><a href="#remove_mixin-3">remove_mixin/3</a></td><td>Disassociate entities from the given mixin.</td></tr><tr><td valign="top"><a href="#set_mixin-3">set_mixin/3</a></td><td>Replace collection of entities associated to mixin.</td></tr><tr><td valign="top"><a href="#update-3">update/3</a></td><td>Update entity.</td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#action-4">action/4</a></td><td>Execute an action on the given entity or collection.</td></tr><tr><td valign="top"><a href="#append_mixin-4">append_mixin/4</a></td><td>Associate entities to the given mixin.</td></tr><tr><td valign="top"><a href="#capabilities-2">capabilities/2</a></td><td>Retrieve capabilities node.</td></tr><tr><td valign="top"><a href="#collection-5">collection/5</a></td><td>Retrieve a bounded collection
+<code>page</code> is an indexed integer that refers to a sub-collection of the requested.</td></tr><tr><td valign="top"><a href="#collections-0">collections/0</a></td><td>Return map of location -> bounded collections.</td></tr><tr><td valign="top"><a href="#create-4">create/4</a></td><td>Creates new entity.</td></tr><tr><td valign="top"><a href="#delete-2">delete/2</a></td><td>Delete entity.</td></tr><tr><td valign="top"><a href="#delete_all-2">delete_all/2</a></td><td>Delete all entities from bounded collection.</td></tr><tr><td valign="top"><a href="#delete_mixin-2">delete_mixin/2</a></td><td>Delete a user-defined mixin.</td></tr><tr><td valign="top"><a href="#get-5">get/5</a></td><td>Retrieve an entity or unbounded collection.</td></tr><tr><td valign="top"><a href="#new_mixin-2">new_mixin/2</a></td><td>Add a user-defined mixin.</td></tr><tr><td valign="top"><a href="#remove_mixin-4">remove_mixin/4</a></td><td>Disassociate entities from the given mixin.</td></tr><tr><td valign="top"><a href="#set_mixin-4">set_mixin/4</a></td><td>Replace collection of entities associated to mixin.</td></tr><tr><td valign="top"><a href="#update-3">update/3</a></td><td>Update entity.</td></tr></table>
 
 
 <a name="functions"></a>
@@ -57,18 +57,18 @@ error() = not_found | method_not_allowed | forbidden | conflict | {unauthorized,
 ### action/4 ###
 
 <pre><code>
-action(Path::binary() | <a href="occi_category.md#type-t">occi_category:t()</a>, ActionTerm::binary(), X3::<a href="#type-data">data()</a>, Creds::<a href="erocci_creds.md#type-t">erocci_creds:t()</a>) -&gt; {ok, <a href="erocci_type.md#type-t">erocci_type:t()</a>} | {error, <a href="#type-error">error()</a>}
+action(Category::binary() | <a href="occi_category.md#type-t">occi_category:t()</a>, ActionTerm::binary(), X3::<a href="#type-data">data()</a>, Creds::<a href="erocci_creds.md#type-t">erocci_creds:t()</a>) -&gt; {ok, <a href="erocci_type.md#type-t">erocci_type:t()</a>, undefined} | {error, <a href="#type-error">error()</a>}
 </code></pre>
 <br />
 
 Execute an action on the given entity or collection
 
-<a name="append_mixin-3"></a>
+<a name="append_mixin-4"></a>
 
-### append_mixin/3 ###
+### append_mixin/4 ###
 
 <pre><code>
-append_mixin(Mixin::<a href="occi_category.md#type-t">occi_category:t()</a>, X2::<a href="#type-data">data()</a>, Creds::<a href="erocci_creds.md#type-t">erocci_creds:t()</a>) -&gt; {ok, <a href="occi_collection.md#type-t">occi_collection:t()</a>, <a href="erocci_node.md#type-serial">erocci_node:serial()</a>} | {error, <a href="#type-error">error()</a>}
+append_mixin(Mixin::<a href="occi_category.md#type-t">occi_category:t()</a>, X2::<a href="#type-data">data()</a>, Endpoint::<a href="occi_uri.md#type-url">occi_uri:url()</a>, Creds::<a href="erocci_creds.md#type-t">erocci_creds:t()</a>) -&gt; {ok, <a href="occi_collection.md#type-t">occi_collection:t()</a>, <a href="erocci_node.md#type-serial">erocci_node:serial()</a>} | {error, <a href="#type-error">error()</a>}
 </code></pre>
 <br />
 
@@ -170,29 +170,29 @@ Retrieve an entity or unbounded collection
 ### new_mixin/2 ###
 
 <pre><code>
-new_mixin(X1::<a href="#type-data">data()</a>, Creds::<a href="erocci_creds.md#type-t">erocci_creds:t()</a>) -&gt; {ok, <a href="occi_mixin.md#type-t">occi_mixin:t()</a>} | {error, <a href="#type-error">error()</a>}
+new_mixin(X1::<a href="#type-data">data()</a>, Creds::<a href="erocci_creds.md#type-t">erocci_creds:t()</a>) -&gt; {ok, <a href="occi_mixin.md#type-t">occi_mixin:t()</a>, undefined} | {error, <a href="#type-error">error()</a>}
 </code></pre>
 <br />
 
 Add a user-defined mixin
 
-<a name="remove_mixin-3"></a>
+<a name="remove_mixin-4"></a>
 
-### remove_mixin/3 ###
+### remove_mixin/4 ###
 
 <pre><code>
-remove_mixin(Mixin::<a href="occi_category.md#type-t">occi_category:t()</a>, X2::<a href="#type-data">data()</a>, Creds::<a href="erocci_creds.md#type-t">erocci_creds:t()</a>) -&gt; ok | {error, <a href="#type-error">error()</a>}
+remove_mixin(Mixin::<a href="occi_category.md#type-t">occi_category:t()</a>, X2::<a href="#type-data">data()</a>, Endpoint::<a href="occi_uri.md#type-url">occi_uri:url()</a>, Creds::<a href="erocci_creds.md#type-t">erocci_creds:t()</a>) -&gt; ok | {error, <a href="#type-error">error()</a>}
 </code></pre>
 <br />
 
 Disassociate entities from the given mixin
 
-<a name="set_mixin-3"></a>
+<a name="set_mixin-4"></a>
 
-### set_mixin/3 ###
+### set_mixin/4 ###
 
 <pre><code>
-set_mixin(Mixin::<a href="occi_category.md#type-t">occi_category:t()</a>, X2::<a href="#type-data">data()</a>, Creds::<a href="erocci_creds.md#type-t">erocci_creds:t()</a>) -&gt; {ok, <a href="occi_collection.md#type-t">occi_collection:t()</a>, <a href="erocci_node.md#type-serial">erocci_node:serial()</a>} | {error, <a href="#type-error">error()</a>}
+set_mixin(Mixin::<a href="occi_category.md#type-t">occi_category:t()</a>, X2::<a href="#type-data">data()</a>, Endpoint::<a href="occi_uri.md#type-url">occi_uri:url()</a>, Creds::<a href="erocci_creds.md#type-t">erocci_creds:t()</a>) -&gt; {ok, <a href="occi_collection.md#type-t">occi_collection:t()</a>, <a href="erocci_node.md#type-serial">erocci_node:serial()</a>} | {error, <a href="#type-error">error()</a>}
 </code></pre>
 <br />
 

@@ -49,7 +49,7 @@ url() = binary()
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#canonical-1">canonical/1</a></td><td>Make uri canonical: add default port if necessary.</td></tr><tr><td valign="top"><a href="#change_prefix-3">change_prefix/3</a></td><td>Change prefix of url.</td></tr><tr><td valign="top"><a href="#from_string-1">from_string/1</a></td><td>Parse uri.</td></tr><tr><td valign="top"><a href="#to_string-1">to_string/1</a></td><td>Render uri as binary.</td></tr><tr><td valign="top"><a href="#to_string-2">to_string/2</a></td><td>Render uri as binary, with a different context.</td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#canonical-1">canonical/1</a></td><td>Make uri canonical: add default port if necessary.</td></tr><tr><td valign="top"><a href="#change_prefix-3">change_prefix/3</a></td><td>Change prefix of url.</td></tr><tr><td valign="top"><a href="#from_string-1">from_string/1</a></td><td>Parse uri.</td></tr><tr><td valign="top"><a href="#relative-2">relative/2</a></td><td>Returns url without endpoint, if they match.</td></tr><tr><td valign="top"><a href="#to_string-1">to_string/1</a></td><td>Render uri as binary.</td></tr><tr><td valign="top"><a href="#to_string-2">to_string/2</a></td><td>Render uri as binary, with a different context.</td></tr></table>
 
 
 <a name="functions"></a>
@@ -88,6 +88,17 @@ from_string(S::binary()) -&gt; <a href="#type-t">t()</a>
 <br />
 
 Parse uri
+
+<a name="relative-2"></a>
+
+### relative/2 ###
+
+<pre><code>
+relative(Endpoint::<a href="#type-url">url()</a>, Url::<a href="#type-url">url()</a>) -&gt; <a href="#type-url">url()</a>
+</code></pre>
+<br />
+
+Returns url without endpoint, if they match
 
 <a name="to_string-1"></a>
 

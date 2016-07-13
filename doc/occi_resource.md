@@ -29,7 +29,7 @@ __abstract datatype__: `t()`
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#add_link-2">add_link/2</a></td><td>Add the given link to the resource.</td></tr><tr><td valign="top"><a href="#change_prefix-3">change_prefix/3</a></td><td>Change urls prefix.</td></tr><tr><td valign="top"><a href="#from_map-2">from_map/2</a></td><td>New resource from AST.</td></tr><tr><td valign="top"><a href="#links-1">links/1</a></td><td>Get list of links associated to this resource.</td></tr><tr><td valign="top"><a href="#links-2">links/2</a></td><td>Set full list of links.</td></tr><tr><td valign="top"><a href="#new-1">new/1</a></td><td>Creates a resource with given id, of kind ...core#resource.</td></tr><tr><td valign="top"><a href="#new-2">new/2</a></td><td></td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#add_link-2">add_link/2</a></td><td>Add the given link to the resource.</td></tr><tr><td valign="top"><a href="#change_prefix-3">change_prefix/3</a></td><td>Change urls prefix.</td></tr><tr><td valign="top"><a href="#from_map-2">from_map/2</a></td><td>New resource from AST.</td></tr><tr><td valign="top"><a href="#links-1">links/1</a></td><td>Get list of links associated to this resource.</td></tr><tr><td valign="top"><a href="#links-2">links/2</a></td><td>Set full list of links.</td></tr><tr><td valign="top"><a href="#new-1">new/1</a></td><td></td></tr></table>
 
 
 <a name="functions"></a>
@@ -96,18 +96,7 @@ Set full list of links
 ### new/1 ###
 
 <pre><code>
-new(Id::<a href="occi_entity.md#type-id">occi_entity:id()</a>) -&gt; <a href="#type-t">t()</a>
-</code></pre>
-<br />
-
-Creates a resource with given id, of kind ...core#resource
-
-<a name="new-2"></a>
-
-### new/2 ###
-
-<pre><code>
-new(Id::<a href="occi_entity.md#type-id">occi_entity:id()</a>, KindId::<a href="occi_category.md#type-t">occi_category:t()</a> | <a href="occi_category.md#type-id">occi_category:id()</a> | string() | binary()) -&gt; <a href="#type-t">t()</a>
+new(KindId::<a href="occi_category.md#type-t">occi_category:t()</a> | <a href="occi_category.md#type-id">occi_category:id()</a> | string() | binary()) -&gt; <a href="#type-t">t()</a>
 </code></pre>
 <br />
 

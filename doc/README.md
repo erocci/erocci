@@ -141,9 +141,11 @@ Visit CI results on http://travis-ci.org/erocci/erocci
 <tr><td><a href="http://github.com/erocci/erocci/blob/master/doc/occi_models.md" class="module">occi_models</a></td></tr>
 <tr><td><a href="http://github.com/erocci/erocci/blob/master/doc/occi_parser_http.md" class="module">occi_parser_http</a></td></tr>
 <tr><td><a href="http://github.com/erocci/erocci/blob/master/doc/occi_parser_json.md" class="module">occi_parser_json</a></td></tr>
+<tr><td><a href="http://github.com/erocci/erocci/blob/master/doc/occi_parser_occi.md" class="module">occi_parser_occi</a></td></tr>
 <tr><td><a href="http://github.com/erocci/erocci/blob/master/doc/occi_parser_text.md" class="module">occi_parser_text</a></td></tr>
 <tr><td><a href="http://github.com/erocci/erocci/blob/master/doc/occi_parser_xml.md" class="module">occi_parser_xml</a></td></tr>
 <tr><td><a href="http://github.com/erocci/erocci/blob/master/doc/occi_renderer_json.md" class="module">occi_renderer_json</a></td></tr>
+<tr><td><a href="http://github.com/erocci/erocci/blob/master/doc/occi_renderer_occi.md" class="module">occi_renderer_occi</a></td></tr>
 <tr><td><a href="http://github.com/erocci/erocci/blob/master/doc/occi_renderer_text.md" class="module">occi_renderer_text</a></td></tr>
 <tr><td><a href="http://github.com/erocci/erocci/blob/master/doc/occi_renderer_uri.md" class="module">occi_renderer_uri</a></td></tr>
 <tr><td><a href="http://github.com/erocci/erocci/blob/master/doc/occi_renderer_xml.md" class="module">occi_renderer_xml</a></td></tr>

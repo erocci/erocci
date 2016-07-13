@@ -28,7 +28,7 @@ __Authors:__ Jean Parpaillon ([`jean.parpaillon@free.fr`](mailto:jean.parpaillon
 ### parse/1 ###
 
 <pre><code>
-parse(Bin::binary()) -&gt; <a href="orddict.md#type-orddict">orddict:orddict()</a>
+parse(Bin::binary() | <a href="proplists.md#type-proplist">proplists:proplist()</a>) -&gt; <a href="orddict.md#type-orddict">orddict:orddict()</a>
 </code></pre>
 <br />
 

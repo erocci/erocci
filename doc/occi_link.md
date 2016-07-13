@@ -31,7 +31,7 @@ __abstract datatype__: `t()`
 
 <table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#change_prefix-3">change_prefix/3</a></td><td>Change urls prefix.</td></tr><tr><td valign="top"><a href="#endpoint-2">endpoint/2</a></td><td>Make source / target urls relative to endpoint
 URL are canonicalized: default ports are added to scheme if necessary
-Throws <code>{invalid_link, binary()}</code> if source is outside of endpoint's domain.</td></tr><tr><td valign="top"><a href="#from_map-2">from_map/2</a></td><td></td></tr><tr><td valign="top"><a href="#new-4">new/4</a></td><td>Equivalent to <a href="#new-5"><tt>new(Id, KindId, Src, Target, occi_resource:kind(Target))</tt></a>.</td></tr><tr><td valign="top"><a href="#new-6">new/6</a></td><td>Creates a new link.</td></tr><tr><td valign="top"><a href="#source-1">source/1</a></td><td></td></tr><tr><td valign="top"><a href="#target-1">target/1</a></td><td></td></tr></table>
+Throws <code>{invalid_link, binary()}</code> if source is outside of endpoint's domain.</td></tr><tr><td valign="top"><a href="#from_map-2">from_map/2</a></td><td></td></tr><tr><td valign="top"><a href="#new-1">new/1</a></td><td></td></tr><tr><td valign="top"><a href="#new-3">new/3</a></td><td>Equivalent to <a href="#new-4"><tt>new(KindId, Src, Target, occi_resource:kind(Target))</tt></a>.</td></tr><tr><td valign="top"><a href="#new-5">new/5</a></td><td>Creates a new link.</td></tr><tr><td valign="top"><a href="#source-1">source/1</a></td><td></td></tr><tr><td valign="top"><a href="#target-1">target/1</a></td><td></td></tr></table>
 
 
 <a name="functions"></a>
@@ -73,23 +73,29 @@ from_map(Kind::<a href="occi_kind.md#type-t">occi_kind:t()</a>, Map::<a href="oc
 </code></pre>
 <br />
 
-<a name="new-4"></a>
+<a name="new-1"></a>
 
-### new/4 ###
+### new/1 ###
+
+`new(Kind) -> any()`
+
+<a name="new-3"></a>
+
+### new/3 ###
 
 <pre><code>
-new(Id::<a href="uri.md#type-t">uri:t()</a>, KindId::<a href="occi_category.md#type-id">occi_category:id()</a> | binary(), Src::binary() | <a href="occi_resource.md#type-t">occi_resource:t()</a>, Target::binary() | <a href="occi_resource.md#type-t">occi_resource:t()</a>) -&gt; <a href="#type-t">t()</a>
+new(KindId::<a href="occi_category.md#type-id">occi_category:id()</a> | binary(), Src::binary() | <a href="occi_resource.md#type-t">occi_resource:t()</a>, Target::binary() | <a href="occi_resource.md#type-t">occi_resource:t()</a>) -&gt; <a href="#type-t">t()</a>
 </code></pre>
 <br />
 
-Equivalent to [`new(Id, KindId, Src, Target, occi_resource:kind(Target))`](#new-5).
+Equivalent to [`new(KindId, Src, Target, occi_resource:kind(Target))`](#new-4).
 
-<a name="new-6"></a>
+<a name="new-5"></a>
 
-### new/6 ###
+### new/5 ###
 
 <pre><code>
-new(Id::<a href="occi_uri.md#type-url">occi_uri:url()</a> | undefined, KindId::<a href="occi_category.md#type-id">occi_category:id()</a> | binary(), Src::binary(), SrcKind::<a href="occi_category.md#type-id">occi_category:id()</a>, Target::binary(), TargetKind::<a href="occi_category.md#type-id">occi_category:id()</a> | undefined) -&gt; <a href="#type-t">t()</a>
+new(KindId::<a href="occi_category.md#type-id">occi_category:id()</a> | binary(), Src::binary(), SrcKind::<a href="occi_category.md#type-id">occi_category:id()</a>, Target::binary(), TargetKind::<a href="occi_category.md#type-id">occi_category:id()</a> | undefined) -&gt; <a href="#type-t">t()</a>
 </code></pre>
 <br />
 

@@ -18,13 +18,24 @@ __Authors:__ Jean Parpaillon ([`jean.parpaillon@free.fr`](mailto:jean.parpaillon
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#by_category_id-1">by_category_id/1</a></td><td>Find backends handling category id.</td></tr><tr><td valign="top"><a href="#by_path-1">by_path/1</a></td><td>Find backend attached to mountpoint.</td></tr><tr><td valign="top"><a href="#mount-1">mount/1</a></td><td>Mount a backend.</td></tr><tr><td valign="top"><a href="#start_link-0">start_link/0</a></td><td>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#all-0">all/0</a></td><td>Get all backends (useful for tagging for instance).</td></tr><tr><td valign="top"><a href="#by_category_id-1">by_category_id/1</a></td><td>Find backends handling category id.</td></tr><tr><td valign="top"><a href="#by_path-1">by_path/1</a></td><td>Find backend attached to mountpoint.</td></tr><tr><td valign="top"><a href="#mount-1">mount/1</a></td><td>Mount a backend.</td></tr><tr><td valign="top"><a href="#start_link-0">start_link/0</a></td><td>
 Starts the supervisor.</td></tr><tr><td valign="top"><a href="#umount-1">umount/1</a></td><td>Stop backend.</td></tr></table>
 
 
 <a name="functions"></a>
 
 ## Function Details ##
+
+<a name="all-0"></a>
+
+### all/0 ###
+
+<pre><code>
+all() -&gt; [<a href="erocci_backend.md#type-t">erocci_backend:t()</a>]
+</code></pre>
+<br />
+
+Get all backends (useful for tagging for instance)
 
 <a name="by_category_id-1"></a>
 
