@@ -22,11 +22,11 @@ __Authors:__ Jean Parpaillon ([`jean.parpaillon@inria.fr`](mailto:jean.parpaillo
 ## Docker
 
 Current version of erocci is packaged into a ready-to-use docker: see
-[README](tools/docker/README.md)
+[README](../tools/docker/README.md)
 
 ## Architecture
 
-![erocci Architecture diagram](https://raw.github.com/erocci/erocci/master/doc/erocci.png)
+[erocci Architecture diagram](https://github.com/erocci/erocci/blob/master/doc/erocci.svg)
 
 erocci is made up of several pluggable components. These components
 are implemented as erlang/OTP applications.
@@ -68,16 +68,6 @@ yum install erlang curl gcc libxml2-devel gcc-c++
 
 ### Configuring and Building
 
-Configure sources and fetch dependencies:
-
-```
-$ ./bootstrap
-```
-(Optional) Run configure again for specific options
-
-```
-$ ./configure
-```
 Build:
 
 ```
@@ -86,14 +76,68 @@ $ make
 
 ## Running
 
-erocci is configured with a single config file. Several example config
-files are available in: `apps/erocci/priv/configs/`
-
-Start erocci with:
+You can define your OCCI API with a xml file.
+For instance, the following file defines several kinds : blog, author, user, entry.
 
 ```
-$ ./start.sh -c apps/erocci/priv/configs/default.config
+<?xml version="1.0" encoding="UTF-8"?>
+<occi:extension xmlns:occi="http://schemas.ogf.org/occi"
+		xmlns:xs="http://www.w3.org/2001/XMLSchema"
+		xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		xsi:schemaLocation="http://example.org/occi occi.xsd " name="A REST blog"
+		status="experimental" version="1">
+  
+  <occi:kind scheme="http://example.org/occi/test#" term="blog" title="A Blog">
+    <occi:parent scheme="http://schemas.ogf.org/occi/core#" term="resource" />
+    <occi:attribute name="example.blog.title" type="xs:string" title="Blog title"
+		    use="required" />
+  </occi:kind>
+  <occi:kind scheme="http://example.org/occi/test#" term="entry" title="entry">
+    <occi:parent scheme="http://schemas.ogf.org/occi/core#" term="resource" />
+    <occi:attribute name="blog.entry.title" type="xs:string" title="Blog entry title"
+		    use="required" />
+    <occi:attribute name="blog.entry.date" type="xs:string" title="Creation date"
+		    use="optional" />
+    <occi:attribute name="blog.entry.content" type="xs:string" title="Entry content"
+		    use="required" />
+  </occi:kind>
+
+  <occi:kind scheme="http://example.org/occi/test#" term="user" title="Blog user">
+    <occi:parent scheme="http://schemas.ogf.org/occi/core#" term="resources" />
+    <occi:attribute name="blog.user.name" type="xs:string" title="User name"
+		    use="required" />
+    <occi:attribute name="blog.user.email" type="xs:string" title="User email" />
+    <occi:attribute name="blog.user.role" type="xs:string" title="User role" />
+  </occi:kind>
+
+  <occi:kind scheme="http://example.org/occi/test#" term="author" title="Author">
+    <occi:parent scheme="http://schemas.ogf.org/occi/core#" term="link" />
+  </occi:kind>
+</occi:extension>
 ```
+Then, you have to edit the configuring file of erocci at erocci/config/sys.config
+Here, you can insert the path to the xml file defining you API in several ways :
+
+- reading from the absolute path :
+```
+{schema, "/absolute/path/to.xml"}
+```
+- reading from erocci_backend_mensia/priv/path/to.xml:
+```
+{schema, {priv_dir, "path/to.xml"}}
+```
+- reading from a distant repository (for instance [http://github.com/occiware/occi-schemas](http://github.com/occiware/occi-schemas)):
+```
+{schema, {extension, "http://example.org/occi/schema#"}}
+```
+
+Finally, start erocci with:
+
+```
+$ ./start.sh
+```
+(you can use ./start.sh --help to display the help)
+
 
 ## Mailing lists
 
@@ -103,6 +147,20 @@ $ ./start.sh -c apps/erocci/priv/configs/default.config
 ## CI
 
 Visit CI results on http://travis-ci.org/erocci/erocci
+
+## Troubleshooting ##
+If the server always display a 500 error, check you version of erlang (>18).
+Then, you need to clean the deps/ folder with :
+ 
+```
+$ rm -rf /deps
+```
+Then you can recompile with 
+
+```
+$ make
+```
+
 
 
 ## Modules ##
