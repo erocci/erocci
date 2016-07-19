@@ -18,7 +18,10 @@ EDOC_OPTS = {app_default, "http://www.erlang.org/doc/"} \
 EDOC_SRC_DIRS = \
 	$(ALL_APPS_DIRS) \
 	$(DEPS_DIR)/occi \
-	$(DEPS_DIR)/erocci_core
+	$(DEPS_DIR)/erocci_core \
+	$(DEPS_DIR)/erocci_listener_http \
+	$(DEPS_DIR)/erocci_backend_mnesia \
+	$(DEPS_DIR)/erocci_backend_dbus
 
 LOCK = deps.lock
 include $(LOCK)
