@@ -1,4 +1,4 @@
-occi_v = v1.0rc5-8-g461c2ee
+occi_v = v1.0rc5-9-g2e3e4c0
 erocci_core_v = v1.0rc6-9-g97a8cd7
 erocci_listener_http_v = v1.0rc4-6-gfb37c13
 erocci_backend_mnesia_v = v1.0rc3-6-gad7d3db
