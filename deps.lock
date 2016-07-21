@@ -1,7 +1,7 @@
-occi_v = v1.0rc5-9-g2e3e4c0
-erocci_core_v = v1.0rc6-9-g97a8cd7
-erocci_listener_http_v = v1.0rc4-6-gfb37c13
-erocci_backend_mnesia_v = v1.0rc3-6-gad7d3db
-erocci_backend_dbus_v = v1.0rc1-7-g9a6a340
+occi_v = v1.0
+erocci_core_v = v1.0
+erocci_listener_http_v = v1.0
+erocci_backend_mnesia_v = v1.0
+erocci_backend_dbus_v = v1.0
 edown_v = 0.8
 pocci_v = v1.0.0+erocci1.2.1
