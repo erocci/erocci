@@ -1,7 +1,6 @@
 ** this is the overview.doc file for the application 'erocci' **
 
-@author Jean Parpaillon <jean.parpaillon@free.fr>
-@copyright 2013-2015 Lizenn, 2015-2016 Inria
+@copyright 2013-2014 Lizenn, 2015-2016 Inria
 @version 1.0
 @title Documentation for erocci
 @doc `erocci' is a framework for building OCCI like API, with the following objectives:
@@ -12,8 +11,6 @@
   * transport: HTTP, XMPP
   * backends: storage (Mnesia, etc.), "procci" to other APIs
 * small and heavily tested
-
-[![Build Status](https://travis-ci.org/erocci/erocci.svg?branch=master)](https://travis-ci.org/erocci/erocci) [![Project Stats](https://www.openhub.net/p/erocci/widgets/project_thin_badge.gif)](https://www.openhub.net/p/erocci)
 
 ## Docker
 

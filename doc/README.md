@@ -2,11 +2,9 @@
 
 # Documentation for erocci #
 
-Copyright (c) 2015 Inria
+Copyright (c) 2013-2014 Lizenn, 2015-2016 Inria
 
 __Version:__ 1.0
-
-__Authors:__ Jean Parpaillon ([`jean.parpaillon@free.fr`](mailto:jean.parpaillon@free.fr)).
 
 `erocci` is a framework for building OCCI like API, with the following objectives:
 * 100% compliance with OCCI specifications (core and rendering)
@@ -16,8 +14,6 @@ __Authors:__ Jean Parpaillon ([`jean.parpaillon@free.fr`](mailto:jean.parpaillon
 * transport: HTTP, XMPP
 * backends: storage (Mnesia, etc.), "procci" to other APIs
 * small and heavily tested
-
-[![Build Status](https://travis-ci.org/erocci/erocci.svg?branch=master)](https://travis-ci.org/erocci/erocci) [![Project Stats](https://www.openhub.net/p/erocci/widgets/project_thin_badge.gif)](https://www.openhub.net/p/erocci)
 
 ## Docker
 
@@ -44,20 +40,19 @@ erocci is written in erlang.
 
 * erlang/OTP, version 18 or greater
 * make, gcc
-* one of libxml2 or libexpat headers
 
 ### Ubuntu / Debian
 
 ```
 # wget http://packages.erlang-solutions.com/erlang-solutions_1.0_all.deb && sudo dpkg -i erlang-solutions_1.0_all.deb
 # sudo apt-get update
-# sudo apt-get install build-essential erlang libxml2-dev
+# sudo apt-get install build-essential erlang
 ```
 
 ### Fedora
 
 ```
-yum install erlang curl gcc libxml2-devel gcc-c++
+yum install erlang curl gcc
 ```
 
 ### MAC OS X
@@ -66,19 +61,7 @@ yum install erlang curl gcc libxml2-devel gcc-c++
 * erlang/OTP: https://www.erlang-solutions.com/downloads/download-erlang-otp
 * TO BE COMPLETED
 
-### Configuring and Building
-
-Configure sources and fetch dependencies:
-
-```
-$ ./bootstrap
-```
-(Optional) Run configure again for specific options
-
-```
-$ ./configure
-```
-Build:
+### Building
 
 ```
 $ make
@@ -87,12 +70,12 @@ $ make
 ## Running
 
 erocci is configured with a single config file. Several example config
-files are available in: `apps/erocci/priv/configs/`
+files are available in: `config/`
 
 Start erocci with:
 
 ```
-$ ./start.sh -c apps/erocci/priv/configs/default.config
+$ ./start.sh -c config/default.config
 ```
 
 ## Mailing lists

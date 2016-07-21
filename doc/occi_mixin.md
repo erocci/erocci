@@ -29,7 +29,7 @@ __abstract datatype__: `t()`
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#add_apply-2">add_apply/2</a></td><td></td></tr><tr><td valign="top"><a href="#add_depend-2">add_depend/2</a></td><td></td></tr><tr><td valign="top"><a href="#applies-1">applies/1</a></td><td></td></tr><tr><td valign="top"><a href="#depends-1">depends/1</a></td><td></td></tr><tr><td valign="top"><a href="#from_map-1">from_map/1</a></td><td>Load mixin from an AST.</td></tr><tr><td valign="top"><a href="#new-2">new/2</a></td><td></td></tr><tr><td valign="top"><a href="#tag-1">tag/1</a></td><td></td></tr><tr><td valign="top"><a href="#tag-2">tag/2</a></td><td></td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#add_apply-2">add_apply/2</a></td><td></td></tr><tr><td valign="top"><a href="#add_depend-2">add_depend/2</a></td><td></td></tr><tr><td valign="top"><a href="#applies-1">applies/1</a></td><td></td></tr><tr><td valign="top"><a href="#depend-2">depend/2</a></td><td></td></tr><tr><td valign="top"><a href="#depends-1">depends/1</a></td><td></td></tr><tr><td valign="top"><a href="#from_map-1">from_map/1</a></td><td>Load mixin from an AST.</td></tr><tr><td valign="top"><a href="#new-2">new/2</a></td><td></td></tr><tr><td valign="top"><a href="#rm_depend-2">rm_depend/2</a></td><td></td></tr><tr><td valign="top"><a href="#tag-1">tag/1</a></td><td></td></tr><tr><td valign="top"><a href="#tag-2">tag/2</a></td><td></td></tr></table>
 
 
 <a name="functions"></a>
@@ -63,6 +63,15 @@ applies(M::<a href="#type-t">t()</a>) -&gt; [<a href="occi_category.md#type-id">
 </code></pre>
 <br />
 
+<a name="depend-2"></a>
+
+### depend/2 ###
+
+<pre><code>
+depend(CategoryId::<a href="occi_category.md#type-id">occi_category:id()</a>, Mixin::<a href="#type-t">t()</a>) -&gt; boolean()
+</code></pre>
+<br />
+
 <a name="depends-1"></a>
 
 ### depends/1 ###
@@ -92,6 +101,15 @@ new(Scheme::binary(), Term::binary()) -&gt; <a href="#type-t">t()</a>
 </code></pre>
 <br />
 
+<a name="rm_depend-2"></a>
+
+### rm_depend/2 ###
+
+<pre><code>
+rm_depend(CategoryId::<a href="occi_category.md#type-id">occi_category:id()</a>, Mixin::<a href="#type-t">t()</a>) -&gt; <a href="#type-t">t()</a>
+</code></pre>
+<br />
+
 <a name="tag-1"></a>
 
 ### tag/1 ###
@@ -106,7 +124,7 @@ tag(M::<a href="#type-t">t()</a>) -&gt; boolean()
 ### tag/2 ###
 
 <pre><code>
-tag(IsTag::boolean(), M::<a href="#type-t">t()</a>) -&gt; <a href="#type-t">t()</a>
+tag(X1::boolean(), M::<a href="#type-t">t()</a>) -&gt; <a href="#type-t">t()</a>
 </code></pre>
 <br />
 
