@@ -1,7 +1,7 @@
 #!/bin/sh
 
 BASEDIR=$(cd $(dirname ${BASH_SOURCE[0]}) && pwd)
-DEPS="occi erocci_core erocci_listener_http erocci_backend_mnesia mixer dbus erocci_backend_dbus procket"
+DEPS="occi erocci_core erocci_listener_http erocci_backend_mnesia erocci_frontend mixer dbus erocci_backend_dbus procket"
 
 FLYCHECK_CFLAGS=$(for d in ${DEPS}; do echo -n "-I${BASEDIR}/deps/$d/include "; done)
 FLYCHECK_CFLAGS="${FLYCHECK_CFLAGS} -DTEST"

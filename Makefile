@@ -8,6 +8,7 @@ DEPS = \
 	erocci_listener_http \
 	erocci_backend_mnesia \
 	erocci_backend_dbus \
+	erocci_frontend \
 	edown
 
 TEST_DEPS = pocci
@@ -33,6 +34,7 @@ dep_erocci_listener_http = git https://github.com/erocci/erocci_listener_http.gi
 dep_erocci_backend_mnesia = git https://github.com/erocci/erocci_backend_mnesia.git $(erocci_backend_mnesia_v)
 dep_erocci_backend_dbus = git https://github.com/erocci/erocci_backend_dbus.git $(erocci_backend_dbus_v)
 dep_pocci = git https://github.com/jeanparpaillon/pOCCI.git $(pocci_v)
+dep_erocci_frontend = git https://github.com/erocci/erocci_frontend.git $(erocci_frontend_v)
 
 include erlang.mk
 
