@@ -15,6 +15,12 @@ addons:
     packages:
       - python-pycurl
 
+before_install:
+  - wget https://raw.githubusercontent.com/creationix/nvm/v0.31.0/nvm.sh -O ~/.nvm/nvm.sh
+  - source ~/.nvm/nvm.sh
+  - nvm install 6
+  - node --version
+
 install:
   - "make"
 
