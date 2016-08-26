@@ -3,6 +3,8 @@ version = 1.0
 PROJECT = erocci
 PROJECT_VERSION = $(shell git describe --always --tags 2> /dev/null | sed -e 's/v\(.*\)/\1/' || echo $(version))
 
+DEV ?= 
+
 DEPS = \
 	erocci_core \
 	erocci_listener_http \
@@ -24,8 +26,17 @@ EDOC_SRC_DIRS = \
 	$(DEPS_DIR)/erocci_backend_mnesia \
 	$(DEPS_DIR)/erocci_backend_dbus
 
+ifeq ($(DEV),1)
+erocci_core_v = master
+erocci_listener_http_v = master
+erocci_backend_mnesia_v = master
+erocci_backend_dbus_v = master
+pocci_v = master
+erocci_frontend_v = master
+else
 LOCK = deps.lock
 include $(LOCK)
+endif
 
 POCCI_DATA = $(TEST_DIR)/pocci_SUITE_data/pocci.conf
 
@@ -34,7 +45,7 @@ dep_erocci_listener_http = git https://github.com/erocci/erocci_listener_http.gi
 dep_erocci_backend_mnesia = git https://github.com/erocci/erocci_backend_mnesia.git $(erocci_backend_mnesia_v)
 dep_erocci_backend_dbus = git https://github.com/erocci/erocci_backend_dbus.git $(erocci_backend_dbus_v)
 dep_pocci = git https://github.com/jeanparpaillon/pOCCI.git $(pocci_v)
-dep_erocci_frontend = git https://github.com/occiware/OCCInterface.git master
+dep_erocci_frontend = git https://github.com/occiware/OCCInterface.git $(erocci_frontend_v)
 
 include erlang.mk
 
