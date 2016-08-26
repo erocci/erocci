@@ -67,13 +67,20 @@ yum install erlang curl gcc
 $ make
 ```
 
+* Dev mode: in dev mode, components are fetched from master, not fixed version
+
+To enable dev mode:
+
+```
+$ DEV=1 make
+```
+
 ## Running
 
 erocci is configured with a single config file. Several example config
-files are available in: `config/`
+files are available in: `config/'
 
 Start erocci with:
-
 ```
 $ ./start.sh -c config/default.config
 ```
