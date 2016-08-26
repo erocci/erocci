@@ -8,6 +8,9 @@ otp_release:
    - 18.1
    - 18.2.1
 
+node_js:
+   - '6'
+
 sudo: false
 
 addons:
