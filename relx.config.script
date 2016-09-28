@@ -1,0 +1,15 @@
+% -*- mode: erlang -*-
+case os:getenv("FRONTEND") of
+	"1" ->
+		RootDir = filename:dirname(SCRIPT),
+		Overlay = case lists:keyfind(overlay, 1, CONFIG) of
+					  false -> [];
+					  V -> V
+				  end,
+		Overlay2 = [ {copy, 
+					  filename:join(RootDir, "deps/erocci_frontend"),
+					  "lib/"} | Overlay ],
+		lists:keystore(overlay, 1, CONFIG, {overlay, Overlay2});
+	_ ->
+		CONFIG
+end.

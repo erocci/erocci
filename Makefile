@@ -4,14 +4,21 @@ PROJECT = erocci
 PROJECT_VERSION = $(shell git describe --always --tags 2> /dev/null | sed -e 's/v\(.*\)/\1/' || echo $(version))
 
 DEV ?= 
+FRONTEND ?=
+
+ROOT_DIR = $(abspath $(lastword $(MAKEFILE_LIST)))
+export ROOT_DIR
 
 DEPS = \
 	erocci_core \
 	erocci_listener_http \
 	erocci_backend_mnesia \
 	erocci_backend_dbus \
-	erocci_frontend \
 	edown
+
+ifeq ($(FRONTEND),1)
+DEPS += erocci_frontend
+endif
 
 TEST_DEPS = pocci
 
@@ -81,4 +88,16 @@ lock: deps
 	  echo "$${dep}_v = $${v}" | tee --append $(LOCK); \
 	done
 
-.PHONY: fulldoc lock clean-local
+help:: help-local
+
+help-local:
+	@echo 
+	@echo "erocci specific targets:"
+	@echo "  lock         Update dependancies lock file"
+	@echo "  fulldoc      Build documentation for erocci and its components"
+	@echo ""
+	@echo "erocci build environment:"
+	@echo "  DEV=1        Use 'master' version of dependancies"
+	@echo "  FRONTEND=1   Build with JS frontend"
+
+.PHONY: fulldoc lock clean-local help-local
