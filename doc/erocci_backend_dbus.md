@@ -24,7 +24,7 @@ __Authors:__ Jean Parpaillon ([`jean.parpaillon@free.fr`](mailto:jean.parpaillon
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#action-4">action/4</a></td><td></td></tr><tr><td valign="top"><a href="#collection-5">collection/5</a></td><td></td></tr><tr><td valign="top"><a href="#create-4">create/4</a></td><td></td></tr><tr><td valign="top"><a href="#create-5">create/5</a></td><td></td></tr><tr><td valign="top"><a href="#delete-2">delete/2</a></td><td></td></tr><tr><td valign="top"><a href="#get-2">get/2</a></td><td></td></tr><tr><td valign="top"><a href="#init-1">init/1</a></td><td></td></tr><tr><td valign="top"><a href="#link-4">link/4</a></td><td></td></tr><tr><td valign="top"><a href="#mixin-4">mixin/4</a></td><td></td></tr><tr><td valign="top"><a href="#models-1">models/1</a></td><td></td></tr><tr><td valign="top"><a href="#terminate-1">terminate/1</a></td><td></td></tr><tr><td valign="top"><a href="#unmixin-3">unmixin/3</a></td><td></td></tr><tr><td valign="top"><a href="#update-3">update/3</a></td><td></td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#action-4">action/4</a></td><td></td></tr><tr><td valign="top"><a href="#collection-5">collection/5</a></td><td></td></tr><tr><td valign="top"><a href="#create-4">create/4</a></td><td></td></tr><tr><td valign="top"><a href="#create-5">create/5</a></td><td></td></tr><tr><td valign="top"><a href="#delete-2">delete/2</a></td><td></td></tr><tr><td valign="top"><a href="#get-2">get/2</a></td><td></td></tr><tr><td valign="top"><a href="#init-1">init/1</a></td><td></td></tr><tr><td valign="top"><a href="#link-4">link/4</a></td><td></td></tr><tr><td valign="top"><a href="#mixin-4">mixin/4</a></td><td></td></tr><tr><td valign="top"><a href="#models-1">models/1</a></td><td></td></tr><tr><td valign="top"><a href="#terminate-1">terminate/1</a></td><td></td></tr><tr><td valign="top"><a href="#unlink-4">unlink/4</a></td><td></td></tr><tr><td valign="top"><a href="#unmixin-3">unmixin/3</a></td><td></td></tr><tr><td valign="top"><a href="#update-3">update/3</a></td><td></td></tr></table>
 
 
 <a name="functions"></a>
@@ -127,6 +127,15 @@ models(State::term()) -&gt; {{ok, [<a href="occi_extension.md#type-t">occi_exten
 
 <pre><code>
 terminate(State::term()) -&gt; ok
+</code></pre>
+<br />
+
+<a name="unlink-4"></a>
+
+### unlink/4 ###
+
+<pre><code>
+unlink(Location::<a href="occi_uri.md#type-url">occi_uri:url()</a>, Type::source | target, LinkId::<a href="occi_link.md#type-id">occi_link:id()</a>, State::term()) -&gt; {ok | {error, <a href="erocci_backend.md#type-error">erocci_backend:error()</a>}, NewState::term()}
 </code></pre>
 <br />
 

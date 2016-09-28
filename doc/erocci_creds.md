@@ -33,7 +33,7 @@ group() = binary() | admin | anonymous
 
 
 <pre><code>
-t() = #creds{}
+t() = #creds{type = <a href="#type-type">type()</a>, challenge = function(), authenticated = boolean(), data = term()}
 </code></pre>
 
 

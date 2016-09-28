@@ -18,7 +18,7 @@ https://github.com/erocci/erocci/blob/master/LICENSE
 
 __Behaviours:__ [`gen_server`](gen_server.md).
 
-__This module defines the `erocci_backend` behaviour.__<br /> Required callback functions: `init/1`, `terminate/1`, `models/1`, `get/2`, `create/5`, `create/4`, `update/3`, `link/4`, `action/4`, `delete/2`, `mixin/4`, `unmixin/3`, `collection/5`.
+__This module defines the `erocci_backend` behaviour.__<br /> Required callback functions: `init/1`, `terminate/1`, `models/1`, `get/2`, `create/5`, `create/4`, `update/3`, `link/4`, `unlink/4`, `action/4`, `delete/2`, `mixin/4`, `unmixin/3`, `collection/5`.
 
 __Authors:__ Jean Parpaillon ([`jean.parpaillon@free.fr`](mailto:jean.parpaillon@free.fr)).
 
@@ -73,7 +73,7 @@ id() = term()
 
 
 <pre><code>
-t() = #backend{}
+t() = #backend{id = <a href="#type-id">id()</a>, handler = atom(), opts = term(), mountpoint = [binary()], raw_mountpoint = binary(), depth = integer()}
 </code></pre>
 
 <a name="index"></a>
@@ -83,7 +83,7 @@ t() = #backend{}
 
 <table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#action-3">action/3</a></td><td>Invoke an action on an existing entity.</td></tr><tr><td valign="top"><a href="#collection-5">collection/5</a></td><td>Retrieve a list of entities
 start: integer > 0
-number: integer > 0 | undefined (infinite).</td></tr><tr><td valign="top"><a href="#create-4">create/4</a></td><td>Create a new entity.</td></tr><tr><td valign="top"><a href="#default-0">default/0</a></td><td>Default backend.</td></tr><tr><td valign="top"><a href="#delete-2">delete/2</a></td><td>Delete an entity.</td></tr><tr><td valign="top"><a href="#depth-1">depth/1</a></td><td>Return mountpoint length.</td></tr><tr><td valign="top"><a href="#get-2">get/2</a></td><td>Lookup for a node at Path.</td></tr><tr><td valign="top"><a href="#id-1">id/1</a></td><td></td></tr><tr><td valign="top"><a href="#is_root-1">is_root/1</a></td><td>is root backend ?.</td></tr><tr><td valign="top"><a href="#link-4">link/4</a></td><td>Creates a link of type <code>Type</code> between resource and link id.</td></tr><tr><td valign="top"><a href="#mixin-4">mixin/4</a></td><td>Add a mixin to an existing entity.</td></tr><tr><td valign="top"><a href="#mnesia_disc_copies-1">mnesia_disc_copies/1</a></td><td>Get nodes on which a schema must exists.</td></tr><tr><td valign="top"><a href="#models-1">models/1</a></td><td>Get backend models.</td></tr><tr><td valign="top"><a href="#mountpoint-1">mountpoint/1</a></td><td></td></tr><tr><td valign="top"><a href="#new-1">new/1</a></td><td>Creates new backend entry.</td></tr><tr><td valign="top"><a href="#path-1">path/1</a></td><td></td></tr><tr><td valign="top"><a href="#spec-1">spec/1</a></td><td></td></tr><tr><td valign="top"><a href="#start_link-1">start_link/1</a></td><td>Start backend.</td></tr><tr><td valign="top"><a href="#unmixin-3">unmixin/3</a></td><td>Remove mixin from existing entity.</td></tr><tr><td valign="top"><a href="#update-3">update/3</a></td><td>Update an entity.</td></tr></table>
+number: integer > 0 | undefined (infinite).</td></tr><tr><td valign="top"><a href="#create-4">create/4</a></td><td>Create a new entity.</td></tr><tr><td valign="top"><a href="#default-0">default/0</a></td><td>Default backend.</td></tr><tr><td valign="top"><a href="#delete-2">delete/2</a></td><td>Delete an entity.</td></tr><tr><td valign="top"><a href="#depth-1">depth/1</a></td><td>Return mountpoint length.</td></tr><tr><td valign="top"><a href="#get-2">get/2</a></td><td>Lookup for a node at Path.</td></tr><tr><td valign="top"><a href="#id-1">id/1</a></td><td></td></tr><tr><td valign="top"><a href="#is_root-1">is_root/1</a></td><td>is root backend ?.</td></tr><tr><td valign="top"><a href="#link-4">link/4</a></td><td>Creates a link of type <code>Type</code> between resource and link id.</td></tr><tr><td valign="top"><a href="#mixin-4">mixin/4</a></td><td>Add a mixin to an existing entity.</td></tr><tr><td valign="top"><a href="#mnesia_disc_copies-1">mnesia_disc_copies/1</a></td><td>Get nodes on which a schema must exists.</td></tr><tr><td valign="top"><a href="#models-1">models/1</a></td><td>Get backend models.</td></tr><tr><td valign="top"><a href="#mountpoint-1">mountpoint/1</a></td><td></td></tr><tr><td valign="top"><a href="#new-1">new/1</a></td><td>Creates new backend entry.</td></tr><tr><td valign="top"><a href="#path-1">path/1</a></td><td></td></tr><tr><td valign="top"><a href="#spec-1">spec/1</a></td><td></td></tr><tr><td valign="top"><a href="#start_link-1">start_link/1</a></td><td>Start backend.</td></tr><tr><td valign="top"><a href="#unlink-4">unlink/4</a></td><td>Unlink an entity from a link.</td></tr><tr><td valign="top"><a href="#unmixin-3">unmixin/3</a></td><td>Remove mixin from existing entity.</td></tr><tr><td valign="top"><a href="#update-3">update/3</a></td><td>Update an entity.</td></tr></table>
 
 
 <a name="functions"></a>
@@ -280,6 +280,17 @@ start_link(Backend::<a href="#type-t">t()</a>) -&gt; {ok, pid()} | ignore | {err
 <br />
 
 Start backend
+
+<a name="unlink-4"></a>
+
+### unlink/4 ###
+
+<pre><code>
+unlink(Backend::<a href="#type-t">t()</a>, EntityId::<a href="occi_entity.md#type-id">occi_entity:id()</a>, Type::source | target, LinkId::<a href="occi_link.md#type-location">occi_link:location()</a>) -&gt; ok | {error, <a href="#type-error">error()</a>}
+</code></pre>
+<br />
+
+Unlink an entity from a link.
 
 <a name="unmixin-3"></a>
 

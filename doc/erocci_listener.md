@@ -35,7 +35,7 @@ id() = atom()
 
 
 <pre><code>
-t() = #listener{}
+t() = #listener{id = <a href="#type-id">id()</a>, handler = atom(), opts = term()}
 </code></pre>
 
 <a name="index"></a>

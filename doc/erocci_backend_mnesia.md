@@ -39,7 +39,7 @@ state() = [<a href="occi_extension.md#type-t">occi_extension:t()</a>]
 ## Function Index ##
 
 
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#action-4">action/4</a></td><td></td></tr><tr><td valign="top"><a href="#collection-5">collection/5</a></td><td></td></tr><tr><td valign="top"><a href="#create-4">create/4</a></td><td></td></tr><tr><td valign="top"><a href="#create-5">create/5</a></td><td></td></tr><tr><td valign="top"><a href="#delete-2">delete/2</a></td><td></td></tr><tr><td valign="top"><a href="#get-2">get/2</a></td><td></td></tr><tr><td valign="top"><a href="#init-1">init/1</a></td><td></td></tr><tr><td valign="top"><a href="#link-4">link/4</a></td><td></td></tr><tr><td valign="top"><a href="#mixin-4">mixin/4</a></td><td></td></tr><tr><td valign="top"><a href="#mnesia_disc_copies-1">mnesia_disc_copies/1</a></td><td>Returns nodes on which a mnesia schema must be created.</td></tr><tr><td valign="top"><a href="#models-1">models/1</a></td><td></td></tr><tr><td valign="top"><a href="#terminate-1">terminate/1</a></td><td></td></tr><tr><td valign="top"><a href="#unmixin-3">unmixin/3</a></td><td></td></tr><tr><td valign="top"><a href="#update-3">update/3</a></td><td></td></tr></table>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#action-4">action/4</a></td><td></td></tr><tr><td valign="top"><a href="#collection-5">collection/5</a></td><td></td></tr><tr><td valign="top"><a href="#create-4">create/4</a></td><td></td></tr><tr><td valign="top"><a href="#create-5">create/5</a></td><td></td></tr><tr><td valign="top"><a href="#delete-2">delete/2</a></td><td></td></tr><tr><td valign="top"><a href="#get-2">get/2</a></td><td></td></tr><tr><td valign="top"><a href="#init-1">init/1</a></td><td></td></tr><tr><td valign="top"><a href="#link-4">link/4</a></td><td></td></tr><tr><td valign="top"><a href="#mixin-4">mixin/4</a></td><td></td></tr><tr><td valign="top"><a href="#mnesia_disc_copies-1">mnesia_disc_copies/1</a></td><td>Returns nodes on which a mnesia schema must be created.</td></tr><tr><td valign="top"><a href="#models-1">models/1</a></td><td></td></tr><tr><td valign="top"><a href="#terminate-1">terminate/1</a></td><td></td></tr><tr><td valign="top"><a href="#unlink-4">unlink/4</a></td><td></td></tr><tr><td valign="top"><a href="#unmixin-3">unmixin/3</a></td><td></td></tr><tr><td valign="top"><a href="#update-3">update/3</a></td><td></td></tr></table>
 
 
 <a name="functions"></a>
@@ -122,6 +122,12 @@ Returns nodes on which a mnesia schema must be created
 ### terminate/1 ###
 
 `terminate(S) -> any()`
+
+<a name="unlink-4"></a>
+
+### unlink/4 ###
+
+`unlink(Location, Type, LinkId, S) -> any()`
 
 <a name="unmixin-3"></a>
 
