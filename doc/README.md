@@ -71,7 +71,7 @@ $ make
 
 Build can be customized with following environment variables:
 * `DEV=1`: enable developper mode, use master version of components instead of fixed version
-* `FRONTEND=1`: build with javascript frontend
+* `FRONTEND=1`: buld with javascript frontend
 
 ## Running
 
